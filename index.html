@@ -148,6 +148,7 @@
   .dcol:hover .bar{filter:brightness(.85)}
   .dcol.sel .bar,.dcol.sel .seg{filter:brightness(.6)}
   .dcol.nao{cursor:default}
+  .dcol .aviso-barra{color:#b07a00;font-weight:700}
   .dcol .rotv{position:absolute;font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
   .deixo{display:grid;gap:2px;font-size:11px;color:var(--mute);text-align:center;margin-top:4px}
   .deixo span{overflow:hidden;white-space:nowrap}
@@ -162,6 +163,26 @@
   tr.tot td{font-weight:650;border-top:2px solid var(--line)}
   .vazio{color:var(--mute);font-size:13px;padding:12px 0}
   .carregando{color:var(--mute);padding:40px;text-align:center}
+
+  /* Pessoas e acessos */
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:#e8eef7;color:var(--pri);margin:1px 4px 1px 0;white-space:nowrap;border:1px solid transparent}
+  .pill.nao{background:#f3f4f6;color:var(--mute);text-decoration:line-through}
+  .pill.exc{border-color:var(--amarelo);background:#fff8dc;color:#6d5300}
+  tr.inativo td{color:var(--mute)}
+  code{font-family:Consolas,monospace;font-size:12px;background:#f3f5f8;padding:1px 5px;border-radius:4px}
+  .btn.mini{padding:4px 10px;font-size:12px}
+  .form-pes{border-color:var(--pri);border-top:3px solid var(--amarelo)}
+  .form-pes h4{margin:18px 0 2px;font-size:14px}
+  .grade-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 18px;margin-top:12px}
+  .grade-form label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)}
+  .grade-form input,.grade-form select,.campo,.perm select,td select{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:#fff;min-width:0}
+  .grade-form input:disabled{background:#f3f5f8}
+  .campo{font-size:13px;padding:6px 9px}
+  label.chk{flex-direction:row !important;align-items:center;gap:8px !important;color:var(--ink) !important;font-size:13px}
+  select.exc{border-color:var(--amarelo);background:#fff8dc}
+  table.perm{max-width:760px}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1b2333;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:20;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  .toast.ruim{background:#8a1f1f}
 </style>
 </head>
 <body>
@@ -390,17 +411,278 @@ const fmtH = n => (n ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })
 const ehGenerico = u => USUARIOS_GENERICOS.some(g => g.toLowerCase() === String(u).toLowerCase());
 const ehExcluido = u => USUARIOS_EXCLUIDOS.some(g => g.toLowerCase() === String(u).toLowerCase());
 
+/* =================== PESSOAS E ACESSOS =================== */
+// Permissões chegam prontas do servidor (perfil + exceções). Esconder o menu é só conveniência:
+// a Edge Function confere de novo em toda chamada.
+const ROT_PERFIL = { admin:'Admin', lider:'Líder', operacional:'Operacional' };
+const ROT_NIVEL = { nenhum:'Sem acesso', ver:'Ver', editar:'Editar' };
+const ROT_FUNCAO_WMS = { operacional:'Operacional', lider:'Líder', apoio:'Apoio', gestao:'Gestão' };
+function pode(tela, nivel = 'ver'){
+  if (DEMO) return true;
+  const u = state.usuario || {};
+  let p = u.permissoes;
+  if (!p) p = u.perfil === 'admin' ? { produtividade:'ver', pessoas:'editar' } : u.perfil === 'lider' ? { produtividade:'ver' } : {};   // sessão antiga
+  const ordem = { nenhum:0, ver:1, editar:2 };
+  return (ordem[p[tela] || 'nenhum'] || 0) >= ordem[nivel];
+}
+const semDominio = (login, dom) => dom && login.endsWith('@' + dom) ? login.slice(0, -(dom.length + 1)) : login;
+const nomeWms = u => USUARIOS_GENERICOS.find(g => g.toLowerCase() === String(u).toLowerCase()) || String(u || '').replace(/(^|[\s.'-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+const quando = iso => iso ? new Date(iso).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', dateStyle:'short', timeStyle:'short' }) : '–';
+
+// Demonstração: dados em memória
+const DEMO_PESSOAS = {
+  usuarios: [
+    { login:'douglas.ribeiro@op.valenro.local', nome:'Douglas Ribeiro', perfil:'admin', ativo:true, permissoes:{}, colaborador_wms:'douglas ribeiro', ultimo_acesso:new Date().toISOString(), atualizado_por:null },
+    { login:'guilherme.porto@op.valenro.local', nome:'Guilherme Porto', perfil:'lider', ativo:true, permissoes:{}, colaborador_wms:'guilherme porto', ultimo_acesso:null, atualizado_por:'douglas.ribeiro@op.valenro.local' },
+    { login:'degmar.gomes@op.valenro.local', nome:'Degmar Gomes', perfil:'lider', ativo:true, permissoes:{ pessoas:'ver' }, colaborador_wms:'degmar gomes', ultimo_acesso:null, atualizado_por:'douglas.ribeiro@op.valenro.local' },
+  ],
+  colaboradores: ['arthur magdaleno','davi duarte','david duarte','degmar gomes','douglas ribeiro','guilherme porto','nathan marques','rafael batista','tiago santos','vinicius correa','administrador','expedição i','expedição ii']
+    .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
+      ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
+  historico: [],
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', pessoas:'editar' }, lider:{ produtividade:'ver', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', pessoas:'nenhum' } },
+  funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
+};
+async function apiPessoas(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_PESSOAS, por = 'demonstracao';
+  if (path === '/pessoas') return JSON.parse(JSON.stringify(D));
+  if (path === '/pessoas/usuario') {
+    const login = corpo.login.includes('@') ? corpo.login.toLowerCase() : `${corpo.login.toLowerCase()}@${D.dominio}`;
+    const i = D.usuarios.findIndex(u => u.login === login);
+    if (corpo.novo && i >= 0) throw new Error('Já existe um acesso com esse login. Use Editar.');
+    if (corpo.novo && !corpo.senha) throw new Error('Defina a senha inicial');
+    const novo = { login, nome:corpo.nome, perfil:corpo.perfil, ativo:corpo.ativo, permissoes:corpo.permissoes, colaborador_wms:corpo.colaborador_wms, ultimo_acesso:i >= 0 ? D.usuarios[i].ultimo_acesso : null, atualizado_por:por };
+    D.historico.unshift({ em:new Date().toISOString(), por, acao: corpo.novo ? 'usuario.criar' : 'usuario.alterar', alvo:login, antes: i >= 0 ? D.usuarios[i] : null, depois:novo });
+    if (corpo.senha && !corpo.novo) D.historico.unshift({ em:new Date().toISOString(), por, acao:'usuario.senha', alvo:login, antes:null, depois:{ senha:'redefinida' } });
+    i >= 0 ? (D.usuarios[i] = novo) : D.usuarios.push(novo);
+    return { ok:true };
+  }
+  if (path === '/pessoas/colaborador') {
+    const c = D.colaboradores.find(x => x.usuario === corpo.usuario);
+    D.historico.unshift({ em:new Date().toISOString(), por, acao:'colaborador.alterar', alvo:corpo.usuario, antes:{ funcao:c.funcao, obs:c.obs }, depois:{ funcao:corpo.funcao, obs:corpo.obs } });
+    Object.assign(c, { funcao:corpo.funcao, obs:corpo.obs });
+    return { ok:true };
+  }
+}
+
+function telaPessoas(){
+  const s = state.pes ||= { aba:'acessos', busca:'', soPendentes:false, editando:null };
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Pessoas e acessos</h2><span style="flex:1"></span>
+      <div class="abas">
+        <button data-aba="acessos" class="${s.aba==='acessos'?'on':''}">Acesso ao portal</button>
+        <button data-aba="wms" class="${s.aba==='wms'?'on':''}">Colaboradores do WMS</button>
+        <button data-aba="hist" class="${s.aba==='hist'?'on':''}">Histórico</button>
+      </div>
+    </div>
+    <div id="pes"><div class="carregando">Carregando…</div></div>`;
+  $app.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; s.editando = null; telaPessoas(); });
+  carregarPessoas();
+}
+async function carregarPessoas(){
+  const $p = document.getElementById('pes'); if (!$p) return;
+  try { state.pesDados = await apiPessoas('/pessoas'); renderPessoas(); }
+  catch (e) { if (e instanceof SemSessao) throw e; $p.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function avisar(msg, erro){
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+  t.className = 'toast' + (erro ? ' ruim' : ''); t.textContent = msg; t.hidden = false;
+  clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, erro ? 6000 : 2500);
+}
+function renderPessoas(){
+  const s = state.pes, r = state.pesDados, $p = document.getElementById('pes');
+  if (!$p || !r) return;
+  if (s.aba === 'wms') return renderColaboradores($p, r);
+  if (s.aba === 'hist') return renderHistorico($p, r);
+  const edita = pode('pessoas', 'editar');
+  const resumo = u => r.telas.map(t => {
+    const n = u.permissoes?.[t.id] || r.modelos[u.perfil]?.[t.id] || 'nenhum', exc = !!u.permissoes?.[t.id];
+    return n === 'nenhum' && !exc ? '' : `<span class="pill ${n === 'nenhum' ? 'nao' : ''} ${exc ? 'exc' : ''}" title="${exc ? 'Exceção: diferente do padrão do perfil' : 'Padrão do perfil'}">${esc(t.nome)}${n === 'editar' ? ' · editar' : n === 'nenhum' ? ' · bloqueado' : ''}</span>`;
+  }).join('') || '<span class="info">nenhuma tela</span>';
+  const lista = [...r.usuarios].sort((a, b) => (b.ativo - a.ativo) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  $p.innerHTML = `
+    ${s.editando ? formUsuario(r, s.editando) : ''}
+    <div class="painel">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <h3 style="margin:0">Quem entra no portal</h3><span class="info">${lista.filter(u => u.ativo).length} ativo(s)</span><span style="flex:1"></span>
+        ${edita ? `<button class="btn pri" id="p-novo">+ Novo acesso</button>` : ''}
+      </div>
+      <div class="leg">O perfil define o padrão de telas. Exceções por pessoa aparecem com borda amarela. Desativar corta o acesso na hora, sem apagar o histórico.</div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Nome</th><th>Usuário</th><th>Perfil</th><th>Telas</th><th>No WMS</th><th>Último acesso</th><th>Situação</th>${edita ? '<th></th>' : ''}</tr></thead>
+        <tbody>${lista.map(u => `<tr${u.ativo ? '' : ' class="inativo"'}>
+          <td>${esc(u.nome)}</td><td><code>${esc(semDominio(u.login, r.dominio))}</code></td><td>${ROT_PERFIL[u.perfil] || esc(u.perfil)}</td>
+          <td>${resumo(u)}</td><td>${u.colaborador_wms ? esc(nomeWms(u.colaborador_wms)) : '<span class="info">–</span>'}</td>
+          <td>${u.ultimo_acesso ? quando(u.ultimo_acesso) : '<span class="info">nunca entrou</span>'}</td>
+          <td>${u.ativo ? 'Ativo' : 'Desativado'}</td>
+          ${edita ? `<td><button class="btn mini" data-editar="${esc(u.login)}">Editar</button></td>` : ''}</tr>`).join('')}
+        </tbody></table></div>
+    </div>`;
+  const nv = document.getElementById('p-novo');
+  if (nv) nv.onclick = () => { s.editando = { novo:true }; renderPessoas(); };
+  $p.querySelectorAll('[data-editar]').forEach(b => b.onclick = () => { s.editando = r.usuarios.find(u => u.login === b.dataset.editar); renderPessoas(); });
+  if (s.editando) ligarFormUsuario(r);
+}
+function formUsuario(r, u){
+  const novo = !!u.novo, perfil = u.perfil || 'lider';
+  const proprio = !DEMO && state.usuario && u.login === state.usuario.login;
+  const opcWms = r.colaboradores.filter(c => !ehGenerico(c.usuario)).map(c => `<option value="${esc(c.usuario)}" ${u.colaborador_wms === c.usuario ? 'selected' : ''}>${esc(nomeWms(c.usuario))}</option>`).join('');
+  return `
+    <div class="painel form-pes" id="p-form">
+      <h3>${novo ? 'Novo acesso' : `Editar · ${esc(u.nome)}`}</h3>
+      <div class="erro" id="pf-erro" hidden></div>
+      <div class="grade-form">
+        <label>Nome completo<input id="pf-nome" value="${esc(u.nome || '')}" placeholder="Ex.: Arthur Magdaleno" autocomplete="off"></label>
+        <label>Usuário de login
+          ${novo ? `<input id="pf-login" placeholder="nome.sobrenome" autocapitalize="none" autocomplete="off">` : `<input id="pf-login" value="${esc(semDominio(u.login, r.dominio))}" disabled>`}
+          <span class="info">${novo ? 'Sem e-mail: digite nome.sobrenome. Com e-mail: digite o e-mail.' : 'O usuário não muda. Para trocar, desative e crie outro.'}</span></label>
+        <label>Perfil
+          <select id="pf-perfil" ${proprio ? 'disabled' : ''}>${Object.keys(r.modelos).map(p => `<option value="${p}" ${p === perfil ? 'selected' : ''}>${ROT_PERFIL[p] || p}</option>`).join('')}</select>
+          ${proprio ? '<span class="info">Você não pode mudar o próprio perfil.</span>' : ''}</label>
+        <label>${novo ? 'Senha inicial' : 'Nova senha'}
+          <span style="display:flex;gap:6px"><input id="pf-senha" type="text" autocomplete="off" placeholder="${novo ? 'mínimo 6 caracteres' : 'em branco = mantém a atual'}" style="flex:1"><button class="btn" type="button" id="pf-pin">Gerar PIN</button></span>
+          <span class="info">Passe a senha pessoalmente. Ela não fica gravada em lugar nenhum do portal.</span></label>
+        <label>Nome no WMS (opcional)
+          <select id="pf-wms"><option value="">Não está no WMS</option>${opcWms}</select>
+          <span class="info">Liga o login ao nome que aparece nas separações.</span></label>
+        <label class="chk"><input type="checkbox" id="pf-ativo" ${u.ativo === false ? '' : 'checked'} ${proprio ? 'disabled' : ''}> Acesso ativo</label>
+      </div>
+      <h4>Telas</h4>
+      <div class="leg">"Padrão do perfil" segue o que o perfil libera. Escolha outra opção só para exceções.</div>
+      <table class="perm"><thead><tr><th>Tela</th><th>Área</th><th>Padrão do perfil</th><th>Para esta pessoa</th></tr></thead><tbody id="pf-telas"></tbody></table>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button class="btn" id="pf-cancelar">Cancelar</button><button class="btn pri" id="pf-salvar">${novo ? 'Criar acesso' : 'Salvar'}</button>
+      </div>
+    </div>`;
+}
+function ligarFormUsuario(r){
+  const s = state.pes, u = s.editando, exc = { ...(u.permissoes || {}) };
+  const $perfil = document.getElementById('pf-perfil');
+  const desenhaTelas = () => {
+    const perfil = $perfil.value;
+    document.getElementById('pf-telas').innerHTML = r.telas.map(t => {
+      const pad = r.modelos[perfil]?.[t.id] || 'nenhum', v = exc[t.id] && exc[t.id] !== pad ? exc[t.id] : '';
+      const travado = perfil === 'admin' && t.id === 'pessoas';
+      return `<tr><td>${esc(t.nome)}</td><td class="info">${esc(t.grupo)}</td><td>${ROT_NIVEL[pad]}</td>
+        <td><select data-tela="${t.id}" ${travado ? 'disabled title="Admin sempre edita o cadastro"' : ''} class="${v ? 'exc' : ''}">
+          <option value="">Padrão do perfil</option>${['nenhum', ...t.niveis].filter(n => n !== pad).map(n => `<option value="${n}" ${v === n ? 'selected' : ''}>${ROT_NIVEL[n]}</option>`).join('')}
+        </select></td></tr>`;
+    }).join('');
+    document.querySelectorAll('#pf-telas select').forEach(el => el.onchange = () => { el.value ? (exc[el.dataset.tela] = el.value) : delete exc[el.dataset.tela]; el.classList.toggle('exc', !!el.value); });
+  };
+  $perfil.onchange = () => { Object.keys(exc).forEach(k => { if (exc[k] === (r.modelos[$perfil.value]?.[k] || 'nenhum')) delete exc[k]; }); desenhaTelas(); };
+  desenhaTelas();
+  document.getElementById('pf-pin').onclick = () => {
+    const a = new Uint32Array(1); crypto.getRandomValues(a);
+    document.getElementById('pf-senha').value = String(a[0] % 1e6).padStart(6, '0');
+  };
+  document.getElementById('pf-cancelar').onclick = () => { s.editando = null; renderPessoas(); };
+  document.getElementById('pf-salvar').onclick = async ev => {
+    const $e = document.getElementById('pf-erro'), btn = ev.target;
+    const corpo = {
+      novo: !!u.novo, login: document.getElementById('pf-login').value.trim(), nome: document.getElementById('pf-nome').value.trim(),
+      perfil: $perfil.value, permissoes: exc, senha: document.getElementById('pf-senha').value.trim(),
+      colaborador_wms: document.getElementById('pf-wms').value || null, ativo: document.getElementById('pf-ativo').checked,
+    };
+    if (!corpo.nome || !corpo.login) { $e.hidden = false; $e.textContent = 'Preencha nome e usuário.'; return; }
+    if (corpo.novo && corpo.senha.length < 6) { $e.hidden = false; $e.textContent = 'Defina uma senha inicial com pelo menos 6 caracteres (ou use Gerar PIN).'; return; }
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    try {
+      await apiPessoas('/pessoas/usuario', corpo);
+      s.editando = null;
+      avisar(corpo.novo ? `Acesso criado. Usuário: ${semDominio(corpo.login.toLowerCase(), r.dominio)}` : (corpo.senha ? 'Salvo. Senha redefinida.' : 'Salvo.'));
+      await carregarPessoas();
+    } catch (e) {
+      if (e instanceof SemSessao) throw e;
+      $e.hidden = false; $e.textContent = e.message; btn.disabled = false; btn.textContent = corpo.novo ? 'Criar acesso' : 'Salvar';
+    }
+  };
+  document.getElementById('p-form').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function renderColaboradores($p, r){
+  const s = state.pes, edita = pode('pessoas', 'editar');
+  const termo = s.busca.trim().toLowerCase();
+  const pend = r.colaboradores.filter(c => !c.funcao && !ehGenerico(c.usuario)).length;
+  const lista = r.colaboradores
+    .filter(c => !termo || c.usuario.includes(termo))
+    .filter(c => !s.soPendentes || (!c.funcao && !ehGenerico(c.usuario)))
+    .sort((a, b) => ehGenerico(a.usuario) - ehGenerico(b.usuario) || (!!a.funcao - !!b.funcao) || (b.sep60 - a.sep60));
+  $p.innerHTML = `
+    <div class="painel">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <h3 style="margin:0">Função de quem aparece no WMS</h3>
+        ${pend ? `<span class="pill exc">${pend} sem classificação</span>` : `<span class="info">todos classificados</span>`}
+        <span style="flex:1"></span>
+        <label class="chk"><input type="checkbox" id="c-pend" ${s.soPendentes ? 'checked' : ''}> Só sem classificação</label>
+        <input id="c-busca" placeholder="Buscar nome" value="${esc(s.busca)}" class="campo">
+      </div>
+      <div class="leg">Só a função <b>Operacional</b> entra na média e no "por hora" da Produtividade. Quem ainda não foi classificado conta como operacional. A lista se monta sozinha a partir da coleta: nome novo no WMS aparece aqui.</div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Colaborador</th><th>Lojas</th><th class="n">Separações 60 dias</th><th>Último dia</th><th>Função</th><th>Observação</th></tr></thead>
+        <tbody>${lista.map(c => ehGenerico(c.usuario) ? `<tr class="inativo"><td>${esc(nomeWms(c.usuario))}</td><td>${(c.lojas || []).map(nomeLoja).join(', ')}</td><td class="n">${fmtN(c.sep60)}</td><td>${c.ultimo ? dataBR(c.ultimo) : '–'}</td><td colspan="2"><span class="info">Login genérico: sempre fora da média</span></td></tr>` : `
+          <tr><td>${esc(nomeWms(c.usuario))}</td><td>${(c.lojas || []).map(nomeLoja).join(', ') || '–'}</td><td class="n">${fmtN(c.sep60)}</td><td>${c.ultimo ? dataBR(c.ultimo) : '–'}</td>
+            <td><select data-func="${esc(c.usuario)}" ${edita ? '' : 'disabled'} class="${c.funcao ? '' : 'exc'}">
+              ${c.funcao ? '' : '<option value="" selected>Sem classificação (conta como operacional)</option>'}
+              ${r.funcoes.map(f => `<option value="${f}" ${c.funcao === f ? 'selected' : ''}>${ROT_FUNCAO_WMS[f] || f}</option>`).join('')}</select></td>
+            <td><input data-obs="${esc(c.usuario)}" value="${esc(c.obs || '')}" placeholder="${edita ? 'ex.: líder de entrada' : ''}" class="campo" ${edita ? '' : 'disabled'} maxlength="200"></td></tr>`).join('') || `<tr><td colspan="6" class="vazio">Ninguém encontrado.</td></tr>`}
+        </tbody></table></div>
+    </div>`;
+  document.getElementById('c-pend').onchange = e => { s.soPendentes = e.target.checked; renderPessoas(); };
+  const $b = document.getElementById('c-busca');
+  $b.oninput = () => { s.busca = $b.value; clearTimeout(s._t); s._t = setTimeout(() => { renderPessoas(); const n = document.getElementById('c-busca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); };
+  const salvar = async usuario => {
+    const sel = $p.querySelector(`[data-func="${CSS.escape(usuario)}"]`), obs = $p.querySelector(`[data-obs="${CSS.escape(usuario)}"]`);
+    if (!sel.value) { avisar('Escolha a função antes da observação', true); return; }
+    try {
+      await apiPessoas('/pessoas/colaborador', { usuario, funcao: sel.value, obs: obs.value.trim() || null });
+      const c = r.colaboradores.find(x => x.usuario === usuario); c.funcao = sel.value; c.obs = obs.value.trim() || null;
+      state.sepDados = null;   // produtividade recarrega com a função nova
+      avisar(`${nomeWms(usuario)}: ${ROT_FUNCAO_WMS[sel.value]}`);
+      sel.classList.remove('exc'); const vazio = sel.querySelector('option[value=""]'); if (vazio) vazio.remove();
+    } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+  };
+  $p.querySelectorAll('[data-func]').forEach(el => el.onchange = () => salvar(el.dataset.func));
+  $p.querySelectorAll('[data-obs]').forEach(el => el.onchange = () => salvar(el.dataset.obs));
+}
+function renderHistorico($p, r){
+  const ROT_ACAO = { 'usuario.criar':'Criou acesso', 'usuario.alterar':'Alterou acesso', 'usuario.senha':'Redefiniu senha', 'colaborador.alterar':'Função no WMS' };
+  const CAMPOS = { nome:'nome', perfil:'perfil', ativo:'situação', permissoes:'telas', colaborador_wms:'nome no WMS', funcao:'função', obs:'observação' };
+  const fmtV = (k, v) => k === 'ativo' ? (v ? 'ativo' : 'desativado') : k === 'perfil' ? (ROT_PERFIL[v] || v) : k === 'funcao' ? (ROT_FUNCAO_WMS[v] || v || 'sem classificação')
+    : k === 'permissoes' ? (Object.entries(v || {}).map(([t, n]) => `${t}: ${ROT_NIVEL[n] || n}`).join(', ') || 'padrão do perfil') : (v || '–');
+  const mudou = h => {
+    if (h.acao === 'usuario.senha') return 'senha trocada';
+    if (!h.antes) return `perfil ${fmtV('perfil', h.depois?.perfil)}`;
+    return Object.keys(CAMPOS).filter(k => k in (h.depois || {}) && JSON.stringify(h.antes[k] ?? null) !== JSON.stringify(h.depois[k] ?? null))
+      .map(k => `${CAMPOS[k]}: ${esc(fmtV(k, h.antes[k]))} → <b>${esc(fmtV(k, h.depois[k]))}</b>`).join(' · ') || 'sem mudança';
+  };
+  $p.innerHTML = `<div class="painel"><h3>Últimas 50 alterações</h3><div class="leg">Tudo o que é mudado nesta tela fica registrado com quem fez e quando. Senhas nunca são gravadas.</div>
+    ${r.historico.length ? `<div style="overflow-x:auto"><table><thead><tr><th>Quando</th><th>Quem</th><th>O quê</th><th>Em quem</th><th>Mudança</th></tr></thead><tbody>
+      ${r.historico.map(h => `<tr><td>${quando(h.em)}</td><td>${esc(semDominio(h.por, r.dominio))}</td><td>${ROT_ACAO[h.acao] || esc(h.acao)}</td>
+        <td>${esc(h.acao.startsWith('colaborador') ? nomeWms(h.alvo) : semDominio(h.alvo, r.dominio))}</td><td>${mudou(h)}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="vazio">Nenhuma alteração registrada ainda.</div>'}</div>`;
+}
+
 /* =================== MENU LATERAL =================== */
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
     { id:'ferramentas', titulo:'Ferramentas', tag:'Em desenvolvimento', filhos:[] },
     { id:'indicadores', titulo:'Indicadores', filhos:[
-      { view:'separados', titulo:'Produtividade' },
+      { view:'separados', titulo:'Produtividade', tela:'produtividade' },
       { view:'volume',    titulo:'Volume de Pedidos', soDemo:true },
     ]},
   ]},
   { id:'comercial', titulo:'Comercial', tag:'Em desenvolvimento', filhos:[] },
+  { id:'admin', titulo:'Administração', soComFilhos:true, filhos:[
+    { view:'pessoas', titulo:'Pessoas e acessos', tela:'pessoas' },
+  ]},
 ];
+// view -> tela de permissão (views sem tela são livres)
+const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade' };
+const viewLiberada = v => !TELA_DA_VIEW[v] || pode(TELA_DA_VIEW[v]);
 const PREF_KEY = 'valenro_menu';
 function lerPref(){ try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch(e) { return state._pref || {}; } }
 function gravarPref(p){ state._pref = p; try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch(e) {} }
@@ -413,11 +695,13 @@ function renderMenu(){
   const item = it => {
     const ativo = it.view && (it.view === state.view);
     if (it.soDemo && !DEMO) return '';
+    if (it.tela && !pode(it.tela)) return '';
     const ok = !!it.view;
     return `<button class="m-item ${ativo ? 'ativo' : ''} ${ok ? '' : 'off'}" ${ok ? `data-view="${it.view}"` : 'disabled'}>${esc(it.titulo)}${!ok && it.tag ? `<span class="m-tag">${esc(it.tag)}</span>` : ''}</button>`;
   };
   const grupo = (g, sub) => {
     const vazio = !g.filhos.length;
+    if (g.soComFilhos && !g.filhos.some(f => !f.tela || pode(f.tela))) return '';
     return `<div class="m-grupo ${sub ? 'm-sub' : ''} ${fechados.includes(g.id) ? 'fechado' : ''}" data-grupo="${g.id}">
       <button class="m-cab ${vazio ? 'off' : ''}" ${vazio ? 'disabled' : `data-alterna="${g.id}"`}>${esc(g.titulo)}${g.tag ? `<span class="m-tag">${esc(g.tag)}</span>` : `<span class="seta">▼</span>`}</button>
       <div class="m-filhos">${g.filhos.map(f => f.filhos ? grupo(f, true) : item(f)).join('')}</div>
@@ -441,10 +725,13 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!viewLiberada(view)) view = ['separados', 'pessoas'].find(viewLiberada) || 'nada';
   state.view = view;
   clearInterval(state.timer);
   renderMenu();
+  if (view === 'nada') { $app.innerHTML = `<div class="painel"><h3>Bem-vindo(a)</h3><p class="info">Seu acesso ainda não tem telas liberadas. Fale com a Gerência de Operações.</p></div>`; return; }
+  if (view === 'pessoas') return telaPessoas();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
@@ -656,7 +943,10 @@ function demoPerf(ini, fim, cnpj = 'todos'){
     const tot = l.reduce((t, u) => t + u.sep, 0);
     porCnpj[d] = cnpj === 'todos' ? Object.fromEntries(Object.entries(PESO_DEMO).map(([k, w]) => [k, Math.round(tot * w)])) : { [cnpj]: tot };
   }
-  return Promise.resolve({ ini, fim, hoje, hojeEm: new Date().toISOString(), inicioHistorico:'2026-01-01', dias, porCnpj, faltando: 0, ultimoErro: null });
+  // demo: ontem sem a coleta do Digos, para mostrar o aviso de dia incompleto
+  const lojasOk = {}; Object.keys(dias).forEach(d => { if (d < hoje) lojasOk[d] = d === addDias(hoje, -1) ? ['DROSA','CACAL'] : ['DIGOS','DROSA','CACAL']; });
+  return Promise.resolve({ ini, fim, hoje, hojeEm: new Date().toISOString(), inicioHistorico:'2026-01-01', dias, porCnpj, lojasEsperadas:['DIGOS','DROSA','CACAL'], lojasOk,
+    funcoes: { 'líder entrada':'lider', 'líder saída':'lider' }, faltando: 0, ultimoErro: null });
 }
 
 /* Aviso de histórico incompleto + botão de coleta manual (compartilhado pelas telas de produtividade) */
@@ -849,6 +1139,17 @@ function agrega(serie, filtro){
 function renderSep($s, r){
   const _d = document.getElementById('dica'); if (_d) _d.style.display = 'none';
   const s = state.sep, hoje = r.hoje || hojeBRT(), ontem = addDias(hoje, -1);
+  // função de cada colaborador (tabela operacoes.colaboradores); sem cadastro = operacional
+  const funcaoDe = u => ehGenerico(u) ? 'generico' : ((r.funcoes || {})[String(u).toLowerCase().trim()] || 'operacional');
+  const ROT_FUNCAO = { lider:'líder', apoio:'apoio', gestao:'gestão', generico:'login genérico' };
+  // cobertura: dias fechados em que alguma loja esperada ainda não foi coletada
+  const esperadas = s.cnpj === 'todos' ? (r.lojasEsperadas || []) : [s.cnpj];
+  const faltasDia = d => (!r.lojasOk || d >= (r.hoje || hojeBRT()) || d < (r.inicioHistorico || HIST_INICIO)) ? [] : esperadas.filter(id => !(r.lojasOk[d] || []).includes(id));
+  const faltasPeriodo = (ini, fim) => {
+    const lim = addDias(r.hoje || hojeBRT(), -1); let dias = 0; const lojas = new Set();
+    for (let d = ini; d <= fim && d <= lim; d = addDias(d, 1)) { const f = faltasDia(d); if (f.length) { dias++; f.forEach(x => lojas.add(x)); } }
+    return { dias, lojas:[...lojas] };
+  };
 
   // ---- lista de colaboradores (só quem separou ou trabalhou no período)
   const nomes = new Set();
@@ -883,7 +1184,7 @@ function renderSep($s, r){
     for (const u of l) {
       if (s.colab !== 'todos' && u.usuario !== s.colab) continue;
       confTot += u.conf; if (ehGenerico(u.usuario)) confGen += u.conf;
-      if (u.sep > 0 && !ehGenerico(u.usuario)) { sepH += u.sep; hrsH += horasDia(d); }
+      if (u.sep > 0 && funcaoDe(u.usuario) === 'operacional') { sepH += u.sep; hrsH += horasDia(d); }
     }
   }
   const kpis = `
@@ -892,7 +1193,7 @@ function renderSep($s, r){
       <div class="kpi"><div class="rot">Último dia trabalhado</div><div class="val">${ultFechado ? fmtN(serie[ultFechado].v) : '–'}</div><div class="det">${ultFechado ? `${dataBR(ultFechado)} (${SEMANA_LONGO[diaSem(ultFechado)]})` : 'sem dados'}</div></div>
       <div class="kpi"><div class="rot">${MESES_LONGO[+mesAtual.slice(5) - 1]} até agora</div><div class="val">${fmtN(totMes)}</div><div class="det">média ${fmtN(Math.round(aMes.media))}/dia em ${aMes.dias} dia(s) fechados</div></div>
       <div class="kpi"><div class="rot">Média diária vs ${MESES[+mesAnt.slice(5) - 1].toLowerCase()}</div><div class="val">${fmtVar(vMedia)}</div><div class="det">${aMesAnt.dias ? `${fmtN(Math.round(aMes.media))} x ${fmtN(Math.round(aMesAnt.media))} por dia trabalhado` : `sem dados de ${MESES_LONGO[+mesAnt.slice(5) - 1].toLowerCase()} ainda`}</div></div>
-      <div class="kpi destaque"><div class="rot">Separações por hora · ${MESES[+mesAtual.slice(5) - 1].toLowerCase()}</div><div class="val">${hrsH ? fmtH(sepH / hrsH) : '–'}</div><div class="det">pedidos por hora disponível da jornada${s.colab !== 'todos' ? ` · ${esc(s.colab)}` : ''}</div></div>
+      <div class="kpi destaque"><div class="rot">Separações por hora · ${MESES[+mesAtual.slice(5) - 1].toLowerCase()}</div><div class="val">${hrsH ? fmtH(sepH / hrsH) : '–'}</div><div class="det">só função operacional · pedidos por hora disponível${s.colab !== 'todos' ? ` · ${esc(s.colab)}` : ''}</div></div>
       ${s.colab === 'todos' ? `<div class="kpi"><div class="rot">Conferência sem dono · ${MESES[+mesAtual.slice(5) - 1].toLowerCase()}</div><div class="val">${fmtP(confGen, confTot)}</div><div class="det">${fmtN(confGen)} de ${fmtN(confTot)} conferências em logins genéricos</div></div>` : ''}
     </div>`;
 
@@ -936,6 +1237,14 @@ function renderSep($s, r){
     }).filter(b => b.k !== 'w0' || b.dias > 0);
   }
 
+  // ---- dados incompletos (alguma loja ainda sem o dia coletado)
+  barras.forEach(b => {
+    let fp = null;
+    if (s.modo === 'periodo' && s.nivel === 'mes') fp = faltasPeriodo(b.k, b.k);
+    else if (s.modo === 'periodo' && s.nivel === 'ano') fp = faltasPeriodo(b.k + '-01', b.k + '-31');
+    if (fp && fp.dias) { b.incompleto = fp; b.dica = (b.dica || `${b.rot} · ${fmtN(b.v)} separados`) + ` · ⚠ incompleto: falta ${fp.lojas.map(nomeLoja).join(', ')}${s.nivel === 'ano' ? ` em ${fp.dias} dia(s)` : ''}`; }
+  });
+
   // ---- clique seleciona a barra (detalhe por colaborador abaixo); duplo clique ou botão "Abrir" desce o nível
   barras.forEach(b => { b.sel = s.sel === b.k; b.acao = (b.vazio || !(b.v || b.dias)) ? null : () => { s.sel = s.sel === b.k ? null : b.k; }; });
   const selBarra = barras.find(b => b.sel);
@@ -962,7 +1271,7 @@ function renderSep($s, r){
     <div class="dgraf" style="grid-template-columns:repeat(${n},1fr)">
       ${barras.map((b, i) => `
         <div class="dcol ${b.acao ? '' : 'nao'} ${b.sel ? 'sel' : ''}" data-i="${i}" data-dica="${esc(b.dica || `${b.rot} · ${fmtN(b.v)} separados · ${b.dias} dia(s) trabalhados · média ${fmtN(Math.round(b.media))}/dia${b.parcial ? ' · em andamento' : ''}`)}">
-          ${rotulos && b.v ? `<span class="rotv" style="bottom:calc(${b.v / maxV * 100}% + 3px)">${fmtN(b.v)}</span>` : ''}
+          ${rotulos && b.v ? `<span class="rotv" style="bottom:calc(${b.v / maxV * 100}% + 3px)">${b.incompleto ? '⚠ ' : ''}${fmtN(b.v)}</span>` : (b.incompleto ? `<span class="rotv aviso-barra" style="bottom:calc(${(b.v || 0) / maxV * 100}% + 3px)">⚠</span>` : '')}
           ${b.seg && b.seg.length
             ? `<div class="pilha" style="height:${(b.v || 0) / maxV * 100}%">${[...b.seg].reverse().map(x => `<div class="seg ${b.parcial ? 'parcial' : ''}" style="flex:${x.v} 1 0;${estiloSerie(x.id)}"></div>`).join('')}</div>`
             : b.v ? `<div class="bar ${b.parcial ? 'parcial' : ''}" style="height:${b.v / maxV * 100}%;${serieUnica}"></div>` : ''}
@@ -995,7 +1304,8 @@ function renderSep($s, r){
       <div class="legenda">${empilhar
         ? lojasVis.map(id => `<span><i style="${estiloSerie(id)}"></i>${esc(nomeLoja(id))}</span>`).join('')
         : `<span><i style="${serieUnica}"></i>Pedidos separados${s.cnpj !== 'todos' ? ` · ${esc(nomeLoja(s.cnpj))}` : ''}</span>`}
-        <span><i style="background:#9aa4b5;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 2px,transparent 2px 5px)"></i>Em andamento (parcial)</span></div>
+        <span><i style="background:#9aa4b5;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 2px,transparent 2px 5px)"></i>Em andamento (parcial)</span>
+        ${barras.some(b => b.incompleto) ? `<span>⚠ Dados incompletos: alguma loja ainda não foi coletada nesse período</span>` : ''}</div>
     </div>`;
 
   // ---- tabela do nível
@@ -1040,16 +1350,26 @@ function renderSep($s, r){
       p.dias++; p.horas += horasDia(d); p.sep += u.sep; p.conf += u.conf; p.aloc += u.aloc; p.inv += u.inv;
     }
   }
+  Object.values(porPessoa).forEach(p => { p.funcao = funcaoDe(p.usuario); });
+  const opDet = Object.values(porPessoa).filter(p => p.funcao === 'operacional' && p.sep > 0);
+  const hsOp = opDet.reduce((x, u) => x + u.horas, 0), sepOp = opDet.reduce((x, u) => x + u.sep, 0);
+  let fpDet = { dias:0, lojas:[] };
+  if (selBarra && s.modo === 'periodo' && s.nivel === 'mes') fpDet = faltasPeriodo(selBarra.k, selBarra.k);
+  else if (selBarra && s.modo === 'periodo' && s.nivel === 'ano') fpDet = faltasPeriodo(selBarra.k + '-01', selBarra.k + '-31');
+  else if (!selBarra && s.modo === 'periodo' && s.nivel === 'mes') fpDet = faltasPeriodo(s.mes + '-01', s.mes + '-31');
+  else if (!selBarra && s.modo === 'periodo' && s.nivel === 'ano') fpDet = faltasPeriodo(s.ano + '-01-01', s.ano + '-12-31');
   const listaDet = Object.values(porPessoa).sort((a, b) => b.sep - a.sep || b.conf - a.conf || a.usuario.localeCompare(b.usuario, 'pt-BR'));
   const tDet = k => listaDet.reduce((x, u) => x + (u[k] || 0), 0);
   const sepDet = tDet('sep');
   const detalhe = `
     <div class="painel">
       <h3>Por colaborador · ${esc(nomeDet)}${selBarra?.parcial ? ' · parcial' : ''}</h3>
-      <div class="leg">${selBarra ? 'Barra selecionada no gráfico. Clique nela de novo para voltar ao período inteiro.' : 'Período inteiro em tela. Clique numa barra do gráfico para filtrar.'} Do maior para o menor número de separações (pedidos separados); "Dias" conta só os dias com atividade; "Por hora" usa as horas disponíveis da jornada nesses dias.</div>
-      ${listaDet.length ? `<div style="overflow-x:auto"><table><thead><tr><th>Colaborador</th><th class="n">Dias</th><th class="n">Horas disp.</th><th class="n">Separações</th><th class="n">Média/dia</th><th class="n">Por hora</th><th class="n">% das separações</th><th class="n">Conferências</th><th class="n">Alocações</th><th class="n">Inventários</th></tr></thead><tbody>
-        ${listaDet.map(u => `<tr><td>${esc(u.usuario)}${ehGenerico(u.usuario) ? ' <span class="info">(login genérico)</span>' : ''}</td><td class="n">${u.dias}</td><td class="n">${fmtN(u.horas)}</td><td class="n">${fmtN(u.sep)}</td><td class="n">${u.dias ? fmtN(Math.round(u.sep / u.dias)) : '–'}</td><td class="n"><b>${u.horas && u.sep ? fmtH(u.sep / u.horas) : '–'}</b></td><td class="n">${fmtP(u.sep, sepDet)}</td><td class="n">${fmtN(u.conf)}</td><td class="n">${fmtN(u.aloc)}</td><td class="n">${fmtN(u.inv)}</td></tr>`).join('')}
-        <tr class="tot"><td>Total</td><td class="n"></td><td class="n">${fmtN(tDet('horas'))}</td><td class="n">${fmtN(sepDet)}</td><td class="n"></td><td class="n">${(() => { const hs = listaDet.filter(u => u.sep > 0).reduce((x, u) => x + u.horas, 0); return hs ? fmtH(sepDet / hs) : '–'; })()}</td><td class="n">100%</td><td class="n">${fmtN(tDet('conf'))}</td><td class="n">${fmtN(tDet('aloc'))}</td><td class="n">${fmtN(tDet('inv'))}</td></tr>
+      ${fpDet.dias ? `<div class="aviso" style="margin:6px 0 10px">⚠ Período incompleto: ainda faltam dados de <b>${esc(fpDet.lojas.map(nomeLoja).join(', '))}</b>${fpDet.dias > 1 ? ` em ${fpDet.dias} dias` : ''}. Os números vão mudar quando a coleta terminar.</div>` : ''}
+      <div class="leg">${selBarra ? 'Barra selecionada no gráfico. Clique nela de novo para voltar ao período inteiro.' : 'Período inteiro em tela. Clique numa barra do gráfico para filtrar.'} Do maior para o menor número de separações (pedidos separados); "Dias" conta só os dias com atividade; "Por hora" usa as horas disponíveis da jornada nesses dias. A média por hora do time (linha Operacional) considera só a função operacional: líderes, apoio, gestão e logins genéricos ficam fora.</div>
+      ${listaDet.length ? `<div style="overflow-x:auto"><table><thead><tr><th>Colaborador</th><th>Função</th><th class="n">Dias</th><th class="n">Horas disp.</th><th class="n">Separações</th><th class="n">Média/dia</th><th class="n">Por hora</th><th class="n">% das separações</th><th class="n">Conferências</th><th class="n">Alocações</th><th class="n">Inventários</th></tr></thead><tbody>
+        ${listaDet.map(u => `<tr${u.funcao !== 'operacional' ? ' style="color:var(--mute)"' : ''}><td>${esc(u.usuario)}</td><td>${u.funcao === 'operacional' ? 'operacional' : `<span class="info">${ROT_FUNCAO[u.funcao] || u.funcao}</span>`}</td><td class="n">${u.dias}</td><td class="n">${fmtN(u.horas)}</td><td class="n">${fmtN(u.sep)}</td><td class="n">${u.dias ? fmtN(Math.round(u.sep / u.dias)) : '–'}</td><td class="n"><b>${u.horas && u.sep ? fmtH(u.sep / u.horas) : '–'}</b></td><td class="n">${fmtP(u.sep, sepDet)}</td><td class="n">${fmtN(u.conf)}</td><td class="n">${fmtN(u.aloc)}</td><td class="n">${fmtN(u.inv)}</td></tr>`).join('')}
+        <tr class="tot"><td>Operacional</td><td>${opDet.length} pessoa(s)</td><td class="n"></td><td class="n">${fmtN(hsOp)}</td><td class="n">${fmtN(sepOp)}</td><td class="n"></td><td class="n">${hsOp ? fmtH(sepOp / hsOp) : '–'}</td><td class="n">${fmtP(sepOp, sepDet)}</td><td class="n"></td><td class="n"></td><td class="n"></td></tr>
+        <tr class="tot"><td>Total geral</td><td></td><td class="n"></td><td class="n">${fmtN(tDet('horas'))}</td><td class="n">${fmtN(sepDet)}</td><td class="n"></td><td class="n"></td><td class="n">100%</td><td class="n">${fmtN(tDet('conf'))}</td><td class="n">${fmtN(tDet('aloc'))}</td><td class="n">${fmtN(tDet('inv'))}</td></tr>
         </tbody></table></div>` : `<div class="vazio">Sem atividade registrada neste período.</div>`}
     </div>`;
 
