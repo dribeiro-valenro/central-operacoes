@@ -181,7 +181,51 @@
   label.chk{flex-direction:row !important;align-items:center;gap:8px !important;color:var(--ink) !important;font-size:13px}
   select.exc{border-color:var(--amarelo);background:#fff8dc}
   table.perm{max-width:760px}
-  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1b2333;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:20;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  /* Envios Full */
+  .st-full{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .kpi.alerta{border-left:4px solid var(--bad)} .kpi.alerta .val{color:var(--bad)}
+  .tab-full tbody tr{cursor:pointer} .tab-full tbody tr:hover td{background:#f6f8fb} .tab-full tr.sel td{background:#fff8dc}
+  .tab-full td{white-space:nowrap}
+  .marca-loja{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .prev{color:#b07a00;font-style:italic} .dif{color:var(--bad)} .atraso{color:var(--bad);font-weight:600}
+  .mini-barra{display:inline-block;width:42px;height:6px;border-radius:3px;background:#e8ebf0;margin-right:6px;vertical-align:middle;overflow:hidden}
+  .mini-barra i{display:block;height:100%;background:var(--pri)} .mini-barra.larga{flex:1;width:auto;height:8px}
+  .so-estreito{display:none}
+  .card-full{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-left:5px solid;border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--sombra);cursor:pointer}
+  .card-full.sel{outline:2px solid var(--amarelo)}
+  .cf-top,.cf-mid{display:flex;align-items:center;gap:8px} .cf-top b{font-size:16px}
+  .cf-mid{margin:8px 0}
+  .cf-bot{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute)} .cf-bot b{color:var(--ink)}
+  @media (max-width:900px){ .so-largo{display:none} .so-estreito{display:block} .kpis-full{grid-template-columns:1fr 1fr} .kpis-full .kpi .val{font-size:20px} }
+  #gaveta{position:fixed;inset:0;z-index:30}
+  .gv-fundo{position:absolute;inset:0;background:rgba(15,25,45,.35)}
+  .gv{position:absolute;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--bg);box-shadow:-6px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column}
+  .gv-cab{display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--card);border-bottom:3px solid var(--amarelo)}
+  .gv-cab h3{margin:0;font-size:18px}
+  .gv-corpo{overflow-y:auto;padding:4px 18px 40px;flex:1}
+  .gv-sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--pri);font-weight:700;margin:18px 0 8px;display:flex;gap:10px;align-items:center}
+  .gv-sec .info{text-transform:none;letter-spacing:0;font-weight:400}
+  .grade-form.g2{grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-top:0;gap:10px 12px}
+  .grade-form.g2 > label{min-width:0} .grade-form.g2 input,.grade-form.g2 select{width:100%}
+  .linha-hora input{min-width:0}
+  @media (max-width:560px){ .grade-form.g2 > label.hora{grid-column:1/-1} }
+  .gv-lab{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute);margin-top:10px}
+  .gv-lab select,.gv-lab textarea{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .grade-form input:disabled,.grade-form select:disabled{background:#eef0f4;color:var(--mute)}
+  .etapas{display:flex;flex-wrap:wrap;gap:6px}
+  .etapa{font:inherit;font-size:13px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--mute);cursor:pointer}
+  .etapa.on{background:var(--f);color:var(--c);border-color:var(--c);font-weight:700;box-shadow:inset 0 0 0 1px var(--c)}
+  .etapa:disabled{cursor:default}
+  .gv-acoes{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;align-items:center}
+  .gv-acoes .btn.pri{padding:10px 22px}
+  .btn.perigo{color:var(--bad);border-color:#f0c4c4} .btn.perigo:hover{border-color:var(--bad)}
+  .lista-col{background:var(--card);border:1px solid var(--line);border-radius:10px}
+  .col-it{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px} .col-it:last-child{border-bottom:0}
+  .col-form{background:var(--card);border:1px solid var(--pri);border-radius:10px;padding:12px;margin-top:10px}
+  .linha-hora{display:flex;gap:6px} .linha-hora input{flex:1}
+  body.gaveta-aberta{overflow:hidden}
+  @media (max-width:560px){ .gv-corpo{padding:4px 14px 40px} .etapa{flex:1 1 45%} }
+  .toast{position:fixed;z-index:40;bottom:90px;left:50%;transform:translateX(-50%);background:#1b2333;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.2)}
   .toast.ruim{background:#8a1f1f}
 </style>
 </head>
@@ -415,14 +459,14 @@ const ehExcluido = u => USUARIOS_EXCLUIDOS.some(g => g.toLowerCase() === String(
 // Permissões chegam prontas do servidor (perfil + exceções). Esconder o menu é só conveniência:
 // a Edge Function confere de novo em toda chamada.
 const ROT_PERFIL = { admin:'Admin', lider:'Líder', operacional:'Operacional' };
-const ROT_NIVEL = { nenhum:'Sem acesso', ver:'Ver', editar:'Editar' };
+const ROT_NIVEL = { nenhum:'Sem acesso', ver:'Ver', editar:'Editar', gerir:'Gerenciar' };
 const ROT_FUNCAO_WMS = { operacional:'Operacional', lider:'Líder', apoio:'Apoio', gestao:'Gestão' };
 function pode(tela, nivel = 'ver'){
   if (DEMO) return true;
   const u = state.usuario || {};
   let p = u.permissoes;
   if (!p) p = u.perfil === 'admin' ? { produtividade:'ver', pessoas:'editar' } : u.perfil === 'lider' ? { produtividade:'ver' } : {};   // sessão antiga
-  const ordem = { nenhum:0, ver:1, editar:2 };
+  const ordem = { nenhum:0, ver:1, editar:2, gerir:3 };
   return (ordem[p[tela] || 'nenhum'] || 0) >= ordem[nivel];
 }
 const semDominio = (login, dom) => dom && login.endsWith('@' + dom) ? login.slice(0, -(dom.length + 1)) : login;
@@ -440,8 +484,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', pessoas:'editar' }, lider:{ produtividade:'ver', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -666,22 +710,330 @@ function renderHistorico($p, r){
     </tbody></table></div>` : '<div class="vazio">Nenhuma alteração registrada ainda.</div>'}</div>`;
 }
 
+/* =================== ENVIOS FULL =================== */
+const ST_FULL = {
+  planejado:       { rot:'Planejado',             cor:'#677086', fundo:'#eef0f4' },
+  em_coleta:       { rot:'Em coleta',             cor:'#0b4fa8', fundo:'#e3eefc' },
+  em_conferencia:  { rot:'Em conferência',        cor:'#6b3fa0', fundo:'#efe7fa' },
+  ag_boleto_nf:    { rot:'Ag. Boleto/NF',         cor:'#8a5a00', fundo:'#fff3d1' },
+  ag_carregamento: { rot:'OK · Ag. carregamento', cor:'#0f6e66', fundo:'#dff5f1' },
+  expedido:        { rot:'Expedido',              cor:'#1a7a3e', fundo:'#e2f5e8' },
+  cancelado:       { rot:'Cancelado',             cor:'#8a1f1f', fundo:'#fbe9e9' },
+};
+const ABERTOS_FULL = ['planejado', 'em_coleta', 'em_conferencia', 'ag_boleto_nf', 'ag_carregamento'];
+const PREVISTO_FULL = ['planejado', 'em_coleta', 'em_conferencia', 'ag_boleto_nf'];   // pares, caixas e m³ ainda são previsão
+const pillFull = st => `<span class="st-full" style="color:${ST_FULL[st]?.cor};background:${ST_FULL[st]?.fundo}">${esc(ST_FULL[st]?.rot || st)}</span>`;
+const fmtM3 = n => n === null || n === undefined ? '–' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits:3, maximumFractionDigits:3 });
+const fmtDur = min => min < 60 ? `${Math.round(min)} min` : `${Math.floor(min / 60)}h${String(Math.round(min % 60)).padStart(2, '0')}`;
+const isoLocal = iso => { if (!iso) return ''; const d = new Date(new Date(iso).getTime() - 3*3600e3); return d.toISOString().slice(0, 16); };   // para input datetime-local (Brasília)
+const deLocal = v => v ? new Date(v + ':00-03:00').toISOString() : null;
+const agoraLocal = () => isoLocal(new Date().toISOString());
+
+// ---- demonstração: os 17 pedidos da planilha, em memória
+const DEMO_FULL = (() => {
+  const L = [
+    ['DIGOS','79642847','2026-10-19','153','arthur',513,431,'expedido',100,37,3.017], ['DIGOS','79652427','2026-10-19','152','vini',495,495,'expedido',100,39,3.465],
+    ['DIGOS','79679795','2026-10-19','151','guilherme',454,374,'expedido',100,32,2.618], ['DIGOS','79755295','2026-10-21','150','arthur',714,610,'expedido',100,48,4.27],
+    ['DIGOS','79681253','2026-10-21','079','davi',533,414,'expedido',100,28,2.898], ['DIGOS','79984317','2026-10-21','150','arthur',746,425,'expedido',100,35,2.975],
+    ['CACAL','79752029','2026-10-21','030','arthur',806,505,'expedido',100,42,3.535], ['CACAL','79776220','2026-10-21','099','arthur',652,516,'expedido',100,45,3.612],
+    ['CACAL','79532441','2026-10-21','096','arthur',830,610,'expedido',100,52,4.27], ['CACAL','80060314','2026-10-23','105/100','arthur',1059,990,'em_conferencia',100,83,6.93],
+    ['DROSA','80065106','2026-10-23','057','vitor',472,472,'ag_boleto_nf',100,40,3.304], ['DIGOS','80055010','2026-10-23','155',null,1127,902,'em_coleta',53,76,6.314],
+    ['DROSA','79762770','2026-10-23','057','davi',533,313,'ag_carregamento',100,26,2.191], ['DROSA','79541319','2026-10-23','056','vini',497,347,'ag_carregamento',100,29,2.429],
+    ['DIGOS','79981921','2026-10-26','154','arthur',1045,900,'ag_carregamento',100,73,6.3], ['DIGOS','80084449','2026-10-26','154',null,824,660,'em_coleta',17,55,4.62],
+    ['DIGOS','80279586','2026-10-26',null,null,1122,898,'planejado',0,75,6.286],
+  ];
+  const agora = new Date().toISOString(), envios = [], coletas = [];
+  L.forEach((l, i) => {
+    envios.push({ id:String(i + 1), cnpj_id:l[0], pedido:l[1], data_expedicao:l[2], pares_plan:l[5], pares_envio:l[6], status:l[7], pct_coleta:l[8], caixas:l[9], m3:l[10],
+      motivo_diferenca:null, observacao: l[1] === '80055010' ? 'Planilha: coletadores Vini/Arthur, cesto 155. Lançar as coletas.' : null,
+      status_em:agora, atualizado_em:agora, atualizado_por:'carga.planilha' });
+    if (l[4]) coletas.push({ id:String(i + 1), envio_id:String(i + 1), coletador:l[4], cesto:l[3], pares:l[6], inicio:null, fim:null });
+  });
+  return { envios, coletas, eventos:[], seq:100 };
+})();
+async function apiFull(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_FULL, ag = new Date().toISOString(), ev = (envio_id, acao, antes, depois) => D.eventos.unshift({ envio_id, em:ag, por:'demonstracao', acao, antes, depois });
+  if (path.startsWith('/full/eventos')) { const id = new URLSearchParams(path.split('?')[1]).get('id'); return { eventos: D.eventos.filter(e => e.envio_id === id) }; }
+  if (path.startsWith('/full?')) return { envios: JSON.parse(JSON.stringify(D.envios)), coletas: JSON.parse(JSON.stringify(D.coletas)),
+    coletadores: [...new Set(D.coletas.map(c => c.coletador).concat(['arthur magdaleno','davi duarte','nathan marques','tiago santos']))].sort(),
+    lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }], status: Object.keys(ST_FULL),
+    motivos: ['Sem estoque físico','Divergência de estoque (WMS x físico)','Avaria / qualidade','Ajuste do ML no agendamento','Erro no plano','Outro'], hoje: hojeBRT() };
+  const num = v => v === '' || v === null || v === undefined ? null : Number(v);
+  if (path === '/full/envio') {
+    corpo = { ...corpo, ...Object.fromEntries(['pares_plan','pares_envio','pct_coleta','caixas','m3'].map(k => [k, num(corpo[k])])) };
+    if (corpo.status === 'expedido' && Number(corpo.pares_envio) < Number(corpo.pares_plan) && !corpo.motivo_diferenca) throw new Error(`Saíram ${corpo.pares_envio} de ${corpo.pares_plan} pares do plano: informe o motivo da diferença`);
+    if (!corpo.id) { const id = String(++D.seq); D.envios.push({ ...corpo, id, status_em:ag, atualizado_em:ag, atualizado_por:'demonstracao' }); ev(id, 'envio.criar', null, corpo); return { ok:true, id }; }
+    const e = D.envios.find(x => x.id === corpo.id);
+    if (e.status !== corpo.status) { ev(e.id, 'envio.status', { status:e.status }, { status:corpo.status }); e.status_em = ag; }
+    Object.assign(e, corpo, { atualizado_em:ag, atualizado_por:'demonstracao' }); return { ok:true, id:e.id };
+  }
+  if (path === '/full/envio/excluir') { D.envios = D.envios.filter(e => e.id !== corpo.id); return { ok:true }; }
+  if (path === '/full/coleta') {
+    const c = { ...corpo, pares: num(corpo.pares), coletador: corpo.coletador.trim().toLowerCase() };
+    if (!c.id) { c.id = String(++D.seq); D.coletas.push(c); ev(c.envio_id, 'coleta.incluir', null, c); }
+    else { const i = D.coletas.findIndex(x => x.id === c.id); ev(c.envio_id, 'coleta.alterar', D.coletas[i], c); D.coletas[i] = c; }
+    return { ok:true, id:c.id };
+  }
+  if (path === '/full/coleta/excluir') { const c = D.coletas.find(x => x.id === corpo.id); D.coletas = D.coletas.filter(x => x.id !== corpo.id); ev(c.envio_id, 'coleta.excluir', c, null); return { ok:true }; }
+}
+
+function telaFull(){
+  const s = state.full ||= { loja:'todos', aba:'abertos', busca:'', aberto:null };
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Envios Full</h2><span style="flex:1"></span>
+      <input id="f-busca" class="campo" placeholder="Buscar pedido" value="${esc(s.busca)}" inputmode="numeric" style="width:150px">
+      <select id="f-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <div class="abas">${[['abertos','Em aberto'],['expedidos','Expedidos'],['todos','Todos']].map(([k, r]) => `<button data-fa="${k}" class="${s.aba === k ? 'on' : ''}">${r}</button>`).join('')}</div>
+      <button class="btn" id="f-atualizar">Atualizar</button>
+      ${pode('full', 'gerir') ? `<button class="btn pri" id="f-novo">+ Novo envio</button>` : ''}
+    </div>
+    <div id="full"><div class="carregando">Carregando envios…</div></div>
+    <div id="gaveta" hidden></div>`;
+  document.getElementById('f-loja').onchange = e => { s.loja = e.target.value; renderFull(); };
+  document.querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { s.aba = b.dataset.fa; document.querySelectorAll('[data-fa]').forEach(x => x.classList.toggle('on', x === b)); renderFull(); });
+  const $b = document.getElementById('f-busca'); $b.oninput = () => { s.busca = $b.value; renderFull(); };
+  document.getElementById('f-atualizar').onclick = () => carregarFull();
+  const nv = document.getElementById('f-novo'); if (nv) nv.onclick = () => abrirEnvio(null);
+  carregarFull();
+}
+async function carregarFull(){
+  try { state.fullDados = await apiFull(`/full?desde=${addDias(hojeBRT(), -45)}`); renderFull(); if (state.full.aberto) abrirEnvio(state.full.aberto, true); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $f = document.getElementById('full'); if ($f) $f.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function coletasDe(id){ return (state.fullDados?.coletas || []).filter(c => c.envio_id === id); }
+function renderFull(){
+  const s = state.full, r = state.fullDados, $f = document.getElementById('full');
+  if (!$f || !r) return;
+  const hoje = r.hoje || hojeBRT(), termo = s.busca.replace(/\D/g, '');
+  const lista = r.envios
+    .filter(e => s.loja === 'todos' || e.cnpj_id === s.loja)
+    .filter(e => s.aba === 'todos' || (s.aba === 'abertos' ? ABERTOS_FULL.includes(e.status) : ['expedido', 'cancelado'].includes(e.status)))
+    .filter(e => !termo || e.pedido.includes(termo))
+    .sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || a.cnpj_id.localeCompare(b.cnpj_id) || a.pedido.localeCompare(b.pedido));
+  const validos = lista.filter(e => e.status !== 'cancelado');
+  const soma = k => validos.reduce((t, e) => t + (Number(e[k]) || 0), 0);
+  const plano = soma('pares_plan'), pares = soma('pares_envio');
+  const atrasados = lista.filter(e => ABERTOS_FULL.includes(e.status) && e.data_expedicao < hoje).length;
+  const porSt = {}; lista.forEach(e => porSt[e.status] = (porSt[e.status] || 0) + 1);
+  const linha = e => {
+    const cs = coletasDe(e.id), quem = [...new Set(cs.map(c => nomeWms(c.coletador)))].join(' / '), cestos = [...new Set(cs.map(c => c.cesto).filter(Boolean))].join(' / ');
+    const prev = PREVISTO_FULL.includes(e.status), atraso = ABERTOS_FULL.includes(e.status) && e.data_expedicao < hoje;
+    const dif = e.pares_envio !== null && e.pares_envio < e.pares_plan;
+    return { e, quem, cestos, prev, atraso, dif };
+  };
+  const L = lista.map(linha);
+  $f.innerHTML = `
+    <div class="kpis kpis-full">
+      <div class="kpi"><div class="rot">Pedidos</div><div class="val">${fmtN(lista.length)}</div><div class="det">${Object.entries(porSt).map(([k, n]) => `${n} ${ST_FULL[k]?.rot.toLowerCase() || k}`).join(' · ') || '–'}</div></div>
+      <div class="kpi"><div class="rot">Pares no plano</div><div class="val">${fmtN(plano)}</div><div class="det">pedido pelo ML</div></div>
+      <div class="kpi destaque"><div class="rot">Pares a enviar</div><div class="val">${fmtN(pares)}</div><div class="det">${fmtP(pares, plano)} do plano · faltam ${fmtN(Math.max(0, plano - pares))}</div></div>
+      <div class="kpi"><div class="rot">Caixas · m³</div><div class="val">${fmtN(soma('caixas'))}</div><div class="det">${fmtM3(soma('m3'))} m³</div></div>
+      ${atrasados ? `<div class="kpi alerta"><div class="rot">Data vencida</div><div class="val">${atrasados}</div><div class="det">em aberto com expedição antes de hoje</div></div>` : ''}
+    </div>
+    ${!L.length ? `<div class="painel"><div class="vazio">Nenhum envio ${s.aba === 'abertos' ? 'em aberto' : ''} com esses filtros.</div></div>` : `
+    <div class="painel so-largo"><div style="overflow-x:auto"><table class="tab-full">
+      <thead><tr><th>Loja</th><th>Pedido</th><th>Expedição</th><th>Cesto</th><th>Coletador</th><th class="n">Pares plano</th><th class="n">Qtd. pares</th><th>Status</th><th class="n">% coleta</th><th class="n">Caixas</th><th class="n">m³</th><th>Obs.</th></tr></thead>
+      <tbody>${L.map(({ e, quem, cestos, prev, atraso, dif }) => `<tr data-envio="${e.id}" class="${s.aberto === e.id ? 'sel' : ''}">
+        <td><span class="marca-loja" style="background:${corLoja(e.cnpj_id)};${LOJAS[e.cnpj_id]?.borda ? `border:1px solid ${LOJAS[e.cnpj_id].borda}` : ''}"></span>${esc(nomeLoja(e.cnpj_id))}</td>
+        <td>#${esc(e.pedido)}</td><td class="${atraso ? 'atraso' : ''}">${dataBR(e.data_expedicao).slice(0, 5)}${atraso ? ' ⚠' : ''}</td>
+        <td>${esc(cestos) || '<span class="info">–</span>'}</td><td>${esc(quem) || '<span class="info">–</span>'}</td>
+        <td class="n">${fmtN(e.pares_plan)}</td><td class="n ${prev ? 'prev' : dif ? 'dif' : ''}" title="${prev ? 'Previsto: ainda pode mudar' : dif ? 'Abaixo do plano' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</td>
+        <td>${pillFull(e.status)}</td>
+        <td class="n"><span class="mini-barra"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span>${e.pct_coleta === null ? '–' : fmtN(Math.round(e.pct_coleta)) + '%'}</td>
+        <td class="n ${prev ? 'prev' : ''}">${e.caixas ?? '–'}</td><td class="n ${prev ? 'prev' : ''}">${fmtM3(e.m3)}</td>
+        <td>${e.observacao || e.motivo_diferenca ? `<span title="${esc([e.motivo_diferenca, e.observacao].filter(Boolean).join(' · '))}">💬</span>` : ''}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr class="tot"><td colspan="5">${fmtN(lista.length)} pedido(s)</td><td class="n">${fmtN(plano)}</td><td class="n">${fmtN(pares)}</td><td></td><td></td><td class="n">${fmtN(soma('caixas'))}</td><td class="n">${fmtM3(soma('m3'))}</td><td></td></tr></tfoot>
+    </table></div>
+    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>Clique na linha para abrir.</span></div></div>
+    <div class="so-estreito">${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
+      <button class="card-full ${s.aberto === e.id ? 'sel' : ''}" data-envio="${e.id}" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
+        <div class="cf-top"><b>#${esc(e.pedido)}</b><span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataBR(e.data_expedicao).slice(0, 5)}${atraso ? ' ⚠' : ''}</span></div>
+        <div class="cf-mid">${pillFull(e.status)}<span class="mini-barra larga"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><b>${e.pct_coleta === null ? '–' : Math.round(e.pct_coleta) + '%'}</b></div>
+        <div class="cf-bot"><span>Plano <b>${fmtN(e.pares_plan)}</b></span><span>Pares <b class="${prev ? 'prev' : dif ? 'dif' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</b></span><span>Cx <b>${e.caixas ?? '–'}</b></span>${quem ? `<span>${esc(quem)}</span>` : ''}${cestos ? `<span>Cesto ${esc(cestos)}</span>` : ''}</div>
+      </button>`).join('')}</div>`}
+    <div class="info" style="margin-top:8px">Mostra todos os envios em aberto e os expedidos dos últimos 45 dias.</div>`;
+  $f.querySelectorAll('[data-envio]').forEach(el => el.onclick = () => abrirEnvio(el.dataset.envio));
+}
+
+// ---- gaveta de edição (lateral no computador, tela cheia no celular)
+function fecharEnvio(){
+  state.full.aberto = null;
+  const g = document.getElementById('gaveta'); if (g) { g.hidden = true; g.innerHTML = ''; }
+  document.body.classList.remove('gaveta-aberta');
+  renderFull();
+}
+function abrirEnvio(id, recarregando){
+  const r = state.fullDados, s = state.full, g = document.getElementById('gaveta');
+  if (!g || !r) return;
+  const novo = !id, e = novo ? { cnpj_id: s.loja !== 'todos' ? s.loja : (r.lojas[0]?.id || 'DIGOS'), pedido:'', data_expedicao: hojeBRT(), pares_plan:'', pares_envio:'', status:'planejado', pct_coleta:0, caixas:'', m3:'', motivo_diferenca:'', observacao:'' } : r.envios.find(x => x.id === id);
+  if (!e) return fecharEnvio();
+  if (recarregando && g.dataset.sujo === '1') return;   // não apaga o que a pessoa está digitando
+  s.aberto = id; g.dataset.sujo = '';
+  const gerir = pode('full', 'gerir'), editar = pode('full', 'editar');
+  const fechado = ['expedido', 'cancelado'].includes(e.status), mexeColeta = editar && (!fechado || gerir);
+  const cs = novo ? [] : coletasDe(id), somaCol = cs.reduce((t, c) => t + (Number(c.pares) || 0), 0);
+  const ro = c => c ? '' : 'disabled';
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `
+    <div class="gv-fundo" id="gv-fundo"></div>
+    <aside class="gv">
+      <div class="gv-cab"><div><div class="info">${novo ? 'Novo envio Full' : esc(nomeLoja(e.cnpj_id))}</div><h3>${novo ? 'Cadastrar envio' : `Pedido #${esc(e.pedido)}`}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
+      <div class="gv-corpo">
+        <div class="erro" id="gv-erro" hidden></div>
+        <div class="gv-sec">Etapa</div>
+        <div class="etapas">${r.status.map(st => `<button type="button" class="etapa ${e.status === st ? 'on' : ''}" data-st="${st}" ${ro(editar)} style="--c:${ST_FULL[st]?.cor};--f:${ST_FULL[st]?.fundo}">${esc(ST_FULL[st]?.rot || st)}</button>`).join('')}</div>
+        ${!novo && e.status_em ? `<div class="info" style="margin-top:4px">Neste status desde ${quando(e.status_em)}</div>` : ''}
+        <div class="gv-sec">Pedido ${gerir ? '' : '<span class="info">(só líder altera)</span>'}</div>
+        <div class="grade-form g2">
+          <label>Loja<select id="gv-loja" ${ro(gerir)}>${r.lojas.map(l => `<option value="${l.id}" ${l.id === e.cnpj_id ? 'selected' : ''}>${esc(nomeLoja(l.id))}</option>`).join('')}</select></label>
+          <label>Nº pedido<input id="gv-pedido" inputmode="numeric" value="${esc(e.pedido)}" placeholder="só números" ${ro(gerir)}></label>
+          <label>Data de expedição<input id="gv-data" type="date" value="${esc(e.data_expedicao)}" ${ro(gerir)}></label>
+          <label># Pares (plano)<input id="gv-plano" inputmode="numeric" value="${e.pares_plan ?? ''}" ${ro(gerir)}></label>
+        </div>
+        <div class="gv-sec">Andamento</div>
+        <div class="grade-form g2">
+          <label>Qtd. pares (a enviar)<input id="gv-pares" inputmode="numeric" value="${e.pares_envio ?? ''}" ${ro(editar)}></label>
+          <label>% coleta<input id="gv-pct" inputmode="decimal" value="${e.pct_coleta ?? ''}" ${ro(editar)}></label>
+          <label>Qtd. caixas<input id="gv-caixas" inputmode="numeric" value="${e.caixas ?? ''}" ${ro(editar)}></label>
+          <label>m³<input id="gv-m3" inputmode="decimal" value="${e.m3 === null || e.m3 === '' ? '' : String(e.m3).replace('.', ',')}" ${ro(editar)}></label>
+        </div>
+        <div id="gv-dif"></div>
+        <label class="gv-lab">Motivo da diferença
+          <select id="gv-motivo" ${ro(editar)}><option value="">–</option>${r.motivos.map(m => `<option ${m === e.motivo_diferenca ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
+        <label class="gv-lab">Observação<textarea id="gv-obs" rows="2" maxlength="500" ${ro(editar)}>${esc(e.observacao || '')}</textarea></label>
+        ${editar ? `<div class="gv-acoes"><button class="btn pri" id="gv-salvar">${novo ? 'Cadastrar envio' : 'Salvar'}</button></div>` : ''}
+
+        ${novo ? '<div class="info" style="margin-top:14px">As coletas são lançadas depois de cadastrar o envio.</div>' : `
+        <div class="gv-sec">Coletas <span class="info">${cs.length} lançamento(s) · ${fmtN(somaCol)} pares${e.pares_envio ? ` · ${fmtP(somaCol, e.pares_envio)} do a enviar` : ''}</span></div>
+        ${cs.length ? `<div class="lista-col">${cs.map(c => {
+          const min = c.inicio && c.fim ? (new Date(c.fim) - new Date(c.inicio)) / 60e3 : null;
+          return `<div class="col-it"><div><b>${esc(nomeWms(c.coletador))}</b>${c.cesto ? ` <span class="info">· cesto ${esc(c.cesto)}</span>` : ''}<br>
+            <span class="info">${c.inicio ? quando(c.inicio) : 'sem horário'}${c.fim ? ' → ' + new Date(c.fim).toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' }) : ''}${min ? ` · ${fmtDur(min)} · ${fmtN(Math.round(c.pares / (min / 60)))} pares/h` : ''}</span></div>
+            <span style="flex:1"></span><b>${fmtN(c.pares)}</b>
+            ${mexeColeta ? `<button class="btn mini" data-ec="${c.id}">Editar</button>` : ''}</div>`; }).join('')}</div>` : '<div class="vazio">Nenhuma coleta lançada.</div>'}
+        ${mexeColeta ? `<div id="gv-col-form"></div><button class="btn" id="gv-col-nova" style="margin-top:8px">+ Lançar coleta</button>` : ''}
+        <div class="gv-sec">Histórico <button class="btn mini" id="gv-hist-btn">Ver</button></div><div id="gv-hist"></div>
+        ${gerir ? `<div style="margin-top:24px"><button class="btn perigo" id="gv-excluir">Excluir envio</button> <span class="info">Para pedido cadastrado por engano. Se o ML cancelou, use o status Cancelado.</span></div>` : ''}`}
+      </div>
+    </aside>
+    <datalist id="dl-coletadores">${(r.coletadores || []).map(n => `<option value="${esc(nomeWms(n))}">`).join('')}</datalist>`;
+
+  let status = e.status;
+  const $ = id => document.getElementById(id);
+  const marcaSujo = () => { g.dataset.sujo = '1'; };
+  g.querySelectorAll('.gv-corpo input, .gv-corpo select, .gv-corpo textarea').forEach(el => el.addEventListener('input', marcaSujo));
+  const avaliarDif = () => {
+    const plano = Number($('gv-plano').value) || 0, pares = $('gv-pares').value === '' ? null : Number($('gv-pares').value);
+    const precisa = status === 'expedido' && pares !== null && pares < plano;
+    $('gv-motivo').classList.toggle('exc', precisa && !$('gv-motivo').value);
+    $('gv-dif').innerHTML = pares !== null && plano && pares < plano ? `<div class="aviso" style="margin:10px 0 0">${fmtN(plano - pares)} pares abaixo do plano (${fmtP(pares, plano)} atendido).${precisa ? ' <b>Informe o motivo para expedir.</b>' : ' Informe o motivo quando souber.'}</div>` : '';
+  };
+  ['gv-plano', 'gv-pares', 'gv-motivo'].forEach(k => $(k).addEventListener('input', avaliarDif)); avaliarDif();
+  g.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { status = b.dataset.st; g.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); marcaSujo(); avaliarDif(); });
+  $('gv-fechar').onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; fecharEnvio(); };
+  $('gv-fundo').onclick = $('gv-fechar').onclick;
+  const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
+
+  const sv = $('gv-salvar');
+  if (sv) sv.onclick = async () => {
+    const corpo = { id: novo ? null : e.id, versao: novo ? null : e.atualizado_em, cnpj_id: $('gv-loja').value, pedido: $('gv-pedido').value.replace(/\D/g, ''),
+      data_expedicao: $('gv-data').value, pares_plan: $('gv-plano').value.trim(), pares_envio: $('gv-pares').value.trim(), status,
+      pct_coleta: $('gv-pct').value.trim().replace(',', '.'), caixas: $('gv-caixas').value.trim(), m3: $('gv-m3').value.trim().replace(',', '.'),
+      motivo_diferenca: $('gv-motivo').value || null, observacao: $('gv-obs').value.trim() || null };
+    if (!corpo.pedido || !corpo.data_expedicao || corpo.pares_plan === '') return erro('Preencha pedido, data de expedição e pares do plano.');
+    sv.disabled = true; sv.textContent = 'Salvando…'; erro('');
+    try {
+      const res = await apiFull('/full/envio', corpo);
+      g.dataset.sujo = ''; avisar(res.semMudanca ? 'Nada mudou.' : novo ? `Envio #${corpo.pedido} cadastrado` : 'Salvo');
+      state.full.aberto = res.id; await carregarFull();
+    } catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); sv.disabled = false; sv.textContent = novo ? 'Cadastrar envio' : 'Salvar'; }
+  };
+
+  // ---- coletas
+  const formColeta = c => {
+    const f = $('gv-col-form'); $('gv-col-nova').hidden = true;
+    f.innerHTML = `<div class="col-form"><div class="grade-form g2">
+      <label>Coletador<input id="cf-quem" list="dl-coletadores" value="${c ? esc(nomeWms(c.coletador)) : ''}" placeholder="nome e sobrenome" autocomplete="off"></label>
+      <label>Cesto<input id="cf-cesto" value="${esc(c?.cesto || '')}" placeholder="ex.: 153"></label>
+      <label>Pares coletados<input id="cf-pares" inputmode="numeric" value="${c?.pares ?? ''}"></label>
+      <span></span>
+      <label class="hora">Início<span class="linha-hora"><input id="cf-ini" type="datetime-local" value="${isoLocal(c?.inicio)}"><button type="button" class="btn mini" data-agora="cf-ini">Agora</button></span></label>
+      <label class="hora">Fim<span class="linha-hora"><input id="cf-fim" type="datetime-local" value="${isoLocal(c?.fim)}"><button type="button" class="btn mini" data-agora="cf-fim">Agora</button></span></label>
+      </div><div class="info" style="margin-top:6px">Início e fim são opcionais, mas sem eles não dá para medir pares por hora.</div>
+      <div class="gv-acoes">${c ? `<button class="btn perigo" id="cf-excluir">Excluir</button><span style="flex:1"></span>` : ''}<button class="btn" id="cf-cancelar">Cancelar</button><button class="btn pri" id="cf-salvar">${c ? 'Salvar coleta' : 'Lançar coleta'}</button></div></div>`;
+    f.querySelectorAll('[data-agora]').forEach(b => b.onclick = () => { $(b.dataset.agora).value = agoraLocal(); });
+    $('cf-cancelar').onclick = () => { f.innerHTML = ''; $('gv-col-nova').hidden = false; };
+    $('cf-salvar').onclick = async ev => {
+      const corpo = { id: c?.id || null, envio_id: e.id, coletador: $('cf-quem').value.trim(), cesto: $('cf-cesto').value.trim() || null, pares: $('cf-pares').value.trim(),
+        inicio: deLocal($('cf-ini').value), fim: deLocal($('cf-fim').value) };
+      if (!corpo.coletador || corpo.pares === '') return erro('Informe quem coletou e quantos pares.');
+      ev.target.disabled = true;
+      try { await apiFull('/full/coleta', corpo); avisar('Coleta salva'); g.dataset.sujo = ''; await carregarFull(); }
+      catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); ev.target.disabled = false; }
+    };
+    const ex = $('cf-excluir');
+    if (ex) ex.onclick = async () => {
+      if (ex.dataset.conf !== '1') { ex.dataset.conf = '1'; ex.textContent = 'Confirmar exclusão'; return; }
+      try { await apiFull('/full/coleta/excluir', { id: c.id }); avisar('Coleta excluída'); await carregarFull(); }
+      catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); }
+    };
+    $('cf-quem').focus();
+  };
+  const nc = $('gv-col-nova'); if (nc) nc.onclick = () => formColeta(null);
+  g.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => formColeta(cs.find(c => c.id === b.dataset.ec)));
+
+  const hb = $('gv-hist-btn');
+  if (hb) hb.onclick = async () => {
+    const ROT = { 'envio.criar':'Cadastrou', 'envio.alterar':'Alterou', 'envio.status':'Mudou etapa', 'coleta.incluir':'Lançou coleta', 'coleta.alterar':'Alterou coleta', 'coleta.excluir':'Excluiu coleta', 'envio.excluir':'Excluiu' };
+    const CAMPO = { cnpj_id:'loja', pedido:'pedido', data_expedicao:'data', pares_plan:'plano', pares_envio:'pares', pct_coleta:'% coleta', caixas:'caixas', m3:'m³', motivo_diferenca:'motivo', observacao:'obs.' };
+    try {
+      const { eventos } = await apiFull(`/full/eventos?id=${e.id}`);
+      $('gv-hist').innerHTML = eventos.length ? `<div class="lista-col">${eventos.map(v => {
+        let txt = '';
+        if (v.acao === 'envio.status') txt = `${esc(ST_FULL[v.antes?.status]?.rot || v.antes?.status)} → <b>${esc(ST_FULL[v.depois?.status]?.rot || v.depois?.status)}</b>`;
+        else if (v.acao === 'envio.alterar') txt = Object.keys(v.depois || {}).map(k => `${CAMPO[k] || k}: ${esc(v.antes?.[k] ?? '–')} → <b>${esc(v.depois[k] ?? '–')}</b>`).join(' · ');
+        else if (v.acao.startsWith('coleta')) { const c = v.depois || v.antes || {}; txt = `${esc(nomeWms(c.coletador || ''))} · ${fmtN(c.pares)} pares`; }
+        return `<div class="col-it"><div><b>${ROT[v.acao] || esc(v.acao)}</b> <span class="info">${quando(v.em)} · ${esc(String(v.por).split('@')[0])}</span><br><span class="info">${txt}</span></div></div>`;
+      }).join('')}</div>` : '<div class="vazio">Sem alterações registradas.</div>';
+    } catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); }
+  };
+  const xb = $('gv-excluir');
+  if (xb) xb.onclick = async () => {
+    if (xb.dataset.conf !== '1') { xb.dataset.conf = '1'; xb.textContent = 'Clique de novo para excluir'; return; }
+    try { await apiFull('/full/envio/excluir', { id: e.id }); avisar(`Envio #${e.pedido} excluído`); g.dataset.sujo = ''; fecharEnvio(); await carregarFull(); }
+    catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); }
+  };
+  if (novo) $('gv-pedido').focus();
+}
+// Sem alert/confirm do navegador: pede um segundo clique no fechar
+function confirmarSaida(){
+  const b = document.getElementById('gv-fechar');
+  if (b.dataset.conf === '1') return true;
+  b.dataset.conf = '1'; b.textContent = 'Descartar?'; setTimeout(() => { if (b.isConnected) { b.dataset.conf = ''; b.textContent = '✕'; } }, 3000);
+  return false;
+}
+
 /* =================== MENU LATERAL =================== */
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
-    { id:'ferramentas', titulo:'Ferramentas', tag:'Em desenvolvimento', filhos:[] },
+    { id:'ferramentas', titulo:'Ferramentas', filhos:[
+      { view:'full', titulo:'Envios Full', tela:'full' },
+    ]},
     { id:'indicadores', titulo:'Indicadores', filhos:[
       { view:'separados', titulo:'Produtividade', tela:'produtividade' },
       { view:'volume',    titulo:'Volume de Pedidos', soDemo:true },
     ]},
   ]},
   { id:'comercial', titulo:'Comercial', tag:'Em desenvolvimento', filhos:[] },
-  { id:'admin', titulo:'Administração', soComFilhos:true, filhos:[
+  { id:'admin', titulo:'Administração', filhos:[
     { view:'pessoas', titulo:'Pessoas e acessos', tela:'pessoas' },
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade' };
+const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full' };
 const viewLiberada = v => !TELA_DA_VIEW[v] || pode(TELA_DA_VIEW[v]);
 const PREF_KEY = 'valenro_menu';
 function lerPref(){ try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch(e) { return state._pref || {}; } }
@@ -701,7 +1053,8 @@ function renderMenu(){
   };
   const grupo = (g, sub) => {
     const vazio = !g.filhos.length;
-    if (g.soComFilhos && !g.filhos.some(f => !f.tela || pode(f.tela))) return '';
+    const visivel = f => f.filhos ? (f.tag || f.filhos.some(visivel)) : (!f.tela || pode(f.tela)) && (!f.soDemo || DEMO);
+    if (!g.tag && !g.filhos.some(visivel)) return '';
     return `<div class="m-grupo ${sub ? 'm-sub' : ''} ${fechados.includes(g.id) ? 'fechado' : ''}" data-grupo="${g.id}">
       <button class="m-cab ${vazio ? 'off' : ''}" ${vazio ? 'disabled' : `data-alterna="${g.id}"`}>${esc(g.titulo)}${g.tag ? `<span class="m-tag">${esc(g.tag)}</span>` : `<span class="seta">▼</span>`}</button>
       <div class="m-filhos">${g.filhos.map(f => f.filhos ? grupo(f, true) : item(f)).join('')}</div>
@@ -725,13 +1078,15 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
-  if (!viewLiberada(view)) view = ['separados', 'pessoas'].find(viewLiberada) || 'nada';
+  if (!['separados', 'volume', 'pessoas', 'full'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!viewLiberada(view)) view = ['separados', 'full', 'pessoas'].find(viewLiberada) || 'nada';
+  document.body.classList.remove('gaveta-aberta');
   state.view = view;
   clearInterval(state.timer);
   renderMenu();
   if (view === 'nada') { $app.innerHTML = `<div class="painel"><h3>Bem-vindo(a)</h3><p class="info">Seu acesso ainda não tem telas liberadas. Fale com a Gerência de Operações.</p></div>`; return; }
   if (view === 'pessoas') return telaPessoas();
+  if (view === 'full') return telaFull();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
