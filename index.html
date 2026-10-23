@@ -186,6 +186,42 @@
   .kpi.alerta{border-left:4px solid var(--bad)} .kpi.alerta .val{color:var(--bad)}
   .tab-full tbody tr{cursor:pointer} .tab-full tbody tr:hover td{background:#f6f8fb} .tab-full tr.sel td{background:#fff8dc}
   .tab-full td{white-space:nowrap}
+  .tab-full th,.tab-full td{text-align:center}
+  .tab-full th.pct,.tab-full td.pct{text-align:right;width:118px}
+  .pct-cel{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;width:100%}
+  .pct-cel .mini-barra{margin:0;flex:0 0 46px} .pct-n{display:inline-block;min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+  .tab-full tr.subtot td{background:#eef2f8;color:var(--pri);font-weight:700;border-bottom:2px solid var(--pri);font-variant-numeric:tabular-nums}
+  .tab-full tr.subtot td:first-child{text-align:left;border-radius:8px 0 0 0}
+  .tab-full tr.subtot small{display:block;font-weight:400;font-size:11px;color:var(--mute)}
+  .btn.imp{padding:3px 8px;font-size:14px;line-height:1}
+  .kanban{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr)) minmax(110px,.8fr);gap:10px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+  .kb{position:relative;font:inherit;text-align:left;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;box-shadow:var(--sombra);color:var(--ink);min-width:0}
+  .kb:hover{background:var(--f)} .kb.on{background:var(--f);outline:2px solid var(--c)}
+  .kb-cab{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column}
+  .kb-cab small{font-weight:400;text-transform:none;letter-spacing:0;color:var(--mute);font-size:10px}
+  .kb-n{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin:2px 0 4px}
+  .kb-n small{font-size:11px;font-weight:400;color:var(--mute);margin-left:5px}
+  .kb-lin{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);border-top:1px dashed var(--line);padding-top:3px}
+  .kb-lin b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .kb:not(:last-child):not(:nth-last-child(2))::after{content:'›';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:#b5bdcb;font-size:18px;z-index:1}
+  .kb-canc{opacity:.8}
+  .filtro-ativo{margin:-4px 0 12px;font-size:13px;display:flex;gap:8px;align-items:center}
+  .datas{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--mute)}
+  .subtot-cel{background:#eef2f8;color:var(--pri);font-weight:700;font-size:13px;padding:10px 12px;border-radius:10px;margin-bottom:10px}
+  .res-col{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+  .res-col div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;font-size:13px}
+  .res-col span{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.3px}
+  .andamento{color:#0b4fa8;font-style:normal;font-weight:600}
+  .periodos{display:flex;flex-direction:column;font-size:12px;color:var(--ink);margin:2px 0}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px}
+  .chip{display:inline-flex;align-items:center;gap:4px;background:#e8eef7;color:var(--pri);border-radius:20px;padding:4px 6px 4px 10px;font-size:13px;font-weight:600}
+  .chip button{border:0;background:transparent;color:var(--pri);font-size:16px;line-height:1;cursor:pointer;padding:0 4px}
+  .per{display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;margin-top:8px}
+  .per label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute)}
+  .per input{font:inherit;font-size:14px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;min-width:0;width:100%}
+  .per-n{width:22px;height:22px;border-radius:50%;background:var(--pri);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;margin-bottom:7px}
+  @media (max-width:560px){ .per{grid-template-columns:22px minmax(0,1fr) auto} .per label:nth-of-type(2){grid-column:2} .res-col{grid-template-columns:1fr 1fr} }
+  @media (max-width:900px){ .kanban{grid-template-columns:repeat(7,150px)} }
   .marca-loja{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
   .prev{color:#b07a00;font-style:italic} .dif{color:var(--bad)} .atraso{color:var(--bad);font-weight:600}
   .mini-barra{display:inline-block;width:42px;height:6px;border-radius:3px;background:#e8ebf0;margin-right:6px;vertical-align:middle;overflow:hidden}
@@ -223,6 +259,7 @@
   .col-it{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px} .col-it:last-child{border-bottom:0}
   .col-form{background:var(--card);border:1px solid var(--pri);border-radius:10px;padding:12px;margin-top:10px}
   .linha-hora{display:flex;gap:6px} .linha-hora input{flex:1}
+  .col-form .linha-hora input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
   body.gaveta-aberta{overflow:hidden}
   @media (max-width:560px){ .gv-corpo{padding:4px 14px 40px} .etapa{flex:1 1 45%} }
   .toast{position:fixed;z-index:40;bottom:90px;left:50%;transform:translateX(-50%);background:#1b2333;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.2)}
@@ -712,22 +749,33 @@ function renderHistorico($p, r){
 
 /* =================== ENVIOS FULL =================== */
 const ST_FULL = {
-  planejado:       { rot:'Planejado',             cor:'#677086', fundo:'#eef0f4' },
-  em_coleta:       { rot:'Em coleta',             cor:'#0b4fa8', fundo:'#e3eefc' },
-  em_conferencia:  { rot:'Em conferência',        cor:'#6b3fa0', fundo:'#efe7fa' },
-  ag_boleto_nf:    { rot:'Ag. Boleto/NF',         cor:'#8a5a00', fundo:'#fff3d1' },
-  ag_carregamento: { rot:'OK · Ag. carregamento', cor:'#0f6e66', fundo:'#dff5f1' },
-  expedido:        { rot:'Expedido',              cor:'#1a7a3e', fundo:'#e2f5e8' },
-  cancelado:       { rot:'Cancelado',             cor:'#8a1f1f', fundo:'#fbe9e9' },
+  programado:       { rot:'Programado',       cor:'#566074', fundo:'#eef0f4' },
+  separacao:        { rot:'Separação',        cor:'#0b4fa8', fundo:'#e3eefc' },
+  conferencia:      { rot:'Conferência',      cor:'#6b3fa0', fundo:'#efe7fa' },
+  etiquetagem:      { rot:'Etiquetagem',      cor:'#9a5b00', fundo:'#fff1d6' },
+  aguardando_envio: { rot:'Aguardando envio', cor:'#0f6e66', fundo:'#dff5f1' },
+  expedido:         { rot:'Expedido',         cor:'#1a7a3e', fundo:'#e2f5e8' },
+  cancelado:        { rot:'Cancelado',        cor:'#8a1f1f', fundo:'#fbe9e9' },
 };
-const ABERTOS_FULL = ['planejado', 'em_coleta', 'em_conferencia', 'ag_boleto_nf', 'ag_carregamento'];
-const PREVISTO_FULL = ['planejado', 'em_coleta', 'em_conferencia', 'ag_boleto_nf'];   // pares, caixas e m³ ainda são previsão
+const ORDEM_FULL = Object.keys(ST_FULL);
+const ABERTOS_FULL = ['programado', 'separacao', 'conferencia', 'etiquetagem', 'aguardando_envio'];
+const PREVISTO_FULL = ['programado', 'separacao', 'conferencia'];   // pares, caixas e m³ ainda são previsão
 const pillFull = st => `<span class="st-full" style="color:${ST_FULL[st]?.cor};background:${ST_FULL[st]?.fundo}">${esc(ST_FULL[st]?.rot || st)}</span>`;
-const fmtM3 = n => n === null || n === undefined ? '–' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits:3, maximumFractionDigits:3 });
+const fmtM3 = n => n === null || n === undefined || n === '' ? '–' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits:3, maximumFractionDigits:3 });
 const fmtDur = min => min < 60 ? `${Math.round(min)} min` : `${Math.floor(min / 60)}h${String(Math.round(min % 60)).padStart(2, '0')}`;
 const isoLocal = iso => { if (!iso) return ''; const d = new Date(new Date(iso).getTime() - 3*3600e3); return d.toISOString().slice(0, 16); };   // para input datetime-local (Brasília)
 const deLocal = v => v ? new Date(v + ':00-03:00').toISOString() : null;
 const agoraLocal = () => isoLocal(new Date().toISOString());
+const diaHora = iso => new Date(iso).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(',', '');
+const soHora = iso => new Date(iso).toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' });
+const mesmoDia = (a, b) => isoLocal(a).slice(0, 10) === isoLocal(b).slice(0, 10);
+const paresEnvio = e => e.pares_envio ?? e.pares_plan ?? 0;   // sem a quantidade a enviar, vale o plano
+// minutos trabalhados (só períodos fechados) e se há período em aberto
+function tempoColeta(c){
+  let min = 0, aberto = false;
+  (c.periodos || []).forEach(p => { if (p.fim) min += (new Date(p.fim) - new Date(p.inicio)) / 60e3; else aberto = true; });
+  return { min, aberto };
+}
 
 // ---- demonstração: os 17 pedidos da planilha, em memória
 const DEMO_FULL = (() => {
@@ -736,33 +784,39 @@ const DEMO_FULL = (() => {
     ['DIGOS','79679795','2026-10-19','151','guilherme',454,374,'expedido',100,32,2.618], ['DIGOS','79755295','2026-10-21','150','arthur',714,610,'expedido',100,48,4.27],
     ['DIGOS','79681253','2026-10-21','079','davi',533,414,'expedido',100,28,2.898], ['DIGOS','79984317','2026-10-21','150','arthur',746,425,'expedido',100,35,2.975],
     ['CACAL','79752029','2026-10-21','030','arthur',806,505,'expedido',100,42,3.535], ['CACAL','79776220','2026-10-21','099','arthur',652,516,'expedido',100,45,3.612],
-    ['CACAL','79532441','2026-10-21','096','arthur',830,610,'expedido',100,52,4.27], ['CACAL','80060314','2026-10-23','105/100','arthur',1059,990,'em_conferencia',100,83,6.93],
-    ['DROSA','80065106','2026-10-23','057','vitor',472,472,'ag_boleto_nf',100,40,3.304], ['DIGOS','80055010','2026-10-23','155',null,1127,902,'em_coleta',53,76,6.314],
-    ['DROSA','79762770','2026-10-23','057','davi',533,313,'ag_carregamento',100,26,2.191], ['DROSA','79541319','2026-10-23','056','vini',497,347,'ag_carregamento',100,29,2.429],
-    ['DIGOS','79981921','2026-10-26','154','arthur',1045,900,'ag_carregamento',100,73,6.3], ['DIGOS','80084449','2026-10-26','154',null,824,660,'em_coleta',17,55,4.62],
-    ['DIGOS','80279586','2026-10-26',null,null,1122,898,'planejado',0,75,6.286],
+    ['CACAL','79532441','2026-10-21','096','arthur',830,610,'expedido',100,52,4.27], ['CACAL','80060314','2026-10-23','105/100','arthur',1059,990,'conferencia',100,83,6.93],
+    ['DROSA','80065106','2026-10-23','057','vitor',472,472,'aguardando_envio',100,40,3.304], ['DIGOS','80055010','2026-10-23','155',null,1127,902,'separacao',53,76,6.314],
+    ['DROSA','79762770','2026-10-23','057','davi',533,313,'aguardando_envio',100,26,2.191], ['DROSA','79541319','2026-10-23','056','vini',497,347,'aguardando_envio',100,29,2.429],
+    ['DIGOS','79981921','2026-10-26','154','arthur',1045,900,'aguardando_envio',100,73,6.3], ['DIGOS','80084449','2026-10-26','154',null,824,660,'separacao',17,55,4.62],
+    ['DIGOS','80279586','2026-10-26',null,null,1122,898,'programado',0,75,6.286],
   ];
   const agora = new Date().toISOString(), envios = [], coletas = [];
   L.forEach((l, i) => {
-    envios.push({ id:String(i + 1), cnpj_id:l[0], pedido:l[1], data_expedicao:l[2], pares_plan:l[5], pares_envio:l[6], status:l[7], pct_coleta:l[8], caixas:l[9], m3:l[10],
+    envios.push({ id:String(i + 1), cnpj_id:l[0], pedido:l[1], data_expedicao:l[2], hora_expedicao: l[7] === 'expedido' ? null : '14:00', pares_plan:l[5], pares_envio:l[6], status:l[7], pct_coleta:l[8], caixas:l[9], m3:l[10],
       motivo_diferenca:null, observacao: l[1] === '80055010' ? 'Planilha: coletadores Vini/Arthur, cesto 155. Lançar as coletas.' : null,
       status_em:agora, atualizado_em:agora, atualizado_por:'carga.planilha' });
-    if (l[4]) coletas.push({ id:String(i + 1), envio_id:String(i + 1), coletador:l[4], cesto:l[3], pares:l[6], inicio:null, fim:null });
+    if (l[4]) coletas.push({ id:String(i + 1), envio_id:String(i + 1), coletadores:[l[4]], cesto:l[3], pares:l[6], periodos:[] });
   });
   return { envios, coletas, eventos:[], seq:100 };
 })();
 async function apiFull(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_FULL, ag = new Date().toISOString(), ev = (envio_id, acao, antes, depois) => D.eventos.unshift({ envio_id, em:ag, por:'demonstracao', acao, antes, depois });
-  if (path.startsWith('/full/eventos')) { const id = new URLSearchParams(path.split('?')[1]).get('id'); return { eventos: D.eventos.filter(e => e.envio_id === id) }; }
-  if (path.startsWith('/full?')) return { envios: JSON.parse(JSON.stringify(D.envios)), coletas: JSON.parse(JSON.stringify(D.coletas)),
-    coletadores: [...new Set(D.coletas.map(c => c.coletador).concat(['arthur magdaleno','davi duarte','nathan marques','tiago santos']))].sort(),
-    lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }], status: Object.keys(ST_FULL),
-    motivos: ['Sem estoque físico','Divergência de estoque (WMS x físico)','Avaria / qualidade','Ajuste do ML no agendamento','Erro no plano','Outro'], hoje: hojeBRT() };
   const num = v => v === '' || v === null || v === undefined ? null : Number(v);
+  if (path.startsWith('/full/eventos')) { const id = new URLSearchParams(path.split('?')[1]).get('id'); return { eventos: D.eventos.filter(e => e.envio_id === id) }; }
+  if (path.startsWith('/full')) {
+    if (path.startsWith('/full?') || path === '/full') {
+      const q = new URLSearchParams(path.split('?')[1] || ''), ini = q.get('ini'), fim = q.get('fim'), desde = addDias(hojeBRT(), -45);
+      const envios = D.envios.filter(e => ini ? e.data_expedicao >= ini && e.data_expedicao <= fim : (ABERTOS_FULL.includes(e.status) || e.data_expedicao >= desde));
+      return { ini, fim, envios: JSON.parse(JSON.stringify(envios)), coletas: JSON.parse(JSON.stringify(D.coletas)),
+        coletadores: [...new Set(D.coletas.flatMap(c => c.coletadores).concat(['arthur magdaleno','davi duarte','nathan marques','tiago santos','vinicius correa']))].sort(),
+        lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }], status: ORDEM_FULL,
+        motivos: ['Sem estoque físico','Divergência de estoque (WMS x físico)','Avaria / qualidade','Ajuste do ML no agendamento','Erro no plano','Outro'], hoje: hojeBRT() };
+    }
+  }
   if (path === '/full/envio') {
     corpo = { ...corpo, ...Object.fromEntries(['pares_plan','pares_envio','pct_coleta','caixas','m3'].map(k => [k, num(corpo[k])])) };
-    if (corpo.status === 'expedido' && Number(corpo.pares_envio) < Number(corpo.pares_plan) && !corpo.motivo_diferenca) throw new Error(`Saíram ${corpo.pares_envio} de ${corpo.pares_plan} pares do plano: informe o motivo da diferença`);
+    if (corpo.status === 'expedido' && corpo.pares_envio < corpo.pares_plan && !corpo.motivo_diferenca) throw new Error(`Saíram ${corpo.pares_envio} de ${corpo.pares_plan} pares do plano: informe o motivo da diferença`);
     if (!corpo.id) { const id = String(++D.seq); D.envios.push({ ...corpo, id, status_em:ag, atualizado_em:ag, atualizado_por:'demonstracao' }); ev(id, 'envio.criar', null, corpo); return { ok:true, id }; }
     const e = D.envios.find(x => x.id === corpo.id);
     if (e.status !== corpo.status) { ev(e.id, 'envio.status', { status:e.status }, { status:corpo.status }); e.status_em = ag; }
@@ -770,7 +824,7 @@ async function apiFull(path, corpo){
   }
   if (path === '/full/envio/excluir') { D.envios = D.envios.filter(e => e.id !== corpo.id); return { ok:true }; }
   if (path === '/full/coleta') {
-    const c = { ...corpo, pares: num(corpo.pares), coletador: corpo.coletador.trim().toLowerCase() };
+    const c = { ...corpo, pares: num(corpo.pares), coletadores: corpo.coletadores.map(x => x.trim().toLowerCase()) };
     if (!c.id) { c.id = String(++D.seq); D.coletas.push(c); ev(c.envio_id, 'coleta.incluir', null, c); }
     else { const i = D.coletas.findIndex(x => x.id === c.id); ev(c.envio_id, 'coleta.alterar', D.coletas[i], c); D.coletas[i] = c; }
     return { ok:true, id:c.id };
@@ -778,28 +832,54 @@ async function apiFull(path, corpo){
   if (path === '/full/coleta/excluir') { const c = D.coletas.find(x => x.id === corpo.id); D.coletas = D.coletas.filter(x => x.id !== corpo.id); ev(c.envio_id, 'coleta.excluir', c, null); return { ok:true }; }
 }
 
+// ---- período de expedição
+function periodoFull(op){
+  const h = hojeBRT(), dow = new Date(h + 'T12:00:00Z').getUTCDay(), seg = addDias(h, -((dow + 6) % 7));
+  return { hoje:[h, h], amanha:[addDias(h, 1), addDias(h, 1)], semana:[seg, addDias(seg, 6)], prox7:[h, addDias(h, 6)], mes:[h.slice(0, 8) + '01', addDias(addDias(h.slice(0, 8) + '01', 32).slice(0, 8) + '01', -1)] }[op] || null;
+}
+
 function telaFull(){
-  const s = state.full ||= { loja:'todos', aba:'abertos', busca:'', aberto:null };
+  const s = state.full ||= { loja:'todos', aba:'abertos', st:null, busca:'', aberto:null, per:'padrao', ini:'', fim:'' };
   $app.innerHTML = `
     <div class="barra">
       <h2>Envios Full</h2><span style="flex:1"></span>
-      <input id="f-busca" class="campo" placeholder="Buscar pedido" value="${esc(s.busca)}" inputmode="numeric" style="width:150px">
+      <input id="f-busca" class="campo" placeholder="Buscar pedido" value="${esc(s.busca)}" inputmode="numeric" style="width:140px">
       <select id="f-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
-      <div class="abas">${[['abertos','Em aberto'],['expedidos','Expedidos'],['todos','Todos']].map(([k, r]) => `<button data-fa="${k}" class="${s.aba === k ? 'on' : ''}">${r}</button>`).join('')}</div>
+      <select id="f-per" title="Data de expedição">
+        ${[['padrao','Expedição: em aberto + últimos 45 dias'],['hoje','Expedição: hoje'],['amanha','Expedição: amanhã'],['semana','Expedição: esta semana'],['prox7','Expedição: próximos 7 dias'],['mes','Expedição: este mês'],['outro','Expedição: escolher datas…']]
+          .map(([k, r]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${r}</option>`).join('')}
+      </select>
+      <span id="f-datas" class="datas" ${s.per === 'outro' ? '' : 'hidden'}><input type="date" id="f-ini" value="${s.ini}"> até <input type="date" id="f-fim" value="${s.fim}"></span>
+      <div class="abas">${[['abertos','Em aberto'],['expedidos','Expedidos'],['todos','Todos']].map(([k, r]) => `<button data-fa="${k}" class="${s.aba === k && !s.st ? 'on' : ''}">${r}</button>`).join('')}</div>
       <button class="btn" id="f-atualizar">Atualizar</button>
       ${pode('full', 'gerir') ? `<button class="btn pri" id="f-novo">+ Novo envio</button>` : ''}
     </div>
     <div id="full"><div class="carregando">Carregando envios…</div></div>
     <div id="gaveta" hidden></div>`;
   document.getElementById('f-loja').onchange = e => { s.loja = e.target.value; renderFull(); };
-  document.querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { s.aba = b.dataset.fa; document.querySelectorAll('[data-fa]').forEach(x => x.classList.toggle('on', x === b)); renderFull(); });
+  document.querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { s.aba = b.dataset.fa; s.st = null; marcarAbas(); renderFull(); });
   const $b = document.getElementById('f-busca'); $b.oninput = () => { s.busca = $b.value; renderFull(); };
+  const $per = document.getElementById('f-per');
+  $per.onchange = () => {
+    s.per = $per.value; document.getElementById('f-datas').hidden = s.per !== 'outro';
+    if (s.per === 'outro') { if (!s.ini) { s.ini = hojeBRT(); s.fim = addDias(hojeBRT(), 6); document.getElementById('f-ini').value = s.ini; document.getElementById('f-fim').value = s.fim; } }
+    else if (s.per !== 'padrao') [s.ini, s.fim] = periodoFull(s.per);
+    if (s.per !== 'padrao' && s.aba === 'abertos') { s.aba = 'todos'; marcarAbas(); }   // período escolhido: mostra todos os status
+    carregarFull();
+  };
+  ['f-ini', 'f-fim'].forEach(k => document.getElementById(k).onchange = () => {
+    s.ini = document.getElementById('f-ini').value; s.fim = document.getElementById('f-fim').value;
+    if (s.ini && s.fim && s.ini <= s.fim) carregarFull();
+  });
   document.getElementById('f-atualizar').onclick = () => carregarFull();
   const nv = document.getElementById('f-novo'); if (nv) nv.onclick = () => abrirEnvio(null);
   carregarFull();
 }
+function marcarAbas(){ const s = state.full; document.querySelectorAll('[data-fa]').forEach(x => x.classList.toggle('on', x.dataset.fa === s.aba && !s.st)); }
 async function carregarFull(){
-  try { state.fullDados = await apiFull(`/full?desde=${addDias(hojeBRT(), -45)}`); renderFull(); if (state.full.aberto) abrirEnvio(state.full.aberto, true); }
+  const s = state.full;
+  const q = s.per === 'padrao' ? '' : `?ini=${s.ini}&fim=${s.fim}`;
+  try { state.fullDados = await apiFull('/full' + q); renderFull(); if (s.aberto) abrirEnvio(s.aberto, true); }
   catch (e) { if (e instanceof SemSessao) throw e; const $f = document.getElementById('full'); if ($f) $f.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 function coletasDe(id){ return (state.fullDados?.coletas || []).filter(c => c.envio_id === id); }
@@ -807,55 +887,154 @@ function renderFull(){
   const s = state.full, r = state.fullDados, $f = document.getElementById('full');
   if (!$f || !r) return;
   const hoje = r.hoje || hojeBRT(), termo = s.busca.replace(/\D/g, '');
-  const lista = r.envios
-    .filter(e => s.loja === 'todos' || e.cnpj_id === s.loja)
-    .filter(e => s.aba === 'todos' || (s.aba === 'abertos' ? ABERTOS_FULL.includes(e.status) : ['expedido', 'cancelado'].includes(e.status)))
-    .filter(e => !termo || e.pedido.includes(termo))
-    .sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || a.cnpj_id.localeCompare(b.cnpj_id) || a.pedido.localeCompare(b.pedido));
+  // base: loja + busca + período (o quadro de etapas usa esta base, para mostrar o fluxo inteiro)
+  const base = r.envios.filter(e => (s.loja === 'todos' || e.cnpj_id === s.loja) && (!termo || e.pedido.includes(termo)));
+  const lista = base
+    .filter(e => s.st ? e.status === s.st : (s.aba === 'todos' || (s.aba === 'abertos' ? ABERTOS_FULL.includes(e.status) : ['expedido', 'cancelado'].includes(e.status))))
+    .sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || (a.hora_expedicao || '99').localeCompare(b.hora_expedicao || '99') || a.cnpj_id.localeCompare(b.cnpj_id) || a.pedido.localeCompare(b.pedido));
   const validos = lista.filter(e => e.status !== 'cancelado');
-  const soma = k => validos.reduce((t, e) => t + (Number(e[k]) || 0), 0);
-  const plano = soma('pares_plan'), pares = soma('pares_envio');
-  const atrasados = lista.filter(e => ABERTOS_FULL.includes(e.status) && e.data_expedicao < hoje).length;
-  const porSt = {}; lista.forEach(e => porSt[e.status] = (porSt[e.status] || 0) + 1);
+  const soma = (l, f) => l.reduce((t, e) => t + (Number(f(e)) || 0), 0);
+  const plano = soma(validos, e => e.pares_plan), pares = soma(validos, e => e.pares_envio);
+  const quadro = ORDEM_FULL.map(st => { const l = base.filter(e => e.status === st); return { st, n:l.length, pares:soma(l, paresEnvio), cx:soma(l, e => e.caixas), m3:soma(l, e => e.m3) }; });
+  const expTxt = s.per === 'padrao' ? 'últimos 45 dias' : '';
   const linha = e => {
-    const cs = coletasDe(e.id), quem = [...new Set(cs.map(c => nomeWms(c.coletador)))].join(' / '), cestos = [...new Set(cs.map(c => c.cesto).filter(Boolean))].join(' / ');
+    const cs = coletasDe(e.id);
+    const quem = [...new Set(cs.flatMap(c => c.coletadores).map(nomeWms))].join(' / '), cestos = [...new Set(cs.map(c => c.cesto).filter(Boolean))].join(' / ');
     const prev = PREVISTO_FULL.includes(e.status), atraso = ABERTOS_FULL.includes(e.status) && e.data_expedicao < hoje;
     const dif = e.pares_envio !== null && e.pares_envio < e.pares_plan;
     return { e, quem, cestos, prev, atraso, dif };
   };
   const L = lista.map(linha);
+  const pct = e => `<span class="pct-cel"><span class="mini-barra"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><span class="pct-n">${e.pct_coleta === null ? '–' : fmtN(Math.round(e.pct_coleta)) + '%'}</span></span>`;
+  const dataExp = e => `${dataBR(e.data_expedicao).slice(0, 5)}${e.hora_expedicao ? ' ' + e.hora_expedicao : ''}`;
   $f.innerHTML = `
-    <div class="kpis kpis-full">
-      <div class="kpi"><div class="rot">Pedidos</div><div class="val">${fmtN(lista.length)}</div><div class="det">${Object.entries(porSt).map(([k, n]) => `${n} ${ST_FULL[k]?.rot.toLowerCase() || k}`).join(' · ') || '–'}</div></div>
-      <div class="kpi"><div class="rot">Pares no plano</div><div class="val">${fmtN(plano)}</div><div class="det">pedido pelo ML</div></div>
-      <div class="kpi destaque"><div class="rot">Pares a enviar</div><div class="val">${fmtN(pares)}</div><div class="det">${fmtP(pares, plano)} do plano · faltam ${fmtN(Math.max(0, plano - pares))}</div></div>
-      <div class="kpi"><div class="rot">Caixas · m³</div><div class="val">${fmtN(soma('caixas'))}</div><div class="det">${fmtM3(soma('m3'))} m³</div></div>
-      ${atrasados ? `<div class="kpi alerta"><div class="rot">Data vencida</div><div class="val">${atrasados}</div><div class="det">em aberto com expedição antes de hoje</div></div>` : ''}
+    <div class="kanban">${quadro.map(q => `
+      <button class="kb ${s.st === q.st ? 'on' : ''} ${q.st === 'cancelado' ? 'kb-canc' : ''}" data-kb="${q.st}" style="--c:${ST_FULL[q.st].cor};--f:${ST_FULL[q.st].fundo}">
+        <span class="kb-cab">${esc(ST_FULL[q.st].rot)}${q.st === 'expedido' && expTxt ? `<small>${expTxt}</small>` : ''}</span>
+        <span class="kb-n">${fmtN(q.n)}<small>pedido${q.n === 1 ? '' : 's'}</small></span>
+        <span class="kb-lin"><span>Pares</span><b>${fmtN(q.pares)}</b></span>
+        <span class="kb-lin"><span>Caixas</span><b>${fmtN(q.cx)}</b></span>
+        <span class="kb-lin"><span>m³</span><b>${fmtM3(q.m3)}</b></span>
+      </button>`).join('')}
     </div>
-    ${!L.length ? `<div class="painel"><div class="vazio">Nenhum envio ${s.aba === 'abertos' ? 'em aberto' : ''} com esses filtros.</div></div>` : `
+    ${s.st ? `<div class="filtro-ativo">Mostrando só <b>${esc(ST_FULL[s.st].rot)}</b> <button class="btn mini" id="f-limpa-st">Limpar</button></div>` : ''}
+    ${!L.length ? `<div class="painel"><div class="vazio">Nenhum envio com esses filtros.</div></div>` : `
     <div class="painel so-largo"><div style="overflow-x:auto"><table class="tab-full">
-      <thead><tr><th>Loja</th><th>Pedido</th><th>Expedição</th><th>Cesto</th><th>Coletador</th><th class="n">Pares plano</th><th class="n">Qtd. pares</th><th>Status</th><th class="n">% coleta</th><th class="n">Caixas</th><th class="n">m³</th><th>Obs.</th></tr></thead>
+      <thead>
+        <tr class="subtot"><td colspan="5">Subtotal · ${fmtN(lista.length)} pedido${lista.length === 1 ? '' : 's'}</td><td>${fmtN(plano)}</td>
+          <td>${fmtN(pares)}<small>${fmtP(pares, plano)} do plano</small></td><td></td><td></td><td>${fmtN(soma(validos, e => e.caixas))}</td><td>${fmtM3(soma(validos, e => e.m3))}</td><td colspan="2"></td></tr>
+        <tr><th>Loja</th><th>Pedido</th><th>Expedição</th><th>Cesto</th><th>Coletador</th><th>Pares plano</th><th>Qtd. pares</th><th>Status</th><th class="pct">% coleta</th><th>Caixas</th><th>m³</th><th>Obs.</th><th></th></tr>
+      </thead>
       <tbody>${L.map(({ e, quem, cestos, prev, atraso, dif }) => `<tr data-envio="${e.id}" class="${s.aberto === e.id ? 'sel' : ''}">
         <td><span class="marca-loja" style="background:${corLoja(e.cnpj_id)};${LOJAS[e.cnpj_id]?.borda ? `border:1px solid ${LOJAS[e.cnpj_id].borda}` : ''}"></span>${esc(nomeLoja(e.cnpj_id))}</td>
-        <td>#${esc(e.pedido)}</td><td class="${atraso ? 'atraso' : ''}">${dataBR(e.data_expedicao).slice(0, 5)}${atraso ? ' ⚠' : ''}</td>
+        <td>#${esc(e.pedido)}</td><td class="${atraso ? 'atraso' : ''}">${dataExp(e)}${atraso ? ' ⚠' : ''}</td>
         <td>${esc(cestos) || '<span class="info">–</span>'}</td><td>${esc(quem) || '<span class="info">–</span>'}</td>
-        <td class="n">${fmtN(e.pares_plan)}</td><td class="n ${prev ? 'prev' : dif ? 'dif' : ''}" title="${prev ? 'Previsto: ainda pode mudar' : dif ? 'Abaixo do plano' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</td>
-        <td>${pillFull(e.status)}</td>
-        <td class="n"><span class="mini-barra"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span>${e.pct_coleta === null ? '–' : fmtN(Math.round(e.pct_coleta)) + '%'}</td>
-        <td class="n ${prev ? 'prev' : ''}">${e.caixas ?? '–'}</td><td class="n ${prev ? 'prev' : ''}">${fmtM3(e.m3)}</td>
-        <td>${e.observacao || e.motivo_diferenca ? `<span title="${esc([e.motivo_diferenca, e.observacao].filter(Boolean).join(' · '))}">💬</span>` : ''}</td></tr>`).join('')}
+        <td>${fmtN(e.pares_plan)}</td><td class="${prev ? 'prev' : dif ? 'dif' : ''}" title="${prev ? 'Previsto: ainda pode mudar' : dif ? 'Abaixo do plano' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</td>
+        <td>${pillFull(e.status)}</td><td class="pct">${pct(e)}</td>
+        <td class="${prev ? 'prev' : ''}">${e.caixas ?? '–'}</td><td class="${prev ? 'prev' : ''}">${fmtM3(e.m3)}</td>
+        <td>${e.observacao || e.motivo_diferenca ? `<span title="${esc([e.motivo_diferenca, e.observacao].filter(Boolean).join(' · '))}">💬</span>` : ''}</td>
+        <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto">🖨</button></td></tr>`).join('')}
       </tbody>
-      <tfoot><tr class="tot"><td colspan="5">${fmtN(lista.length)} pedido(s)</td><td class="n">${fmtN(plano)}</td><td class="n">${fmtN(pares)}</td><td></td><td></td><td class="n">${fmtN(soma('caixas'))}</td><td class="n">${fmtM3(soma('m3'))}</td><td></td></tr></tfoot>
     </table></div>
-    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>Clique na linha para abrir.</span></div></div>
-    <div class="so-estreito">${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
-      <button class="card-full ${s.aberto === e.id ? 'sel' : ''}" data-envio="${e.id}" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
-        <div class="cf-top"><b>#${esc(e.pedido)}</b><span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataBR(e.data_expedicao).slice(0, 5)}${atraso ? ' ⚠' : ''}</span></div>
+    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 folha de rosto do palete</span></div></div>
+    <div class="so-estreito">
+      <div class="subtot-cel">Subtotal · ${fmtN(lista.length)} pedidos · plano ${fmtN(plano)} · pares ${fmtN(pares)} (${fmtP(pares, plano)}) · ${fmtN(soma(validos, e => e.caixas))} cx · ${fmtM3(soma(validos, e => e.m3))} m³</div>
+      ${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
+      <div class="card-full ${s.aberto === e.id ? 'sel' : ''}" data-envio="${e.id}" role="button" tabindex="0" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
+        <div class="cf-top"><b>#${esc(e.pedido)}</b><span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
+          <button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto">🖨</button></div>
         <div class="cf-mid">${pillFull(e.status)}<span class="mini-barra larga"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><b>${e.pct_coleta === null ? '–' : Math.round(e.pct_coleta) + '%'}</b></div>
         <div class="cf-bot"><span>Plano <b>${fmtN(e.pares_plan)}</b></span><span>Pares <b class="${prev ? 'prev' : dif ? 'dif' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</b></span><span>Cx <b>${e.caixas ?? '–'}</b></span>${quem ? `<span>${esc(quem)}</span>` : ''}${cestos ? `<span>Cesto ${esc(cestos)}</span>` : ''}</div>
-      </button>`).join('')}</div>`}
-    <div class="info" style="margin-top:8px">Mostra todos os envios em aberto e os expedidos dos últimos 45 dias.</div>`;
-  $f.querySelectorAll('[data-envio]').forEach(el => el.onclick = () => abrirEnvio(el.dataset.envio));
+      </div>`).join('')}</div>`}
+    <div class="info" style="margin-top:8px">${s.per === 'padrao' ? 'Mostra todos os envios em aberto e os expedidos dos últimos 45 dias.' : `Expedição de ${dataBR(s.ini)} a ${dataBR(s.fim)}.`} Clique numa etapa para filtrar.</div>`;
+  $f.querySelectorAll('[data-kb]').forEach(b => b.onclick = () => { s.st = s.st === b.dataset.kb ? null : b.dataset.kb; marcarAbas(); renderFull(); });
+  const lp = document.getElementById('f-limpa-st'); if (lp) lp.onclick = () => { s.st = null; marcarAbas(); renderFull(); };
+  $f.querySelectorAll('[data-envio]').forEach(el => { el.onclick = () => abrirEnvio(el.dataset.envio); el.onkeydown = ev => { if (ev.key === 'Enter') abrirEnvio(el.dataset.envio); }; });
+  $f.querySelectorAll('[data-imp]').forEach(b => b.onclick = ev => { ev.stopPropagation(); imprimirFolha(r.envios.find(x => x.id === b.dataset.imp)); });
+}
+
+// ---- folha de rosto do palete (A4 retrato)
+const DIAS_SEM = ['DOMINGO', 'SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO'];
+function folhaRostoHtml(e){
+  const loja = LOJAS[e.cnpj_id] || { nome: nomeLoja(e.cnpj_id), cor:'#02285a' };
+  const claro = !!loja.borda;   // Cacal: cor clara, texto escuro
+  const corTexto = claro ? '#282830' : '#ffffff';
+  const ped = String(e.pedido), ini = ped.slice(0, -3), fim3 = ped.slice(-3);
+  const dow = new Date(e.data_expedicao + 'T12:00:00Z').getUTCDay();
+  const prev = PREVISTO_FULL.includes(e.status);
+  const quem = state.usuario?.nome || (DEMO ? 'Demonstração' : '');
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Folha de rosto ${esc(ped)}</title><style>
+  @page{size:A4 portrait;margin:0}
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html,body{margin:0;padding:0;background:#fff}
+  body{font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:#1b2333}
+  .folha{width:210mm;height:297mm;padding:7mm;display:flex;overflow:hidden}
+  .moldura{flex:1;min-width:0;overflow:hidden;border:5mm solid ${loja.borda ? loja.cor : loja.cor};${loja.borda ? `outline:0.6mm solid ${loja.borda};outline-offset:-5.6mm;` : ''}display:flex;flex-direction:column}
+  .topo{background:#02285a;color:#fff;display:flex;align-items:center;gap:6mm;padding:5mm 8mm;border-bottom:2.5mm solid #f1c300}
+  .topo img{height:16mm}
+  .topo .t1{font-size:15pt;font-weight:700;letter-spacing:1.5pt}
+  .topo .t2{font-size:10pt;opacity:.8;letter-spacing:.5pt}
+  .topo .esp{flex:1}
+  .topo .st{font-size:10pt;border:0.4mm solid rgba(255,255,255,.6);padding:1.5mm 3.5mm;border-radius:2mm}
+  .bloco{padding:0 10mm}
+  .rot{font-size:13pt;font-weight:700;letter-spacing:2pt;color:#566074;text-transform:uppercase}
+  .coleta{margin-top:9mm}
+  .num{overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:2mm;margin-top:2mm;line-height:.9}
+  .num .ini{font-size:54pt;font-weight:700;color:#02285a;letter-spacing:1pt;padding-bottom:5mm}
+  .num .fim{font-size:134pt;font-weight:800;color:#111;background:#f1c300;padding:3mm 5mm 1mm;border-radius:3mm;letter-spacing:2pt}
+  .linha{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:10mm}
+  .caixa{border:0.6mm solid #c9cfda;border-radius:3mm;padding:5mm 6mm}
+  .data{font-size:34pt;font-weight:800;color:#02285a;line-height:1.05}
+  .dia{font-size:17pt;font-weight:700;color:#566074;letter-spacing:1.5pt}
+  .hora{font-size:40pt;font-weight:800;color:#111}
+  .loja{background:${loja.cor};color:${corTexto};border-radius:3mm;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:4mm;${claro ? `border:0.6mm solid ${loja.borda};` : ''}}
+  .loja .rot{color:${corTexto};opacity:.85}
+  .loja .nome{font-size:var(--tam);font-weight:800;letter-spacing:1pt;line-height:1;white-space:nowrap;text-transform:uppercase;margin-top:2mm;text-align:center}
+  .qtd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm;margin-top:9mm}
+  .qtd .caixa{text-align:center;padding:7mm 2mm}
+  .qtd .v{font-size:50pt;font-weight:800;color:#02285a;line-height:1.05;margin-top:1mm}
+  .prev{margin-top:3mm;text-align:center;font-size:11pt;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm;padding:2mm}
+  .mao{display:grid;grid-template-columns:1fr 1.4fr;gap:6mm;margin-top:11mm;font-size:16pt;font-weight:700;color:#1b2333}
+  .mao div{white-space:nowrap}
+  .mao span{display:inline-block;border-bottom:0.5mm solid #1b2333;min-width:18mm;height:9mm;vertical-align:bottom}
+  .esp2{flex:1}
+  .rodape{display:flex;justify-content:space-between;gap:4mm;white-space:nowrap;font-size:7.5pt;color:#677086;padding:3mm 10mm;border-top:0.4mm solid #e2e6ed}
+  </style></head><body><div class="folha"><div class="moldura">
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">FOLHA DE ROSTO</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span><span class="st">${esc(ST_FULL[e.status]?.rot || e.status)}</span></div>
+    <div class="bloco coleta"><div class="rot">Nº da coleta</div>
+      <div class="num"><span class="ini">${esc(ini)}</span><span class="fim">${esc(fim3)}</span></div></div>
+    <div class="bloco linha">
+      <div class="caixa"><div class="rot">Expedição planejada</div>
+        <div class="dia" style="margin-top:3mm">${DIAS_SEM[dow]}</div>
+        <div class="data">${dataBR(e.data_expedicao)}</div>
+        <div class="hora">${e.hora_expedicao ? esc(e.hora_expedicao) : '<span style="color:#9aa3b5;font-size:20pt">horário a definir</span>'}</div></div>
+      <div class="loja" style="--tam:${loja.nome.length > 5 ? 50 : 60}pt"><div class="rot">Loja</div><div class="nome">${esc(loja.nome)}</div></div>
+    </div>
+    <div class="bloco qtd">
+      <div class="caixa"><div class="rot">m³</div><div class="v">${fmtM3(e.m3)}</div></div>
+      <div class="caixa"><div class="rot">Caixas</div><div class="v">${e.caixas ?? '–'}</div></div>
+      <div class="caixa"><div class="rot">Pares</div><div class="v">${e.pares_envio === null || e.pares_envio === undefined ? '–' : fmtN(e.pares_envio)}</div></div>
+    </div>
+    ${prev ? `<div class="bloco"><div class="prev">VALORES PREVISTOS · pedido ainda em ${esc((ST_FULL[e.status]?.rot || '').toLowerCase())}. Reimprima após a conferência.</div></div>` : ''}
+    <div class="bloco mao"><div>PALETE <span></span> DE <span></span></div><div>CONFERIDO POR <span style="min-width:44mm"></span></div></div>
+    <div class="esp2"></div>
+    <div class="rodape"><span>Pedido #${esc(ped)} · ${esc(loja.marca || loja.nome)}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''} · Central de Operações Valenro</span></div>
+  </div></div></body></html>`;
+}
+function imprimirFolha(e){
+  if (!e) return;
+  const html = folhaRostoHtml(e);
+  if (telaPequena()) {   // celular: abre numa aba nova (dali dá para imprimir ou compartilhar o PDF)
+    const w = window.open('', '_blank');
+    if (!w) return avisar('O navegador bloqueou a nova aba. Libere pop-ups para este site.', true);
+    w.document.write(html.replace('</body>', '<script>window.onload=()=>setTimeout(()=>print(),300)<\/script></body>')); w.document.close();
+    return;
+  }
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f);
+  f.onload = () => { setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); setTimeout(() => f.remove(), 60e3); }, 250); };
+  f.srcdoc = html;
 }
 
 // ---- gaveta de edição (lateral no computador, tela cheia no celular)
@@ -865,10 +1044,23 @@ function fecharEnvio(){
   document.body.classList.remove('gaveta-aberta');
   renderFull();
 }
+function resumoColeta(cs){
+  const ps = cs.flatMap(c => c.periodos || []);
+  if (!ps.length) return '';
+  const inicio = ps.map(p => p.inicio).sort()[0], aberto = ps.some(p => !p.fim);
+  const fim = aberto ? null : ps.map(p => p.fim).sort().at(-1);
+  const min = cs.reduce((t, c) => t + tempoColeta(c).min, 0);
+  const pessoas = new Set(cs.flatMap(c => c.coletadores)).size;
+  return `<div class="res-col">
+    <div><span>Início</span><b>${diaHora(inicio)}</b></div>
+    <div><span>Término</span><b>${fim ? diaHora(fim) : '<i class="andamento">em andamento</i>'}</b></div>
+    <div><span>Tempo trabalhado</span><b>${min ? fmtDur(min) : '–'}</b></div>
+    <div><span>Coletadores</span><b>${pessoas}</b></div></div>`;
+}
 function abrirEnvio(id, recarregando){
   const r = state.fullDados, s = state.full, g = document.getElementById('gaveta');
   if (!g || !r) return;
-  const novo = !id, e = novo ? { cnpj_id: s.loja !== 'todos' ? s.loja : (r.lojas[0]?.id || 'DIGOS'), pedido:'', data_expedicao: hojeBRT(), pares_plan:'', pares_envio:'', status:'planejado', pct_coleta:0, caixas:'', m3:'', motivo_diferenca:'', observacao:'' } : r.envios.find(x => x.id === id);
+  const novo = !id, e = novo ? { cnpj_id: s.loja !== 'todos' ? s.loja : (r.lojas[0]?.id || 'DIGOS'), pedido:'', data_expedicao: hojeBRT(), hora_expedicao:'', pares_plan:'', pares_envio:'', status:'programado', pct_coleta:0, caixas:'', m3:'', motivo_diferenca:'', observacao:'' } : r.envios.find(x => x.id === id);
   if (!e) return fecharEnvio();
   if (recarregando && g.dataset.sujo === '1') return;   // não apaga o que a pessoa está digitando
   s.aberto = id; g.dataset.sujo = '';
@@ -880,17 +1072,19 @@ function abrirEnvio(id, recarregando){
   g.innerHTML = `
     <div class="gv-fundo" id="gv-fundo"></div>
     <aside class="gv">
-      <div class="gv-cab"><div><div class="info">${novo ? 'Novo envio Full' : esc(nomeLoja(e.cnpj_id))}</div><h3>${novo ? 'Cadastrar envio' : `Pedido #${esc(e.pedido)}`}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
+      <div class="gv-cab"><div><div class="info">${novo ? 'Novo envio Full' : esc(nomeLoja(e.cnpj_id))}</div><h3>${novo ? 'Cadastrar envio' : `Pedido #${esc(e.pedido)}`}</h3></div><span style="flex:1"></span>
+        ${novo ? '' : `<button class="btn" id="gv-imp" title="Imprimir folha de rosto">🖨 Folha</button>`}<button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
       <div class="gv-corpo">
         <div class="erro" id="gv-erro" hidden></div>
         <div class="gv-sec">Etapa</div>
-        <div class="etapas">${r.status.map(st => `<button type="button" class="etapa ${e.status === st ? 'on' : ''}" data-st="${st}" ${ro(editar)} style="--c:${ST_FULL[st]?.cor};--f:${ST_FULL[st]?.fundo}">${esc(ST_FULL[st]?.rot || st)}</button>`).join('')}</div>
+        <div class="etapas">${ORDEM_FULL.map(st => `<button type="button" class="etapa ${e.status === st ? 'on' : ''}" data-st="${st}" ${ro(editar)} style="--c:${ST_FULL[st].cor};--f:${ST_FULL[st].fundo}">${esc(ST_FULL[st].rot)}</button>`).join('')}</div>
         ${!novo && e.status_em ? `<div class="info" style="margin-top:4px">Neste status desde ${quando(e.status_em)}</div>` : ''}
         <div class="gv-sec">Pedido ${gerir ? '' : '<span class="info">(só líder altera)</span>'}</div>
         <div class="grade-form g2">
           <label>Loja<select id="gv-loja" ${ro(gerir)}>${r.lojas.map(l => `<option value="${l.id}" ${l.id === e.cnpj_id ? 'selected' : ''}>${esc(nomeLoja(l.id))}</option>`).join('')}</select></label>
-          <label>Nº pedido<input id="gv-pedido" inputmode="numeric" value="${esc(e.pedido)}" placeholder="só números" ${ro(gerir)}></label>
+          <label>Nº da coleta (pedido ML)<input id="gv-pedido" inputmode="numeric" value="${esc(e.pedido)}" placeholder="só números" ${ro(gerir)}></label>
           <label>Data de expedição<input id="gv-data" type="date" value="${esc(e.data_expedicao)}" ${ro(gerir)}></label>
+          <label>Hora planejada<input id="gv-hora" type="time" value="${esc(e.hora_expedicao || '')}" ${ro(gerir)}></label>
           <label># Pares (plano)<input id="gv-plano" inputmode="numeric" value="${e.pares_plan ?? ''}" ${ro(gerir)}></label>
         </div>
         <div class="gv-sec">Andamento</div>
@@ -907,12 +1101,14 @@ function abrirEnvio(id, recarregando){
         ${editar ? `<div class="gv-acoes"><button class="btn pri" id="gv-salvar">${novo ? 'Cadastrar envio' : 'Salvar'}</button></div>` : ''}
 
         ${novo ? '<div class="info" style="margin-top:14px">As coletas são lançadas depois de cadastrar o envio.</div>' : `
-        <div class="gv-sec">Coletas <span class="info">${cs.length} lançamento(s) · ${fmtN(somaCol)} pares${e.pares_envio ? ` · ${fmtP(somaCol, e.pares_envio)} do a enviar` : ''}</span></div>
+        <div class="gv-sec">Coleta <span class="info">${cs.length} lançamento(s) · ${fmtN(somaCol)} pares${e.pares_envio ? ` · ${fmtP(somaCol, e.pares_envio)} do a enviar` : ''}</span></div>
+        ${resumoColeta(cs)}
         ${cs.length ? `<div class="lista-col">${cs.map(c => {
-          const min = c.inicio && c.fim ? (new Date(c.fim) - new Date(c.inicio)) / 60e3 : null;
-          return `<div class="col-it"><div><b>${esc(nomeWms(c.coletador))}</b>${c.cesto ? ` <span class="info">· cesto ${esc(c.cesto)}</span>` : ''}<br>
-            <span class="info">${c.inicio ? quando(c.inicio) : 'sem horário'}${c.fim ? ' → ' + new Date(c.fim).toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit' }) : ''}${min ? ` · ${fmtDur(min)} · ${fmtN(Math.round(c.pares / (min / 60)))} pares/h` : ''}</span></div>
-            <span style="flex:1"></span><b>${fmtN(c.pares)}</b>
+          const t = tempoColeta(c), ph = c.pares && t.min ? c.pares / (t.min / 60) : null;
+          return `<div class="col-it"><div style="flex:1;min-width:0"><b>${esc(c.coletadores.map(nomeWms).join(', '))}</b>${c.cesto ? ` <span class="info">· cesto ${esc(c.cesto)}</span>` : ''}
+            <div class="periodos">${(c.periodos || []).map(p => `<span>${diaHora(p.inicio)} → ${p.fim ? (mesmoDia(p.inicio, p.fim) ? soHora(p.fim) : diaHora(p.fim)) : '<i class="andamento">em andamento</i>'}</span>`).join('') || '<span class="info">sem horário</span>'}</div>
+            ${t.min ? `<span class="info">${fmtDur(t.min)} trabalhadas${ph ? ` · ${fmtN(Math.round(ph))} pares/h${c.coletadores.length > 1 ? ` (equipe de ${c.coletadores.length})` : ''}` : ''}</span>` : ''}</div>
+            <b>${c.pares === null || c.pares === undefined ? '<span class="info">–</span>' : fmtN(c.pares)}</b>
             ${mexeColeta ? `<button class="btn mini" data-ec="${c.id}">Editar</button>` : ''}</div>`; }).join('')}</div>` : '<div class="vazio">Nenhuma coleta lançada.</div>'}
         ${mexeColeta ? `<div id="gv-col-form"></div><button class="btn" id="gv-col-nova" style="margin-top:8px">+ Lançar coleta</button>` : ''}
         <div class="gv-sec">Histórico <button class="btn mini" id="gv-hist-btn">Ver</button></div><div id="gv-hist"></div>
@@ -935,15 +1131,16 @@ function abrirEnvio(id, recarregando){
   g.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { status = b.dataset.st; g.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); marcaSujo(); avaliarDif(); });
   $('gv-fechar').onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; fecharEnvio(); };
   $('gv-fundo').onclick = $('gv-fechar').onclick;
+  const ib = $('gv-imp'); if (ib) ib.onclick = () => imprimirFolha(e);
   const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
 
   const sv = $('gv-salvar');
   if (sv) sv.onclick = async () => {
     const corpo = { id: novo ? null : e.id, versao: novo ? null : e.atualizado_em, cnpj_id: $('gv-loja').value, pedido: $('gv-pedido').value.replace(/\D/g, ''),
-      data_expedicao: $('gv-data').value, pares_plan: $('gv-plano').value.trim(), pares_envio: $('gv-pares').value.trim(), status,
+      data_expedicao: $('gv-data').value, hora_expedicao: $('gv-hora').value || null, pares_plan: $('gv-plano').value.trim(), pares_envio: $('gv-pares').value.trim(), status,
       pct_coleta: $('gv-pct').value.trim().replace(',', '.'), caixas: $('gv-caixas').value.trim(), m3: $('gv-m3').value.trim().replace(',', '.'),
       motivo_diferenca: $('gv-motivo').value || null, observacao: $('gv-obs').value.trim() || null };
-    if (!corpo.pedido || !corpo.data_expedicao || corpo.pares_plan === '') return erro('Preencha pedido, data de expedição e pares do plano.');
+    if (!corpo.pedido || !corpo.data_expedicao || corpo.pares_plan === '') return erro('Preencha nº da coleta, data de expedição e pares do plano.');
     sv.disabled = true; sv.textContent = 'Salvando…'; erro('');
     try {
       const res = await apiFull('/full/envio', corpo);
@@ -952,25 +1149,52 @@ function abrirEnvio(id, recarregando){
     } catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); sv.disabled = false; sv.textContent = novo ? 'Cadastrar envio' : 'Salvar'; }
   };
 
-  // ---- coletas
+  // ---- coletas: vários coletadores e vários períodos
   const formColeta = c => {
     const f = $('gv-col-form'); $('gv-col-nova').hidden = true;
-    f.innerHTML = `<div class="col-form"><div class="grade-form g2">
-      <label>Coletador<input id="cf-quem" list="dl-coletadores" value="${c ? esc(nomeWms(c.coletador)) : ''}" placeholder="nome e sobrenome" autocomplete="off"></label>
-      <label>Cesto<input id="cf-cesto" value="${esc(c?.cesto || '')}" placeholder="ex.: 153"></label>
-      <label>Pares coletados<input id="cf-pares" inputmode="numeric" value="${c?.pares ?? ''}"></label>
-      <span></span>
-      <label class="hora">Início<span class="linha-hora"><input id="cf-ini" type="datetime-local" value="${isoLocal(c?.inicio)}"><button type="button" class="btn mini" data-agora="cf-ini">Agora</button></span></label>
-      <label class="hora">Fim<span class="linha-hora"><input id="cf-fim" type="datetime-local" value="${isoLocal(c?.fim)}"><button type="button" class="btn mini" data-agora="cf-fim">Agora</button></span></label>
-      </div><div class="info" style="margin-top:6px">Início e fim são opcionais, mas sem eles não dá para medir pares por hora.</div>
+    const quem = c ? c.coletadores.map(nomeWms) : [];
+    let pers = c ? (c.periodos || []).map(p => ({ inicio: isoLocal(p.inicio), fim: isoLocal(p.fim) })) : [{ inicio: agoraLocal(), fim: '' }];
+    f.innerHTML = `<div class="col-form">
+      <label class="gv-lab" style="margin-top:0">Coletadores
+        <span class="chips" id="cf-chips"></span>
+        <span class="linha-hora"><input id="cf-quem" list="dl-coletadores" placeholder="nome e sobrenome" autocomplete="off"><button type="button" class="btn mini" id="cf-add">Adicionar</button></span></label>
+      <div class="grade-form g2" style="margin-top:10px">
+        <label>Cesto<input id="cf-cesto" value="${esc(c?.cesto || '')}" placeholder="ex.: 153"></label>
+        <label>Pares coletados<input id="cf-pares" inputmode="numeric" value="${c?.pares ?? ''}" placeholder="ao terminar"></label>
+      </div>
+      <div class="gv-lab">Períodos de trabalho <span class="info">Pausou para almoço ou continuou em outro dia? Feche o período e abra outro.</span></div>
+      <div id="cf-pers"></div>
+      <button type="button" class="btn mini" id="cf-per-add" style="margin-top:6px">+ Período</button>
       <div class="gv-acoes">${c ? `<button class="btn perigo" id="cf-excluir">Excluir</button><span style="flex:1"></span>` : ''}<button class="btn" id="cf-cancelar">Cancelar</button><button class="btn pri" id="cf-salvar">${c ? 'Salvar coleta' : 'Lançar coleta'}</button></div></div>`;
-    f.querySelectorAll('[data-agora]').forEach(b => b.onclick = () => { $(b.dataset.agora).value = agoraLocal(); });
+    const desenhaChips = () => {
+      $('cf-chips').innerHTML = quem.map((n, i) => `<span class="chip">${esc(n)}<button type="button" data-rm="${i}" aria-label="Remover">×</button></span>`).join('') || '<span class="info">ninguém ainda</span>';
+      $('cf-chips').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { quem.splice(+b.dataset.rm, 1); desenhaChips(); });
+    };
+    const addQuem = () => { const v = $('cf-quem').value.trim().replace(/\s+/g, ' '); if (v && !quem.some(q => q.toLowerCase() === v.toLowerCase())) quem.push(nomeWms(v.toLowerCase())); $('cf-quem').value = ''; desenhaChips(); };
+    $('cf-add').onclick = addQuem;
+    $('cf-quem').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); addQuem(); } };
+    $('cf-quem').onchange = () => { if ((r.coletadores || []).some(n => nomeWms(n) === $('cf-quem').value)) addQuem(); };   // escolheu da lista
+    const lerPers = () => { pers = [...$('cf-pers').querySelectorAll('.per')].map(el => ({ inicio: el.querySelector('[data-i]').value, fim: el.querySelector('[data-f]').value })); };
+    const desenhaPers = () => {
+      $('cf-pers').innerHTML = pers.map((p, i) => `<div class="per"><span class="per-n">${i + 1}</span>
+        <label>Início<span class="linha-hora"><input type="datetime-local" data-i value="${p.inicio}"><button type="button" class="btn mini" data-agora-i="${i}">Agora</button></span></label>
+        <label>Fim<span class="linha-hora"><input type="datetime-local" data-f value="${p.fim}"><button type="button" class="btn mini" data-agora-f="${i}">Agora</button></span></label>
+        <button type="button" class="btn mini perigo" data-rmp="${i}" aria-label="Remover período">×</button></div>`).join('') || '<div class="info">Sem horário (a coleta não entra no cálculo de pares por hora).</div>';
+      $('cf-pers').querySelectorAll('[data-agora-i]').forEach(b => b.onclick = () => { lerPers(); pers[+b.dataset.agoraI].inicio = agoraLocal(); desenhaPers(); });
+      $('cf-pers').querySelectorAll('[data-agora-f]').forEach(b => b.onclick = () => { lerPers(); pers[+b.dataset.agoraF].fim = agoraLocal(); desenhaPers(); });
+      $('cf-pers').querySelectorAll('[data-rmp]').forEach(b => b.onclick = () => { lerPers(); pers.splice(+b.dataset.rmp, 1); desenhaPers(); });
+    };
+    $('cf-per-add').onclick = () => { lerPers(); pers.push({ inicio: agoraLocal(), fim: '' }); desenhaPers(); };
+    desenhaChips(); desenhaPers();
     $('cf-cancelar').onclick = () => { f.innerHTML = ''; $('gv-col-nova').hidden = false; };
     $('cf-salvar').onclick = async ev => {
-      const corpo = { id: c?.id || null, envio_id: e.id, coletador: $('cf-quem').value.trim(), cesto: $('cf-cesto').value.trim() || null, pares: $('cf-pares').value.trim(),
-        inicio: deLocal($('cf-ini').value), fim: deLocal($('cf-fim').value) };
-      if (!corpo.coletador || corpo.pares === '') return erro('Informe quem coletou e quantos pares.');
-      ev.target.disabled = true;
+      if ($('cf-quem').value.trim()) addQuem();
+      lerPers();
+      if (!quem.length) return erro('Informe quem coletou (pode ser mais de uma pessoa).');
+      if (pers.some(p => !p.inicio)) return erro('Todo período precisa de início.');
+      const corpo = { id: c?.id || null, envio_id: e.id, coletadores: quem, cesto: $('cf-cesto').value.trim() || null, pares: $('cf-pares').value.trim(),
+        periodos: pers.map(p => ({ inicio: deLocal(p.inicio), fim: deLocal(p.fim) })) };
+      ev.target.disabled = true; erro('');
       try { await apiFull('/full/coleta', corpo); avisar('Coleta salva'); g.dataset.sujo = ''; await carregarFull(); }
       catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); ev.target.disabled = false; }
     };
@@ -980,7 +1204,7 @@ function abrirEnvio(id, recarregando){
       try { await apiFull('/full/coleta/excluir', { id: c.id }); avisar('Coleta excluída'); await carregarFull(); }
       catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); }
     };
-    $('cf-quem').focus();
+    if (!c) $('cf-quem').focus();
   };
   const nc = $('gv-col-nova'); if (nc) nc.onclick = () => formColeta(null);
   g.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => formColeta(cs.find(c => c.id === b.dataset.ec)));
@@ -988,14 +1212,14 @@ function abrirEnvio(id, recarregando){
   const hb = $('gv-hist-btn');
   if (hb) hb.onclick = async () => {
     const ROT = { 'envio.criar':'Cadastrou', 'envio.alterar':'Alterou', 'envio.status':'Mudou etapa', 'coleta.incluir':'Lançou coleta', 'coleta.alterar':'Alterou coleta', 'coleta.excluir':'Excluiu coleta', 'envio.excluir':'Excluiu' };
-    const CAMPO = { cnpj_id:'loja', pedido:'pedido', data_expedicao:'data', pares_plan:'plano', pares_envio:'pares', pct_coleta:'% coleta', caixas:'caixas', m3:'m³', motivo_diferenca:'motivo', observacao:'obs.' };
+    const CAMPO = { cnpj_id:'loja', pedido:'pedido', data_expedicao:'data', hora_expedicao:'hora', pares_plan:'plano', pares_envio:'pares', pct_coleta:'% coleta', caixas:'caixas', m3:'m³', motivo_diferenca:'motivo', observacao:'obs.' };
     try {
       const { eventos } = await apiFull(`/full/eventos?id=${e.id}`);
       $('gv-hist').innerHTML = eventos.length ? `<div class="lista-col">${eventos.map(v => {
         let txt = '';
         if (v.acao === 'envio.status') txt = `${esc(ST_FULL[v.antes?.status]?.rot || v.antes?.status)} → <b>${esc(ST_FULL[v.depois?.status]?.rot || v.depois?.status)}</b>`;
         else if (v.acao === 'envio.alterar') txt = Object.keys(v.depois || {}).map(k => `${CAMPO[k] || k}: ${esc(v.antes?.[k] ?? '–')} → <b>${esc(v.depois[k] ?? '–')}</b>`).join(' · ');
-        else if (v.acao.startsWith('coleta')) { const c = v.depois || v.antes || {}; txt = `${esc(nomeWms(c.coletador || ''))} · ${fmtN(c.pares)} pares`; }
+        else if (v.acao.startsWith('coleta')) { const c = v.depois || v.antes || {}; txt = `${esc((c.coletadores || [c.coletador]).filter(Boolean).map(nomeWms).join(', '))} · ${c.pares === null || c.pares === undefined ? 'sem pares' : fmtN(c.pares) + ' pares'}`; }
         return `<div class="col-it"><div><b>${ROT[v.acao] || esc(v.acao)}</b> <span class="info">${quando(v.em)} · ${esc(String(v.por).split('@')[0])}</span><br><span class="info">${txt}</span></div></div>`;
       }).join('')}</div>` : '<div class="vazio">Sem alterações registradas.</div>';
     } catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); }
