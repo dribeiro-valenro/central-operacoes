@@ -191,9 +191,20 @@
   .pct-cel{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;width:100%}
   .pct-cel .mini-barra{margin:0;flex:0 0 46px} .pct-n{display:inline-block;min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
   .tab-full tr.subtot td{background:#eef2f8;color:var(--pri);font-weight:700;border-bottom:2px solid var(--pri);font-variant-numeric:tabular-nums}
-  .tab-full tr.subtot td:first-child{text-align:left;border-radius:8px 0 0 0}
+  .tab-full tr.subtot td:first-child{border-radius:8px 0 0 0} .tab-full tr.subtot td:nth-child(2){text-align:left}
   .tab-full tr.subtot small{display:block;font-weight:400;font-size:11px;color:var(--mute)}
   .btn.imp{padding:3px 8px;font-size:14px;line-height:1}
+  .tab-full th.chk,.tab-full td.chk{width:34px;padding-left:4px;padding-right:4px}
+  .tab-full input[type=checkbox],.cf-chk{width:18px;height:18px;accent-color:var(--pri);cursor:pointer;vertical-align:middle}
+  .tab-full tr.marcado td{background:#fff8dc} .card-full.marcado{background:#fffbea;outline:2px solid var(--amarelo)}
+  .cf-chk{width:22px;height:22px;margin-right:2px}
+  .barra-sel{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--pri);color:#fff;border-top:3px solid var(--amarelo);display:flex;align-items:center;gap:10px;padding:10px 24px;box-shadow:0 -4px 16px rgba(0,0,0,.18);flex-wrap:wrap}
+  .barra-sel .bs-txt{display:flex;flex-direction:column;gap:2px;font-size:13px;min-width:0}
+  .barra-sel .bs-txt b{font-size:15px} .barra-sel .bs-aviso{color:#ffd96a}
+  .barra-sel .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.45)}
+  .barra-sel .btn.pri{background:var(--amarelo);color:#1b2333;border-color:var(--amarelo);font-weight:700;padding:9px 16px}
+  body.com-barra-sel main{padding-bottom:120px}
+  @media (max-width:560px){ .barra-sel{padding:10px 14px} .barra-sel .btn.pri{flex:1} }
   .kanban{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr)) minmax(110px,.8fr);gap:10px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
   .kb{position:relative;font:inherit;text-align:left;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;box-shadow:var(--sombra);color:var(--ink);min-width:0}
   .kb:hover{background:var(--f)} .kb.on{background:var(--f);outline:2px solid var(--c)}
@@ -840,6 +851,9 @@ function periodoFull(op){
 
 function telaFull(){
   const s = state.full ||= { loja:'todos', aba:'abertos', st:null, busca:'', aberto:null, per:'padrao', ini:'', fim:'' };
+  s.sel ||= new Set();
+  // veio do QR da folha de rosto: abre o pedido direto
+  if (params.get('pedido') && !s.linkUsado) { s.irPara = { pedido: params.get('pedido').replace(/\D/g, ''), loja: (params.get('loja') || '').toUpperCase() }; s.linkUsado = true; }   // coletas marcadas para o romaneio de embarque (continuam marcadas ao trocar filtros)
   $app.innerHTML = `
     <div class="barra">
       <h2>Envios Full</h2><span style="flex:1"></span>
@@ -855,6 +869,7 @@ function telaFull(){
       ${pode('full', 'gerir') ? `<button class="btn pri" id="f-novo">+ Novo envio</button>` : ''}
     </div>
     <div id="full"><div class="carregando">Carregando envios…</div></div>
+    <div id="barra-sel" class="barra-sel" hidden></div>
     <div id="gaveta" hidden></div>`;
   document.getElementById('f-loja').onchange = e => { s.loja = e.target.value; renderFull(); };
   document.querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { s.aba = b.dataset.fa; s.st = null; marcarAbas(); renderFull(); });
@@ -902,7 +917,17 @@ function marcarAbas(){ const s = state.full; document.querySelectorAll('[data-fa
 async function carregarFull(){
   const s = state.full;
   const q = s.per === 'padrao' ? '' : `?ini=${s.ini}&fim=${s.fim}`;
-  try { state.fullDados = await apiFull('/full' + q); renderFull(); if (s.aberto) abrirEnvio(s.aberto, true); }
+  try {
+    state.fullDados = await apiFull('/full' + q);
+    if (s.irPara) {
+      const alvo = state.fullDados.envios.find(e => e.pedido === s.irPara.pedido && (!s.irPara.loja || e.cnpj_id === s.irPara.loja));
+      if (alvo) s.aberto = alvo.id;
+      else { s.busca = s.irPara.pedido; const b = document.getElementById('f-busca'); if (b) b.value = s.busca; s.aba = 'todos'; marcarAbas(); avisar(`Pedido #${s.irPara.pedido} não está entre os envios em aberto ou dos últimos 45 dias`, true); }
+      s.irPara = null;
+      try { history.replaceState(null, '', location.pathname + '?tela=full'); } catch (_) {}
+    }
+    renderFull(); if (s.aberto) abrirEnvio(s.aberto, true);
+  }
   catch (e) { if (e instanceof SemSessao) throw e; const $f = document.getElementById('full'); if ($f) $f.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 function coletasDe(id){ return (state.fullDados?.coletas || []).filter(c => c.envio_id === id); }
@@ -952,11 +977,12 @@ function renderFull(){
     ${!L.length ? `<div class="painel"><div class="vazio">Nenhum envio com esses filtros.${termo && s.per !== 'padrao' ? ' O pedido pode estar com expedição fora do período: <button class="btn mini" id="f-sem-data">Buscar sem filtro de data</button>' : ''}</div></div>` : `
     <div class="painel so-largo"><div style="overflow-x:auto"><table class="tab-full">
       <thead>
-        <tr class="subtot"><td colspan="5">Subtotal · ${fmtN(lista.length)} pedido${lista.length === 1 ? '' : 's'}</td><td>${fmtN(plano)}</td>
+        <tr class="subtot"><td></td><td colspan="5">Subtotal · ${fmtN(lista.length)} pedido${lista.length === 1 ? '' : 's'}</td><td>${fmtN(plano)}</td>
           <td>${fmtN(pares)}<small>${fmtP(pares, plano)} do plano</small></td><td></td><td></td><td>${fmtN(soma(validos, e => e.caixas))}</td><td>${fmtM3(soma(validos, e => e.m3))}</td><td colspan="2"></td></tr>
-        <tr><th>Loja</th><th>Pedido</th><th>Expedição</th><th>Cesto</th><th>Coletador</th><th>Pares plano</th><th>Qtd. pares</th><th>Status</th><th class="pct">% coleta</th><th>Caixas</th><th>m³</th><th>Obs.</th><th></th></tr>
+        <tr><th class="chk"><input type="checkbox" id="sel-todos" title="Marcar todas as coletas da lista"></th><th>Loja</th><th>Pedido</th><th>Expedição</th><th>Cesto</th><th>Coletador</th><th>Pares plano</th><th>Qtd. pares</th><th>Status</th><th class="pct">% coleta</th><th>Caixas</th><th>m³</th><th>Obs.</th><th></th></tr>
       </thead>
-      <tbody>${L.map(({ e, quem, cestos, prev, atraso, dif }) => `<tr data-envio="${e.id}" class="${s.aberto === e.id ? 'sel' : ''}">
+      <tbody>${L.map(({ e, quem, cestos, prev, atraso, dif }) => `<tr data-envio="${e.id}" class="${s.aberto === e.id ? 'sel' : ''} ${s.sel.has(e.id) ? 'marcado' : ''}">
+        <td class="chk"><input type="checkbox" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} title="Incluir no romaneio"></td>
         <td><span class="marca-loja" style="background:${corLoja(e.cnpj_id)};${LOJAS[e.cnpj_id]?.borda ? `border:1px solid ${LOJAS[e.cnpj_id].borda}` : ''}"></span>${esc(nomeLoja(e.cnpj_id))}</td>
         <td>#${esc(e.pedido)}</td><td class="${atraso ? 'atraso' : ''}">${dataExp(e)}${atraso ? ' ⚠' : ''}</td>
         <td>${esc(cestos) || '<span class="info">–</span>'}</td><td>${esc(quem) || '<span class="info">–</span>'}</td>
@@ -964,16 +990,16 @@ function renderFull(){
         <td>${pillFull(e.status)}</td><td class="pct">${pct(e)}</td>
         <td class="${prev ? 'prev' : ''}">${e.caixas ?? '–'}</td><td class="${prev ? 'prev' : ''}">${fmtM3(e.m3)}</td>
         <td>${e.observacao || e.motivo_diferenca ? `<span title="${esc([e.motivo_diferenca, e.observacao].filter(Boolean).join(' · '))}">💬</span>` : ''}</td>
-        <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir romaneio de embarque">🖨</button></td></tr>`).join('')}
+        <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto do palete">🖨</button></td></tr>`).join('')}
       </tbody>
     </table></div>
-    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 romaneio de embarque</span></div></div>
+    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 folha de rosto do palete</span><span>☑ marque as coletas do veículo para montar o romaneio</span></div></div>
     <div class="so-estreito">
       <div class="subtot-cel">Subtotal · ${fmtN(lista.length)} pedidos · plano ${fmtN(plano)} · pares ${fmtN(pares)} (${fmtP(pares, plano)}) · ${fmtN(soma(validos, e => e.caixas))} cx · ${fmtM3(soma(validos, e => e.m3))} m³</div>
       ${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
-      <div class="card-full ${s.aberto === e.id ? 'sel' : ''}" data-envio="${e.id}" role="button" tabindex="0" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
-        <div class="cf-top"><b>#${esc(e.pedido)}</b><span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
-          <button class="btn mini imp" data-imp="${e.id}" title="Imprimir romaneio de embarque">🖨</button></div>
+      <div class="card-full ${s.aberto === e.id ? 'sel' : ''} ${s.sel.has(e.id) ? 'marcado' : ''}" data-envio="${e.id}" role="button" tabindex="0" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
+        <div class="cf-top"><input type="checkbox" class="cf-chk" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} aria-label="Incluir no romaneio"><b>#${esc(e.pedido)}</b><span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
+          <button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto do palete">🖨</button></div>
         <div class="cf-mid">${pillFull(e.status)}<span class="mini-barra larga"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><b>${e.pct_coleta === null ? '–' : Math.round(e.pct_coleta) + '%'}</b></div>
         <div class="cf-bot"><span>Plano <b>${fmtN(e.pares_plan)}</b></span><span>Pares <b class="${prev ? 'prev' : dif ? 'dif' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</b></span><span>Cx <b>${e.caixas ?? '–'}</b></span>${quem ? `<span>${esc(quem)}</span>` : ''}${cestos ? `<span>Cesto ${esc(cestos)}</span>` : ''}</div>
       </div>`).join('')}</div>`}
@@ -984,28 +1010,125 @@ function renderFull(){
   const sd = document.getElementById('f-sem-data'); if (sd) sd.onclick = () => { s.per = 'padrao'; s.ini = s.fim = ''; s.aba = 'todos'; marcarAbas(); sincronizarPeriodo(); carregarFull(); };
   $f.querySelectorAll('[data-envio]').forEach(el => { el.onclick = () => abrirEnvio(el.dataset.envio); el.onkeydown = ev => { if (ev.key === 'Enter') abrirEnvio(el.dataset.envio); }; });
   $f.querySelectorAll('[data-imp]').forEach(b => b.onclick = ev => { ev.stopPropagation(); imprimirFolha(r.envios.find(x => x.id === b.dataset.imp)); });
+  $f.querySelectorAll('[data-sel]').forEach(c => { c.onclick = ev => ev.stopPropagation(); c.onchange = () => { c.checked ? s.sel.add(c.dataset.sel) : s.sel.delete(c.dataset.sel); renderFull(); }; });
+  const st = document.getElementById('sel-todos');
+  if (st) {
+    const vis = L.map(x => x.e.id), marcados = vis.filter(id => s.sel.has(id)).length;
+    st.checked = marcados > 0 && marcados === vis.length; st.indeterminate = marcados > 0 && marcados < vis.length;
+    st.onchange = () => { vis.forEach(id => st.checked ? s.sel.add(id) : s.sel.delete(id)); renderFull(); };
+  }
+  renderBarraSel();
+}
+// Barra fixa: resumo das coletas marcadas e o botão do romaneio
+function renderBarraSel(){
+  const s = state.full, r = state.fullDados, $b = document.getElementById('barra-sel');
+  if (!$b || !r) return;
+  [...s.sel].forEach(id => { if (!r.envios.some(e => e.id === id)) s.sel.delete(id); });   // excluídas ou fora do período carregado
+  const L = r.envios.filter(e => s.sel.has(e.id));
+  $b.hidden = !L.length; document.body.classList.toggle('com-barra-sel', !!L.length);
+  if (!L.length) { $b.innerHTML = ''; return; }
+  const soma = f => L.reduce((t, e) => t + (Number(f(e)) || 0), 0);
+  const avisos = [];
+  const prev = L.filter(e => PREVISTO_FULL.includes(e.status)).length;
+  if (prev) avisos.push(`${prev} ainda antes da etiquetagem (valores previstos)`);
+  const fech = L.filter(e => ['expedido', 'cancelado'].includes(e.status)).length;
+  if (fech) avisos.push(`${fech} já expedida(s) ou cancelada(s)`);
+  if (new Set(L.map(e => e.data_expedicao)).size > 1) avisos.push('datas de expedição diferentes');
+  $b.innerHTML = `<div class="bs-txt"><b>${L.length} coleta${L.length === 1 ? '' : 's'} no romaneio</b>
+      <span>${L.map(e => '#' + esc(e.pedido.slice(-3))).join(' · ')}</span>
+      <span>${fmtM3(soma(e => e.m3))} m³ · ${fmtN(soma(e => e.caixas))} caixas · ${fmtN(soma(e => e.pares_envio))} pares</span>
+      ${avisos.length ? `<span class="bs-aviso">⚠ ${avisos.join(' · ')}</span>` : ''}</div>
+    <span style="flex:1"></span>
+    <button class="btn" id="bs-limpar">Desmarcar</button>
+    <button class="btn pri" id="bs-imprimir">🖨 Romaneio de embarque</button>`;
+  document.getElementById('bs-limpar').onclick = () => { s.sel.clear(); renderFull(); };
+  document.getElementById('bs-imprimir').onclick = imprimirRomaneio;
 }
 
-// ---- romaneio de embarque: vai na frente do palete e volta assinado (A4 retrato)
+/* ---- QR code (modo byte, correção nível M, versões 1 a 10) embutido, sem depender de biblioteca externa ---- */
+const QR = (() => {
+  const ECC_M = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];   // codewords de correção por bloco
+  const BLOCOS_M = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+  const mul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; };
+  const divisor = grau => { const r = new Array(grau).fill(0); r[grau - 1] = 1; let raiz = 1;
+    for (let i = 0; i < grau; i++) { for (let j = 0; j < r.length; j++) { r[j] = mul(r[j], raiz); if (j + 1 < r.length) r[j] ^= r[j + 1]; } raiz = mul(raiz, 0x02); } return r; };
+  const resto = (dados, div) => { const r = div.map(() => 0);
+    for (const b of dados) { const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => { r[i] ^= mul(c, f); }); } return r; };
+  const modulosBrutos = v => { let r = (16 * v + 128) * v + 64; if (v >= 2) { const n = Math.floor(v / 7) + 2; r -= (25 * n - 10) * n - 55; if (v >= 7) r -= 36; } return r; };
+  const alinhamentos = v => { if (v === 1) return []; const n = Math.floor(v / 7) + 2, passo = Math.ceil((v * 4 + 4) / (n * 2 - 2)) * 2, r = [6];
+    for (let p = v * 4 + 10; r.length < n; p -= passo) r.splice(1, 0, p); return r; };
+  const capacidade = v => Math.floor(modulosBrutos(v) / 8) - ECC_M[v] * BLOCOS_M[v];
+
+  function gerar(texto){
+    const bytes = [...new TextEncoder().encode(texto)];
+    let v = 1; while (v <= 10 && capacidade(v) * 8 < 4 + (v < 10 ? 8 : 16) + bytes.length * 8) v++;
+    if (v > 10) throw new Error('Texto longo demais para o QR');
+    // dados
+    const bits = []; const put = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+    put(4, 4); put(bytes.length, v < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
+    const cap = capacidade(v) * 8;
+    put(0, Math.min(4, cap - bits.length)); put(0, (8 - bits.length % 8) % 8);
+    for (let p = 0xEC; bits.length < cap; p ^= 0xEC ^ 0x11) put(p, 8);
+    const dados = []; for (let i = 0; i < bits.length; i += 8) dados.push(parseInt(bits.slice(i, i + 8).join(''), 2));
+    // correção de erros + intercalação
+    const nb = BLOCOS_M[v], ecc = ECC_M[v], brutos = Math.floor(modulosBrutos(v) / 8), curtos = nb - brutos % nb, tamCurto = Math.floor(brutos / nb), div = divisor(ecc);
+    const blocos = []; for (let i = 0, k = 0; i < nb; i++) { const d = dados.slice(k, k + tamCurto - ecc + (i < curtos ? 0 : 1)); k += d.length; const e = resto(d, div); if (i < curtos) d.push(0); blocos.push(d.concat(e)); }
+    const final = []; for (let i = 0; i < blocos[0].length; i++) blocos.forEach((b, j) => { if (i !== tamCurto - ecc || j >= curtos) final.push(b[i]); });
+    // matriz
+    const n = v * 4 + 17, m = [...Array(n)].map(() => Array(n).fill(false)), fun = [...Array(n)].map(() => Array(n).fill(false));
+    const set = (x, y, d) => { m[y][x] = d; fun[y][x] = true; };
+    for (let i = 0; i < n; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+    [[3, 3], [n - 4, 3], [3, n - 4]].forEach(([cx, cy]) => { for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const x = cx + dx, y = cy + dy, d = Math.max(Math.abs(dx), Math.abs(dy)); if (x >= 0 && x < n && y >= 0 && y < n) set(x, y, d !== 2 && d !== 4); } });
+    const al = alinhamentos(v), na = al.length;
+    for (let i = 0; i < na; i++) for (let j = 0; j < na; j++) { if ((i === 0 && j === 0) || (i === 0 && j === na - 1) || (i === na - 1 && j === 0)) continue;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(al[i] + dx, al[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1); }
+    const formato = mask => { const d = (0 << 3) | mask; let r = d; for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537); const b = ((d << 10) | r) ^ 0x5412, g = i => ((b >>> i) & 1) === 1;
+      for (let i = 0; i <= 5; i++) set(8, i, g(i)); set(8, 7, g(6)); set(8, 8, g(7)); set(7, 8, g(8)); for (let i = 9; i < 15; i++) set(14 - i, 8, g(i));
+      for (let i = 0; i < 8; i++) set(n - 1 - i, 8, g(i)); for (let i = 8; i < 15; i++) set(8, n - 15 + i, g(i)); set(8, n - 8, true); };
+    formato(0);
+    if (v >= 7) { let r = v; for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25); const b = (v << 12) | r;
+      for (let i = 0; i < 18; i++) { const d = ((b >>> i) & 1) === 1, a = n - 11 + i % 3, c = Math.floor(i / 3); set(a, c, d); set(c, a, d); } }
+    let k = 0;
+    for (let dir = n - 1; dir >= 1; dir -= 2) { if (dir === 6) dir = 5;
+      for (let vert = 0; vert < n; vert++) for (let j = 0; j < 2; j++) { const x = dir - j, sobe = ((dir + 1) & 2) === 0, y = sobe ? n - 1 - vert : vert;
+        if (!fun[y][x] && k < final.length * 8) { m[y][x] = ((final[k >>> 3] >>> (7 - (k & 7))) & 1) === 1; k++; } } }
+    const MASK = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, x => x % 3 === 0, (x, y) => (x + y) % 3 === 0, (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0,
+      (x, y) => x * y % 2 + x * y % 3 === 0, (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+    const aplicar = q => { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!fun[y][x] && MASK[q](x, y)) m[y][x] = !m[y][x]; };
+    const penalidade = () => { let p = 0, esc = 0;
+      for (let y = 0; y < n; y++) for (const lin of [0, 1]) { let run = 0, cor = null; for (let x = 0; x < n; x++) { const c = lin ? m[x][y] : m[y][x]; if (c === cor) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else { cor = c; run = 1; } } }
+      for (let y = 0; y < n - 1; y++) for (let x = 0; x < n - 1; x++) { const c = m[y][x]; if (c === m[y][x + 1] && c === m[y + 1][x] && c === m[y + 1][x + 1]) p += 3; }
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (m[y][x]) esc++;
+      return p + Math.floor(Math.abs(esc * 20 - n * n * 10) / (n * n)) * 10; };
+    let melhor = 0, menor = Infinity;
+    for (let q = 0; q < 8; q++) { aplicar(q); formato(q); const p = penalidade(); if (p < menor) { menor = p; melhor = q; } aplicar(q); }
+    aplicar(melhor); formato(melhor);
+    return m;
+  }
+  // SVG com margem de 4 módulos
+  function svg(texto, cor = '#000'){
+    const m = gerar(texto), n = m.length, t = n + 8; let d = '';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (m[y][x]) d += `M${x + 4} ${y + 4}h1v1h-1z`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${t} ${t}" shape-rendering="crispEdges"><rect width="${t}" height="${t}" fill="#fff"/><path d="${d}" fill="${cor}"/></svg>`;
+  }
+  return { gerar, svg };
+})();
+
+// Endereço do portal para o QR (no GitHub Pages usa o próprio endereço; abrindo o arquivo local, usa o publicado)
+const PORTAL_URL_PUBLICADO = 'https://dribeiro-valenro.github.io/central-operacoes/';
+const urlPortal = () => /^https?:/.test(location.protocol) ? location.origin + location.pathname : PORTAL_URL_PUBLICADO;
+const linkEnvio = e => `${urlPortal()}?tela=full&loja=${encodeURIComponent(e.cnpj_id)}&pedido=${encodeURIComponent(e.pedido)}`;
+
+// ---- impressos A4 retrato: folha de rosto (uma por coleta, vai no palete) e romaneio de embarque (várias coletas, assinado pelo motorista)
 const DIAS_SEM = ['DOMINGO', 'SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO'];
-function folhaRostoHtml(e){
-  const loja = LOJAS[e.cnpj_id] || { nome: nomeLoja(e.cnpj_id), cor:'#02285a' };
-  const claro = !!loja.borda;   // Cacal: cor clara, texto escuro
-  const corTexto = claro ? '#282830' : '#ffffff';
-  const ped = String(e.pedido), ini = ped.slice(0, -3), fim3 = ped.slice(-3);
-  const dow = new Date(e.data_expedicao + 'T12:00:00Z').getUTCDay();
-  const prev = PREVISTO_FULL.includes(e.status);
-  const quem = state.usuario?.nome || (DEMO ? 'Demonstração' : '');
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Romaneio de embarque ${esc(ped)}</title><style>
+const CSS_IMPRESSO = `
   @page{size:A4 portrait;margin:0}
   *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{margin:0;padding:0;background:#fff}
   body{font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:#1b2333}
-  .folha{width:210mm;height:297mm;padding:7mm;display:flex;overflow:hidden}
-  .moldura{flex:1;min-width:0;overflow:hidden;border:5mm solid ${loja.borda ? loja.cor : loja.cor};${loja.borda ? `outline:0.6mm solid ${loja.borda};outline-offset:-5.6mm;` : ''}display:flex;flex-direction:column}
   .topo{background:#02285a;color:#fff;display:flex;align-items:center;gap:6mm;padding:4mm 7mm;border-bottom:2.5mm solid #f1c300}
   .topo img{height:16mm}
-  .topo .t1{font-size:14pt;font-weight:700;letter-spacing:1pt;white-space:nowrap}
+  .topo .t1{font-size:15pt;font-weight:700;letter-spacing:1.2pt;white-space:nowrap}
   .topo .t2{font-size:10pt;opacity:.8;letter-spacing:.5pt}
   .topo .esp{flex:1}
   .topo .st{display:flex;flex-direction:column;align-items:center;background:#fff;color:#02285a;border:1mm solid #f1c300;padding:2mm 5mm;border-radius:2.5mm;min-width:48mm}
@@ -1013,39 +1136,65 @@ function folhaRostoHtml(e){
   .topo .st b{font-size:16pt;font-weight:800;line-height:1.1;white-space:nowrap}
   .bloco{padding:0 10mm}
   .rot{font-size:13pt;font-weight:700;letter-spacing:2pt;color:#566074;text-transform:uppercase}
-  .coleta{margin-top:4mm}
+  .esp2{flex:1}
+  .rodape{display:flex;justify-content:space-between;gap:4mm;white-space:nowrap;font-size:7.5pt;color:#677086;padding:3mm 10mm;border-top:0.4mm solid #e2e6ed}
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:1mm 8mm}
+  .campo{display:flex;flex-direction:column}
+  .campo.cheio{grid-column:1/-1}
+  .campo span{font-size:9pt;font-weight:700;letter-spacing:1pt;color:#566074;margin-top:3mm}
+  .campo i{display:block;border-bottom:0.45mm solid #1b2333;height:8mm}
+  .horas{display:flex;align-items:flex-end;gap:2mm;font-size:16pt;font-weight:700;color:#1b2333;height:8mm;border-bottom:0.45mm solid #1b2333}
+  .horas em{font-style:normal;font-size:9pt;color:#566074;margin-right:1mm}
+  .ass{display:grid;grid-template-columns:1fr 1fr;gap:12mm}
+  .ass div{border-top:0.5mm solid #1b2333;padding-top:1.5mm;text-align:center;font-size:10pt;font-weight:700;letter-spacing:1pt}
+  .ass small{display:block;font-weight:400;letter-spacing:0;color:#566074;font-size:8.5pt;margin-top:.5mm}`;
+const ETAPAS_FOLHA = ['separacao', 'conferencia', 'etiquetagem', 'aguardando_envio', 'expedido'];
+const quemImprime = () => state.usuario?.nome || (DEMO ? 'Demonstração' : '');
+
+// Folha de rosto: identifica o palete de longe (nº da coleta, data/hora, loja, volumes)
+function folhaRostoHtml(e){
+  const loja = LOJAS[e.cnpj_id] || { nome: nomeLoja(e.cnpj_id), cor:'#02285a' };
+  const claro = !!loja.borda;   // Cacal: cor clara, texto escuro
+  const corTexto = claro ? '#282830' : '#ffffff';
+  const ped = String(e.pedido), ini = ped.slice(0, -3), fim3 = ped.slice(-3);
+  const dow = new Date(e.data_expedicao + 'T12:00:00Z').getUTCDay();
+  const prev = PREVISTO_FULL.includes(e.status), quem = quemImprime();
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Folha de rosto ${esc(ped)}</title><style>${CSS_IMPRESSO}
+  .folha{width:210mm;height:297mm;padding:7mm;display:flex;overflow:hidden}
+  .moldura{flex:1;min-width:0;overflow:hidden;border:5mm solid ${loja.cor};${loja.borda ? `outline:0.6mm solid ${loja.borda};outline-offset:-5.6mm;` : ''}display:flex;flex-direction:column}
+  .coleta{margin-top:5mm}
   .num{overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:2mm;margin-top:2mm;line-height:.9}
-  .num .ini{font-size:48pt;font-weight:700;color:#02285a;letter-spacing:1pt;padding-bottom:5mm}
-  .num .fim{font-size:112pt;font-weight:800;color:#111;background:#f1c300;padding:3mm 5mm 1mm;border-radius:3mm;letter-spacing:2pt}
-  .linha{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:6mm}
-  .caixa{border:0.6mm solid #c9cfda;border-radius:3mm;padding:4mm 6mm}
-  .data{font-size:30pt;font-weight:800;color:#02285a;line-height:1.05}
+  .num .ini{font-size:54pt;font-weight:700;color:#02285a;letter-spacing:1pt;padding-bottom:5mm}
+  .num .fim{font-size:134pt;font-weight:800;color:#111;background:#f1c300;padding:3mm 5mm 1mm;border-radius:3mm;letter-spacing:2pt}
+  .linha{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:7mm}
+  .caixa{border:0.6mm solid #c9cfda;border-radius:3mm;padding:5mm 6mm}
+  .data{font-size:34pt;font-weight:800;color:#02285a;line-height:1.05}
   .dia{font-size:17pt;font-weight:700;color:#566074;letter-spacing:1.5pt}
-  .hora{font-size:34pt;font-weight:800;color:#111}
+  .hora{font-size:40pt;font-weight:800;color:#111}
   .loja{background:${loja.cor};color:${corTexto};border-radius:3mm;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:4mm;${claro ? `border:0.6mm solid ${loja.borda};` : ''}}
   .loja .rot{color:${corTexto};opacity:.85}
   .loja .nome{font-size:var(--tam);font-weight:800;letter-spacing:1pt;line-height:1;white-space:nowrap;text-transform:uppercase;margin-top:2mm;text-align:center}
   .qtd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm;margin-top:6mm}
   .qtd .caixa{text-align:center;padding:4mm 2mm}
   .qtd .rot em{font-style:normal;background:#1b2333;color:#fff;border-radius:1mm;padding:0 1.5mm;font-size:8pt;letter-spacing:1pt;vertical-align:1pt}
-  .qtd .v{font-size:44pt;font-weight:800;color:#02285a;line-height:1.05;margin-top:1mm}
-  .prev{margin-top:2mm;text-align:center;font-size:10pt;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm;padding:2mm}
-  .emb{margin-top:6mm;border:0.6mm solid #1b2333;border-radius:3mm;padding:3mm 5mm 4mm}
-  .emb .rot{color:#1b2333}
-  .campos{display:grid;grid-template-columns:1fr 1fr;gap:1mm 8mm}
-  .campo{display:flex;flex-direction:column}
-  .campo.cheio{grid-column:1/-1}
-  .campo span{font-size:9pt;font-weight:700;letter-spacing:1pt;color:#566074;margin-top:3mm}
-  .campo i{display:block;border-bottom:0.45mm solid #1b2333;height:7.5mm}
-  .horas{display:flex;align-items:flex-end;gap:2mm;font-size:16pt;font-weight:700;color:#1b2333;height:7.5mm;border-bottom:0.45mm solid #1b2333}
-  .horas em{font-style:normal;font-size:9pt;color:#566074;margin-right:1mm}
-  .ass{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-top:13mm}
-  .ass div{border-top:0.5mm solid #1b2333;padding-top:1.5mm;text-align:center;font-size:10pt;font-weight:700;letter-spacing:1pt}
-  .ass small{display:block;font-weight:400;letter-spacing:0;color:#566074;font-size:8.5pt;margin-top:.5mm}
-  .esp2{flex:1}
-  .rodape{display:flex;justify-content:space-between;gap:4mm;white-space:nowrap;font-size:7.5pt;color:#677086;padding:3mm 10mm;border-top:0.4mm solid #e2e6ed}
+  .qtd .v{font-size:50pt;font-weight:800;color:#02285a;line-height:1.05;margin-top:1mm}
+  .prev{margin-top:3mm;text-align:center;font-size:10.5pt;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm;padding:2mm}
+  .etp{margin-top:6mm}
+  .etp-g{display:grid;grid-template-columns:minmax(0,1fr) 33mm;gap:4mm;align-items:start;margin-top:2mm}
+  .qr{border:0.6mm solid #1b2333;border-radius:2.5mm;padding:2mm;text-align:center}
+  .qr svg{width:28mm;height:28mm;display:block;margin:0 auto}
+  .qr b{display:block;font-size:8pt;letter-spacing:.5pt;margin-top:1mm;line-height:1.2}
+  .qr span{display:block;font-size:6.5pt;color:#566074;margin-top:.5mm;line-height:1.2}
+  .etp table{width:100%;border-collapse:collapse}
+  .etp th{font-size:8pt;letter-spacing:1pt;color:#566074;text-align:left;padding:1.5mm 2mm;border-bottom:0.5mm solid #1b2333}
+  .etp td{height:9mm;padding:0 2mm;border-bottom:0.35mm solid #9aa3b5;font-size:12pt;font-weight:700;vertical-align:middle}
+  .etp td.ck{width:10mm} .etp td.nm{white-space:nowrap;font-size:11pt} .etp td.lin{border-left:0.35mm solid #d5dae3}
+  .etp .cx{display:inline-flex;align-items:center;justify-content:center;width:6.5mm;height:6.5mm;border:0.6mm solid #1b2333;border-radius:1mm;font-size:13pt;line-height:1}
+  .etp tr.feita td{color:#566074} .etp tr.feita .cx{background:#1b2333;color:#fff}
+  .etp tr.atual td{background:#fff3d1}
+  .etp small{display:block;font-size:7pt;font-weight:400;color:#566074;line-height:1}
   </style></head><body><div class="folha"><div class="moldura">
-    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">ROMANEIO DE EMBARQUE</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span><span class="st"><small>STATUS</small><b>${esc((ST_FULL[e.status]?.rot || e.status).toUpperCase())}</b></span></div>
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">FOLHA DE ROSTO</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span><span class="st"><small>STATUS</small><b>${esc((ST_FULL[e.status]?.rot || e.status).toUpperCase())}</b></span></div>
     <div class="bloco coleta"><div class="rot">Nº da coleta</div>
       <div class="num"><span class="ini">${esc(ini)}</span><span class="fim">${esc(fim3)}</span></div></div>
     <div class="bloco linha">
@@ -1053,14 +1202,90 @@ function folhaRostoHtml(e){
         <div class="dia" style="margin-top:3mm">${DIAS_SEM[dow]}</div>
         <div class="data">${dataBR(e.data_expedicao)}</div>
         <div class="hora">${e.hora_expedicao ? esc(e.hora_expedicao) : '<span style="color:#9aa3b5;font-size:20pt">horário a definir</span>'}</div></div>
-      <div class="loja" style="--tam:${loja.nome.length > 5 ? 44 : 52}pt"><div class="rot">Loja</div><div class="nome">${esc(loja.nome)}</div></div>
+      <div class="loja" style="--tam:${loja.nome.length > 5 ? 50 : 60}pt"><div class="rot">Loja</div><div class="nome">${esc(loja.nome)}</div></div>
     </div>
     <div class="bloco qtd">
       <div class="caixa"><div class="rot">m³${prev ? ' <em>previsto</em>' : ''}</div><div class="v">${fmtM3(e.m3)}</div></div>
       <div class="caixa"><div class="rot">Caixas${prev ? ' <em>previsto</em>' : ''}</div><div class="v">${e.caixas ?? '–'}</div></div>
       <div class="caixa"><div class="rot">Pares${prev ? ' <em>previsto</em>' : ''}</div><div class="v">${e.pares_envio === null || e.pares_envio === undefined ? '–' : fmtN(e.pares_envio)}</div></div>
     </div>
-    <div class="bloco"><div class="emb">
+    <div class="bloco etp"><div class="rot">Etapas</div>
+      <div class="etp-g"><table><thead><tr><th></th><th>ETAPA</th><th>RESPONSÁVEL</th><th>DATA</th><th>HORA</th></tr></thead><tbody>
+      ${ETAPAS_FOLHA.map(st => {
+        const iAtual = ORDEM_FULL.indexOf(e.status), i = ORDEM_FULL.indexOf(st);
+        const feita = e.status !== 'cancelado' && i < iAtual, atual = st === e.status;
+        return `<tr class="${feita ? 'feita' : ''} ${atual ? 'atual' : ''}"><td class="ck"><span class="cx">${feita ? '✓' : ''}</span></td>
+          <td class="nm">${esc(ST_FULL[st].rot.toUpperCase())}${feita ? '<small>no sistema</small>' : atual ? '<small>etapa atual</small>' : ''}</td>
+          <td class="lin" style="width:36mm"></td><td class="lin" style="width:18mm"></td><td class="lin" style="width:15mm"></td></tr>`;
+      }).join('')}
+      </tbody></table>
+      <div class="qr">${QR.svg(linkEnvio(e))}<b>ATUALIZE NO PORTAL</b><span>Ticou a etapa? Escaneie e mude o status no celular.</span></div></div></div>
+    <div class="esp2"></div>
+    <div class="rodape"><span>Pedido #${esc(ped)} · ${esc(loja.marca || loja.nome)}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''} · Central de Operações Valenro</span></div>
+  </div></div></body></html>`;
+}
+
+// Romaneio de embarque: as coletas que sobem no mesmo veículo, numa folha só, com uma assinatura do motorista
+function romaneioHtml(envios){
+  const L = [...envios].sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || (a.hora_expedicao || '99').localeCompare(b.hora_expedicao || '99') || a.cnpj_id.localeCompare(b.cnpj_id) || a.pedido.localeCompare(b.pedido));
+  const soma = f => L.reduce((t, e) => t + (Number(f(e)) || 0), 0);
+  const algumPrev = L.some(e => PREVISTO_FULL.includes(e.status));
+  const lojas = [...new Set(L.map(e => e.cnpj_id))].map(nomeLoja).join(', ');
+  const datas = [...new Set(L.map(e => e.data_expedicao))];
+  const quem = quemImprime();
+  const linha = (e, i) => {
+    const loja = LOJAS[e.cnpj_id] || { cor:'#02285a' }, ped = String(e.pedido), prev = PREVISTO_FULL.includes(e.status);
+    return `<tr><td class="c">${i + 1}</td>
+      <td class="ped"><span class="pi">${esc(ped.slice(0, -3))}</span><b>${esc(ped.slice(-3))}</b></td>
+      <td class="lojac"><span class="lj" style="background:${loja.cor};${loja.borda ? `border:0.4mm solid ${loja.borda};` : ''}"></span>${esc(nomeLoja(e.cnpj_id))}</td>
+      <td class="c">${dataBR(e.data_expedicao).slice(0, 5)}${e.hora_expedicao ? ' ' + esc(e.hora_expedicao) : ''}</td>
+      <td class="c st">${esc(ST_FULL[e.status]?.rot || e.status)}</td>
+      <td class="n">${fmtM3(e.m3)}${prev ? '*' : ''}</td><td class="n">${e.caixas ?? '–'}${prev ? '*' : ''}</td><td class="n">${e.pares_envio === null || e.pares_envio === undefined ? '–' : fmtN(e.pares_envio)}${prev ? '*' : ''}</td>
+      <td class="c"><span class="ck"></span></td></tr>`;
+  };
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Romaneio de embarque · ${L.length} coletas</title><style>${CSS_IMPRESSO}
+  .pag{width:210mm;min-height:296mm;padding:10mm 10mm 7mm;display:flex;flex-direction:column}
+  .topo{border-radius:2mm 2mm 0 0}
+  .topo .st{min-width:40mm}
+  .resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;margin-top:6mm}
+  .resumo div{border:0.6mm solid #c9cfda;border-radius:2.5mm;padding:3mm 4mm;text-align:center}
+  .resumo span{display:block;font-size:9pt;font-weight:700;letter-spacing:1.5pt;color:#566074}
+  .resumo b{display:block;font-size:24pt;font-weight:800;color:#02285a;line-height:1.1;margin-top:1mm}
+  .sub{font-size:10pt;color:#566074;margin-top:3mm}
+  table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:11pt}
+  thead{display:table-header-group}
+  tr{page-break-inside:avoid}
+  th{background:#02285a;color:#fff;font-size:8.5pt;letter-spacing:1pt;text-transform:uppercase;padding:2.5mm 2mm;text-align:left}
+  th.n,td.n{text-align:right} th.c,td.c{text-align:center}
+  td{padding:3mm 2mm;border-bottom:0.35mm solid #c9cfda;vertical-align:middle;font-variant-numeric:tabular-nums}
+  tbody tr:nth-child(even) td{background:#f4f6f9}
+  td.ped{white-space:nowrap} td.ped .pi{font-size:12pt;color:#02285a;font-weight:700}
+  td.ped b{font-size:17pt;font-weight:800;background:#f1c300;padding:0 1.5mm;border-radius:1mm;margin-left:.5mm}
+  td.st{font-size:9pt;font-weight:700}
+  td.lojac{white-space:nowrap}
+  .lj{display:inline-block;width:3mm;height:3mm;border-radius:.6mm;margin-right:1.5mm;vertical-align:0}
+  .ck{display:inline-block;width:6mm;height:6mm;border:0.5mm solid #1b2333;border-radius:1mm}
+  tfoot td{font-weight:800;border-top:0.6mm solid #02285a;border-bottom:0;background:#eef2f8;font-size:11.5pt}
+  .nota{font-size:8.5pt;color:#566074;margin-top:2mm}
+  .emb{margin-top:6mm;border:0.6mm solid #1b2333;border-radius:3mm;padding:3mm 5mm 4mm;page-break-inside:avoid}
+  .emb .rot{color:#1b2333}
+  .obs{margin-top:3mm} .obs i{display:block;border-bottom:0.35mm solid #9aa3b5;height:7mm}
+  .ass{margin-top:16mm}
+  </style></head><body><div class="pag">
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">ROMANEIO DE EMBARQUE</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span>
+      <span class="st"><small>EMITIDO EM</small><b>${dataBR(hojeBRT())}</b></span></div>
+    <div class="resumo">
+      <div><span>COLETAS</span><b>${L.length}</b></div><div><span>m³</span><b>${fmtM3(soma(e => e.m3))}</b></div>
+      <div><span>CAIXAS</span><b>${fmtN(soma(e => e.caixas))}</b></div><div><span>PARES</span><b>${fmtN(soma(e => e.pares_envio))}</b></div>
+    </div>
+    <div class="sub">Lojas: <b>${esc(lojas)}</b> · Expedição planejada: <b>${datas.map(d => dataBR(d)).join(', ')}</b></div>
+    <table>
+      <thead><tr><th class="c">#</th><th>Nº da coleta</th><th>Loja</th><th class="c">Expedição</th><th class="c">Status</th><th class="n">m³</th><th class="n">Caixas</th><th class="n">Pares</th><th class="c">Conferido</th></tr></thead>
+      <tbody>${L.map(linha).join('')}</tbody>
+      <tfoot><tr><td colspan="5">Total · ${L.length} coleta${L.length === 1 ? '' : 's'}</td><td class="n">${fmtM3(soma(e => e.m3))}</td><td class="n">${fmtN(soma(e => e.caixas))}</td><td class="n">${fmtN(soma(e => e.pares_envio))}</td><td></td></tr></tfoot>
+    </table>
+    ${algumPrev ? '<div class="nota">* valores previstos: a coleta ainda não passou da conferência.</div>' : ''}
+    <div class="emb">
       <div class="rot">Dados do embarque</div>
       <div class="campos">
         <div class="campo cheio"><span>TRANSPORTADORA</span><i></i></div>
@@ -1068,16 +1293,16 @@ function folhaRostoHtml(e){
         <div class="campo"><span>MOTORISTA</span><i></i></div>
         <div class="campo"><span>HORÁRIO DE CHEGADA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
         <div class="campo"><span>HORÁRIO DE SAÍDA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
+        <div class="campo cheio obs"><span>OBSERVAÇÕES</span><i></i><i></i></div>
       </div>
       <div class="ass"><div>CONFERENTE / LÍDER<small>assinatura e nome legível</small></div><div>MOTORISTA<small>assinatura e documento</small></div></div>
-    </div></div>
+    </div>
     <div class="esp2"></div>
-    <div class="rodape"><span>Pedido #${esc(ped)} · ${esc(loja.marca || loja.nome)}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''} · Central de Operações Valenro</span></div>
-  </div></div></body></html>`;
+    <div class="rodape" style="padding:3mm 0 0;white-space:normal"><span>Romaneio com ${L.length} coleta${L.length === 1 ? '' : 's'}: ${L.map(e => '#' + esc(e.pedido)).join(', ')}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
+  </div></body></html>`;
 }
-function imprimirFolha(e){
-  if (!e) return;
-  const html = folhaRostoHtml(e);
+
+function imprimirHtml(html){
   if (telaPequena()) {   // celular: abre numa aba nova (dali dá para imprimir ou compartilhar o PDF)
     const w = window.open('', '_blank');
     if (!w) return avisar('O navegador bloqueou a nova aba. Libere pop-ups para este site.', true);
@@ -1089,6 +1314,13 @@ function imprimirFolha(e){
   document.body.appendChild(f);
   f.onload = () => { setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); setTimeout(() => f.remove(), 60e3); }, 250); };
   f.srcdoc = html;
+}
+function imprimirFolha(e){ if (e) imprimirHtml(folhaRostoHtml(e)); }
+function imprimirRomaneio(){
+  const s = state.full, r = state.fullDados;
+  const L = r.envios.filter(e => s.sel.has(e.id));
+  if (!L.length) return avisar('Selecione as coletas do veículo', true);
+  imprimirHtml(romaneioHtml(L));
 }
 
 // ---- gaveta de edição (lateral no computador, tela cheia no celular)
@@ -1127,7 +1359,7 @@ function abrirEnvio(id, recarregando){
     <div class="gv-fundo" id="gv-fundo"></div>
     <aside class="gv">
       <div class="gv-cab"><div><div class="info">${novo ? 'Novo envio Full' : esc(nomeLoja(e.cnpj_id))}</div><h3>${novo ? 'Cadastrar envio' : `Pedido #${esc(e.pedido)}`}</h3></div><span style="flex:1"></span>
-        ${novo ? '' : `<button class="btn" id="gv-imp" title="Imprimir romaneio de embarque">🖨 Romaneio</button>`}<button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
+        ${novo ? '' : `<button class="btn" id="gv-imp" title="Imprimir folha de rosto do palete">🖨 Folha de rosto</button>`}<button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
       <div class="gv-corpo">
         <div class="erro" id="gv-erro" hidden></div>
         <div class="gv-sec">Etapa</div>
