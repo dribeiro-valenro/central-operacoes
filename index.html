@@ -205,7 +205,7 @@
   .kb-lin b{color:var(--ink);font-variant-numeric:tabular-nums}
   .kb:not(:last-child):not(:nth-last-child(2))::after{content:'›';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:#b5bdcb;font-size:18px;z-index:1}
   .kb-canc{opacity:.8}
-  .filtro-ativo{margin:-4px 0 12px;font-size:13px;display:flex;gap:8px;align-items:center}
+  .filtro-ativo{margin:-4px 0 12px;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--mute)} .filtro-ativo b{color:var(--ink)}
   .datas{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--mute)}
   .subtot-cel{background:#eef2f8;color:var(--pri);font-weight:700;font-size:13px;padding:10px 12px;border-radius:10px;margin-bottom:10px}
   .res-col{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
@@ -849,7 +849,7 @@ function telaFull(){
         ${[['padrao','Expedição: em aberto + últimos 45 dias'],['hoje','Expedição: hoje'],['amanha','Expedição: amanhã'],['semana','Expedição: esta semana'],['prox7','Expedição: próximos 7 dias'],['mes','Expedição: este mês'],['outro','Expedição: escolher datas…']]
           .map(([k, r]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${r}</option>`).join('')}
       </select>
-      <span id="f-datas" class="datas" ${s.per === 'outro' ? '' : 'hidden'}><input type="date" id="f-ini" value="${s.ini}"> até <input type="date" id="f-fim" value="${s.fim}"></span>
+      <span id="f-datas" class="datas"><input type="date" id="f-ini" value="${s.per === 'padrao' ? '' : s.ini}" title="Expedição a partir de"> até <input type="date" id="f-fim" value="${s.per === 'padrao' ? '' : s.fim}" title="Expedição até"></span>
       <div class="abas">${[['abertos','Em aberto'],['expedidos','Expedidos'],['todos','Todos']].map(([k, r]) => `<button data-fa="${k}" class="${s.aba === k && !s.st ? 'on' : ''}">${r}</button>`).join('')}</div>
       <button class="btn" id="f-atualizar">Atualizar</button>
       ${pode('full', 'gerir') ? `<button class="btn pri" id="f-novo">+ Novo envio</button>` : ''}
@@ -859,21 +859,44 @@ function telaFull(){
   document.getElementById('f-loja').onchange = e => { s.loja = e.target.value; renderFull(); };
   document.querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { s.aba = b.dataset.fa; s.st = null; marcarAbas(); renderFull(); });
   const $b = document.getElementById('f-busca'); $b.oninput = () => { s.busca = $b.value; renderFull(); };
-  const $per = document.getElementById('f-per');
+  // período: a lista e o calendário andam juntos (escolher um atualiza o outro)
+  const $per = document.getElementById('f-per'), $ini = document.getElementById('f-ini'), $fim = document.getElementById('f-fim');
   $per.onchange = () => {
-    s.per = $per.value; document.getElementById('f-datas').hidden = s.per !== 'outro';
-    if (s.per === 'outro') { if (!s.ini) { s.ini = hojeBRT(); s.fim = addDias(hojeBRT(), 6); document.getElementById('f-ini').value = s.ini; document.getElementById('f-fim').value = s.fim; } }
-    else if (s.per !== 'padrao') [s.ini, s.fim] = periodoFull(s.per);
+    s.per = $per.value;
+    if (s.per === 'outro') { if (!s.ini || !s.fim) [s.ini, s.fim] = periodoFull('semana'); }
+    else if (s.per === 'padrao') { s.ini = ''; s.fim = ''; }
+    else [s.ini, s.fim] = periodoFull(s.per);
     if (s.per !== 'padrao' && s.aba === 'abertos') { s.aba = 'todos'; marcarAbas(); }   // período escolhido: mostra todos os status
-    carregarFull();
+    sincronizarPeriodo(); carregarFull();
   };
-  ['f-ini', 'f-fim'].forEach(k => document.getElementById(k).onchange = () => {
-    s.ini = document.getElementById('f-ini').value; s.fim = document.getElementById('f-fim').value;
-    if (s.ini && s.fim && s.ini <= s.fim) carregarFull();
-  });
+  const mudouData = ev => {
+    let ini = $ini.value, fim = $fim.value;
+    if (!ini && !fim) { s.per = 'padrao'; s.ini = s.fim = ''; sincronizarPeriodo(); return carregarFull(); }
+    if (!ini || !fim) {   // só uma data preenchida: na data inicial, sugere o mesmo dia no fim; apagando, espera a outra
+      if (ev.target === $ini && ini && !fim) { $fim.value = fim = ini; } else return;
+    }
+    if (fim < ini) { if (ev.target === $ini) fim = ini; else ini = fim; }                     // ajusta a outra ponta
+    s.ini = ini; s.fim = fim;
+    s.per = Object.keys({ hoje:1, amanha:1, semana:1, prox7:1, mes:1 }).find(k => { const r = periodoFull(k); return r[0] === ini && r[1] === fim; }) || 'outro';
+    if (s.aba === 'abertos') { s.aba = 'todos'; marcarAbas(); }
+    sincronizarPeriodo(); carregarFull();
+  };
+  $ini.onchange = mudouData; $fim.onchange = mudouData;
   document.getElementById('f-atualizar').onclick = () => carregarFull();
   const nv = document.getElementById('f-novo'); if (nv) nv.onclick = () => abrirEnvio(null);
   carregarFull();
+}
+function sincronizarPeriodo(){
+  const s = state.full, $per = document.getElementById('f-per'), $ini = document.getElementById('f-ini'), $fim = document.getElementById('f-fim');
+  if ($per) $per.value = s.per;
+  if ($ini) $ini.value = s.per === 'padrao' ? '' : s.ini;
+  if ($fim) $fim.value = s.per === 'padrao' ? '' : s.fim;
+}
+function limparFiltrosFull(){
+  const s = state.full;
+  Object.assign(s, { loja:'todos', aba:'abertos', st:null, busca:'', per:'padrao', ini:'', fim:'' });
+  document.getElementById('f-busca').value = ''; document.getElementById('f-loja').value = 'todos';
+  marcarAbas(); sincronizarPeriodo(); carregarFull();
 }
 function marcarAbas(){ const s = state.full; document.querySelectorAll('[data-fa]').forEach(x => x.classList.toggle('on', x.dataset.fa === s.aba && !s.st)); }
 async function carregarFull(){
@@ -917,8 +940,16 @@ function renderFull(){
         <span class="kb-lin"><span>m³</span><b>${fmtM3(q.m3)}</b></span>
       </button>`).join('')}
     </div>
-    ${s.st ? `<div class="filtro-ativo">Mostrando só <b>${esc(ST_FULL[s.st].rot)}</b> <button class="btn mini" id="f-limpa-st">Limpar</button></div>` : ''}
-    ${!L.length ? `<div class="painel"><div class="vazio">Nenhum envio com esses filtros.</div></div>` : `
+    ${(() => {
+      const f = [];
+      if (s.loja !== 'todos') f.push(`Loja <b>${esc(nomeLoja(s.loja))}</b>`);
+      f.push(s.per === 'padrao' ? 'Expedição <b>em aberto + últimos 45 dias</b>' : `Expedição <b>${s.ini === s.fim ? dataBR(s.ini) : `${dataBR(s.ini)} a ${dataBR(s.fim)}`}</b>`);
+      if (termo) f.push(`Pedido contém <b>${esc(termo)}</b>`);
+      f.push(s.st ? `Etapa <b>${esc(ST_FULL[s.st].rot)}</b>` : `<b>${{ abertos:'Em aberto', expedidos:'Expedidos', todos:'Todos' }[s.aba]}</b>`);
+      const sujo = s.loja !== 'todos' || s.per !== 'padrao' || termo || s.st || s.aba !== 'abertos';
+      return `<div class="filtro-ativo">Filtros: ${f.join(' · ')} ${s.st ? '<button class="btn mini" id="f-limpa-st">Tirar etapa</button>' : ''}${sujo ? '<button class="btn mini" id="f-limpa">Limpar filtros</button>' : ''}</div>`;
+    })()}
+    ${!L.length ? `<div class="painel"><div class="vazio">Nenhum envio com esses filtros.${termo && s.per !== 'padrao' ? ' O pedido pode estar com expedição fora do período: <button class="btn mini" id="f-sem-data">Buscar sem filtro de data</button>' : ''}</div></div>` : `
     <div class="painel so-largo"><div style="overflow-x:auto"><table class="tab-full">
       <thead>
         <tr class="subtot"><td colspan="5">Subtotal · ${fmtN(lista.length)} pedido${lista.length === 1 ? '' : 's'}</td><td>${fmtN(plano)}</td>
@@ -949,6 +980,8 @@ function renderFull(){
     <div class="info" style="margin-top:8px">${s.per === 'padrao' ? 'Mostra todos os envios em aberto e os expedidos dos últimos 45 dias.' : `Expedição de ${dataBR(s.ini)} a ${dataBR(s.fim)}.`} Clique numa etapa para filtrar.</div>`;
   $f.querySelectorAll('[data-kb]').forEach(b => b.onclick = () => { s.st = s.st === b.dataset.kb ? null : b.dataset.kb; marcarAbas(); renderFull(); });
   const lp = document.getElementById('f-limpa-st'); if (lp) lp.onclick = () => { s.st = null; marcarAbas(); renderFull(); };
+  const lt = document.getElementById('f-limpa'); if (lt) lt.onclick = limparFiltrosFull;
+  const sd = document.getElementById('f-sem-data'); if (sd) sd.onclick = () => { s.per = 'padrao'; s.ini = s.fim = ''; s.aba = 'todos'; marcarAbas(); sincronizarPeriodo(); carregarFull(); };
   $f.querySelectorAll('[data-envio]').forEach(el => { el.onclick = () => abrirEnvio(el.dataset.envio); el.onkeydown = ev => { if (ev.key === 'Enter') abrirEnvio(el.dataset.envio); }; });
   $f.querySelectorAll('[data-imp]').forEach(b => b.onclick = ev => { ev.stopPropagation(); imprimirFolha(r.envios.find(x => x.id === b.dataset.imp)); });
 }
