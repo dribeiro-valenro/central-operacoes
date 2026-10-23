@@ -933,16 +933,16 @@ function renderFull(){
         <td>${pillFull(e.status)}</td><td class="pct">${pct(e)}</td>
         <td class="${prev ? 'prev' : ''}">${e.caixas ?? '–'}</td><td class="${prev ? 'prev' : ''}">${fmtM3(e.m3)}</td>
         <td>${e.observacao || e.motivo_diferenca ? `<span title="${esc([e.motivo_diferenca, e.observacao].filter(Boolean).join(' · '))}">💬</span>` : ''}</td>
-        <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto">🖨</button></td></tr>`).join('')}
+        <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir romaneio de embarque">🖨</button></td></tr>`).join('')}
       </tbody>
     </table></div>
-    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 folha de rosto do palete</span></div></div>
+    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 romaneio de embarque</span></div></div>
     <div class="so-estreito">
       <div class="subtot-cel">Subtotal · ${fmtN(lista.length)} pedidos · plano ${fmtN(plano)} · pares ${fmtN(pares)} (${fmtP(pares, plano)}) · ${fmtN(soma(validos, e => e.caixas))} cx · ${fmtM3(soma(validos, e => e.m3))} m³</div>
       ${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
       <div class="card-full ${s.aberto === e.id ? 'sel' : ''}" data-envio="${e.id}" role="button" tabindex="0" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
         <div class="cf-top"><b>#${esc(e.pedido)}</b><span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
-          <button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto">🖨</button></div>
+          <button class="btn mini imp" data-imp="${e.id}" title="Imprimir romaneio de embarque">🖨</button></div>
         <div class="cf-mid">${pillFull(e.status)}<span class="mini-barra larga"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><b>${e.pct_coleta === null ? '–' : Math.round(e.pct_coleta) + '%'}</b></div>
         <div class="cf-bot"><span>Plano <b>${fmtN(e.pares_plan)}</b></span><span>Pares <b class="${prev ? 'prev' : dif ? 'dif' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</b></span><span>Cx <b>${e.caixas ?? '–'}</b></span>${quem ? `<span>${esc(quem)}</span>` : ''}${cestos ? `<span>Cesto ${esc(cestos)}</span>` : ''}</div>
       </div>`).join('')}</div>`}
@@ -953,7 +953,7 @@ function renderFull(){
   $f.querySelectorAll('[data-imp]').forEach(b => b.onclick = ev => { ev.stopPropagation(); imprimirFolha(r.envios.find(x => x.id === b.dataset.imp)); });
 }
 
-// ---- folha de rosto do palete (A4 retrato)
+// ---- romaneio de embarque: vai na frente do palete e volta assinado (A4 retrato)
 const DIAS_SEM = ['DOMINGO', 'SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO'];
 function folhaRostoHtml(e){
   const loja = LOJAS[e.cnpj_id] || { nome: nomeLoja(e.cnpj_id), cor:'#02285a' };
@@ -963,44 +963,56 @@ function folhaRostoHtml(e){
   const dow = new Date(e.data_expedicao + 'T12:00:00Z').getUTCDay();
   const prev = PREVISTO_FULL.includes(e.status);
   const quem = state.usuario?.nome || (DEMO ? 'Demonstração' : '');
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Folha de rosto ${esc(ped)}</title><style>
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Romaneio de embarque ${esc(ped)}</title><style>
   @page{size:A4 portrait;margin:0}
   *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{margin:0;padding:0;background:#fff}
   body{font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:#1b2333}
   .folha{width:210mm;height:297mm;padding:7mm;display:flex;overflow:hidden}
   .moldura{flex:1;min-width:0;overflow:hidden;border:5mm solid ${loja.borda ? loja.cor : loja.cor};${loja.borda ? `outline:0.6mm solid ${loja.borda};outline-offset:-5.6mm;` : ''}display:flex;flex-direction:column}
-  .topo{background:#02285a;color:#fff;display:flex;align-items:center;gap:6mm;padding:5mm 8mm;border-bottom:2.5mm solid #f1c300}
+  .topo{background:#02285a;color:#fff;display:flex;align-items:center;gap:6mm;padding:4mm 7mm;border-bottom:2.5mm solid #f1c300}
   .topo img{height:16mm}
-  .topo .t1{font-size:15pt;font-weight:700;letter-spacing:1.5pt}
+  .topo .t1{font-size:14pt;font-weight:700;letter-spacing:1pt;white-space:nowrap}
   .topo .t2{font-size:10pt;opacity:.8;letter-spacing:.5pt}
   .topo .esp{flex:1}
-  .topo .st{font-size:10pt;border:0.4mm solid rgba(255,255,255,.6);padding:1.5mm 3.5mm;border-radius:2mm}
+  .topo .st{display:flex;flex-direction:column;align-items:center;background:#fff;color:#02285a;border:1mm solid #f1c300;padding:2mm 5mm;border-radius:2.5mm;min-width:48mm}
+  .topo .st small{font-size:8pt;font-weight:700;letter-spacing:2pt;color:#566074}
+  .topo .st b{font-size:16pt;font-weight:800;line-height:1.1;white-space:nowrap}
   .bloco{padding:0 10mm}
   .rot{font-size:13pt;font-weight:700;letter-spacing:2pt;color:#566074;text-transform:uppercase}
-  .coleta{margin-top:9mm}
+  .coleta{margin-top:4mm}
   .num{overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:2mm;margin-top:2mm;line-height:.9}
-  .num .ini{font-size:54pt;font-weight:700;color:#02285a;letter-spacing:1pt;padding-bottom:5mm}
-  .num .fim{font-size:134pt;font-weight:800;color:#111;background:#f1c300;padding:3mm 5mm 1mm;border-radius:3mm;letter-spacing:2pt}
-  .linha{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:10mm}
-  .caixa{border:0.6mm solid #c9cfda;border-radius:3mm;padding:5mm 6mm}
-  .data{font-size:34pt;font-weight:800;color:#02285a;line-height:1.05}
+  .num .ini{font-size:48pt;font-weight:700;color:#02285a;letter-spacing:1pt;padding-bottom:5mm}
+  .num .fim{font-size:112pt;font-weight:800;color:#111;background:#f1c300;padding:3mm 5mm 1mm;border-radius:3mm;letter-spacing:2pt}
+  .linha{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:6mm}
+  .caixa{border:0.6mm solid #c9cfda;border-radius:3mm;padding:4mm 6mm}
+  .data{font-size:30pt;font-weight:800;color:#02285a;line-height:1.05}
   .dia{font-size:17pt;font-weight:700;color:#566074;letter-spacing:1.5pt}
-  .hora{font-size:40pt;font-weight:800;color:#111}
+  .hora{font-size:34pt;font-weight:800;color:#111}
   .loja{background:${loja.cor};color:${corTexto};border-radius:3mm;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:4mm;${claro ? `border:0.6mm solid ${loja.borda};` : ''}}
   .loja .rot{color:${corTexto};opacity:.85}
   .loja .nome{font-size:var(--tam);font-weight:800;letter-spacing:1pt;line-height:1;white-space:nowrap;text-transform:uppercase;margin-top:2mm;text-align:center}
-  .qtd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm;margin-top:9mm}
-  .qtd .caixa{text-align:center;padding:7mm 2mm}
-  .qtd .v{font-size:50pt;font-weight:800;color:#02285a;line-height:1.05;margin-top:1mm}
-  .prev{margin-top:3mm;text-align:center;font-size:11pt;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm;padding:2mm}
-  .mao{display:grid;grid-template-columns:1fr 1.4fr;gap:6mm;margin-top:11mm;font-size:16pt;font-weight:700;color:#1b2333}
-  .mao div{white-space:nowrap}
-  .mao span{display:inline-block;border-bottom:0.5mm solid #1b2333;min-width:18mm;height:9mm;vertical-align:bottom}
+  .qtd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm;margin-top:6mm}
+  .qtd .caixa{text-align:center;padding:4mm 2mm}
+  .qtd .rot em{font-style:normal;background:#1b2333;color:#fff;border-radius:1mm;padding:0 1.5mm;font-size:8pt;letter-spacing:1pt;vertical-align:1pt}
+  .qtd .v{font-size:44pt;font-weight:800;color:#02285a;line-height:1.05;margin-top:1mm}
+  .prev{margin-top:2mm;text-align:center;font-size:10pt;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm;padding:2mm}
+  .emb{margin-top:6mm;border:0.6mm solid #1b2333;border-radius:3mm;padding:3mm 5mm 4mm}
+  .emb .rot{color:#1b2333}
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:1mm 8mm}
+  .campo{display:flex;flex-direction:column}
+  .campo.cheio{grid-column:1/-1}
+  .campo span{font-size:9pt;font-weight:700;letter-spacing:1pt;color:#566074;margin-top:3mm}
+  .campo i{display:block;border-bottom:0.45mm solid #1b2333;height:7.5mm}
+  .horas{display:flex;align-items:flex-end;gap:2mm;font-size:16pt;font-weight:700;color:#1b2333;height:7.5mm;border-bottom:0.45mm solid #1b2333}
+  .horas em{font-style:normal;font-size:9pt;color:#566074;margin-right:1mm}
+  .ass{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-top:13mm}
+  .ass div{border-top:0.5mm solid #1b2333;padding-top:1.5mm;text-align:center;font-size:10pt;font-weight:700;letter-spacing:1pt}
+  .ass small{display:block;font-weight:400;letter-spacing:0;color:#566074;font-size:8.5pt;margin-top:.5mm}
   .esp2{flex:1}
   .rodape{display:flex;justify-content:space-between;gap:4mm;white-space:nowrap;font-size:7.5pt;color:#677086;padding:3mm 10mm;border-top:0.4mm solid #e2e6ed}
   </style></head><body><div class="folha"><div class="moldura">
-    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">FOLHA DE ROSTO</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span><span class="st">${esc(ST_FULL[e.status]?.rot || e.status)}</span></div>
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">ROMANEIO DE EMBARQUE</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span><span class="st"><small>STATUS</small><b>${esc((ST_FULL[e.status]?.rot || e.status).toUpperCase())}</b></span></div>
     <div class="bloco coleta"><div class="rot">Nº da coleta</div>
       <div class="num"><span class="ini">${esc(ini)}</span><span class="fim">${esc(fim3)}</span></div></div>
     <div class="bloco linha">
@@ -1008,15 +1020,24 @@ function folhaRostoHtml(e){
         <div class="dia" style="margin-top:3mm">${DIAS_SEM[dow]}</div>
         <div class="data">${dataBR(e.data_expedicao)}</div>
         <div class="hora">${e.hora_expedicao ? esc(e.hora_expedicao) : '<span style="color:#9aa3b5;font-size:20pt">horário a definir</span>'}</div></div>
-      <div class="loja" style="--tam:${loja.nome.length > 5 ? 50 : 60}pt"><div class="rot">Loja</div><div class="nome">${esc(loja.nome)}</div></div>
+      <div class="loja" style="--tam:${loja.nome.length > 5 ? 44 : 52}pt"><div class="rot">Loja</div><div class="nome">${esc(loja.nome)}</div></div>
     </div>
     <div class="bloco qtd">
-      <div class="caixa"><div class="rot">m³</div><div class="v">${fmtM3(e.m3)}</div></div>
-      <div class="caixa"><div class="rot">Caixas</div><div class="v">${e.caixas ?? '–'}</div></div>
-      <div class="caixa"><div class="rot">Pares</div><div class="v">${e.pares_envio === null || e.pares_envio === undefined ? '–' : fmtN(e.pares_envio)}</div></div>
+      <div class="caixa"><div class="rot">m³${prev ? ' <em>previsto</em>' : ''}</div><div class="v">${fmtM3(e.m3)}</div></div>
+      <div class="caixa"><div class="rot">Caixas${prev ? ' <em>previsto</em>' : ''}</div><div class="v">${e.caixas ?? '–'}</div></div>
+      <div class="caixa"><div class="rot">Pares${prev ? ' <em>previsto</em>' : ''}</div><div class="v">${e.pares_envio === null || e.pares_envio === undefined ? '–' : fmtN(e.pares_envio)}</div></div>
     </div>
-    ${prev ? `<div class="bloco"><div class="prev">VALORES PREVISTOS · pedido ainda em ${esc((ST_FULL[e.status]?.rot || '').toLowerCase())}. Reimprima após a conferência.</div></div>` : ''}
-    <div class="bloco mao"><div>PALETE <span></span> DE <span></span></div><div>CONFERIDO POR <span style="min-width:44mm"></span></div></div>
+    <div class="bloco"><div class="emb">
+      <div class="rot">Dados do embarque</div>
+      <div class="campos">
+        <div class="campo cheio"><span>TRANSPORTADORA</span><i></i></div>
+        <div class="campo"><span>PLACA</span><i></i></div>
+        <div class="campo"><span>MOTORISTA</span><i></i></div>
+        <div class="campo"><span>HORÁRIO DE CHEGADA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
+        <div class="campo"><span>HORÁRIO DE SAÍDA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
+      </div>
+      <div class="ass"><div>CONFERENTE / LÍDER<small>assinatura e nome legível</small></div><div>MOTORISTA<small>assinatura e documento</small></div></div>
+    </div></div>
     <div class="esp2"></div>
     <div class="rodape"><span>Pedido #${esc(ped)} · ${esc(loja.marca || loja.nome)}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''} · Central de Operações Valenro</span></div>
   </div></div></body></html>`;
@@ -1073,7 +1094,7 @@ function abrirEnvio(id, recarregando){
     <div class="gv-fundo" id="gv-fundo"></div>
     <aside class="gv">
       <div class="gv-cab"><div><div class="info">${novo ? 'Novo envio Full' : esc(nomeLoja(e.cnpj_id))}</div><h3>${novo ? 'Cadastrar envio' : `Pedido #${esc(e.pedido)}`}</h3></div><span style="flex:1"></span>
-        ${novo ? '' : `<button class="btn" id="gv-imp" title="Imprimir folha de rosto">🖨 Folha</button>`}<button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
+        ${novo ? '' : `<button class="btn" id="gv-imp" title="Imprimir romaneio de embarque">🖨 Romaneio</button>`}<button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
       <div class="gv-corpo">
         <div class="erro" id="gv-erro" hidden></div>
         <div class="gv-sec">Etapa</div>
