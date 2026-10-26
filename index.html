@@ -302,6 +302,14 @@
   .assin-ok img{width:210px;height:70px;object-fit:contain;border-bottom:1px solid var(--line)}
   @media (max-width:560px){ .grade-form.g3{grid-template-columns:1fr 1fr} .grade-form.g3 > label:first-child{grid-column:1/-1} .grade-cross{grid-template-columns:1fr} .nav-dia input{width:140px} }
   /* One-on-One */
+  .aniv{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;background:#fff8dc;border:1px solid #f1dd9c;border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:13px}
+  .aniv span{cursor:pointer} .aniv .hoje-aniv{color:#b3261e}
+  .tab-oo tr.sem-click{cursor:default}
+  .area-bl{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px}
+  .area-cab,.setor-l{display:flex;gap:10px;align-items:center} .setor-l{margin:6px 0 0 18px}
+  .area-bl input:not([type=checkbox]){flex:1;font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px}
+  .area-cab input:not([type=checkbox]){font-weight:700}
+  .ficha-sec{border-top-color:var(--amarelo)}
   .restrito{font-size:12px;font-weight:700;color:#8a1f1f;background:#fbe9e9;border-radius:20px;padding:3px 10px}
   .funil-oo{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
   .funil-oo .kpi{padding:12px 14px} .funil-oo .val{font-size:24px}
@@ -570,14 +578,14 @@ const ehExcluido = u => USUARIOS_EXCLUIDOS.some(g => g.toLowerCase() === String(
 // Permissões chegam prontas do servidor (perfil + exceções). Esconder o menu é só conveniência:
 // a Edge Function confere de novo em toda chamada.
 const ROT_PERFIL = { admin:'Admin', lider:'Líder', operacional:'Operacional' };
-const ROT_NIVEL = { nenhum:'Sem acesso', ver:'Ver', editar:'Editar', gerir:'Gerenciar' };
+const ROT_NIVEL = { nenhum:'Sem acesso', resumo:'Só resumo', ver:'Ver', editar:'Editar', gerir:'Gerenciar' };
 const ROT_FUNCAO_WMS = { operacional:'Operacional', lider:'Líder', apoio:'Apoio', gestao:'Gestão' };
 function pode(tela, nivel = 'ver'){
   if (DEMO) return true;
   const u = state.usuario || {};
   let p = u.permissoes;
   if (!p) p = u.perfil === 'admin' ? { produtividade:'ver', pessoas:'editar' } : u.perfil === 'lider' ? { produtividade:'ver' } : {};   // sessão antiga
-  const ordem = { nenhum:0, ver:1, editar:2, gerir:3 };
+  const ordem = { nenhum:0, resumo:0.5, ver:1, editar:2, gerir:3 };
   return (ordem[p[tela] || 'nenhum'] || 0) >= ordem[nivel];
 }
 const semDominio = (login, dom) => dom && login.endsWith('@' + dom) ? login.slice(0, -(dom.length + 1)) : login;
@@ -595,7 +603,7 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
   modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
@@ -1900,13 +1908,37 @@ function etapaOO(c, hoje){
   if (c.recebido_em) return OO_ETAPAS[1];
   return OO_ETAPAS[0];
 }
+// idade, próximo aniversário e tempo de casa
+function idadeOO(nasc, hoje){ if (!nasc) return null; let i = +hoje.slice(0, 4) - +nasc.slice(0, 4); if (hoje.slice(5) < nasc.slice(5)) i--; return i; }
+function aniversarioOO(nasc, hoje){
+  if (!nasc) return null;
+  let d = hoje.slice(0, 4) + nasc.slice(4); if (nasc.slice(5) === '02-29' && !(+hoje.slice(0, 4) % 4 === 0)) d = hoje.slice(0, 4) + '-02-28';
+  if (d < hoje) d = (+hoje.slice(0, 4) + 1) + nasc.slice(4);
+  return { data:d, dias: Math.round((Date.parse(d + 'T12:00:00Z') - Date.parse(hoje + 'T12:00:00Z')) / 86400e3), idade: idadeOO(nasc, d) };
+}
+function tempoCasaOO(adm, hoje){
+  if (!adm) return '';
+  let m = (+hoje.slice(0, 4) - +adm.slice(0, 4)) * 12 + (+hoje.slice(5, 7) - +adm.slice(5, 7)); if (hoje.slice(8) < adm.slice(8)) m--;
+  if (m < 1) return 'menos de 1 mês'; const a = Math.floor(m / 12), r = m % 12;
+  return [a ? `${a} ano${a > 1 ? 's' : ''}` : '', r ? `${r} ${r > 1 ? 'meses' : 'mês'}` : ''].filter(Boolean).join(' e ');
+}
+const nomeAreaOO = id => state.ooDados?.areas?.find(a => String(a.id) === String(id))?.nome || '';
+const nomeSetorOO = id => state.ooDados?.setores?.find(s => String(s.id) === String(id))?.nome || '';
+const vePessoalOO = () => pode('oo', 'ver');   // "Só resumo" não abre ficha nem vê dados pessoais
 const pillOO = e => `<span class="st-full" style="color:${e.cor};background:${e.fundo}">${esc(e.rot)}</span>`;
 
 // ---- demonstração (dados fictícios)
 const DEMO_OO = (() => {
   const h = hojeBRT();
   const pessoas = ['Roberto|Supervisor', 'Guilherme|Líder de entrada', 'Degmar|Líder de saída', 'Vinicius|Especialista de estoque', 'Arthur|Operacional', 'Davi|Operacional', 'César|Operacional', 'Rafael|Operacional', 'Vitor|Operacional', 'Estevão|Operacional', 'Kelvin|Operacional']
-    .map((x, i) => ({ id:String(i + 1), nome:x.split('|')[0], funcao:x.split('|')[1], area:'Logística', ativo:true }));
+    .map((x, i) => ({ id:String(i + 1), nome:x.split('|')[0], funcao:x.split('|')[1], area_id:'1', setor_id:(m => (i + 1) in m ? m[i + 1] : (i % 2 ? '2' : '1'))({ 1:null, 2:'1', 3:'2', 4:'3' }), ativo:true,
+      nascimento: ['1988-03-14', '1995-' + h.slice(5, 7) + '-' + String(Math.min(28, +h.slice(8) + 3)).padStart(2, '0'), '1990-07-02', '1997-11-20', '2001-' + h.slice(5), '1999-01-09', '1993-05-30', '2000-12-12', '1996-08-08', '2002-02-17', '1998-10-01'][i],
+      admissao: ['2019-02-01', '2021-06-14', '2022-03-07', '2023-01-16', '2024-08-05', '2024-09-02', '2023-05-22', '2025-03-10', '2025-07-01', '2026-02-02', '2026-05-18'][i],
+      mora_em: ['São Bernardo do Campo', 'Diadema', 'São Paulo · Zona Sul', 'Santo André', 'São Bernardo do Campo', 'Diadema', 'Mauá', 'São Paulo · Jabaquara', 'São Bernardo do Campo', 'Santo André', 'Diadema'][i],
+      notas_pessoais: i === 4 ? 'Faz faculdade de logística à noite. Pediu para não ficar depois das 17h às terças e quintas.' : null, n_arquivos: i === 0 ? 1 : 0 }));
+  const areas = [{ id:'1', nome:'Logística', ativo:true }, { id:'2', nome:'Comercial', ativo:true }];
+  const setores = [{ id:'1', area_id:'1', nome:'Recebimento', ativo:true }, { id:'2', area_id:'1', nome:'Expedição', ativo:true }, { id:'3', area_id:'1', nome:'Estoque', ativo:true }];
+  const arquivos = [{ id:'1', pessoa_id:'1', nome:'DISC_Roberto.pdf', descricao:'Teste DISC (RH, out/2026)', tipo:'application/pdf', tamanho:182000, enviado_em:new Date().toISOString(), enviado_por:'demonstracao' }];
   const rodadas = [{ id:'1', nome:'Rodada 1 · out/2026', inicio:'2026-10-26', ativa:true }];
   const conversas = [
     { id:'1', rodada_id:'1', pessoa_id:'1', recebido_em:addDias(h, -6), conversa_em:addDias(h, -3), pdi_em:addDias(h, -1), fechar:{ mudanca:'Ter as prioridades do dia definidas às 7h', desenvolver:'Gestão de indicadores', feedback:'Em particular, logo depois do fato' }, notas:'Primeiro da rodada. Evitar compromisso de carreira no PDI.' },
@@ -1928,8 +1960,25 @@ const DEMO_OO = (() => {
     { id:'2', conversa_id:'1', meta:'Acompanhar o painel de produtividade 2x por semana', tipo:'capacitacao', acoes:'Treino com Douglas no portal', prazo:addDias(h, 45), status:'nao_iniciada' },
   ];
   const acomps = [{ id:'1', conversa_id:'1', data:addDias(h, -1), resumo:'PDI combinado. Começa segunda.', proximo:addDias(h, 14) }];
-  return { pessoas, rodadas, conversas, pontos, metas, acomps, seq:100 };
+  return { pessoas, rodadas, conversas, pontos, metas, acomps, areas, setores, arquivos, seq:100 };
 })();
+// envio de arquivo (multipart): não passa pelo api() porque ele manda JSON
+async function enviarArquivoPortal(form){
+  if (DEMO) return apiOO('/oo/arquivo', form);
+  let s = lerSessao(); if (!s) throw new SemSessao('Faça login');
+  if (s.expires_at && s.expires_at * 1000 < Date.now() + 60e3) s = await renovar();
+  if (!s) throw new SemSessao('Sessão expirada');
+  const r = await fetch(API_URL + '/oo/arquivo', { method:'POST', headers:{ Authorization:'Bearer ' + s.access_token }, body:form });
+  let j = null; try { j = await r.json(); } catch (_) {}
+  if (r.status === 401) { gravarSessao(null); throw new SemSessao('Sessão expirada'); }
+  if (!r.ok) throw new Error((j && j.error) || ('Erro ' + r.status));
+  return j;
+}
+async function abrirArquivoOO(id){
+  const w = window.open('', '_blank');   // abre já no clique (o navegador bloqueia se abrir depois)
+  try { const { url } = await apiOO(`/oo/arquivo?id=${id}`); if (w) w.location = url; else location.href = url; }
+  catch (e) { if (w) w.close(); if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+}
 async function apiOO(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_OO, h = hojeBRT(), q = new URLSearchParams(path.split('?')[1] || '');
@@ -1940,8 +1989,9 @@ async function apiOO(path, corpo){
       prazo_proximo: abertas[0] || null, n_acomp: as.length, ultimo_acomp: as[0]?.data || null, proximo_acomp: as[0]?.proximo || null }; };
   if (path.startsWith('/oo/conversa')) {
     const c = D.conversas.find(x => x.rodada_id === q.get('rodada') && x.pessoa_id === q.get('pessoa'));
-    if (!c) return { conversa:null, pontos:[], metas:[], acomps:[] };
-    return clone({ conversa:c, pontos:D.pontos.filter(p => p.conversa_id === c.id), metas:D.metas.filter(m => m.conversa_id === c.id), acomps:D.acomps.filter(a => a.conversa_id === c.id).sort((a, b) => b.data.localeCompare(a.data)) });
+    const arquivos = clone(D.arquivos.filter(a => a.pessoa_id === q.get('pessoa')));
+    if (!c) return { conversa:null, pontos:[], metas:[], acomps:[], arquivos };
+    return { ...clone({ conversa:c, pontos:D.pontos.filter(p => p.conversa_id === c.id), metas:D.metas.filter(m => m.conversa_id === c.id), acomps:D.acomps.filter(a => a.conversa_id === c.id).sort((a, b) => b.data.localeCompare(a.data)) }), arquivos };
   }
   if (path.startsWith('/oo/compilado')) {
     const convs = D.conversas.filter(c => c.rodada_id === q.get('rodada'));
@@ -1950,13 +2000,18 @@ async function apiOO(path, corpo){
   }
   if (path.startsWith('/oo?') || path === '/oo') {
     const rid = q.get('rodada') || D.rodadas.find(r => r.ativa)?.id || D.rodadas[0]?.id;
-    return clone({ rodada:rid, rodadas:D.rodadas, pessoas:D.pessoas, conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), hoje:h });
+    D.pessoas.forEach(p => { p.n_arquivos = D.arquivos.filter(a => a.pessoa_id === p.id).length; });
+    return clone({ rodada:rid, rodadas:D.rodadas, areas:D.areas, setores:D.setores, pessoas:D.pessoas, conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), nivel:'gerir', hoje:h });
   }
-  const tab = { pessoa:'pessoas', rodada:'rodadas', conversa:'conversas', ponto:'pontos', meta:'metas', acomp:'acomps' }[corpo.registro];
+  if (path.startsWith('/oo/arquivo?')) { const a = D.arquivos.find(x => x.id === q.get('id')); return { url: a._url || 'about:blank', nome: a.nome }; }
+  if (path === '/oo/arquivo') { const f = corpo.get('arquivo'), id = String(++D.seq);
+    D.arquivos.unshift({ id, pessoa_id:String(corpo.get('pessoa_id')), nome:f.name, descricao:corpo.get('descricao') || null, tipo:f.type, tamanho:f.size, enviado_em:new Date().toISOString(), enviado_por:'demonstracao', _url:URL.createObjectURL(f) }); return { ok:true, id }; }
+  const tab = { pessoa:'pessoas', rodada:'rodadas', conversa:'conversas', ponto:'pontos', meta:'metas', acomp:'acomps', area:'areas', setor:'setores', arquivo:'arquivos' }[corpo.registro];
   if (path === '/oo/excluir') { D[tab] = D[tab].filter(x => x.id !== String(corpo.id)); return { ok:true }; }
   if (path === '/oo/salvar') {
     const dados = { ...corpo }; delete dados.registro; delete dados.id;
-    ['rodada_id', 'pessoa_id', 'conversa_id'].forEach(k => { if (k in dados) dados[k] = String(dados[k]); });
+    ['rodada_id', 'pessoa_id', 'conversa_id', 'area_id', 'setor_id'].forEach(k => { if (k in dados && dados[k] !== null) dados[k] = String(dados[k]); });
+    if (corpo.registro === 'pessoa' && dados.setor_id) dados.area_id = D.setores.find(s => s.id === dados.setor_id)?.area_id || dados.area_id;
     if (corpo.registro === 'conversa' && !corpo.id) { const ex = D.conversas.find(c => c.rodada_id === dados.rodada_id && c.pessoa_id === dados.pessoa_id); if (ex) corpo.id = ex.id; }
     if (corpo.id) { Object.assign(D[tab].find(x => x.id === String(corpo.id)), dados); return { ok:true, id:String(corpo.id) }; }
     const id = String(++D.seq); D[tab].push({ id, fechar:{}, ativo:true, ativa:true, acao_rapida:false, status:'nao_iniciada', ...(corpo.registro === 'meta' ? { tipo:'comportamento' } : {}), ...dados }); return { ok:true, id };
@@ -1964,20 +2019,26 @@ async function apiOO(path, corpo){
 }
 
 function telaOO(){
-  const s = state.oo ||= { aba:'time', rodada:null, bloco:'empresa', anonimo:true, soAcao:false, aberto:null };
+  const s = state.oo ||= { aba:'time', rodada:null, bloco:'empresa', anonimo:true, soAcao:false, aberto:null, area:'todas', setor:'todos' };
   $app.innerHTML = `
     <div class="barra">
       <h2>One-on-One</h2><span class="restrito" title="Só quem você autorizar em Pessoas e acessos vê esta tela">🔒 acesso restrito</span><span style="flex:1"></span>
       <select id="o-rodada"></select>
+      <select id="o-area"><option value="todas">Todas as áreas</option></select>
+      <select id="o-setor"><option value="todos">Todos os setores</option></select>
       <div class="abas">${[['time','Time'],['compilado','Compilado'],['agenda','Agenda']].map(([k, r]) => `<button data-oa="${k}" class="${s.aba === k ? 'on' : ''}">${r}</button>`).join('')}</div>
       <button class="btn" id="o-branco" title="Folha de preparação sem nome, para imprimir">🖨 Folha em branco</button>
-      ${pode('oo', 'gerir') ? `<button class="btn" id="o-rod">+ Rodada</button><button class="btn pri" id="o-pes">+ Pessoa</button>` : ''}
+      ${pode('oo', 'gerir') ? `<button class="btn" id="o-areas">Áreas e setores</button><button class="btn" id="o-rod">+ Rodada</button>` : ''}
+      ${pode('oo', 'editar') ? `<button class="btn pri" id="o-pes">+ Pessoa</button>` : ''}
     </div>
     <div id="oo"><div class="carregando">Carregando…</div></div>
     <div id="gaveta" hidden></div>`;
   document.querySelectorAll('[data-oa]').forEach(b => b.onclick = () => { s.aba = b.dataset.oa; document.querySelectorAll('[data-oa]').forEach(x => x.classList.toggle('on', x === b)); renderOO(); });
   document.getElementById('o-rodada').onchange = e => { s.rodada = e.target.value; carregarOO(); };
   document.getElementById('o-branco').onclick = () => imprimirHtml(folhaPreparacaoHtml(null, null));
+  document.getElementById('o-area').onchange = e => { s.area = e.target.value; s.setor = 'todos'; preencherFiltrosOO(); renderOO(); };
+  document.getElementById('o-setor').onchange = e => { s.setor = e.target.value; renderOO(); };
+  const pa = document.getElementById('o-areas'); if (pa) pa.onclick = () => gerirAreasOO();
   const pr = document.getElementById('o-rod'); if (pr) pr.onclick = () => formSimplesOO('rodada');
   const pp = document.getElementById('o-pes'); if (pp) pp.onclick = () => formSimplesOO('pessoa');
   carregarOO();
@@ -1989,30 +2050,42 @@ async function carregarOO(){
     s.rodada = String(state.ooDados.rodada || '');
     const $r = document.getElementById('o-rodada');
     if ($r) $r.innerHTML = state.ooDados.rodadas.map(r => `<option value="${r.id}" ${String(r.id) === s.rodada ? 'selected' : ''}>${esc(r.nome)}</option>`).join('') || '<option>Nenhuma rodada</option>';
-    if (s.aba === 'compilado') state.ooComp = await apiOO(`/oo/compilado?rodada=${s.rodada}`);
+    preencherFiltrosOO();
+    state.ooComp = null;
     renderOO();
   } catch (e) { if (e instanceof SemSessao) throw e; const $o = document.getElementById('oo'); if ($o) $o.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
+function preencherFiltrosOO(){
+  const s = state.oo, r = state.ooDados, $a = document.getElementById('o-area'), $s = document.getElementById('o-setor');
+  if (!r || !$a) return;
+  $a.innerHTML = '<option value="todas">Todas as áreas</option>' + r.areas.filter(a => a.ativo).map(a => `<option value="${a.id}" ${String(a.id) === s.area ? 'selected' : ''}>${esc(a.nome)}</option>`).join('');
+  const sets = r.setores.filter(x => x.ativo && (s.area === 'todas' || String(x.area_id) === s.area));
+  $s.innerHTML = '<option value="todos">Todos os setores</option>' + sets.map(x => `<option value="${x.id}" ${String(x.id) === s.setor ? 'selected' : ''}>${esc(x.nome)}${s.area === 'todas' ? ' · ' + esc(nomeAreaOO(x.area_id)) : ''}</option>`).join('') + '<option value="sem" ' + (s.setor === 'sem' ? 'selected' : '') + '>Sem setor</option>';
+}
+const filtraPessoaOO = p => { const s = state.oo; return (s.area === 'todas' || String(p.area_id) === s.area) && (s.setor === 'todos' || (s.setor === 'sem' ? !p.setor_id : String(p.setor_id) === s.setor)); };
 function renderOO(){
   const s = state.oo, r = state.ooDados, $o = document.getElementById('oo');
   if (!$o || !r) return;
   if (s.aba === 'compilado') { if (!state.ooComp || state.ooComp._rodada !== s.rodada) { apiOO(`/oo/compilado?rodada=${s.rodada}`).then(c => { state.ooComp = { ...c, _rodada:s.rodada }; renderCompiladoOO($o); }); $o.innerHTML = '<div class="carregando">Juntando os pontos…</div>'; return; } return renderCompiladoOO($o); }
   if (s.aba === 'agenda') return renderAgendaOO($o);
   const hoje = r.hoje || hojeBRT();
-  const linhas = r.pessoas.filter(p => p.ativo).map(p => { const c = r.conversas.find(x => String(x.pessoa_id) === String(p.id)); return { p, c, et: etapaOO(c, hoje) }; });
+  const linhas = r.pessoas.filter(p => p.ativo && filtraPessoaOO(p)).map(p => { const c = r.conversas.find(x => String(x.pessoa_id) === String(p.id)); return { p, c, et: etapaOO(c, hoje) }; });
   const cont = n => linhas.filter(l => l.et.n >= n).length;
   const atrasos = linhas.filter(l => (l.c?.proximo_acomp && l.c.proximo_acomp < hoje) || (l.c?.prazo_proximo && l.c.prazo_proximo < hoje)).length;
+  const anivs = vePessoalOO() ? r.pessoas.filter(p => p.ativo && filtraPessoaOO(p) && p.nascimento).map(p => ({ p, a: aniversarioOO(p.nascimento, hoje) })).filter(x => x.a.dias <= 15).sort((a, b) => a.a.dias - b.a.dias) : [];
   $o.innerHTML = `
+    ${anivs.length ? `<div class="aniv">🎂 ${anivs.map(x => `<span data-pes="${x.p.id}"><b>${esc(x.p.nome)}</b> ${x.a.dias === 0 ? '<b class="hoje-aniv">hoje!</b>' : x.a.dias === 1 ? 'amanhã' : `${dataBR(x.a.data).slice(0, 5)} (em ${x.a.dias} dias)`} · ${x.a.idade} anos</span>`).join('')}</div>` : ''}
     <div class="funil-oo">
       ${[['Pessoas', linhas.length, ''], ['Folha entregue', cont(1), '1'], ['Conversa feita', cont(1.5), '1'], ['Compilado', cont(2), '2'], ['PDI definido', cont(3), '3'], ['Acompanhando', cont(4), '4']]
         .map(([rot, n, et]) => `<div class="kpi"><div class="rot">${et ? `<span class="et-n">${et}</span>` : ''}${rot}</div><div class="val">${n}</div><div class="det">${linhas.length ? fmtP(n, linhas.length) : '–'} do time</div></div>`).join('')}
       ${atrasos ? `<div class="kpi alerta"><div class="rot">Atrasados</div><div class="val">${atrasos}</div><div class="det">acompanhamento ou meta vencidos</div></div>` : ''}
     </div>
     <div class="painel"><div style="overflow-x:auto"><table class="tab-oo">
-      <thead><tr><th>Pessoa</th><th>Função</th><th>Etapa</th><th>Folha entregue</th><th>Conversa</th><th>Pontos</th><th>PDI</th><th>Próximo acompanhamento</th><th></th></tr></thead>
+      <thead><tr><th>Pessoa</th><th>Função</th><th>Setor</th><th>Etapa</th><th>Folha entregue</th><th>Conversa</th><th>Pontos</th><th>PDI</th><th>Próximo acompanhamento</th><th></th></tr></thead>
       <tbody>${linhas.map(({ p, c, et }) => {
         const prox = c?.proximo_acomp, atraso = (prox && prox < hoje) || (c?.prazo_proximo && c.prazo_proximo < hoje);
-        return `<tr data-pes="${p.id}"><td><b>${esc(p.nome)}</b></td><td>${esc(p.funcao || '')}</td><td>${pillOO(et)}</td>
+        return `<tr data-pes="${p.id}" class="${vePessoalOO() ? '' : 'sem-click'}"><td><b>${esc(p.nome)}</b>${p.n_arquivos ? ' <span class="info" title="arquivos na ficha">📎</span>' : ''}</td><td>${esc(p.funcao || '')}</td>
+          <td>${p.setor_id ? esc(nomeSetorOO(p.setor_id)) : `<span class="info">${esc(nomeAreaOO(p.area_id) || '–')}</span>`}</td><td>${pillOO(et)}</td>
           <td>${c?.recebido_em ? dataBR(c.recebido_em) : '<span class="info">–</span>'}</td>
           <td>${c?.conversa_em ? dataBR(c.conversa_em) + (c.conversa_em > hoje ? ' <span class="info">(agendada)</span>' : '') : '<span class="info">–</span>'}</td>
           <td>${c ? (c.n_pontos || 0) + (c.n_visao ? ` <span class="info">+${c.n_visao} visão</span>` : '') : '<span class="info">–</span>'}</td>
@@ -2020,20 +2093,21 @@ function renderOO(){
           <td class="${atraso ? 'atraso' : ''}">${prox ? dataBR(prox) + (prox < hoje ? ' ⚠' : '') : (c?.prazo_proximo ? `<span class="info">meta até ${dataBR(c.prazo_proximo)}</span>` : '<span class="info">–</span>')}</td>
           <td style="white-space:nowrap"><button class="btn mini imp" data-imp-prep="${p.id}" title="Folha de preparação com o nome">🖨</button></td></tr>`; }).join('')}
       </tbody></table></div>
-      <div class="legenda"><span>Clique na pessoa para abrir as 4 etapas.</span><span>🖨 folha de preparação já com nome e função</span></div></div>`;
-  $o.querySelectorAll('[data-pes]').forEach(tr => tr.onclick = () => abrirPessoaOO(tr.dataset.pes));
-  $o.querySelectorAll('[data-imp-prep]').forEach(b => b.onclick = ev => { ev.stopPropagation(); const p = r.pessoas.find(x => String(x.id) === b.dataset.impPrep); imprimirHtml(folhaPreparacaoHtml(p, r.conversas.find(x => String(x.pessoa_id) === String(p.id)))); });
+      <div class="legenda">${vePessoalOO() ? '<span>Clique na pessoa para abrir a ficha e as 4 etapas.</span>' : '<span>Seu acesso é só de resumo: as fichas individuais não abrem.</span>'}<span>🖨 folha de preparação com nome, área, setor e datas</span></div></div>`;
+  if (vePessoalOO()) $o.querySelectorAll('[data-pes]').forEach(tr => tr.onclick = () => abrirPessoaOO(tr.dataset.pes));
+  $o.querySelectorAll('[data-imp-prep]').forEach(b => b.onclick = ev => { ev.stopPropagation(); const p = r.pessoas.find(x => String(x.id) === b.dataset.impPrep); imprimirPreparacaoOO(p, r.conversas.find(x => String(x.pessoa_id) === String(p.id))); });
 }
 
 function renderCompiladoOO($o){
-  const s = state.oo, comp = state.ooComp, blocos = [...OO_BLOCOS, OO_VISAO];
-  const pts = comp.pontos.filter(p => p.bloco === s.bloco && (!s.soAcao || p.acao_rapida));
+  const s = state.oo, comp = state.ooComp, anonFixo = !!comp.anonimo || !vePessoalOO(), blocos = anonFixo ? OO_BLOCOS : [...OO_BLOCOS, OO_VISAO];
+  if (anonFixo) { s.anonimo = true; if (s.bloco === 'visao_lider') s.bloco = 'empresa'; }
+  const pts = comp.pontos.filter(p => p.bloco === s.bloco && (!s.soAcao || p.acao_rapida) && (anonFixo || !p.pessoa_id || filtraPessoaOO(state.ooDados.pessoas.find(x => String(x.id) === String(p.pessoa_id)) || {})));
   const pessoasBloco = new Set(pts.map(p => p.pessoa_id)).size;
   const edita = pode('oo', 'editar');
   $o.innerHTML = `
     <div class="barra-comp">
       <div class="abas">${blocos.map(b => `<button data-cb="${b.id}" class="${s.bloco === b.id ? 'on' : ''}">${{ lideranca:'Liderança', empresa:'Empresa', eu:'Sobre si', visao_lider:'Visão do líder' }[b.id]}</button>`).join('')}</div>
-      <label class="chk"><input type="checkbox" id="c-anon" ${s.anonimo ? 'checked' : ''}> Esconder nomes</label>
+      ${anonFixo ? '<span class="restrito" style="background:#eef0f4;color:#566074">sempre anônimo</span>' : `<label class="chk"><input type="checkbox" id="c-anon" ${s.anonimo ? 'checked' : ''}> Esconder nomes</label>`}
       <label class="chk"><input type="checkbox" id="c-acao" ${s.soAcao ? 'checked' : ''}> Só ⚡ ação rápida</label>
       <span class="info">${pts.length} ponto(s) de ${pessoasBloco} pessoa(s)</span>
     </div>
@@ -2049,7 +2123,7 @@ function renderCompiladoOO($o){
       </div>`; }).join('')}</div>
     <datalist id="dl-temas">${(comp.temas || []).map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
   $o.querySelectorAll('[data-cb]').forEach(b => b.onclick = () => { s.bloco = b.dataset.cb; renderCompiladoOO($o); });
-  document.getElementById('c-anon').onchange = e => { s.anonimo = e.target.checked; renderCompiladoOO($o); };
+  const ca = document.getElementById('c-anon'); if (ca) ca.onchange = e => { s.anonimo = e.target.checked; renderCompiladoOO($o); };
   document.getElementById('c-acao').onchange = e => { s.soAcao = e.target.checked; renderCompiladoOO($o); };
   const salvarPt = async (id, campos) => {
     try { await apiOO('/oo/salvar', { registro:'ponto', id, ...campos }); const p = comp.pontos.find(x => String(x.id) === String(id)); Object.assign(p, campos);
@@ -2070,11 +2144,13 @@ function renderAgendaOO($o){
     if (c.recebido_em && !c.conversa_em) itens.push({ d:null, p, o:'Recebeu a folha e ainda não tem conversa marcada' });
   });
   r.pessoas.filter(p => p.ativo && !r.conversas.some(c => String(c.pessoa_id) === String(p.id))).forEach(p => itens.push({ d:null, p, o:'Ainda não recebeu a folha' }));
+  if (vePessoalOO()) r.pessoas.filter(p => p.ativo && p.nascimento).forEach(p => { const a = aniversarioOO(p.nascimento, hoje); if (a.dias <= 30) itens.push({ d:a.data, p, o:`🎂 Aniversário · ${a.idade} anos` }); });
+  for (let i = itens.length - 1; i >= 0; i--) if (!filtraPessoaOO(itens[i].p)) itens.splice(i, 1);
   itens.sort((a, b) => (a.d || '9999').localeCompare(b.d || '9999'));
-  $o.innerHTML = `<div class="painel"><h3>O que vem pela frente</h3><div class="leg">Conversas marcadas, acompanhamentos e prazos das metas, do mais próximo ao mais distante. Vencidos em vermelho.</div>
+  $o.innerHTML = `<div class="painel"><h3>O que vem pela frente</h3><div class="leg">Conversas marcadas, acompanhamentos, prazos das metas e aniversários dos próximos 30 dias, do mais próximo ao mais distante. Vencidos em vermelho.</div>
     ${itens.length ? `<div class="lista-col">${itens.map(i => `<div class="col-it" data-pes="${i.p.id}" style="cursor:pointer"><b class="${i.d && i.d < hoje ? 'atraso' : ''}" style="min-width:92px">${i.d ? dataBR(i.d) + (i.d < hoje ? ' ⚠' : i.d === hoje ? ' · hoje' : '') : 'sem data'}</b>
       <div style="flex:1"><b>${esc(i.p.nome)}</b> <span class="info">${esc(i.p.funcao || '')}</span><br><span class="info">${esc(i.o)}</span></div></div>`).join('')}</div>` : '<div class="vazio">Nada agendado.</div>'}</div>`;
-  $o.querySelectorAll('[data-pes]').forEach(el => el.onclick = () => abrirPessoaOO(el.dataset.pes));
+  if (vePessoalOO()) $o.querySelectorAll('[data-pes]').forEach(el => el.onclick = () => abrirPessoaOO(el.dataset.pes));
 }
 
 // ---- cadastro rápido de pessoa / rodada
@@ -2084,6 +2160,7 @@ function formSimplesOO(tipo, atual){
   g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><h3>${tipo === 'pessoa' ? (atual ? 'Editar pessoa' : 'Nova pessoa') : 'Nova rodada'}</h3><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
     <div class="gv-corpo"><div class="erro" id="gv-erro" hidden></div><div class="grade-form g2" style="margin-top:14px">
     ${tipo === 'pessoa' ? `<label>Nome<input id="f1" value="${esc(p.nome || '')}"></label><label>Função<input id="f2" value="${esc(p.funcao || '')}" placeholder="ex.: Operacional"></label>
+      ${selAreaSetorOO(p)}
       <label class="chk"><input type="checkbox" id="f3" ${p.ativo === false ? '' : 'checked'}> Ativa (aparece no time)</label>`
     : `<label>Nome<input id="f1" placeholder="ex.: Rodada 2 · jan/2027"></label><label>Início<input id="f2" type="date" value="${hojeBRT()}"></label>`}
     </div><div class="gv-acoes"><button class="btn pri" id="f-ok">Salvar</button></div></div></aside>`;
@@ -2091,11 +2168,71 @@ function formSimplesOO(tipo, atual){
   document.getElementById('gv-fechar').onclick = fechar; document.getElementById('gv-fundo').onclick = fechar;
   document.getElementById('f-ok').onclick = async () => {
     const v1 = document.getElementById('f1').value.trim(), v2 = document.getElementById('f2').value.trim();
-    const corpo = tipo === 'pessoa' ? { registro:tipo, id: p.id || null, nome:v1, funcao:v2 || null, ativo: document.getElementById('f3').checked } : { registro:tipo, nome:v1, inicio:v2, ativa:true };
+    const corpo = tipo === 'pessoa' ? { registro:tipo, id: p.id || null, nome:v1, funcao:v2 || null, ativo: document.getElementById('f3').checked,
+      area_id: document.getElementById('fs-area').value || null, setor_id: document.getElementById('fs-setor').value || null } : { registro:tipo, nome:v1, inicio:v2, ativa:true };
     try { const res = await apiOO('/oo/salvar', corpo); if (tipo === 'rodada') state.oo.rodada = String(res.id); avisar('Salvo'); fechar(); await carregarOO(); if (atual) abrirPessoaOO(p.id); }
     catch (e) { if (e instanceof SemSessao) throw e; const el = document.getElementById('gv-erro'); el.hidden = false; el.textContent = e.message; }
   };
+  ligarAreaSetorOO();
   document.getElementById('f1').focus();
+}
+// selects de área e setor (o setor depende da área)
+function selAreaSetorOO(p){
+  const r = state.ooDados, area = p.area_id ? String(p.area_id) : (state.oo.area !== 'todas' ? state.oo.area : String(r.areas.find(a => a.ativo)?.id || ''));
+  return `<label>Área<select id="fs-area"><option value="">–</option>${r.areas.filter(a => a.ativo || String(a.id) === area).map(a => `<option value="${a.id}" ${String(a.id) === area ? 'selected' : ''}>${esc(a.nome)}</option>`).join('')}</select></label>
+    <label>Setor<select id="fs-setor" data-atual="${p.setor_id || ''}"></select></label>`;
+}
+function ligarAreaSetorOO(){
+  const r = state.ooDados, $a = document.getElementById('fs-area'), $s = document.getElementById('fs-setor');
+  if (!$a) return;
+  const desenha = () => { const atual = $s.dataset.atual; $s.innerHTML = '<option value="">Sem setor</option>' + r.setores.filter(x => String(x.area_id) === $a.value && (x.ativo || String(x.id) === atual)).map(x => `<option value="${x.id}" ${String(x.id) === atual ? 'selected' : ''}>${esc(x.nome)}</option>`).join(''); };
+  $a.addEventListener('change', () => { $s.dataset.atual = ''; desenha(); }); desenha();
+}
+
+// ---- áreas e setores (cadastro)
+function gerirAreasOO(){
+  const g = document.getElementById('gaveta'), r = state.ooDados; g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">One-on-One</div><h3>Áreas e setores</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="gv-erro" hidden></div>
+    <div class="leg" style="margin-top:12px">Renomeie direto no campo (salva ao sair). Desativar esconde das listas, mas mantém quem já está ligado à área ou ao setor.</div>
+    ${r.areas.map(a => `<div class="area-bl"><div class="area-cab"><input data-area="${a.id}" value="${esc(a.nome)}"><label class="chk"><input type="checkbox" data-area-at="${a.id}" ${a.ativo ? 'checked' : ''}> ativa</label></div>
+      ${r.setores.filter(x => String(x.area_id) === String(a.id)).map(x => `<div class="setor-l"><input data-setor="${x.id}" value="${esc(x.nome)}"><label class="chk"><input type="checkbox" data-setor-at="${x.id}" ${x.ativo ? 'checked' : ''}> ativo</label></div>`).join('')}
+      <div class="setor-l"><input data-novo-setor="${a.id}" placeholder="+ novo setor e Enter"></div></div>`).join('')}
+    <div class="area-bl"><div class="area-cab"><input id="nova-area" placeholder="+ nova área e Enter (ex.: Comercial)"></div></div>
+    </div></aside>`;
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); carregarOO(); };
+  document.getElementById('gv-fechar').onclick = fechar; document.getElementById('gv-fundo').onclick = fechar;
+  const salvar = async corpo => { try { await apiOO('/oo/salvar', corpo); state.ooDados = await apiOO('/oo' + (state.oo.rodada ? `?rodada=${state.oo.rodada}` : '')); gerirAreasOO(); avisar('Salvo'); }
+    catch (e) { if (e instanceof SemSessao) throw e; const el = document.getElementById('gv-erro'); el.hidden = false; el.textContent = e.message; } };
+  g.querySelectorAll('[data-area]').forEach(i => i.onchange = () => salvar({ registro:'area', id:i.dataset.area, nome:i.value.trim() }));
+  g.querySelectorAll('[data-area-at]').forEach(i => i.onchange = () => salvar({ registro:'area', id:i.dataset.areaAt, ativo:i.checked }));
+  g.querySelectorAll('[data-setor]').forEach(i => i.onchange = () => salvar({ registro:'setor', id:i.dataset.setor, nome:i.value.trim() }));
+  g.querySelectorAll('[data-setor-at]').forEach(i => i.onchange = () => salvar({ registro:'setor', id:i.dataset.setorAt, ativo:i.checked }));
+  g.querySelectorAll('[data-novo-setor]').forEach(i => i.onkeydown = ev => { if (ev.key === 'Enter' && i.value.trim()) salvar({ registro:'setor', area_id:i.dataset.novoSetor, nome:i.value.trim(), ativo:true }); });
+  document.getElementById('nova-area').onkeydown = ev => { if (ev.key === 'Enter' && ev.target.value.trim()) salvar({ registro:'area', nome:ev.target.value.trim(), ativo:true }); };
+}
+
+// ---- impressão da preparação: confirma as datas antes (em branco se não houver)
+function imprimirPreparacaoOO(p, conv){
+  const g = document.getElementById('gaveta'), edita = pode('oo', 'editar'); g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">Folha de preparação</div><h3>${esc(p.nome)}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="gv-erro" hidden></div>
+    <div class="leg" style="margin-top:12px">As datas saem impressas na folha. Deixe em branco para a pessoa (ou você) preencher à mão.</div>
+    <div class="grade-form g2"><label>Entrega da folha<input type="date" id="pi-rec" value="${conv?.recebido_em || ''}"></label><label>Conversa agendada<input type="date" id="pi-conv" value="${conv?.conversa_em || ''}"></label></div>
+    ${edita ? '<label class="chk" style="margin-top:12px"><input type="checkbox" id="pi-salvar" checked> Guardar estas datas na rodada</label>' : ''}
+    <div class="gv-acoes"><button class="btn pri" id="pi-ok">🖨 Imprimir</button></div></div></aside>`;
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  document.getElementById('gv-fechar').onclick = fechar; document.getElementById('gv-fundo').onclick = fechar;
+  document.getElementById('pi-ok').onclick = async () => {
+    const datas = { recebido_em: document.getElementById('pi-rec').value || null, conversa_em: document.getElementById('pi-conv').value || null };
+    imprimirHtml(folhaPreparacaoHtml(p, datas));
+    const sv = document.getElementById('pi-salvar');
+    if (sv && sv.checked && (datas.recebido_em !== (conv?.recebido_em || null) || datas.conversa_em !== (conv?.conversa_em || null))) {
+      try { await apiOO('/oo/salvar', conv?.id ? { registro:'conversa', id:conv.id, ...datas } : { registro:'conversa', rodada_id:state.oo.rodada, pessoa_id:p.id, ...datas }); await carregarOO(); }
+      catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+    }
+    fechar();
+  };
 }
 
 // ---- gaveta da pessoa: as 4 etapas
@@ -2118,13 +2255,30 @@ async function abrirPessoaOO(pessoaId){
   g.innerHTML = `
     <div class="gv-fundo" id="gv-fundo"></div>
     <aside class="gv gv-larga">
-      <div class="gv-cab"><div><div class="info">${esc(p.funcao || '')} · ${esc(rodada?.nome || '')}</div><h3>${esc(p.nome)}</h3></div><span style="flex:1"></span>
+      <div class="gv-cab"><div><div class="info">${esc([p.funcao, nomeAreaOO(p.area_id), nomeSetorOO(p.setor_id)].filter(Boolean).join(' · '))}</div><h3>${esc(p.nome)}</h3></div><span style="flex:1"></span>
         <button class="btn" id="oo-imp-prep" title="Folha de preparação com nome">🖨 Preparação</button>
         <button class="btn" id="oo-imp-pdi" title="Folha do PDI" ${d.metas.length ? '' : 'disabled'}>🖨 PDI</button>
-        ${pode('oo', 'gerir') ? '<button class="btn" id="oo-edit-pes" title="Editar nome e função">✎</button>' : ''}
         <button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
       <div class="gv-corpo">
         <div class="erro" id="gv-erro" hidden></div>
+        <div class="et-sec ficha-sec"><span class="et-n">👤</span><div><b>Ficha</b><span class="info">Dados da pessoa, válidos para todas as rodadas.</span></div></div>
+        <div class="grade-form g2">
+          <label>Nome<input id="fi-nome" value="${esc(p.nome)}" ${ro}></label>
+          <label>Função<input id="fi-func" value="${esc(p.funcao || '')}" ${ro}></label>
+          ${selAreaSetorOO(p)}
+          <label>Data de nascimento<input type="date" id="fi-nasc" value="${p.nascimento || ''}" ${ro}><span class="info">${p.nascimento ? `${idadeOO(p.nascimento, hoje)} anos · aniversário ${(a => a.dias === 0 ? 'hoje 🎂' : `em ${a.dias} dia(s)`)(aniversarioOO(p.nascimento, hoje))}` : ''}</span></label>
+          <label>Admissão<input type="date" id="fi-adm" value="${p.admissao || ''}" ${ro}><span class="info">${p.admissao ? tempoCasaOO(p.admissao, hoje) + ' de casa' : ''}</span></label>
+          <label>Onde mora<input id="fi-mora" value="${esc(p.mora_em || '')}" placeholder="cidade / bairro" ${ro}></label>
+          <label class="chk"><input type="checkbox" id="fi-ativo" ${p.ativo ? 'checked' : ''} ${ro}> Ativa (aparece no time)</label>
+        </div>
+        <label class="gv-lab">Questões pessoais que a pessoa quis compartilhar<textarea id="fi-notas" rows="3" ${ro} placeholder="Ex.: estuda à noite, filho pequeno, mudança de casa. Registre só o que a pessoa contou e concordou que fosse anotado.">${esc(p.notas_pessoais || '')}</textarea></label>
+        ${edita ? '<div class="gv-acoes"><button class="btn pri" id="fi-salvar">Salvar ficha</button></div>' : ''}
+        <div class="gv-lab" style="margin-top:14px"><b style="color:var(--ink)">Arquivos</b><span class="info">PDF, imagem, Word ou Excel, até 10 MB. Ficam num armazenamento privado: o link para abrir vale 1 minuto.</span></div>
+        <div class="lista-col" style="margin-top:6px">${d.arquivos.map(a => `<div class="col-it"><span style="font-size:18px">${a.tipo === 'application/pdf' ? '📄' : String(a.tipo || '').startsWith('image/') ? '🖼' : '📎'}</span>
+          <div style="flex:1;min-width:0"><b>${esc(a.descricao || a.nome)}</b><br><span class="info">${esc(a.nome)} · ${a.tamanho ? (a.tamanho / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB · ' : ''}${quando(a.enviado_em)}</span></div>
+          <button class="btn mini" data-abrir-arq="${a.id}">Abrir</button>${edita ? `<button class="btn mini" data-rmarq="${a.id}" title="Excluir">×</button>` : ''}</div>`).join('') || '<div class="col-it info">Nenhum arquivo.</div>'}</div>
+        ${edita ? `<div class="meta-nova"><input type="file" id="arq-file" accept=".pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx"><input id="arq-desc" placeholder="Descrição (ex.: Teste DISC, RH out/2026)"><button class="btn pri" id="arq-enviar">Enviar</button></div>` : ''}
+
         <div class="et-sec"><span class="et-n">1</span><div><b>Preparação</b><span class="info">Entregue a folha, converse e transcreva o que a pessoa escreveu (ou contou).</span></div></div>
         <div class="grade-form g2"><label>Folha entregue em<input type="date" id="oo-rec" value="${conv.recebido_em || ''}" ${ro}></label><label>Conversa em<input type="date" id="oo-conv" value="${conv.conversa_em || ''}" ${ro}></label></div>
         ${OO_BLOCOS.map((b, i) => `<div class="bl-oo"><div class="bl-cab"><span class="bl-n">${i + 1}</span><div><b>${esc(b.nome)}</b><span class="info">${esc(b.desc)}</span></div></div>${faixasHtml(b.id)}</div>`).join('')}
@@ -2156,12 +2310,30 @@ async function abrirPessoaOO(pessoaId){
     conv.id = res.id; return conv.id;
   };
   const tentar = async fn => { try { erro(''); await fn(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); } };
-  const recarregar = async () => { const top = g.querySelector('.gv-corpo').scrollTop; await abrirPessoaOO(p.id); const c = g.querySelector('.gv-corpo'); if (c) c.scrollTop = top; };
+  const recarregar = async () => { const top = g.querySelector('.gv-corpo').scrollTop; state.ooDados.pessoas = (await apiOO('/oo' + (s.rodada ? `?rodada=${s.rodada}` : ''))).pessoas; await abrirPessoaOO(p.id); const c = g.querySelector('.gv-corpo'); if (c) c.scrollTop = top; };
   const salvarConv = campos => tentar(async () => { const id = await garantirConversa(); await apiOO('/oo/salvar', { registro:'conversa', id, ...campos }); avisar('Salvo'); });
-  $('oo-imp-prep').onclick = () => imprimirHtml(folhaPreparacaoHtml(p, conv));
+  $('oo-imp-prep').onclick = () => imprimirPreparacaoOO(p, conv.id ? conv : null);
   $('oo-imp-pdi').onclick = () => imprimirHtml(folhaPdiHtml(p, conv, d.metas, d.acomps, rodada));
-  const ep = $('oo-edit-pes'); if (ep) ep.onclick = () => formSimplesOO('pessoa', p);
+  g.querySelectorAll('[data-abrir-arq]').forEach(b => b.onclick = () => abrirArquivoOO(b.dataset.abrirArq));
+  ligarAreaSetorOO();
   if (!edita) return;
+  $('fi-salvar').onclick = () => tentar(async () => {
+    if (!$('fi-nome').value.trim()) return erro('Informe o nome.');
+    await apiOO('/oo/salvar', { registro:'pessoa', id:p.id, nome:$('fi-nome').value.trim(), funcao:$('fi-func').value.trim() || null, area_id:$('fs-area').value || null, setor_id:$('fs-setor').value || null,
+      nascimento:$('fi-nasc').value || null, admissao:$('fi-adm').value || null, mora_em:$('fi-mora').value.trim() || null, notas_pessoais:$('fi-notas').value.trim() || null, ativo:$('fi-ativo').checked });
+    state.ooDados = await apiOO('/oo' + (s.rodada ? `?rodada=${s.rodada}` : '')); avisar('Ficha salva'); await recarregar();
+  });
+  $('arq-enviar').onclick = () => tentar(async () => {
+    const f = $('arq-file').files[0]; if (!f) return erro('Escolha um arquivo.');
+    if (f.size > 10 * 1024 * 1024) return erro('Arquivo maior que 10 MB.');
+    const form = new FormData(); form.append('pessoa_id', p.id); form.append('descricao', $('arq-desc').value.trim()); form.append('arquivo', f);
+    $('arq-enviar').disabled = true; $('arq-enviar').textContent = 'Enviando…';
+    await enviarArquivoPortal(form); avisar('Arquivo guardado na ficha'); await recarregar();
+  });
+  g.querySelectorAll('[data-rmarq]').forEach(b => b.onclick = () => {
+    if (b.dataset.conf !== '1') { b.dataset.conf = '1'; b.textContent = 'Confirmar'; return; }
+    tentar(async () => { await apiOO('/oo/excluir', { registro:'arquivo', id:b.dataset.rmarq }); await recarregar(); });
+  });
   $('oo-rec').onchange = e => salvarConv({ recebido_em: e.target.value || null });
   $('oo-conv').onchange = e => salvarConv({ conversa_em: e.target.value || null });
   $('oo-pdi').onchange = e => salvarConv({ pdi_em: e.target.value || null });
@@ -2236,36 +2408,50 @@ const CSS_OO = `
   table.metas td.c{text-align:center;white-space:nowrap}
   .tipo{font-size:7.5pt;font-weight:700;letter-spacing:.5pt;color:#566074;text-transform:uppercase;display:block;margin-top:.8mm}
   .vazias td{height:12mm}
+  .ids2{grid-template-columns:1fr 1fr 1fr 1fr;margin-top:3mm}
+  .bl-cheio{flex:1;display:flex;flex-direction:column;min-height:0}
+  .fxs{flex:1;display:flex;flex-direction:column;min-height:0}
+  .fxs .fx{flex:1;min-height:0}
+  .linhas{display:flex;flex-direction:column;flex:1;min-height:0;height:100%}
+  .linhas i{flex:1;display:block;border-bottom:0.3mm solid #b9c3d3;min-height:6mm}
+  .fx .l{padding:0 3mm 2mm;display:flex;flex-direction:column;background:#fff}
+  .qs{flex:1;display:flex;flex-direction:column;gap:5mm;margin-top:2mm} .qs .q{flex:1;display:flex;flex-direction:column;margin:0;min-height:0}
   .ag{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;margin-top:3mm}
   .ag div{border:0.45mm solid #c9cfda;border-radius:2mm;padding:2.5mm 3mm;font-size:8pt;color:#566074;min-height:16mm} .ag b{display:block;font-size:12pt;color:#1b2333;margin-top:1mm}`;
 const rodapeOO = (pag, total) => `<div class="conf"><span>Uso interno e confidencial. Suas respostas servem só para a nossa conversa individual e não são uma avaliação.</span><span>${pag}/${total}</span></div>`;
 const topoOO = () => `<div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">GRUPO VALENRO</div><div class="t2">GERÊNCIA DE OPERAÇÕES · LOGÍSTICA</div></div><span class="esp"></span><span class="st"><small>DOCUMENTO</small><b>ONE-ON-ONE</b></span></div>`;
-const faixasPapel = (linhas = 3) => OO_FAIXAS.map(f => `<div class="fx" style="--c:${f.cor};--f:${f.fundo}"><div class="r"><b>${f.rot}</b><span>${f.dica}</span></div><div class="l">${'<i></i>'.repeat(linhas)}</div></div>`).join('');
+// linhas reais (não degradê): saem iguais em qualquer leitor de PDF e impressora
+const linhasPapel = n => `<div class="linhas">${'<i></i>'.repeat(n)}</div>`;
+const faixasPapel = (n = 6) => OO_FAIXAS.map(f => `<div class="fx" style="--c:${f.cor};--f:${f.fundo}"><div class="r"><b>${f.rot}</b><span>${f.dica}</span></div><div class="l">${linhasPapel(n)}</div></div>`).join('');
 
 function folhaPreparacaoHtml(p, conv){
-  const bloco = (b, n) => `<div class="bl"><div class="bl-cab"><span class="n">${n}</span><div><b>${esc(b.nome)}</b><span>${esc(b.desc)}</span></div></div>${faixasPapel(3)}</div>`;
+  const area = p ? nomeAreaOO(p.area_id) : '', setor = p ? nomeSetorOO(p.setor_id) : '';
+  const bloco = (b, n, linhas) => `<div class="bl bl-cheio"><div class="bl-cab"><span class="n">${n}</span><div><b>${esc(b.nome)}</b><span>${esc(b.desc)}</span></div></div><div class="fxs">${faixasPapel(linhas)}</div></div>`;
+  const tot = 4;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>One-on-One · Preparação${p ? ' · ' + esc(p.nome) : ''}</title><style>${CSS_IMPRESSO}${CSS_OO}</style></head><body>
   <div class="pag">${topoOO()}
     <span class="tag">ONE-ON-ONE · ETAPA 1</span>
     <h1>Preparação para a nossa conversa</h1>
     <p class="intro">Preencha com calma antes do nosso encontro. Não existe resposta certa ou errada: o que vale é a sua visão real do dia a dia.</p>
-    <div class="ids"><div>NOME<b>${esc(p?.nome || '')}</b></div><div>FUNÇÃO<b>${esc(p?.funcao || '')}</b></div><div>RECEBIDO EM<b>${conv?.recebido_em ? dataBR(conv.recebido_em) : ''}</b></div><div>CONVERSA EM<b>${conv?.conversa_em ? dataBR(conv.conversa_em) : ''}</b></div></div>
+    <div class="ids"><div>NOME<b>${esc(p?.nome || '')}</b></div><div>FUNÇÃO<b>${esc(p?.funcao || '')}</b></div><div>ÁREA<b>${esc(area)}</b></div><div>SETOR<b>${esc(setor)}</b></div></div>
+    <div class="ids ids2"><div>ENTREGA DA FOLHA<b>${conv?.recebido_em ? dataBR(conv.recebido_em) : ''}</b></div><div>CONVERSA AGENDADA<b>${conv?.conversa_em ? dataBR(conv.conversa_em) : ''}</b></div></div>
     <div class="como"><b>COMO PREENCHER</b><ul>
       <li>Até 3 pontos por quadro. Prefira fatos e exemplos do dia a dia ("quando acontece X, eu...") a opiniões gerais.</li>
       <li>Pode escrever em tópicos, do seu jeito. Se preferir, deixe em branco e me conte pessoalmente.</li>
       <li>Fale de atitudes e de atividades: tanto o jeito de fazer quanto o que é feito.</li></ul></div>
-    ${bloco(OO_BLOCOS[0], 1)}${bloco(OO_BLOCOS[1], 2)}
-    ${rodapeOO(1, 2)}</div>
+    ${bloco(OO_BLOCOS[0], 1, 5)}
+    ${rodapeOO(1, tot)}</div>
+  <div class="pag">${topoOO()}${bloco(OO_BLOCOS[1], 2, 8)}${rodapeOO(2, tot)}</div>
+  <div class="pag">${topoOO()}${bloco(OO_BLOCOS[2], 3, 8)}${rodapeOO(3, tot)}</div>
   <div class="pag">${topoOO()}
-    ${bloco(OO_BLOCOS[2], 3)}
-    <div class="bl"><div class="bl-cab"><span class="n">4</span><div><b>Para fechar</b><span>Responda o que fizer sentido para você.</span></div></div>
-      ${OO_FECHAR.map(f => `<div class="q"><b>${esc(f.q)}</b><i></i><i></i></div>`).join('')}</div>
+    <div class="bl bl-cheio"><div class="bl-cab"><span class="n">4</span><div><b>Para fechar</b><span>Responda o que fizer sentido para você.</span></div></div>
+      <div class="qs">${OO_FECHAR.map(f => `<div class="q"><b>${esc(f.q)}</b>${linhasPapel(6)}</div>`).join('')}</div></div>
     <div class="depois"><div class="t">O QUE ACONTECE DEPOIS</div><div class="passos">
       <div><em>1</em><span><b>Você preenche</b>esta folha antes da conversa</span></div>
       <div><em>2</em><span><b>Conversamos</b>e eu organizo os pontos com a minha visão</span></div>
       <div><em>3</em><span><b>Montamos juntos</b>seu plano de desenvolvimento (PDI)</span></div>
       <div><em>4</em><span><b>Acompanhamos</b>em conversas periódicas</span></div></div></div>
-    ${rodapeOO(2, 2)}</div>
+    ${rodapeOO(4, tot)}</div>
   </body></html>`;
 }
 
@@ -2279,7 +2465,7 @@ function folhaPdiHtml(p, conv, metas, acomps, rodada){
     <span class="tag">ONE-ON-ONE · ETAPA 3</span>
     <h1>Plano de desenvolvimento</h1>
     <p class="intro">O que combinamos juntos para os próximos meses. Poucas metas, claras, com prazo. Vamos acompanhar em conversas periódicas.</p>
-    <div class="ids"><div>NOME<b>${esc(p.nome)}</b></div><div>FUNÇÃO<b>${esc(p.funcao || '')}</b></div><div>RODADA<b>${esc(rodada?.nome || '')}</b></div><div>COMBINADO EM<b>${conv?.pdi_em ? dataBR(conv.pdi_em) : ''}</b></div></div>
+    <div class="ids"><div>NOME<b>${esc(p.nome)}</b></div><div>FUNÇÃO · SETOR<b>${esc([p.funcao, nomeSetorOO(p.setor_id) || nomeAreaOO(p.area_id)].filter(Boolean).join(' · '))}</b></div><div>RODADA<b>${esc(rodada?.nome || '')}</b></div><div>COMBINADO EM<b>${conv?.pdi_em ? dataBR(conv.pdi_em) : ''}</b></div></div>
     <table class="metas"><thead><tr><th style="width:5%">#</th><th style="width:38%">Meta</th><th>Como vamos fazer</th><th style="width:14%">Prazo</th><th style="width:14%">Situação</th></tr></thead><tbody>
       ${ativas.map((m, i) => `<tr><td class="c"><b>${i + 1}</b></td><td><b>${esc(m.meta)}</b><span class="tipo">${OO_TIPO_META[m.tipo] || ''}</span></td><td>${esc(m.acoes || '')}</td><td class="c">${m.prazo ? dataBR(m.prazo) : '–'}</td><td class="c">${OO_ST_META[m.status] || ''}</td></tr>`).join('')}
       ${ativas.length < 3 ? '<tr class="vazias"><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(3 - ativas.length) : ''}
@@ -2314,7 +2500,9 @@ const MENU = [
 ];
 // view -> tela de permissão (views sem tela são livres)
 const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo' };
-const viewLiberada = v => !TELA_DA_VIEW[v] || pode(TELA_DA_VIEW[v]);
+const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
+const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
+const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
 const PREF_KEY = 'valenro_menu';
 function lerPref(){ try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch(e) { return state._pref || {}; } }
 function gravarPref(p){ state._pref = p; try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch(e) {} }
@@ -2327,13 +2515,13 @@ function renderMenu(){
   const item = it => {
     const ativo = it.view && (it.view === state.view);
     if (it.soDemo && !DEMO) return '';
-    if (it.tela && !pode(it.tela)) return '';
+    if (it.tela && !podeAbrir(it.tela)) return '';
     const ok = !!it.view;
     return `<button class="m-item ${ativo ? 'ativo' : ''} ${ok ? '' : 'off'}" ${ok ? `data-view="${it.view}"` : 'disabled'}>${esc(it.titulo)}${!ok && it.tag ? `<span class="m-tag">${esc(it.tag)}</span>` : ''}</button>`;
   };
   const grupo = (g, sub) => {
     const vazio = !g.filhos.length;
-    const visivel = f => f.filhos ? (f.tag || f.filhos.some(visivel)) : (!f.tela || pode(f.tela)) && (!f.soDemo || DEMO);
+    const visivel = f => f.filhos ? (f.tag || f.filhos.some(visivel)) : (!f.tela || podeAbrir(f.tela)) && (!f.soDemo || DEMO);
     if (!g.tag && !g.filhos.some(visivel)) return '';
     return `<div class="m-grupo ${sub ? 'm-sub' : ''} ${fechados.includes(g.id) ? 'fechado' : ''}" data-grupo="${g.id}">
       <button class="m-cab ${vazio ? 'off' : ''}" ${vazio ? 'disabled' : `data-alterna="${g.id}"`}>${esc(g.titulo)}${g.tag ? `<span class="m-tag">${esc(g.tag)}</span>` : `<span class="seta">▼</span>`}</button>
