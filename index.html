@@ -273,6 +273,69 @@
   .col-form .linha-hora input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
   body.gaveta-aberta{overflow:hidden}
   @media (max-width:560px){ .gv-corpo{padding:4px 14px 40px} .etapa{flex:1 1 45%} }
+  /* Expedição CROSS */
+  .nav-dia{display:inline-flex;gap:4px;align-items:center} .nav-dia .btn{padding:7px 11px}
+  .canais{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px}
+  .cn{font:inherit;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;display:flex;flex-direction:column;color:var(--ink)}
+  .cn b{font-size:13px} .cn span{font-size:12px;color:var(--mute)} .cn i{color:#b07a00;font-style:normal}
+  .cn.on{border-color:var(--pri);box-shadow:inset 0 0 0 1px var(--pri);background:#e8eef7}
+  .grade-cross{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+  .cx-card{background:var(--card);border:1px solid var(--line);border-left:5px solid #1a7a3e;border-radius:12px;padding:12px 14px;box-shadow:var(--sombra);cursor:pointer;display:flex;flex-direction:column;gap:8px}
+  .cx-card.aberta{border-left-color:var(--amarelo)} .cx-card:hover{background:#f8fafc}
+  .cx-top{display:flex;align-items:center;gap:8px} .cx-top b{font-size:15px}
+  .cx-alerta{font-size:12px;color:var(--bad);font-weight:600}
+  .cx-horas{display:flex;gap:14px;font-size:13px;color:var(--mute)} .cx-horas b{color:var(--ink)}
+  .cx-pac{display:flex;align-items:center;gap:12px}
+  .cx-tot{font-size:28px;font-weight:700;line-height:1;display:flex;flex-direction:column} .cx-tot small{font-size:11px;font-weight:400;color:var(--mute)}
+  .cx-lojas{display:flex;flex-wrap:wrap;gap:6px}
+  .cx-lj{font-size:12px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:6px;padding:2px 8px}
+  .cx-bot{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute)} .cx-bot b{color:var(--ink)}
+  .grade-form.g3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0;gap:10px} .grade-form.g3 > label{min-width:0} .grade-form.g3 input{width:100%}
+  .pac-lojas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .pac{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:8px;background:var(--card)}
+  .pac-in{display:flex;gap:6px} .pac-in input{flex:1;min-width:0;font:inherit;font-size:22px;font-weight:700;text-align:center;padding:6px;border:1px solid var(--line);border-radius:8px}
+  .pac-in .btn{font-size:20px;padding:4px 12px}
+  .pad{position:relative;background:#fff;border:2px dashed #b9c3d3;border-radius:10px;height:170px;touch-action:none}
+  .pad canvas{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+  .pad-linha{position:absolute;left:16px;right:16px;bottom:30px;border-top:1px solid #c9cfda;font-size:11px;color:var(--mute);padding-top:2px;pointer-events:none}
+  .assin-ok{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;flex-wrap:wrap}
+  .assin-ok img{width:210px;height:70px;object-fit:contain;border-bottom:1px solid var(--line)}
+  @media (max-width:560px){ .grade-form.g3{grid-template-columns:1fr 1fr} .grade-form.g3 > label:first-child{grid-column:1/-1} .grade-cross{grid-template-columns:1fr} .nav-dia input{width:140px} }
+  /* One-on-One */
+  .restrito{font-size:12px;font-weight:700;color:#8a1f1f;background:#fbe9e9;border-radius:20px;padding:3px 10px}
+  .funil-oo{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .funil-oo .kpi{padding:12px 14px} .funil-oo .val{font-size:24px}
+  .et-n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--pri);color:#fff;font-size:11px;font-weight:700;margin-right:5px;vertical-align:1px}
+  .tab-oo tbody tr{cursor:pointer} .tab-oo tbody tr:hover td{background:#f6f8fb}
+  .gv.gv-larga{width:min(860px,100%)}
+  .et-sec{display:flex;gap:10px;align-items:flex-start;margin:26px 0 10px;padding-top:14px;border-top:2px solid var(--pri)}
+  .et-sec .et-n{width:26px;height:26px;font-size:14px;flex:0 0 26px;margin:0}
+  .et-sec b{font-size:16px;color:var(--pri);display:block} .et-sec .info{display:block}
+  .bl-oo{margin-top:14px} .bl-cab{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px}
+  .bl-n{font-size:20px;font-weight:800;color:var(--pri);line-height:1} .bl-cab b{display:block} .bl-cab .info{display:block}
+  .fx-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .fx{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:5px;min-width:0}
+  .fx-cab{font-size:12px;font-weight:800;color:var(--c);letter-spacing:.5px} .fx-cab small{display:block;font-weight:400;color:var(--mute);letter-spacing:0}
+  .fx-pt{display:flex;gap:4px;align-items:flex-start;background:var(--f);border-radius:6px;padding:5px 7px;font-size:13px}
+  .fx-pt span{flex:1;min-width:0} .fx-pt .x{border:0;background:transparent;color:var(--mute);cursor:pointer;font-size:15px;line-height:1;padding:0 2px}
+  .tema{font-style:normal;font-size:11px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--mute)}
+  .fx-in{font:inherit;font-size:13px;padding:6px 8px;border:1px dashed #b9c3d3;border-radius:6px;background:#fff;min-width:0}
+  .meta-nova{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px} .meta-nova input,.meta-nova select{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .meta-nova input:not([type=date]){flex:1;min-width:200px}
+  .tab-metas{width:100%;font-size:13px} .tab-metas td{vertical-align:top;padding:6px 4px}
+  .tab-metas textarea,.tab-metas select,.tab-metas input{font:inherit;font-size:13px;width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff}
+  .tab-metas input.vencido{border-color:var(--bad);color:var(--bad)}
+  .barra-comp{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .comp-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .comp-col{background:var(--card);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:10px;padding:10px}
+  .comp-cab{font-weight:800;color:var(--c);letter-spacing:.5px;margin-bottom:8px} .comp-cab small{display:block;font-weight:400;color:var(--mute);letter-spacing:0;font-size:12px}
+  .comp-tema{background:var(--f);border-radius:8px;padding:8px;margin-bottom:8px}
+  .comp-tt{display:flex;justify-content:space-between;font-weight:700;font-size:13px;margin-bottom:4px} .comp-tt span{font-weight:400;color:var(--mute);font-size:12px}
+  .comp-pt{display:flex;gap:6px;align-items:center;justify-content:space-between;background:#fff;border-radius:6px;padding:5px 7px;margin-top:4px;font-size:13px}
+  .comp-ac{display:flex;gap:4px;align-items:center;flex:0 0 auto}
+  .tema-in{font:inherit;font-size:12px;width:110px;padding:3px 6px;border:1px solid var(--line);border-radius:6px}
+  .btn.raio-on{background:var(--amarelo);border-color:var(--amarelo)}
+  @media (max-width:900px){ .fx-grade,.comp-grade{grid-template-columns:1fr} }
   .toast{position:fixed;z-index:40;bottom:90px;left:50%;transform:translateX(-50%);background:#1b2333;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.2)}
   .toast.ruim{background:#8a1f1f}
 </style>
@@ -532,8 +595,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -658,9 +721,9 @@ function ligarFormUsuario(r){
     const perfil = $perfil.value;
     document.getElementById('pf-telas').innerHTML = r.telas.map(t => {
       const pad = r.modelos[perfil]?.[t.id] || 'nenhum', v = exc[t.id] && exc[t.id] !== pad ? exc[t.id] : '';
-      const travado = perfil === 'admin' && t.id === 'pessoas';
+      const travado = (perfil === 'admin' && t.id === 'pessoas') || (t.id === 'oo' && !pode('oo', 'gerir'));
       return `<tr><td>${esc(t.nome)}</td><td class="info">${esc(t.grupo)}</td><td>${ROT_NIVEL[pad]}</td>
-        <td><select data-tela="${t.id}" ${travado ? 'disabled title="Admin sempre edita o cadastro"' : ''} class="${v ? 'exc' : ''}">
+        <td><select data-tela="${t.id}" ${travado ? `disabled title="${t.id === 'oo' ? 'Só quem gerencia o One-on-One pode liberar este acesso' : 'Admin sempre edita o cadastro'}"` : ''} class="${v ? 'exc' : ''}">
           <option value="">Padrão do perfil</option>${['nenhum', ...t.niveis].filter(n => n !== pad).map(n => `<option value="${n}" ${v === n ? 'selected' : ''}>${ROT_NIVEL[n]}</option>`).join('')}
         </select></td></tr>`;
     }).join('');
@@ -1526,11 +1589,715 @@ function confirmarSaida(){
   return false;
 }
 
+/* =================== EXPEDIÇÃO CROSS =================== */
+// Substitui o caderno da doca: cada coleta é um "bloco" (um veículo de um canal)
+const ordinal = n => `${n}ª`;
+const fmtPlaca = p => !p ? '' : p.length === 7 ? `${p.slice(0, 3)}-${p.slice(3)}` : p;
+const placaValida = p => /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);   // antiga (ABC1234) ou Mercosul (ABC1D23)
+const agoraHM = () => new Date(Date.now() - 3*3600e3).toISOString().slice(11, 16);
+
+// ---- demonstração: o caderno de 23/10/2026, em memória
+const DEMO_CROSS = (() => {
+  const d = hojeBRT(), ag = new Date().toISOString();
+  const L = [
+    ['shopee_rapida', 1, '09:33', '11:43', '11:52', { DIGOS:58, CACAL:10, DROSA:7 }, [], 'TCA4C13', '', 'Motorista Shopee', true],
+    ['shein', 1, '09:34', '11:43', '11:50', { DIGOS:38, CACAL:5, DROSA:3 }, ['56026721', '40907088'], 'MIB2G27', '', 'Julio Cesar', true],
+    ['ml_coleta', 1, '10:20', null, '10:58', { DIGOS:81, CACAL:14, DROSA:8 }, ['451067FA'], 'FRA6J26', '', 'Motorista ML', true],
+    ['ml_flex', 1, '12:45', null, null, { DIGOS:20, CACAL:3 }, [], '', 'Fox', 'Henrique', false],
+    ['shopee_rapida', 2, '13:15', null, null, { DIGOS:24, CACAL:5, DROSA:3 }, [], '', '', '', false],
+    ['ml_coleta', 2, '15:11', null, null, { DIGOS:6, CACAL:1 }, [], 'EZB0H99', '', '', false],
+  ];
+  const coletas = L.map((l, i) => ({ id:String(i + 1), data:d, canal_id:l[0], sequencia:l[1], hora_chegada:l[2], hora_corte:l[3], hora_saida:l[4], pacotes:l[5],
+    total:Object.values(l[5]).reduce((a, b) => a + b, 0), manifestos:l[6], placa:l[7] || null, veiculo:l[8] || null, motorista:l[9] || null, motorista_doc:null, observacao: l[0] === 'ml_coleta' && l[1] === 2 ? 'Alerta: motorista não aguardou conferência.' : null,
+    assinatura:null, assinado_em: l[10] ? ag : null, alterada_apos_assinatura:false, atualizado_em:ag, atualizado_por:'demonstracao' }));
+  return { coletas, eventos:[], seq:100 };
+})();
+const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida' }, { id:'shein', nome:'Shein' }, { id:'ml_coleta', nome:'Mercado Livre' }, { id:'ml_flex', nome:'Flex' }, { id:'correios', nome:'Correios' }, { id:'outro', nome:'Outro' }];
+async function apiCross(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_CROSS, ag = new Date().toISOString(), ev = (coleta_id, acao, antes, depois) => D.eventos.unshift({ coleta_id, em:ag, por:'demonstracao', acao, antes, depois });
+  const q = new URLSearchParams(path.split('?')[1] || '');
+  if (path.startsWith('/cross/coleta?')) { const c = D.coletas.find(x => x.id === q.get('id')); return { coleta: JSON.parse(JSON.stringify(c)), eventos: D.eventos.filter(e => e.coleta_id === c.id) }; }
+  if (path.startsWith('/cross?')) {
+    const ini = q.get('ini'), fim = q.get('fim');
+    return { ini, fim, hoje: hojeBRT(), coletas: JSON.parse(JSON.stringify(D.coletas.filter(c => c.data >= ini && c.data <= fim))).map(c => ({ ...c, assinatura: undefined })),
+      canais: CANAIS_DEMO, lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
+      sugestoes: D.coletas.filter(c => c.placa).map(c => ({ placa:c.placa, motorista:c.motorista, veiculo:c.veiculo, canal_id:c.canal_id })) };
+  }
+  if (path === '/cross/coleta') {
+    const pac = Object.fromEntries(Object.entries(corpo.pacotes || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)]));
+    const total = Object.values(pac).reduce((a, b) => a + b, 0);
+    if (corpo.assinatura && !total) throw new Error('Informe os pacotes antes de colher a assinatura');
+    if (corpo.assinatura && !corpo.motorista) throw new Error('Informe o nome do motorista antes de colher a assinatura');
+    const dados = { ...corpo, pacotes:pac, total, placa: corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null };
+    let c = corpo.id ? D.coletas.find(x => x.id === corpo.id) : null;
+    if (!c) { c = { id:String(++D.seq), sequencia: dados.sequencia || (Math.max(0, ...D.coletas.filter(x => x.data === dados.data && x.canal_id === dados.canal_id).map(x => x.sequencia)) + 1) }; D.coletas.push(c); ev(c.id, 'coleta.criar', null, dados); }
+    else ev(c.id, 'coleta.alterar', { total:c.total }, { total });
+    const assin = dados.assinatura; delete dados.assinatura; delete dados.versao; delete dados.id;
+    Object.assign(c, dados, { sequencia: dados.sequencia || c.sequencia, atualizado_em:ag, atualizado_por:'demonstracao' });
+    if (assin) { c.assinatura = assin; c.assinado_em = ag; c.hora_saida = c.hora_saida || agoraHM(); ev(c.id, 'coleta.assinar', null, { motorista:c.motorista, total }); }
+    return { ok:true, id:c.id };
+  }
+  if (path === '/cross/coleta/excluir') { D.coletas = D.coletas.filter(c => c.id !== corpo.id); return { ok:true }; }
+}
+
+function telaCross(){
+  const s = state.cross ||= { data: hojeBRT(), canal:'todos', loja:'todos', aberto:null };
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Expedição - CROSS</h2><span style="flex:1"></span>
+      <span class="nav-dia"><button class="btn" id="x-ant" aria-label="Dia anterior">‹</button><input type="date" id="x-data" value="${s.data}" max="${hojeBRT()}"><button class="btn" id="x-prox" aria-label="Próximo dia">›</button><button class="btn" id="x-hoje">Hoje</button></span>
+      <select id="x-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <button class="btn" id="x-atualizar">Atualizar</button>
+      ${pode('cross', 'editar') ? `<button class="btn pri" id="x-nova">+ Nova coleta</button>` : ''}
+    </div>
+    <div id="cross"><div class="carregando">Carregando coletas…</div></div>
+    <div id="gaveta" hidden></div>`;
+  const irDia = d => { if (d > hojeBRT()) return; s.data = d; document.getElementById('x-data').value = d; s.canal = 'todos'; carregarCross(); };
+  document.getElementById('x-data').onchange = e => { if (e.target.value) irDia(e.target.value); };
+  document.getElementById('x-ant').onclick = () => irDia(addDias(s.data, -1));
+  document.getElementById('x-prox').onclick = () => irDia(addDias(s.data, 1));
+  document.getElementById('x-hoje').onclick = () => irDia(hojeBRT());
+  document.getElementById('x-loja').onchange = e => { s.loja = e.target.value; renderCross(); };
+  document.getElementById('x-atualizar').onclick = () => carregarCross();
+  const nv = document.getElementById('x-nova'); if (nv) nv.onclick = () => abrirCross(null);
+  carregarCross();
+}
+async function carregarCross(){
+  const s = state.cross;
+  try { state.crossDados = await apiCross(`/cross?ini=${s.data}&fim=${s.data}`); renderCross(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('cross'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+const nomeCanal = id => (state.crossDados?.canais || CANAIS_DEMO).find(c => c.id === id)?.nome || id;
+function renderCross(){
+  const s = state.cross, r = state.crossDados, $c = document.getElementById('cross');
+  if (!$c || !r) return;
+  const pacLoja = c => s.loja === 'todos' ? c.total : (c.pacotes?.[s.loja] || 0);
+  const doDia = r.coletas.filter(c => s.loja === 'todos' || pacLoja(c) > 0);
+  const lista = doDia.filter(c => s.canal === 'todos' || c.canal_id === s.canal)
+    .sort((a, b) => (a.hora_chegada || '99').localeCompare(b.hora_chegada || '99') || a.id - b.id);
+  const total = doDia.reduce((t, c) => t + pacLoja(c), 0);
+  const porLoja = {}; doDia.forEach(c => Object.entries(c.pacotes || {}).forEach(([k, v]) => { if (s.loja === 'todos' || k === s.loja) porLoja[k] = (porLoja[k] || 0) + v; }));
+  const canais = r.canais.map(cn => { const l = doDia.filter(c => c.canal_id === cn.id); return { ...cn, n:l.length, pac:l.reduce((t, c) => t + pacLoja(c), 0), pend:l.filter(c => !c.assinado_em).length }; }).filter(cn => cn.n);
+  const pendentes = doDia.filter(c => !c.assinado_em).length;
+  const ehHoje = s.data === (r.hoje || hojeBRT());
+  $c.innerHTML = `
+    <div class="kpis">
+      <div class="kpi destaque"><div class="rot">Pacotes ${ehHoje ? 'hoje' : 'no dia'}${s.loja !== 'todos' ? ' · ' + esc(nomeLoja(s.loja)) : ''}</div><div class="val">${fmtN(total)}</div>
+        <div class="det">${ORDEM_LOJAS.filter(k => porLoja[k]).map(k => `${esc(nomeLoja(k))} ${fmtN(porLoja[k])}`).join(' · ') || '–'}</div></div>
+      <div class="kpi"><div class="rot">Coletas</div><div class="val">${fmtN(doDia.length)}</div><div class="det">${doDia.length - pendentes} assinada(s)${pendentes ? ` · <b style="color:#b07a00">${pendentes} em aberto</b>` : ''}</div></div>
+    </div>
+    ${canais.length ? `<div class="canais">${canais.map(cn => `<button class="cn ${s.canal === cn.id ? 'on' : ''}" data-cn="${cn.id}"><b>${esc(cn.nome)}</b><span>${cn.n} coleta${cn.n === 1 ? '' : 's'} · ${fmtN(cn.pac)} pac.${cn.pend ? ` · <i>${cn.pend} em aberto</i>` : ''}</span></button>`).join('')}</div>` : ''}
+    ${s.canal !== 'todos' ? `<div class="filtro-ativo">Mostrando só <b>${esc(nomeCanal(s.canal))}</b> <button class="btn mini" id="x-limpa">Mostrar todos</button></div>` : ''}
+    ${!lista.length ? `<div class="painel"><div class="vazio">Nenhuma coleta registrada em ${dataBR(s.data)}.${pode('cross', 'editar') && ehHoje ? ' Toque em <b>+ Nova coleta</b> quando o veículo chegar.' : ''}</div></div>` : `
+    <div class="grade-cross">${lista.map(c => {
+      const assin = !!c.assinado_em;
+      return `<div class="cx-card ${assin ? '' : 'aberta'}" data-cx="${c.id}" role="button" tabindex="0">
+        <div class="cx-top"><b>${esc(nomeCanal(c.canal_id))}</b><span class="info">${ordinal(c.sequencia)} coleta</span><span style="flex:1"></span>
+          ${assin ? `<span class="st-full" style="color:#1a7a3e;background:#e2f5e8">✍ Assinada</span>` : `<span class="st-full" style="color:#8a5a00;background:#fff3d1">Carregando</span>`}</div>
+        ${c.alterada_apos_assinatura ? '<div class="cx-alerta">⚠ alterada depois da assinatura</div>' : ''}
+        <div class="cx-horas"><span>Chegada <b>${c.hora_chegada || '–'}</b></span>${c.hora_corte ? `<span>Corte <b>${c.hora_corte}</b></span>` : ''}<span>Saída <b>${c.hora_saida || '–'}</b></span></div>
+        <div class="cx-pac"><span class="cx-tot">${fmtN(pacLoja(c))}<small>pacotes</small></span>
+          <span class="cx-lojas">${ORDEM_LOJAS.filter(k => c.pacotes?.[k]).map(k => `<span class="cx-lj" style="--c:${LOJAS[k]?.borda || corLoja(k)}">${esc(nomeLoja(k))} <b>${fmtN(c.pacotes[k])}</b></span>`).join('')}</span></div>
+        <div class="cx-bot">${c.placa ? `<span>🚚 <b>${esc(fmtPlaca(c.placa))}</b>${c.veiculo ? ' · ' + esc(c.veiculo) : ''}</span>` : (c.veiculo ? `<span>🚚 ${esc(c.veiculo)}</span>` : '<span class="info">sem placa</span>')}
+          ${c.motorista ? `<span>👤 ${esc(c.motorista)}</span>` : ''}${c.manifestos?.length ? `<span>📄 ${c.manifestos.map(esc).join(', ')}</span>` : ''}${c.observacao ? `<span title="${esc(c.observacao)}">💬</span>` : ''}</div>
+      </div>`; }).join('')}</div>`}`;
+  $c.querySelectorAll('[data-cn]').forEach(b => b.onclick = () => { s.canal = s.canal === b.dataset.cn ? 'todos' : b.dataset.cn; renderCross(); });
+  const lp = document.getElementById('x-limpa'); if (lp) lp.onclick = () => { s.canal = 'todos'; renderCross(); };
+  $c.querySelectorAll('[data-cx]').forEach(el => { el.onclick = () => abrirCross(el.dataset.cx); el.onkeydown = ev => { if (ev.key === 'Enter') abrirCross(el.dataset.cx); }; });
+}
+
+// ---- pad de assinatura (dedo ou mouse)
+function padAssinatura(canvas){
+  const ctx = canvas.getContext('2d'); let des = false, tinta = false, ult = null;
+  const ajustar = () => { const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111'; tinta = false; };
+  const pos = ev => { const r = canvas.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; };
+  canvas.addEventListener('pointerdown', ev => { ev.preventDefault(); canvas.setPointerCapture(ev.pointerId); des = true; ult = pos(ev); ctx.beginPath(); ctx.arc(ult[0], ult[1], 1.2, 0, 7); ctx.fill(); tinta = true; canvas.dispatchEvent(new Event('tinta')); });
+  canvas.addEventListener('pointermove', ev => { if (!des) return; ev.preventDefault(); const p = pos(ev); ctx.beginPath(); ctx.moveTo(ult[0], ult[1]); ctx.lineTo(p[0], p[1]); ctx.stroke(); ult = p; });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => canvas.addEventListener(t, () => { des = false; }));
+  ajustar();
+  return {
+    limpar(){ ctx.clearRect(0, 0, canvas.width, canvas.height); tinta = false; canvas.dispatchEvent(new Event('tinta')); },
+    temTinta: () => tinta,
+    // PNG pequeno (600x200, fundo branco) para guardar
+    png(){ const o = document.createElement('canvas'); o.width = 600; o.height = 200; const c2 = o.getContext('2d'); c2.fillStyle = '#fff'; c2.fillRect(0, 0, 600, 200);
+      c2.drawImage(canvas, 0, 0, 600, 200); return o.toDataURL('image/png'); },
+  };
+}
+
+async function abrirCross(id){
+  const s = state.cross, r = state.crossDados, g = document.getElementById('gaveta');
+  if (!g || !r) return;
+  let c, eventos = [];
+  if (id) {
+    try { ({ coleta: c, eventos } = await apiCross(`/cross/coleta?id=${id}`)); }
+    catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); }
+  } else c = { data: s.data, canal_id:'', sequencia:null, hora_chegada: s.data === hojeBRT() ? agoraHM() : '', hora_corte:'', hora_saida:'', pacotes:{}, manifestos:[], placa:'', veiculo:'', motorista:'', motorista_doc:'', observacao:'' };
+  const novo = !id, gerir = pode('cross', 'gerir'), editar = pode('cross', 'editar');
+  const assinada = !!c.assinado_em, pode_ = editar && (!assinada || gerir), ro = pode_ ? '' : 'disabled';
+  s.aberto = id;
+  const proxSeq = canal => (Math.max(0, ...r.coletas.filter(x => x.canal_id === canal && x.data === c.data && x.id !== c.id).map(x => x.sequencia)) + 1);
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `
+    <div class="gv-fundo" id="gv-fundo"></div>
+    <aside class="gv">
+      <div class="gv-cab"><div><div class="info">${dataBR(c.data)}</div><h3>${novo ? 'Nova coleta' : `${esc(nomeCanal(c.canal_id))} · ${ordinal(c.sequencia)} coleta`}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
+      <div class="gv-corpo">
+        <div class="erro" id="gv-erro" hidden></div>
+        ${assinada && !gerir ? '<div class="aviso" style="margin-top:10px">Coleta assinada pelo motorista. Só um líder pode alterar.</div>' : ''}
+        <div class="gv-sec">Canal / transportadora</div>
+        <div class="etapas canais-bt">${r.canais.map(cn => `<button type="button" class="etapa ${c.canal_id === cn.id ? 'on' : ''}" data-canal="${cn.id}" ${ro} style="--c:#02285a;--f:#e8eef7">${esc(cn.nome)}</button>`).join('')}</div>
+        <div class="grade-form g2" style="margin-top:12px">
+          <label>Nº da coleta no dia<span class="linha-hora"><input id="cx-seq" inputmode="numeric" value="${c.sequencia ?? ''}" placeholder="automático" ${ro}><span class="info" id="cx-seq-dica" style="align-self:center"></span></span></label>
+          <label>Data<input type="date" id="cx-data" value="${c.data}" max="${hojeBRT()}" ${novo || gerir ? '' : 'disabled'}></label>
+        </div>
+        <div class="gv-sec">Horários</div>
+        <div class="grade-form g3">
+          <label>Chegada<span class="linha-hora"><input type="time" id="cx-cheg" value="${c.hora_chegada || ''}" ${ro}><button type="button" class="btn mini" data-agora="cx-cheg" ${ro}>Agora</button></span></label>
+          <label>Corte<input type="time" id="cx-corte" value="${c.hora_corte || ''}" ${ro}></label>
+          <label>Saída<span class="linha-hora"><input type="time" id="cx-saida" value="${c.hora_saida || ''}" ${ro}><button type="button" class="btn mini" data-agora="cx-saida" ${ro}>Agora</button></span></label>
+        </div>
+        <div class="gv-sec">Pacotes por loja <span class="info">Total: <b id="cx-total">0</b></span></div>
+        <div class="pac-lojas">${r.lojas.map(l => `<label class="pac" style="--c:${LOJAS[l.id]?.borda || corLoja(l.id)}"><span>${esc(nomeLoja(l.id))}</span>
+          <span class="pac-in"><button type="button" class="btn" data-menos="${l.id}" ${ro}>−</button><input inputmode="numeric" data-loja="${l.id}" value="${c.pacotes?.[l.id] || ''}" placeholder="0" ${ro}><button type="button" class="btn" data-mais="${l.id}" ${ro}>+</button></span></label>`).join('')}</div>
+        <div class="gv-sec">ID / manifesto da coleta</div>
+        <span class="chips" id="cx-chips"></span>
+        <span class="linha-hora"><input id="cx-man" class="campo" placeholder="digite e toque em Adicionar" autocapitalize="characters" ${ro}><button type="button" class="btn mini" id="cx-man-add" ${ro}>Adicionar</button></span>
+        <div class="gv-sec">Veículo e motorista</div>
+        <div class="grade-form g2">
+          <label>Placa<input id="cx-placa" list="dl-placas" value="${esc(c.placa || '')}" placeholder="ABC1D23" autocapitalize="characters" maxlength="8" ${ro}><span class="info" id="cx-placa-dica"></span></label>
+          <label>Veículo<input id="cx-veic" value="${esc(c.veiculo || '')}" placeholder="ex.: Fox, Fiorino, VUC" ${ro}></label>
+          <label>Motorista<input id="cx-mot" value="${esc(c.motorista || '')}" placeholder="nome de quem retirou" ${ro}></label>
+          <label>Documento (opcional)<input id="cx-doc" value="${esc(c.motorista_doc || '')}" placeholder="RG / CNH" ${ro}></label>
+        </div>
+        <label class="gv-lab">Observação<textarea id="cx-obs" rows="2" maxlength="500" ${ro}>${esc(c.observacao || '')}</textarea></label>
+        <div class="gv-sec">Assinatura do motorista</div>
+        <div id="cx-assin"></div>
+        ${pode_ ? `<div class="gv-acoes"><button class="btn pri" id="cx-salvar">Salvar</button></div>` : ''}
+        ${novo ? '' : `<div class="gv-sec">Histórico</div><div id="cx-hist"></div>
+          ${gerir ? `<div style="margin-top:20px"><button class="btn perigo" id="cx-excluir">Excluir coleta</button> <span class="info">Para coleta lançada por engano.</span></div>` : ''}`}
+      </div>
+    </aside>
+    <datalist id="dl-placas">${(r.sugestoes || []).map(x => `<option value="${esc(x.placa)}">${esc([x.motorista, x.veiculo].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>`;
+
+  const $ = k => document.getElementById(k);
+  let canal = c.canal_id, sujo = false; const man = [...(c.manifestos || [])];
+  g.querySelectorAll('.gv-corpo input, .gv-corpo textarea').forEach(el => el.addEventListener('input', () => { sujo = true; }));
+  const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
+  const dicaSeq = () => { $('cx-seq-dica').textContent = !$('cx-seq').value && canal ? `será a ${ordinal(proxSeq(canal))}` : ''; };
+  g.querySelectorAll('[data-canal]').forEach(b => b.onclick = () => { canal = b.dataset.canal; sujo = true; g.querySelectorAll('[data-canal]').forEach(x => x.classList.toggle('on', x === b)); dicaSeq(); });
+  $('cx-seq').addEventListener('input', dicaSeq); dicaSeq();
+  g.querySelectorAll('[data-agora]').forEach(b => b.onclick = () => { $(b.dataset.agora).value = agoraHM(); sujo = true; });
+  const somar = () => { $('cx-total').textContent = fmtN([...g.querySelectorAll('[data-loja]')].reduce((t, i) => t + (parseInt(i.value) || 0), 0)); };
+  g.querySelectorAll('[data-loja]').forEach(i => i.addEventListener('input', () => { i.value = i.value.replace(/\D/g, ''); somar(); }));
+  g.querySelectorAll('[data-mais],[data-menos]').forEach(b => b.onclick = () => { const i = g.querySelector(`[data-loja="${b.dataset.mais || b.dataset.menos}"]`); i.value = Math.max(0, (parseInt(i.value) || 0) + (b.dataset.mais ? 1 : -1)) || ''; sujo = true; somar(); });
+  somar();
+  const chips = () => { $('cx-chips').innerHTML = man.map((m, i) => `<span class="chip">${esc(m)}${pode_ ? `<button type="button" data-rmm="${i}" aria-label="Remover">×</button>` : ''}</span>`).join('') || '<span class="info">nenhum</span>';
+    $('cx-chips').querySelectorAll('[data-rmm]').forEach(b => b.onclick = () => { man.splice(+b.dataset.rmm, 1); sujo = true; chips(); }); };
+  const addMan = () => { const v = $('cx-man').value.trim().toUpperCase(); if (v && !man.includes(v)) { man.push(v); sujo = true; } $('cx-man').value = ''; chips(); };
+  $('cx-man-add').onclick = addMan; $('cx-man').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); addMan(); } }; chips();
+  const dicaPlaca = () => { const p = $('cx-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); $('cx-placa-dica').textContent = p && !placaValida(p) ? 'Confira: placa fora do padrão (ABC1234 ou ABC1D23)' : ''; };
+  $('cx-placa').addEventListener('input', () => {
+    dicaPlaca();
+    const p = $('cx-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), sug = (r.sugestoes || []).find(x => x.placa === p);
+    if (sug) { if (!$('cx-mot').value && sug.motorista) $('cx-mot').value = sug.motorista; if (!$('cx-veic').value && sug.veiculo) $('cx-veic').value = sug.veiculo; }
+  }); dicaPlaca();
+
+  // assinatura
+  let pad = null;
+  const desenhaAssin = (refazer) => {
+    const $a = $('cx-assin');
+    if (assinada && !refazer) {
+      $a.innerHTML = `<div class="assin-ok">${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura do motorista">` : ''}<div><b>✍ Assinada${c.motorista ? ' por ' + esc(c.motorista) : ''}</b><br><span class="info">${quando(c.assinado_em)}</span></div>
+        ${gerir ? '<button type="button" class="btn mini" id="cx-reassinar">Colher nova assinatura</button>' : ''}</div>`;
+      const ra = $('cx-reassinar'); if (ra) ra.onclick = () => desenhaAssin(true);
+      return;
+    }
+    if (!pode_) { $a.innerHTML = '<div class="vazio">Ainda não assinada.</div>'; return; }
+    $a.innerHTML = `<div class="pad"><canvas id="cx-pad"></canvas><span class="pad-linha">assinatura do motorista</span></div>
+      <div class="gv-acoes" style="justify-content:space-between;margin-top:6px"><span class="info">Peça ao motorista para assinar com o dedo ao entregar os pacotes. Ao salvar com assinatura, a coleta é finalizada e a saída é registrada.</span><button type="button" class="btn mini" id="cx-pad-limpar">Limpar</button></div>`;
+    pad = padAssinatura($('cx-pad'));
+    $('cx-pad').addEventListener('tinta', () => { sujo = true; const sv = $('cx-salvar'); if (sv) sv.textContent = pad.temTinta() ? '✍ Salvar e finalizar' : 'Salvar'; });
+    $('cx-pad-limpar').onclick = () => pad.limpar();
+  };
+  desenhaAssin(false);
+
+  $('gv-fechar').onclick = () => { if (sujo && !confirmarSaida()) return; fecharCross(); };
+  $('gv-fundo').onclick = $('gv-fechar').onclick;
+  const sv = $('cx-salvar');
+  if (sv) sv.onclick = async () => {
+    if (!canal) return erro('Escolha o canal / transportadora.');
+    const pacotes = Object.fromEntries([...g.querySelectorAll('[data-loja]')].map(i => [i.dataset.loja, parseInt(i.value) || 0]));
+    if ($('cx-man').value.trim()) addMan();
+    const corpo = { id: c.id || null, versao: c.atualizado_em || null, data: $('cx-data').value, canal_id: canal, sequencia: $('cx-seq').value.trim() || null,
+      hora_chegada: $('cx-cheg').value || null, hora_corte: $('cx-corte').value || null, hora_saida: $('cx-saida').value || null, pacotes, manifestos: man,
+      placa: $('cx-placa').value.trim() || null, veiculo: $('cx-veic').value.trim() || null, motorista: $('cx-mot').value.trim() || null, motorista_doc: $('cx-doc').value.trim() || null,
+      observacao: $('cx-obs').value.trim() || null, assinatura: pad && pad.temTinta() ? pad.png() : null };
+    if (corpo.assinatura && !Object.values(pacotes).some(Boolean)) return erro('Informe os pacotes antes de colher a assinatura.');
+    if (corpo.assinatura && !corpo.motorista) return erro('Informe o nome do motorista antes de colher a assinatura.');
+    sv.disabled = true; sv.textContent = 'Salvando…'; erro('');
+    try {
+      const res = await apiCross('/cross/coleta', corpo);
+      sujo = false; avisar(corpo.assinatura ? 'Coleta finalizada e assinada' : res.semMudanca ? 'Nada mudou.' : 'Coleta salva');
+      if (corpo.data !== s.data) { s.data = corpo.data; document.getElementById('x-data').value = s.data; }
+      await carregarCross(); fecharCross();
+    } catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); sv.disabled = false; sv.textContent = pad && pad.temTinta() ? '✍ Salvar e finalizar' : 'Salvar'; }
+  };
+  const $h = $('cx-hist');
+  if ($h) {
+    const ROT = { 'coleta.criar':'Registrou', 'coleta.alterar':'Alterou', 'coleta.assinar':'Assinatura colhida', 'coleta.excluir':'Excluiu' };
+    $h.innerHTML = eventos.length ? `<div class="lista-col">${eventos.map(v => `<div class="col-it"><div><b>${ROT[v.acao] || esc(v.acao)}</b> <span class="info">${quando(v.em)} · ${esc(String(v.por).split('@')[0])}</span>
+      ${v.acao === 'coleta.alterar' ? `<br><span class="info">${Object.keys(v.depois || {}).map(k => k === 'pacotes' ? `pacotes: ${esc(JSON.stringify(v.antes?.[k] || {}))} → <b>${esc(JSON.stringify(v.depois[k]))}</b>` : `${esc(k)}: ${esc(v.antes?.[k] ?? '–')} → <b>${esc(Array.isArray(v.depois[k]) ? v.depois[k].join(', ') : v.depois[k] ?? '–')}</b>`).join(' · ')}</span>` : ''}</div></div>`).join('')}</div>` : '<div class="vazio">Sem alterações registradas.</div>';
+  }
+  const xb = $('cx-excluir');
+  if (xb) xb.onclick = async () => {
+    if (xb.dataset.conf !== '1') { xb.dataset.conf = '1'; xb.textContent = 'Clique de novo para excluir'; return; }
+    try { await apiCross('/cross/coleta/excluir', { id: c.id }); avisar('Coleta excluída'); sujo = false; fecharCross(); await carregarCross(); }
+    catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); }
+  };
+}
+function fecharCross(){
+  state.cross.aberto = null;
+  const g = document.getElementById('gaveta'); if (g) { g.hidden = true; g.innerHTML = ''; }
+  document.body.classList.remove('gaveta-aberta');
+}
+
+/* =================== ONE-ON-ONE =================== */
+// Acesso restrito: ninguém vê por padrão (nem admin); a API confere em toda chamada.
+const OO_BLOCOS = [
+  { id:'lideranca', nome:'Sobre a liderança', desc:'Liderança direta e gestão da logística: postura, comunicação, apoio, cobrança, decisões.' },
+  { id:'empresa',   nome:'Sobre a empresa',   desc:'Processos, sistemas, layout, ferramentas, comunicação entre áreas, condições de trabalho.' },
+  { id:'eu',        nome:'Sobre mim',         desc:'A própria atuação: o que faz bem, o que pode melhorar e onde quer crescer.' },
+];
+const OO_VISAO = { id:'visao_lider', nome:'Visão do líder sobre o liderado', desc:'Sua leitura sobre a pessoa, para comparar com o que ela escreveu.' };
+const OO_FAIXAS = [
+  { id:'parar',     rot:'PARAR',     cor:'#b3261e', fundo:'#fbe9e9', dica:'O que atrapalha e deveria deixar de acontecer' },
+  { id:'comecar',   rot:'COMEÇAR',   cor:'#9a5b00', fundo:'#fff3d1', dica:'O que falta e faria diferença' },
+  { id:'continuar', rot:'CONTINUAR', cor:'#1a7a3e', fundo:'#e2f5e8', dica:'O que funciona e não pode se perder' },
+];
+const OO_FECHAR = [
+  { id:'mudanca',     q:'Se uma única coisa mudasse amanhã no seu trabalho, qual faria mais diferença?' },
+  { id:'desenvolver', q:'Que conhecimento ou habilidade você gostaria de desenvolver nos próximos 6 meses?' },
+  { id:'feedback',    q:'Como você prefere receber feedback e reconhecimento?' },
+];
+const OO_TIPO_META = { comportamento:'Comportamento', capacitacao:'Capacitação', resultado:'Resultado' };
+const OO_ST_META = { nao_iniciada:'Não iniciada', em_andamento:'Em andamento', concluida:'Concluída', cancelada:'Cancelada' };
+const OO_ETAPAS = [
+  { n:0, rot:'Não iniciado',      cor:'#566074', fundo:'#eef0f4' },
+  { n:1, rot:'Folha entregue',    cor:'#0b4fa8', fundo:'#e3eefc' },
+  { n:1.5, rot:'Conversa feita',  cor:'#0b4fa8', fundo:'#d6e6fb' },
+  { n:2, rot:'Compilado',         cor:'#6b3fa0', fundo:'#efe7fa' },
+  { n:3, rot:'PDI definido',      cor:'#9a5b00', fundo:'#fff1d6' },
+  { n:4, rot:'Acompanhando',      cor:'#1a7a3e', fundo:'#e2f5e8' },
+];
+function etapaOO(c, hoje){
+  if (!c) return OO_ETAPAS[0];
+  if (c.n_acomp) return OO_ETAPAS[5];
+  if (c.n_metas) return OO_ETAPAS[4];
+  if (c.n_pontos || c.n_visao) return OO_ETAPAS[3];
+  if (c.conversa_em && c.conversa_em <= hoje) return OO_ETAPAS[2];
+  if (c.recebido_em) return OO_ETAPAS[1];
+  return OO_ETAPAS[0];
+}
+const pillOO = e => `<span class="st-full" style="color:${e.cor};background:${e.fundo}">${esc(e.rot)}</span>`;
+
+// ---- demonstração (dados fictícios)
+const DEMO_OO = (() => {
+  const h = hojeBRT();
+  const pessoas = ['Roberto|Supervisor', 'Guilherme|Líder de entrada', 'Degmar|Líder de saída', 'Vinicius|Especialista de estoque', 'Arthur|Operacional', 'Davi|Operacional', 'César|Operacional', 'Rafael|Operacional', 'Vitor|Operacional', 'Estevão|Operacional', 'Kelvin|Operacional']
+    .map((x, i) => ({ id:String(i + 1), nome:x.split('|')[0], funcao:x.split('|')[1], area:'Logística', ativo:true }));
+  const rodadas = [{ id:'1', nome:'Rodada 1 · out/2026', inicio:'2026-10-26', ativa:true }];
+  const conversas = [
+    { id:'1', rodada_id:'1', pessoa_id:'1', recebido_em:addDias(h, -6), conversa_em:addDias(h, -3), pdi_em:addDias(h, -1), fechar:{ mudanca:'Ter as prioridades do dia definidas às 7h', desenvolver:'Gestão de indicadores', feedback:'Em particular, logo depois do fato' }, notas:'Primeiro da rodada. Evitar compromisso de carreira no PDI.' },
+    { id:'2', rodada_id:'1', pessoa_id:'5', recebido_em:addDias(h, -5), conversa_em:addDias(h, -2), pdi_em:null, fechar:{ mudanca:'Separar o Full do Cross no layout', desenvolver:'Aprender a fazer inventário', feedback:'Na hora, sem rodeio' }, notas:null },
+    { id:'3', rodada_id:'1', pessoa_id:'6', recebido_em:addDias(h, -4), conversa_em:addDias(h, 2), pdi_em:null, fechar:{}, notas:null },
+    { id:'4', rodada_id:'1', pessoa_id:'9', recebido_em:addDias(h, -4), conversa_em:null, pdi_em:null, fechar:{}, notas:null },
+  ];
+  const P = (c, bloco, faixa, texto, tema, acao) => ({ conversa_id:c, bloco, faixa, texto, tema, acao_rapida:!!acao });
+  const pontos = [
+    P('1','lideranca','comecar','Alinhar a meta do dia logo na abertura','Comunicação'), P('1','empresa','parar','Pedido urgente chegando depois do corte sem aviso','Comunicação entre áreas'),
+    P('1','empresa','comecar','Ter fita e etiqueta sempre no posto','Materiais', true), P('1','eu','continuar','Resolver problema de estoque rápido'),
+    P('2','lideranca','parar','Cobrar no grupo do WhatsApp na frente de todos','Comunicação'), P('2','lideranca','continuar','Ajudar quando a fila aperta','Apoio'),
+    P('2','empresa','parar','Faltar fita no posto de embalagem','Materiais', true), P('2','empresa','comecar','Separar a área do Full da área do Cross','Layout'),
+    P('2','empresa','parar','Coletor sem bateria no meio do turno','Equipamentos', true), P('2','eu','comecar','Aprender o processo de inventário'),
+    P('2','visao_lider','continuar','Puxa o ritmo do time no Full'), P('2','visao_lider','comecar','Conferir a cor antes de bipar'),
+  ].map((p, i) => ({ id:String(i + 1), ...p }));
+  const metas = [
+    { id:'1', conversa_id:'1', meta:'Fazer o alinhamento da meta do dia às 7h, todos os dias', tipo:'comportamento', acoes:'Quadro na entrada com a meta e o 1º corte', prazo:addDias(h, 30), status:'em_andamento' },
+    { id:'2', conversa_id:'1', meta:'Acompanhar o painel de produtividade 2x por semana', tipo:'capacitacao', acoes:'Treino com Douglas no portal', prazo:addDias(h, 45), status:'nao_iniciada' },
+  ];
+  const acomps = [{ id:'1', conversa_id:'1', data:addDias(h, -1), resumo:'PDI combinado. Começa segunda.', proximo:addDias(h, 14) }];
+  return { pessoas, rodadas, conversas, pontos, metas, acomps, seq:100 };
+})();
+async function apiOO(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_OO, h = hojeBRT(), q = new URLSearchParams(path.split('?')[1] || '');
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const resumoConv = c => { const ps = D.pontos.filter(p => p.conversa_id === c.id), ms = D.metas.filter(m => m.conversa_id === c.id && m.status !== 'cancelada'), as = D.acomps.filter(a => a.conversa_id === c.id).sort((a, b) => b.data.localeCompare(a.data));
+    const abertas = ms.filter(m => ['nao_iniciada', 'em_andamento'].includes(m.status) && m.prazo).map(m => m.prazo).sort();
+    return { ...c, n_pontos: ps.filter(p => p.bloco !== 'visao_lider').length, n_visao: ps.filter(p => p.bloco === 'visao_lider').length, n_metas: ms.length, n_metas_ok: ms.filter(m => m.status === 'concluida').length,
+      prazo_proximo: abertas[0] || null, n_acomp: as.length, ultimo_acomp: as[0]?.data || null, proximo_acomp: as[0]?.proximo || null }; };
+  if (path.startsWith('/oo/conversa')) {
+    const c = D.conversas.find(x => x.rodada_id === q.get('rodada') && x.pessoa_id === q.get('pessoa'));
+    if (!c) return { conversa:null, pontos:[], metas:[], acomps:[] };
+    return clone({ conversa:c, pontos:D.pontos.filter(p => p.conversa_id === c.id), metas:D.metas.filter(m => m.conversa_id === c.id), acomps:D.acomps.filter(a => a.conversa_id === c.id).sort((a, b) => b.data.localeCompare(a.data)) });
+  }
+  if (path.startsWith('/oo/compilado')) {
+    const convs = D.conversas.filter(c => c.rodada_id === q.get('rodada'));
+    return clone({ pontos: D.pontos.filter(p => convs.some(c => c.id === p.conversa_id)).map(p => { const c = convs.find(x => x.id === p.conversa_id), pe = D.pessoas.find(x => x.id === c.pessoa_id); return { ...p, pessoa_id:pe.id, nome:pe.nome, funcao:pe.funcao }; }),
+      temas: [...new Set(D.pontos.map(p => p.tema).filter(Boolean))].sort() });
+  }
+  if (path.startsWith('/oo?') || path === '/oo') {
+    const rid = q.get('rodada') || D.rodadas.find(r => r.ativa)?.id || D.rodadas[0]?.id;
+    return clone({ rodada:rid, rodadas:D.rodadas, pessoas:D.pessoas, conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), hoje:h });
+  }
+  const tab = { pessoa:'pessoas', rodada:'rodadas', conversa:'conversas', ponto:'pontos', meta:'metas', acomp:'acomps' }[corpo.registro];
+  if (path === '/oo/excluir') { D[tab] = D[tab].filter(x => x.id !== String(corpo.id)); return { ok:true }; }
+  if (path === '/oo/salvar') {
+    const dados = { ...corpo }; delete dados.registro; delete dados.id;
+    ['rodada_id', 'pessoa_id', 'conversa_id'].forEach(k => { if (k in dados) dados[k] = String(dados[k]); });
+    if (corpo.registro === 'conversa' && !corpo.id) { const ex = D.conversas.find(c => c.rodada_id === dados.rodada_id && c.pessoa_id === dados.pessoa_id); if (ex) corpo.id = ex.id; }
+    if (corpo.id) { Object.assign(D[tab].find(x => x.id === String(corpo.id)), dados); return { ok:true, id:String(corpo.id) }; }
+    const id = String(++D.seq); D[tab].push({ id, fechar:{}, ativo:true, ativa:true, acao_rapida:false, status:'nao_iniciada', ...(corpo.registro === 'meta' ? { tipo:'comportamento' } : {}), ...dados }); return { ok:true, id };
+  }
+}
+
+function telaOO(){
+  const s = state.oo ||= { aba:'time', rodada:null, bloco:'empresa', anonimo:true, soAcao:false, aberto:null };
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>One-on-One</h2><span class="restrito" title="Só quem você autorizar em Pessoas e acessos vê esta tela">🔒 acesso restrito</span><span style="flex:1"></span>
+      <select id="o-rodada"></select>
+      <div class="abas">${[['time','Time'],['compilado','Compilado'],['agenda','Agenda']].map(([k, r]) => `<button data-oa="${k}" class="${s.aba === k ? 'on' : ''}">${r}</button>`).join('')}</div>
+      <button class="btn" id="o-branco" title="Folha de preparação sem nome, para imprimir">🖨 Folha em branco</button>
+      ${pode('oo', 'gerir') ? `<button class="btn" id="o-rod">+ Rodada</button><button class="btn pri" id="o-pes">+ Pessoa</button>` : ''}
+    </div>
+    <div id="oo"><div class="carregando">Carregando…</div></div>
+    <div id="gaveta" hidden></div>`;
+  document.querySelectorAll('[data-oa]').forEach(b => b.onclick = () => { s.aba = b.dataset.oa; document.querySelectorAll('[data-oa]').forEach(x => x.classList.toggle('on', x === b)); renderOO(); });
+  document.getElementById('o-rodada').onchange = e => { s.rodada = e.target.value; carregarOO(); };
+  document.getElementById('o-branco').onclick = () => imprimirHtml(folhaPreparacaoHtml(null, null));
+  const pr = document.getElementById('o-rod'); if (pr) pr.onclick = () => formSimplesOO('rodada');
+  const pp = document.getElementById('o-pes'); if (pp) pp.onclick = () => formSimplesOO('pessoa');
+  carregarOO();
+}
+async function carregarOO(){
+  const s = state.oo;
+  try {
+    state.ooDados = await apiOO('/oo' + (s.rodada ? `?rodada=${s.rodada}` : ''));
+    s.rodada = String(state.ooDados.rodada || '');
+    const $r = document.getElementById('o-rodada');
+    if ($r) $r.innerHTML = state.ooDados.rodadas.map(r => `<option value="${r.id}" ${String(r.id) === s.rodada ? 'selected' : ''}>${esc(r.nome)}</option>`).join('') || '<option>Nenhuma rodada</option>';
+    if (s.aba === 'compilado') state.ooComp = await apiOO(`/oo/compilado?rodada=${s.rodada}`);
+    renderOO();
+  } catch (e) { if (e instanceof SemSessao) throw e; const $o = document.getElementById('oo'); if ($o) $o.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function renderOO(){
+  const s = state.oo, r = state.ooDados, $o = document.getElementById('oo');
+  if (!$o || !r) return;
+  if (s.aba === 'compilado') { if (!state.ooComp || state.ooComp._rodada !== s.rodada) { apiOO(`/oo/compilado?rodada=${s.rodada}`).then(c => { state.ooComp = { ...c, _rodada:s.rodada }; renderCompiladoOO($o); }); $o.innerHTML = '<div class="carregando">Juntando os pontos…</div>'; return; } return renderCompiladoOO($o); }
+  if (s.aba === 'agenda') return renderAgendaOO($o);
+  const hoje = r.hoje || hojeBRT();
+  const linhas = r.pessoas.filter(p => p.ativo).map(p => { const c = r.conversas.find(x => String(x.pessoa_id) === String(p.id)); return { p, c, et: etapaOO(c, hoje) }; });
+  const cont = n => linhas.filter(l => l.et.n >= n).length;
+  const atrasos = linhas.filter(l => (l.c?.proximo_acomp && l.c.proximo_acomp < hoje) || (l.c?.prazo_proximo && l.c.prazo_proximo < hoje)).length;
+  $o.innerHTML = `
+    <div class="funil-oo">
+      ${[['Pessoas', linhas.length, ''], ['Folha entregue', cont(1), '1'], ['Conversa feita', cont(1.5), '1'], ['Compilado', cont(2), '2'], ['PDI definido', cont(3), '3'], ['Acompanhando', cont(4), '4']]
+        .map(([rot, n, et]) => `<div class="kpi"><div class="rot">${et ? `<span class="et-n">${et}</span>` : ''}${rot}</div><div class="val">${n}</div><div class="det">${linhas.length ? fmtP(n, linhas.length) : '–'} do time</div></div>`).join('')}
+      ${atrasos ? `<div class="kpi alerta"><div class="rot">Atrasados</div><div class="val">${atrasos}</div><div class="det">acompanhamento ou meta vencidos</div></div>` : ''}
+    </div>
+    <div class="painel"><div style="overflow-x:auto"><table class="tab-oo">
+      <thead><tr><th>Pessoa</th><th>Função</th><th>Etapa</th><th>Folha entregue</th><th>Conversa</th><th>Pontos</th><th>PDI</th><th>Próximo acompanhamento</th><th></th></tr></thead>
+      <tbody>${linhas.map(({ p, c, et }) => {
+        const prox = c?.proximo_acomp, atraso = (prox && prox < hoje) || (c?.prazo_proximo && c.prazo_proximo < hoje);
+        return `<tr data-pes="${p.id}"><td><b>${esc(p.nome)}</b></td><td>${esc(p.funcao || '')}</td><td>${pillOO(et)}</td>
+          <td>${c?.recebido_em ? dataBR(c.recebido_em) : '<span class="info">–</span>'}</td>
+          <td>${c?.conversa_em ? dataBR(c.conversa_em) + (c.conversa_em > hoje ? ' <span class="info">(agendada)</span>' : '') : '<span class="info">–</span>'}</td>
+          <td>${c ? (c.n_pontos || 0) + (c.n_visao ? ` <span class="info">+${c.n_visao} visão</span>` : '') : '<span class="info">–</span>'}</td>
+          <td>${c?.n_metas ? `${c.n_metas_ok}/${c.n_metas} metas` : '<span class="info">–</span>'}</td>
+          <td class="${atraso ? 'atraso' : ''}">${prox ? dataBR(prox) + (prox < hoje ? ' ⚠' : '') : (c?.prazo_proximo ? `<span class="info">meta até ${dataBR(c.prazo_proximo)}</span>` : '<span class="info">–</span>')}</td>
+          <td style="white-space:nowrap"><button class="btn mini imp" data-imp-prep="${p.id}" title="Folha de preparação com o nome">🖨</button></td></tr>`; }).join('')}
+      </tbody></table></div>
+      <div class="legenda"><span>Clique na pessoa para abrir as 4 etapas.</span><span>🖨 folha de preparação já com nome e função</span></div></div>`;
+  $o.querySelectorAll('[data-pes]').forEach(tr => tr.onclick = () => abrirPessoaOO(tr.dataset.pes));
+  $o.querySelectorAll('[data-imp-prep]').forEach(b => b.onclick = ev => { ev.stopPropagation(); const p = r.pessoas.find(x => String(x.id) === b.dataset.impPrep); imprimirHtml(folhaPreparacaoHtml(p, r.conversas.find(x => String(x.pessoa_id) === String(p.id)))); });
+}
+
+function renderCompiladoOO($o){
+  const s = state.oo, comp = state.ooComp, blocos = [...OO_BLOCOS, OO_VISAO];
+  const pts = comp.pontos.filter(p => p.bloco === s.bloco && (!s.soAcao || p.acao_rapida));
+  const pessoasBloco = new Set(pts.map(p => p.pessoa_id)).size;
+  const edita = pode('oo', 'editar');
+  $o.innerHTML = `
+    <div class="barra-comp">
+      <div class="abas">${blocos.map(b => `<button data-cb="${b.id}" class="${s.bloco === b.id ? 'on' : ''}">${{ lideranca:'Liderança', empresa:'Empresa', eu:'Sobre si', visao_lider:'Visão do líder' }[b.id]}</button>`).join('')}</div>
+      <label class="chk"><input type="checkbox" id="c-anon" ${s.anonimo ? 'checked' : ''}> Esconder nomes</label>
+      <label class="chk"><input type="checkbox" id="c-acao" ${s.soAcao ? 'checked' : ''}> Só ⚡ ação rápida</label>
+      <span class="info">${pts.length} ponto(s) de ${pessoasBloco} pessoa(s)</span>
+    </div>
+    <div class="leg">Agrupe os pontos parecidos dando o mesmo <b>tema</b>. O número ao lado do tema mostra quantas pessoas falaram disso: é aí que está o padrão. Marque ⚡ nos pontos fáceis de resolver logo e devolva ao time que a mudança veio da conversa.</div>
+    <div class="comp-grade">${OO_FAIXAS.map(f => {
+      const doF = pts.filter(p => p.faixa === f.id), grupos = {};
+      doF.forEach(p => (grupos[p.tema || ''] ||= []).push(p));
+      const ord = Object.entries(grupos).sort((a, b) => (!a[0]) - (!b[0]) || new Set(b[1].map(x => x.pessoa_id)).size - new Set(a[1].map(x => x.pessoa_id)).size);
+      return `<div class="comp-col" style="--c:${f.cor};--f:${f.fundo}"><div class="comp-cab">${f.rot}<small>${f.dica}</small></div>
+        ${ord.map(([tema, l]) => `<div class="comp-tema"><div class="comp-tt">${tema ? esc(tema) : '<i>Sem tema</i>'}<span>${new Set(l.map(x => x.pessoa_id)).size} pessoa(s)</span></div>
+          ${l.map(p => `<div class="comp-pt"><div>${esc(p.texto)}${s.anonimo ? '' : `<span class="info"> · ${esc(p.nome)}</span>`}</div>
+            ${edita ? `<span class="comp-ac"><input class="tema-in" data-tema="${p.id}" list="dl-temas" value="${esc(p.tema || '')}" placeholder="tema"><button class="btn mini ${p.acao_rapida ? 'raio-on' : ''}" data-raio="${p.id}" title="Ação rápida">⚡</button></span>` : (p.acao_rapida ? '⚡' : '')}</div>`).join('')}</div>`).join('') || '<div class="vazio">Nada aqui.</div>'}
+      </div>`; }).join('')}</div>
+    <datalist id="dl-temas">${(comp.temas || []).map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+  $o.querySelectorAll('[data-cb]').forEach(b => b.onclick = () => { s.bloco = b.dataset.cb; renderCompiladoOO($o); });
+  document.getElementById('c-anon').onchange = e => { s.anonimo = e.target.checked; renderCompiladoOO($o); };
+  document.getElementById('c-acao').onchange = e => { s.soAcao = e.target.checked; renderCompiladoOO($o); };
+  const salvarPt = async (id, campos) => {
+    try { await apiOO('/oo/salvar', { registro:'ponto', id, ...campos }); const p = comp.pontos.find(x => String(x.id) === String(id)); Object.assign(p, campos);
+      if (campos.tema && !comp.temas.includes(campos.tema)) comp.temas.push(campos.tema); renderCompiladoOO($o); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+  };
+  $o.querySelectorAll('[data-tema]').forEach(i => i.onchange = () => salvarPt(i.dataset.tema, { tema: i.value.trim() || null }));
+  $o.querySelectorAll('[data-raio]').forEach(b => b.onclick = () => { const p = comp.pontos.find(x => String(x.id) === b.dataset.raio); salvarPt(p.id, { acao_rapida: !p.acao_rapida }); });
+}
+
+function renderAgendaOO($o){
+  const r = state.ooDados, hoje = r.hoje || hojeBRT(), itens = [];
+  r.conversas.forEach(c => {
+    const p = r.pessoas.find(x => String(x.id) === String(c.pessoa_id)); if (!p) return;
+    if (c.conversa_em && c.conversa_em >= hoje && !c.n_pontos) itens.push({ d:c.conversa_em, p, o:'Conversa da etapa 1' });
+    if (c.proximo_acomp) itens.push({ d:c.proximo_acomp, p, o:'Acompanhamento do PDI' });
+    if (c.prazo_proximo) itens.push({ d:c.prazo_proximo, p, o:'Prazo de meta do PDI' });
+    if (c.recebido_em && !c.conversa_em) itens.push({ d:null, p, o:'Recebeu a folha e ainda não tem conversa marcada' });
+  });
+  r.pessoas.filter(p => p.ativo && !r.conversas.some(c => String(c.pessoa_id) === String(p.id))).forEach(p => itens.push({ d:null, p, o:'Ainda não recebeu a folha' }));
+  itens.sort((a, b) => (a.d || '9999').localeCompare(b.d || '9999'));
+  $o.innerHTML = `<div class="painel"><h3>O que vem pela frente</h3><div class="leg">Conversas marcadas, acompanhamentos e prazos das metas, do mais próximo ao mais distante. Vencidos em vermelho.</div>
+    ${itens.length ? `<div class="lista-col">${itens.map(i => `<div class="col-it" data-pes="${i.p.id}" style="cursor:pointer"><b class="${i.d && i.d < hoje ? 'atraso' : ''}" style="min-width:92px">${i.d ? dataBR(i.d) + (i.d < hoje ? ' ⚠' : i.d === hoje ? ' · hoje' : '') : 'sem data'}</b>
+      <div style="flex:1"><b>${esc(i.p.nome)}</b> <span class="info">${esc(i.p.funcao || '')}</span><br><span class="info">${esc(i.o)}</span></div></div>`).join('')}</div>` : '<div class="vazio">Nada agendado.</div>'}</div>`;
+  $o.querySelectorAll('[data-pes]').forEach(el => el.onclick = () => abrirPessoaOO(el.dataset.pes));
+}
+
+// ---- cadastro rápido de pessoa / rodada
+function formSimplesOO(tipo, atual){
+  const g = document.getElementById('gaveta'); g.hidden = false; document.body.classList.add('gaveta-aberta');
+  const p = atual || {};
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><h3>${tipo === 'pessoa' ? (atual ? 'Editar pessoa' : 'Nova pessoa') : 'Nova rodada'}</h3><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="gv-erro" hidden></div><div class="grade-form g2" style="margin-top:14px">
+    ${tipo === 'pessoa' ? `<label>Nome<input id="f1" value="${esc(p.nome || '')}"></label><label>Função<input id="f2" value="${esc(p.funcao || '')}" placeholder="ex.: Operacional"></label>
+      <label class="chk"><input type="checkbox" id="f3" ${p.ativo === false ? '' : 'checked'}> Ativa (aparece no time)</label>`
+    : `<label>Nome<input id="f1" placeholder="ex.: Rodada 2 · jan/2027"></label><label>Início<input id="f2" type="date" value="${hojeBRT()}"></label>`}
+    </div><div class="gv-acoes"><button class="btn pri" id="f-ok">Salvar</button></div></div></aside>`;
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  document.getElementById('gv-fechar').onclick = fechar; document.getElementById('gv-fundo').onclick = fechar;
+  document.getElementById('f-ok').onclick = async () => {
+    const v1 = document.getElementById('f1').value.trim(), v2 = document.getElementById('f2').value.trim();
+    const corpo = tipo === 'pessoa' ? { registro:tipo, id: p.id || null, nome:v1, funcao:v2 || null, ativo: document.getElementById('f3').checked } : { registro:tipo, nome:v1, inicio:v2, ativa:true };
+    try { const res = await apiOO('/oo/salvar', corpo); if (tipo === 'rodada') state.oo.rodada = String(res.id); avisar('Salvo'); fechar(); await carregarOO(); if (atual) abrirPessoaOO(p.id); }
+    catch (e) { if (e instanceof SemSessao) throw e; const el = document.getElementById('gv-erro'); el.hidden = false; el.textContent = e.message; }
+  };
+  document.getElementById('f1').focus();
+}
+
+// ---- gaveta da pessoa: as 4 etapas
+async function abrirPessoaOO(pessoaId){
+  const s = state.oo, r = state.ooDados, g = document.getElementById('gaveta');
+  const p = r.pessoas.find(x => String(x.id) === String(pessoaId)); if (!p || !g) return;
+  let d;
+  try { d = await apiOO(`/oo/conversa?rodada=${s.rodada}&pessoa=${p.id}`); }
+  catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); }
+  s.aberto = p.id;
+  const conv = d.conversa || { id:null, recebido_em:null, conversa_em:null, pdi_em:null, fechar:{}, notas:'' };
+  const edita = pode('oo', 'editar'), ro = edita ? '' : 'disabled', hoje = r.hoje || hojeBRT();
+  const rodada = r.rodadas.find(x => String(x.id) === s.rodada);
+  const faixasHtml = bloco => `<div class="fx-grade">${OO_FAIXAS.map(f => {
+    const l = d.pontos.filter(x => x.bloco === bloco && x.faixa === f.id);
+    return `<div class="fx" style="--c:${f.cor};--f:${f.fundo}"><div class="fx-cab">${f.rot}<small>${f.dica}</small></div>
+      ${l.map(x => `<div class="fx-pt"><span>${esc(x.texto)}${x.tema ? ` <em class="tema">${esc(x.tema)}</em>` : ''}${x.acao_rapida ? ' ⚡' : ''}</span>${edita ? `<button class="x" data-rmpt="${x.id}" title="Remover">×</button>` : ''}</div>`).join('')}
+      ${edita ? `<input class="fx-in" data-bloco="${bloco}" data-faixa="${f.id}" placeholder="+ escrever e Enter">` : ''}</div>`; }).join('')}</div>`;
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `
+    <div class="gv-fundo" id="gv-fundo"></div>
+    <aside class="gv gv-larga">
+      <div class="gv-cab"><div><div class="info">${esc(p.funcao || '')} · ${esc(rodada?.nome || '')}</div><h3>${esc(p.nome)}</h3></div><span style="flex:1"></span>
+        <button class="btn" id="oo-imp-prep" title="Folha de preparação com nome">🖨 Preparação</button>
+        <button class="btn" id="oo-imp-pdi" title="Folha do PDI" ${d.metas.length ? '' : 'disabled'}>🖨 PDI</button>
+        ${pode('oo', 'gerir') ? '<button class="btn" id="oo-edit-pes" title="Editar nome e função">✎</button>' : ''}
+        <button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
+      <div class="gv-corpo">
+        <div class="erro" id="gv-erro" hidden></div>
+        <div class="et-sec"><span class="et-n">1</span><div><b>Preparação</b><span class="info">Entregue a folha, converse e transcreva o que a pessoa escreveu (ou contou).</span></div></div>
+        <div class="grade-form g2"><label>Folha entregue em<input type="date" id="oo-rec" value="${conv.recebido_em || ''}" ${ro}></label><label>Conversa em<input type="date" id="oo-conv" value="${conv.conversa_em || ''}" ${ro}></label></div>
+        ${OO_BLOCOS.map((b, i) => `<div class="bl-oo"><div class="bl-cab"><span class="bl-n">${i + 1}</span><div><b>${esc(b.nome)}</b><span class="info">${esc(b.desc)}</span></div></div>${faixasHtml(b.id)}</div>`).join('')}
+        <div class="bl-oo"><div class="bl-cab"><span class="bl-n">4</span><div><b>Para fechar</b></div></div>
+          ${OO_FECHAR.map(f => `<label class="gv-lab">${esc(f.q)}<textarea data-fechar="${f.id}" rows="2" ${ro}>${esc(conv.fechar?.[f.id] || '')}</textarea></label>`).join('')}</div>
+
+        <div class="et-sec"><span class="et-n">2</span><div><b>Compilação</b><span class="info">Sua visão sobre a pessoa, para comparar com o que ela trouxe. O agrupamento do time todo fica na aba Compilado.</span></div></div>
+        <div class="bl-oo">${faixasHtml('visao_lider')}</div>
+        <label class="gv-lab">Anotações privadas<textarea id="oo-notas" rows="3" ${ro} placeholder="Só quem tem acesso ao One-on-One vê.">${esc(conv.notas || '')}</textarea></label>
+
+        <div class="et-sec"><span class="et-n">3</span><div><b>Plano de desenvolvimento (PDI)</b><span class="info">Nesta primeira rodada, 1 ou 2 metas de comportamento ou capacitação bastam. Indicador de produtividade fica no painel, não no PDI.</span></div></div>
+        <div class="grade-form g2"><label>Conversa do PDI em<input type="date" id="oo-pdi" value="${conv.pdi_em || ''}" ${ro}></label></div>
+        <div id="oo-metas"></div>
+        ${edita ? `<div class="meta-nova"><input id="m-meta" placeholder="Nova meta (o que vai mudar, de forma observável)"><select id="m-tipo">${Object.entries(OO_TIPO_META).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select><input type="date" id="m-prazo" value="${addDias(hoje, 45)}" title="Prazo"><button class="btn pri" id="m-add">Adicionar</button></div>` : ''}
+
+        <div class="et-sec"><span class="et-n">4</span><div><b>Acompanhamento</b><span class="info">Conversas periódicas sobre o PDI. Marque sempre a próxima.</span></div></div>
+        ${edita ? `<div class="meta-nova"><input type="date" id="a-data" value="${hoje}" title="Data da conversa"><input id="a-res" placeholder="Resumo do que foi conversado"><input type="date" id="a-prox" value="${addDias(hoje, 14)}" title="Próximo acompanhamento"><button class="btn pri" id="a-add">Registrar</button></div>` : ''}
+        <div class="lista-col" style="margin-top:8px">${d.acomps.map(a => `<div class="col-it"><b style="min-width:84px">${dataBR(a.data)}</b><div style="flex:1">${esc(a.resumo || '')}${a.proximo ? `<br><span class="info">próximo: ${dataBR(a.proximo)}</span>` : ''}</div>${edita ? `<button class="btn mini" data-rmac="${a.id}">×</button>` : ''}</div>`).join('') || '<div class="col-it info">Nenhum acompanhamento registrado.</div>'}</div>
+      </div>
+    </aside>
+    <datalist id="dl-temas2">${[...new Set(d.pontos.map(x => x.tema).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+  const $ = k => document.getElementById(k);
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); state.oo.aberto = null; carregarOO(); };
+  $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
+  const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
+  const garantirConversa = async () => {
+    if (conv.id) return conv.id;
+    const res = await apiOO('/oo/salvar', { registro:'conversa', rodada_id:s.rodada, pessoa_id:p.id });
+    conv.id = res.id; return conv.id;
+  };
+  const tentar = async fn => { try { erro(''); await fn(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); } };
+  const recarregar = async () => { const top = g.querySelector('.gv-corpo').scrollTop; await abrirPessoaOO(p.id); const c = g.querySelector('.gv-corpo'); if (c) c.scrollTop = top; };
+  const salvarConv = campos => tentar(async () => { const id = await garantirConversa(); await apiOO('/oo/salvar', { registro:'conversa', id, ...campos }); avisar('Salvo'); });
+  $('oo-imp-prep').onclick = () => imprimirHtml(folhaPreparacaoHtml(p, conv));
+  $('oo-imp-pdi').onclick = () => imprimirHtml(folhaPdiHtml(p, conv, d.metas, d.acomps, rodada));
+  const ep = $('oo-edit-pes'); if (ep) ep.onclick = () => formSimplesOO('pessoa', p);
+  if (!edita) return;
+  $('oo-rec').onchange = e => salvarConv({ recebido_em: e.target.value || null });
+  $('oo-conv').onchange = e => salvarConv({ conversa_em: e.target.value || null });
+  $('oo-pdi').onchange = e => salvarConv({ pdi_em: e.target.value || null });
+  $('oo-notas').onchange = e => salvarConv({ notas: e.target.value });
+  g.querySelectorAll('[data-fechar]').forEach(t => t.onchange = () => { const f = {}; g.querySelectorAll('[data-fechar]').forEach(x => f[x.dataset.fechar] = x.value); salvarConv({ fechar:f }); });
+  g.querySelectorAll('.fx-in').forEach(i => i.onkeydown = ev => {
+    if (ev.key !== 'Enter' || !i.value.trim()) return;
+    ev.preventDefault();
+    tentar(async () => { const id = await garantirConversa(); await apiOO('/oo/salvar', { registro:'ponto', conversa_id:id, bloco:i.dataset.bloco, faixa:i.dataset.faixa, texto:i.value.trim() }); await recarregar();
+      const n = g.querySelector(`.fx-in[data-bloco="${i.dataset.bloco}"][data-faixa="${i.dataset.faixa}"]`); if (n) n.focus(); });
+  });
+  g.querySelectorAll('[data-rmpt]').forEach(b => b.onclick = () => tentar(async () => { await apiOO('/oo/excluir', { registro:'ponto', id:b.dataset.rmpt }); await recarregar(); }));
+  g.querySelectorAll('[data-rmac]').forEach(b => b.onclick = () => tentar(async () => { await apiOO('/oo/excluir', { registro:'acomp', id:b.dataset.rmac }); await recarregar(); }));
+  // metas
+  $('oo-metas').innerHTML = d.metas.length ? `<table class="tab-metas"><thead><tr><th>Meta</th><th>Tipo</th><th>Como (ações)</th><th>Prazo</th><th>Situação</th><th></th></tr></thead><tbody>${d.metas.map(m => `<tr data-meta="${m.id}">
+    <td><textarea data-mc="meta" rows="2">${esc(m.meta)}</textarea></td>
+    <td><select data-mc="tipo">${Object.entries(OO_TIPO_META).map(([k, v]) => `<option value="${k}" ${m.tipo === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+    <td><textarea data-mc="acoes" rows="2" placeholder="passos combinados">${esc(m.acoes || '')}</textarea></td>
+    <td><input type="date" data-mc="prazo" value="${m.prazo || ''}" class="${m.prazo && m.prazo < hoje && !['concluida', 'cancelada'].includes(m.status) ? 'vencido' : ''}"></td>
+    <td><select data-mc="status">${Object.entries(OO_ST_META).map(([k, v]) => `<option value="${k}" ${m.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+    <td><button class="btn mini" data-rmmeta="${m.id}" title="Remover">×</button></td></tr>`).join('')}</tbody></table>` : '<div class="vazio">Nenhuma meta ainda.</div>';
+  g.querySelectorAll('[data-meta] [data-mc]').forEach(el => el.onchange = () => tentar(async () => { await apiOO('/oo/salvar', { registro:'meta', id: el.closest('tr').dataset.meta, [el.dataset.mc]: el.value || null }); avisar('Meta salva'); }));
+  g.querySelectorAll('[data-rmmeta]').forEach(b => b.onclick = () => tentar(async () => { await apiOO('/oo/excluir', { registro:'meta', id:b.dataset.rmmeta }); await recarregar(); }));
+  $('m-add').onclick = () => tentar(async () => {
+    if (!$('m-meta').value.trim()) return erro('Descreva a meta.');
+    const id = await garantirConversa();
+    await apiOO('/oo/salvar', { registro:'meta', conversa_id:id, meta:$('m-meta').value.trim(), tipo:$('m-tipo').value, prazo:$('m-prazo').value || null });
+    await recarregar();
+  });
+  $('a-add').onclick = () => tentar(async () => {
+    if (!$('a-data').value) return erro('Informe a data do acompanhamento.');
+    const id = await garantirConversa();
+    await apiOO('/oo/salvar', { registro:'acomp', conversa_id:id, data:$('a-data').value, resumo:$('a-res').value.trim() || null, proximo:$('a-prox').value || null });
+    await recarregar();
+  });
+}
+
+// ---- impressos do One-on-One (A4 retrato, layout Valenro)
+const CSS_OO = `
+  .pag{width:210mm;height:297mm;padding:9mm 11mm 7mm;display:flex;flex-direction:column;page-break-after:always;overflow:hidden}
+  .pag:last-child{page-break-after:auto}
+  .topo{border-radius:2mm 2mm 0 0}
+  .tag{display:inline-block;background:#f1c300;color:#1b2333;font-size:8.5pt;font-weight:800;letter-spacing:1.5pt;padding:1.2mm 3mm;border-radius:1mm;margin-top:5mm}
+  h1{font-size:21pt;color:#02285a;margin:2mm 0 1mm;line-height:1.1}
+  .intro{font-size:10pt;color:#566074;margin:0}
+  .ids{display:grid;grid-template-columns:1.5fr 1.2fr .8fr .8fr;gap:5mm;margin-top:5mm}
+  .ids div{font-size:8pt;font-weight:700;letter-spacing:1pt;color:#566074}
+  .ids b{display:block;border-bottom:0.45mm solid #1b2333;height:7mm;font-size:12pt;color:#1b2333;padding-top:1mm;letter-spacing:0;white-space:nowrap;overflow:hidden}
+  .como{background:#eef2f8;border-left:1.5mm solid #02285a;border-radius:1.5mm;padding:2.5mm 4mm;margin-top:5mm;font-size:9pt}
+  .como b{font-size:8.5pt;letter-spacing:1pt;color:#02285a}
+  .como ul{margin:1mm 0 0 4mm;padding:0} .como li{margin:.6mm 0}
+  .bl{margin-top:5mm;page-break-inside:avoid}
+  .bl-cab{display:flex;align-items:baseline;gap:3mm;margin-bottom:2mm}
+  .bl-cab .n{font-size:20pt;font-weight:800;color:#02285a;line-height:1}
+  .bl-cab b{font-size:13pt;color:#1b2333} .bl-cab span{display:block;font-size:8.5pt;color:#566074}
+  .fx{display:grid;grid-template-columns:31mm 1fr;border:0.45mm solid #1b2333;border-top:0}
+  .fx:first-of-type{border-top:0.45mm solid #1b2333}
+  .fx .r{padding:2mm 2.5mm;border-left:2.2mm solid var(--c);background:var(--f)}
+  .fx .r b{display:block;font-size:10pt;color:var(--c);letter-spacing:.5pt} .fx .r span{font-size:7.5pt;color:#566074;line-height:1.2;display:block;margin-top:.5mm}
+  .fx .l{padding:1mm 3mm;display:flex;flex-direction:column;justify-content:space-evenly}
+  .fx .l i{display:block;border-bottom:0.3mm solid #b9c3d3;height:7mm}
+  .q{margin-top:4mm} .q b{font-size:10pt} .q i{display:block;border-bottom:0.3mm solid #b9c3d3;height:8mm}
+  .depois{border:0.6mm solid #1b2333;border-radius:2.5mm;padding:3mm 4mm;margin-top:7mm}
+  .depois .t{font-size:8.5pt;font-weight:800;letter-spacing:1.5pt;color:#02285a}
+  .passos{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;margin-top:2.5mm}
+  .passos div{display:flex;gap:2mm;font-size:8.5pt;color:#566074;line-height:1.25} .passos b{color:#1b2333;display:block;font-size:9.5pt}
+  .passos em{flex:0 0 6mm;height:6mm;border-radius:50%;background:#02285a;color:#fff;font-style:normal;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:9pt}
+  .conf{margin-top:auto;padding-top:3mm;border-top:0.4mm solid #e2e6ed;display:flex;justify-content:space-between;font-size:7.5pt;color:#677086}
+  table.metas{width:100%;border-collapse:collapse;margin-top:3mm;font-size:10pt}
+  table.metas th{background:#02285a;color:#fff;font-size:8pt;letter-spacing:1pt;text-transform:uppercase;padding:2mm;text-align:left}
+  table.metas td{border-bottom:0.35mm solid #c9cfda;padding:2.5mm 2mm;vertical-align:top}
+  table.metas td.c{text-align:center;white-space:nowrap}
+  .tipo{font-size:7.5pt;font-weight:700;letter-spacing:.5pt;color:#566074;text-transform:uppercase;display:block;margin-top:.8mm}
+  .vazias td{height:12mm}
+  .ag{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;margin-top:3mm}
+  .ag div{border:0.45mm solid #c9cfda;border-radius:2mm;padding:2.5mm 3mm;font-size:8pt;color:#566074;min-height:16mm} .ag b{display:block;font-size:12pt;color:#1b2333;margin-top:1mm}`;
+const rodapeOO = (pag, total) => `<div class="conf"><span>Uso interno e confidencial. Suas respostas servem só para a nossa conversa individual e não são uma avaliação.</span><span>${pag}/${total}</span></div>`;
+const topoOO = () => `<div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">GRUPO VALENRO</div><div class="t2">GERÊNCIA DE OPERAÇÕES · LOGÍSTICA</div></div><span class="esp"></span><span class="st"><small>DOCUMENTO</small><b>ONE-ON-ONE</b></span></div>`;
+const faixasPapel = (linhas = 3) => OO_FAIXAS.map(f => `<div class="fx" style="--c:${f.cor};--f:${f.fundo}"><div class="r"><b>${f.rot}</b><span>${f.dica}</span></div><div class="l">${'<i></i>'.repeat(linhas)}</div></div>`).join('');
+
+function folhaPreparacaoHtml(p, conv){
+  const bloco = (b, n) => `<div class="bl"><div class="bl-cab"><span class="n">${n}</span><div><b>${esc(b.nome)}</b><span>${esc(b.desc)}</span></div></div>${faixasPapel(3)}</div>`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>One-on-One · Preparação${p ? ' · ' + esc(p.nome) : ''}</title><style>${CSS_IMPRESSO}${CSS_OO}</style></head><body>
+  <div class="pag">${topoOO()}
+    <span class="tag">ONE-ON-ONE · ETAPA 1</span>
+    <h1>Preparação para a nossa conversa</h1>
+    <p class="intro">Preencha com calma antes do nosso encontro. Não existe resposta certa ou errada: o que vale é a sua visão real do dia a dia.</p>
+    <div class="ids"><div>NOME<b>${esc(p?.nome || '')}</b></div><div>FUNÇÃO<b>${esc(p?.funcao || '')}</b></div><div>RECEBIDO EM<b>${conv?.recebido_em ? dataBR(conv.recebido_em) : ''}</b></div><div>CONVERSA EM<b>${conv?.conversa_em ? dataBR(conv.conversa_em) : ''}</b></div></div>
+    <div class="como"><b>COMO PREENCHER</b><ul>
+      <li>Até 3 pontos por quadro. Prefira fatos e exemplos do dia a dia ("quando acontece X, eu...") a opiniões gerais.</li>
+      <li>Pode escrever em tópicos, do seu jeito. Se preferir, deixe em branco e me conte pessoalmente.</li>
+      <li>Fale de atitudes e de atividades: tanto o jeito de fazer quanto o que é feito.</li></ul></div>
+    ${bloco(OO_BLOCOS[0], 1)}${bloco(OO_BLOCOS[1], 2)}
+    ${rodapeOO(1, 2)}</div>
+  <div class="pag">${topoOO()}
+    ${bloco(OO_BLOCOS[2], 3)}
+    <div class="bl"><div class="bl-cab"><span class="n">4</span><div><b>Para fechar</b><span>Responda o que fizer sentido para você.</span></div></div>
+      ${OO_FECHAR.map(f => `<div class="q"><b>${esc(f.q)}</b><i></i><i></i></div>`).join('')}</div>
+    <div class="depois"><div class="t">O QUE ACONTECE DEPOIS</div><div class="passos">
+      <div><em>1</em><span><b>Você preenche</b>esta folha antes da conversa</span></div>
+      <div><em>2</em><span><b>Conversamos</b>e eu organizo os pontos com a minha visão</span></div>
+      <div><em>3</em><span><b>Montamos juntos</b>seu plano de desenvolvimento (PDI)</span></div>
+      <div><em>4</em><span><b>Acompanhamos</b>em conversas periódicas</span></div></div></div>
+    ${rodapeOO(2, 2)}</div>
+  </body></html>`;
+}
+
+function folhaPdiHtml(p, conv, metas, acomps, rodada){
+  const ativas = (metas || []).filter(m => m.status !== 'cancelada');
+  const proximas = (acomps || []).filter(a => a.proximo).map(a => a.proximo).sort().reverse();
+  const datas = [...(acomps || []).map(a => ({ d:a.data, t:'Realizado' })), ...(proximas[0] ? [{ d:proximas[0], t:'Próximo' }] : [])].sort((a, b) => a.d.localeCompare(b.d)).slice(-4);
+  while (datas.length < 4) datas.push({ d:null, t:'Acompanhamento' });
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>PDI · ${esc(p.nome)}</title><style>${CSS_IMPRESSO}${CSS_OO}</style></head><body>
+  <div class="pag">${topoOO()}
+    <span class="tag">ONE-ON-ONE · ETAPA 3</span>
+    <h1>Plano de desenvolvimento</h1>
+    <p class="intro">O que combinamos juntos para os próximos meses. Poucas metas, claras, com prazo. Vamos acompanhar em conversas periódicas.</p>
+    <div class="ids"><div>NOME<b>${esc(p.nome)}</b></div><div>FUNÇÃO<b>${esc(p.funcao || '')}</b></div><div>RODADA<b>${esc(rodada?.nome || '')}</b></div><div>COMBINADO EM<b>${conv?.pdi_em ? dataBR(conv.pdi_em) : ''}</b></div></div>
+    <table class="metas"><thead><tr><th style="width:5%">#</th><th style="width:38%">Meta</th><th>Como vamos fazer</th><th style="width:14%">Prazo</th><th style="width:14%">Situação</th></tr></thead><tbody>
+      ${ativas.map((m, i) => `<tr><td class="c"><b>${i + 1}</b></td><td><b>${esc(m.meta)}</b><span class="tipo">${OO_TIPO_META[m.tipo] || ''}</span></td><td>${esc(m.acoes || '')}</td><td class="c">${m.prazo ? dataBR(m.prazo) : '–'}</td><td class="c">${OO_ST_META[m.status] || ''}</td></tr>`).join('')}
+      ${ativas.length < 3 ? '<tr class="vazias"><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(3 - ativas.length) : ''}
+    </tbody></table>
+    <div class="bl"><div class="bl-cab"><span class="n">4</span><div><b>Acompanhamentos</b><span>Datas das nossas conversas sobre este plano.</span></div></div>
+      <div class="ag">${datas.map(x => `<div>${x.t.toUpperCase()}<b>${x.d ? dataBR(x.d) : '____/____'}</b></div>`).join('')}</div></div>
+    <div class="bl"><div class="bl-cab"><span class="n">✎</span><div><b>Anotações</b><span>Dificuldades, apoio combinado, ajustes no plano.</span></div></div>
+      <div class="q"><i></i><i></i><i></i><i></i></div></div>
+    <div class="conf"><span>Uso interno e confidencial. Este plano é um acordo de desenvolvimento entre você e a gestão, não uma avaliação de desempenho.</span><span>Impresso em ${quando(new Date().toISOString())}</span></div>
+  </div></body></html>`;
+}
+
 /* =================== MENU LATERAL =================== */
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
     { id:'ferramentas', titulo:'Ferramentas', filhos:[
       { view:'full', titulo:'Envios Full', tela:'full' },
+      { view:'cross', titulo:'Expedição - CROSS', tela:'cross' },
     ]},
     { id:'indicadores', titulo:'Indicadores', filhos:[
       { view:'separados', titulo:'Produtividade', tela:'produtividade' },
@@ -1538,12 +2305,15 @@ const MENU = [
     ]},
   ]},
   { id:'comercial', titulo:'Comercial', tag:'Em desenvolvimento', filhos:[] },
+  { id:'gestao', titulo:'Gestão do time', filhos:[
+    { view:'oo', titulo:'One-on-One', tela:'oo' },
+  ]},
   { id:'admin', titulo:'Administração', filhos:[
     { view:'pessoas', titulo:'Pessoas e acessos', tela:'pessoas' },
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full' };
+const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo' };
 const viewLiberada = v => !TELA_DA_VIEW[v] || pode(TELA_DA_VIEW[v]);
 const PREF_KEY = 'valenro_menu';
 function lerPref(){ try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch(e) { return state._pref || {}; } }
@@ -1588,8 +2358,8 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
-  if (!viewLiberada(view)) view = ['separados', 'full', 'pessoas'].find(viewLiberada) || 'nada';
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
   clearInterval(state.timer);
@@ -1597,6 +2367,8 @@ function irPara(view){
   if (view === 'nada') { $app.innerHTML = `<div class="painel"><h3>Bem-vindo(a)</h3><p class="info">Seu acesso ainda não tem telas liberadas. Fale com a Gerência de Operações.</p></div>`; return; }
   if (view === 'pessoas') return telaPessoas();
   if (view === 'full') return telaFull();
+  if (view === 'cross') return telaCross();
+  if (view === 'oo') return telaOO();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
