@@ -291,6 +291,8 @@
   .cx-lj{font-size:12px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:6px;padding:2px 8px}
   .cx-bot{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute)} .cx-bot b{color:var(--ink)}
   .grade-form.g3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0;gap:10px} .grade-form.g3 > label{min-width:0} .grade-form.g3 input{width:100%}
+  .tab-mot tbody tr{cursor:pointer} .tab-mot tbody tr:hover td{background:#f6f8fb} .tab-mot a{color:var(--pri)}
+  .cx-bot a{color:var(--pri)}
   .pac-lojas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
   .pac{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:8px;background:var(--card)}
   .pac-in{display:flex;gap:6px} .pac-in input{flex:1;min-width:0;font:inherit;font-size:22px;font-weight:700;text-align:center;padding:6px;border:1px solid var(--line);border-radius:8px}
@@ -603,8 +605,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', motoristas:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', motoristas:'editar', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', motoristas:'editar', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -1297,7 +1299,7 @@ function folhaRostoHtml(e){
 }
 
 // Romaneio de embarque: as coletas que sobem no mesmo veículo, numa folha só, com uma assinatura do motorista
-function romaneioHtml(envios){
+function romaneioHtml(envios, emb = {}){
   const L = [...envios].sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || (a.hora_expedicao || '99').localeCompare(b.hora_expedicao || '99') || a.cnpj_id.localeCompare(b.cnpj_id) || a.pedido.localeCompare(b.pedido));
   const soma = f => L.reduce((t, e) => t + (Number(f(e)) || 0), 0);
   const algumPrev = L.some(e => PREVISTO_FULL.includes(e.status));
@@ -1341,6 +1343,7 @@ function romaneioHtml(envios){
   .emb{margin-top:6mm;border:0.6mm solid #1b2333;border-radius:3mm;padding:3mm 5mm 4mm;page-break-inside:avoid}
   .emb .rot{color:#1b2333}
   .obs{margin-top:3mm} .obs i{display:block;border-bottom:0.35mm solid #9aa3b5;height:7mm}
+  .campo i.pre{font-style:normal;font-size:13pt;font-weight:700;color:#1b2333;display:flex;align-items:flex-end;padding-bottom:1mm;white-space:nowrap;overflow:hidden}
   .ass{margin-top:16mm}
   </style></head><body><div class="pag">
     <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">ROMANEIO DE EMBARQUE</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span>
@@ -1359,9 +1362,9 @@ function romaneioHtml(envios){
     <div class="emb">
       <div class="rot">Dados do embarque</div>
       <div class="campos">
-        <div class="campo cheio"><span>TRANSPORTADORA</span><i></i></div>
-        <div class="campo"><span>PLACA</span><i></i></div>
-        <div class="campo"><span>MOTORISTA</span><i></i></div>
+        <div class="campo cheio"><span>TRANSPORTADORA</span><i class="pre">${esc(emb.transportadora || '')}</i></div>
+        <div class="campo"><span>PLACA${emb.veiculo ? ' · VEÍCULO' : ''}</span><i class="pre">${esc([emb.placa ? fmtPlaca(emb.placa) : '', emb.veiculo].filter(Boolean).join(' · '))}</i></div>
+        <div class="campo"><span>MOTORISTA${emb.telefone ? ' · TELEFONE' : ''}</span><i class="pre">${esc([emb.motorista, emb.telefone].filter(Boolean).join(' · '))}</i></div>
         <div class="campo"><span>HORÁRIO DE CHEGADA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
         <div class="campo"><span>HORÁRIO DE SAÍDA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
         <div class="campo cheio obs"><span>OBSERVAÇÕES</span><i></i><i></i></div>
@@ -1387,11 +1390,37 @@ function imprimirHtml(html){
   f.srcdoc = html;
 }
 function imprimirFolha(e){ if (e) imprimirHtml(folhaRostoHtml(e)); }
-function imprimirRomaneio(){
+async function imprimirRomaneio(){
   const s = state.full, r = state.fullDados;
   const L = r.envios.filter(e => s.sel.has(e.id));
   if (!L.length) return avisar('Selecione as coletas do veículo', true);
-  imprimirHtml(romaneioHtml(L));
+  // escolhe o motorista do cadastro (opcional): o romaneio sai com os dados preenchidos
+  let mots = [];
+  if (pode('motoristas', 'ver')) { try { mots = (await apiMot('/motoristas')).motoristas.filter(m => m.ativo); } catch (e) { if (e instanceof SemSessao) throw e; } }
+  const g = document.getElementById('gaveta'); g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">${L.length} coleta(s)</div><h3>Romaneio de embarque</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="leg" style="margin-top:12px">Se já sabe quem vai buscar, escolha o motorista e o romaneio sai preenchido. Deixe em branco para preencher à mão na doca.</div>
+    <div class="grade-form g2">
+      <label>Motorista<input id="rm-mot" list="dl-rm-mot" placeholder="buscar no cadastro" autocapitalize="characters" autocomplete="off"></label>
+      <label>Telefone<input id="rm-tel" inputmode="tel"></label>
+      <label>Transportadora<input id="rm-transp" autocapitalize="characters"></label>
+      <label>Placa<input id="rm-placa" autocapitalize="characters" maxlength="8"></label>
+      <label>Veículo<input id="rm-veic" autocapitalize="characters"></label>
+    </div>
+    ${pode('motoristas', 'editar') ? '<div class="info" style="margin-top:8px">Motorista novo? Cadastre em Logística › Cadastros › Motoristas.</div>' : ''}
+    <div class="gv-acoes"><button class="btn pri" id="rm-ok">🖨 Imprimir romaneio</button></div></div></aside>
+    <datalist id="dl-rm-mot">${mots.map(m => `<option value="${esc(m.nome)}">${esc([m.transportadora, m.placa ? fmtPlaca(m.placa) : ''].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>`;
+  const $ = k => document.getElementById(k);
+  ['rm-mot', 'rm-transp', 'rm-placa', 'rm-veic'].forEach(k => forcaCaixaAlta($(k))); mascaraTel($('rm-tel'));
+  $('rm-mot').addEventListener('change', () => { const m = mots.find(x => x.nome === caixaAltaTxt($('rm-mot').value).trim()); if (!m) return;
+    $('rm-tel').value = fmtTel(m.telefone); $('rm-transp').value = m.transportadora || ''; $('rm-placa').value = m.placa || ''; $('rm-veic').value = m.veiculo || ''; });
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
+  $('rm-ok').onclick = () => {
+    const emb = { motorista: caixaAltaTxt($('rm-mot').value).trim(), telefone: $('rm-tel').value.trim(), transportadora: caixaAltaTxt($('rm-transp').value).trim(), placa: $('rm-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), veiculo: caixaAltaTxt($('rm-veic').value).trim() };
+    imprimirHtml(romaneioHtml(L, emb)); fechar();
+  };
+  $('rm-mot').focus();
 }
 
 // ---- gaveta de edição (lateral no computador, tela cheia no celular)
@@ -1603,7 +1632,15 @@ const ordinal = n => `${n}ª`;
 const fmtPlaca = p => !p ? '' : p.length === 7 ? `${p.slice(0, 3)}-${p.slice(3)}` : p;
 const placaValida = p => /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);   // antiga (ABC1234) ou Mercosul (ABC1D23)
 const agoraHM = () => new Date(Date.now() - 3*3600e3).toISOString().slice(11, 16);
+const caixaAltaTxt = v => String(v || '').replace(/\s+/g, ' ').trimStart().toUpperCase();
+const fmtTel = t => { const d = String(t || '').replace(/\D/g, ''); return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d; };
+// máscara de telefone enquanto digita
+const mascaraTel = el => el.addEventListener('input', () => { const d = el.value.replace(/\D/g, '').slice(0, 11);
+  el.value = d.length > 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length > 6 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d.length > 2 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d; });
+// campos de nome sempre em caixa alta (sem perder a posição do cursor)
+const forcaCaixaAlta = el => el.addEventListener('input', () => { const p = el.selectionStart; el.value = el.value.toUpperCase(); try { el.setSelectionRange(p, p); } catch (_) {} });
 
+const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida' }, { id:'shein', nome:'Shein' }, { id:'ml_coleta', nome:'Mercado Livre' }, { id:'ml_flex', nome:'Flex' }, { id:'correios', nome:'Correios' }, { id:'outro', nome:'Outro' }];
 // ---- demonstração: o caderno de 23/10/2026, em memória
 const DEMO_CROSS = (() => {
   const d = hojeBRT(), ag = new Date().toISOString();
@@ -1616,11 +1653,14 @@ const DEMO_CROSS = (() => {
     ['ml_coleta', 2, '15:11', null, null, { DIGOS:6, CACAL:1 }, [], 'EZB0H99', '', '', false],
   ];
   const coletas = L.map((l, i) => ({ id:String(i + 1), data:d, canal_id:l[0], sequencia:l[1], hora_chegada:l[2], hora_corte:l[3], hora_saida:l[4], pacotes:l[5],
-    total:Object.values(l[5]).reduce((a, b) => a + b, 0), manifestos:l[6], placa:l[7] || null, veiculo:l[8] || null, motorista:l[9] || null, motorista_doc:null, observacao: l[0] === 'ml_coleta' && l[1] === 2 ? 'Alerta: motorista não aguardou conferência.' : null,
+    total:Object.values(l[5]).reduce((a, b) => a + b, 0), manifestos:l[6], placa:l[7] || null, veiculo:(l[8] || '').toUpperCase() || null, motorista:(l[9] || '').toUpperCase() || null, motorista_doc:null,
+    motorista_tel: l[9] === 'Julio Cesar' ? '11987654321' : null, motorista_id: null, responsavel: l[10] ? 'DEGMAR' : null, observacao: l[0] === 'ml_coleta' && l[1] === 2 ? 'Alerta: motorista não aguardou conferência.' : null,
     assinatura:null, assinado_em: l[10] ? ag : null, alterada_apos_assinatura:false, atualizado_em:ag, atualizado_por:'demonstracao' }));
-  return { coletas, eventos:[], seq:100 };
+  const motoristas = [];
+  coletas.forEach(c => { if (!c.motorista) return; let m = motoristas.find(x => x.nome === c.motorista);
+    if (!m) { m = { id:String(motoristas.length + 1), nome:c.motorista, telefone:c.motorista_tel, documento:null, veiculo:c.veiculo, placa:c.placa, transportadora:(CANAIS_DEMO.find(x => x.id === c.canal_id)?.nome || '').toUpperCase() || null, ativo:true }; motoristas.push(m); } c.motorista_id = m.id; });
+  return { coletas, motoristas, eventos:[], seq:100 };
 })();
-const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida' }, { id:'shein', nome:'Shein' }, { id:'ml_coleta', nome:'Mercado Livre' }, { id:'ml_flex', nome:'Flex' }, { id:'correios', nome:'Correios' }, { id:'outro', nome:'Outro' }];
 async function apiCross(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_CROSS, ag = new Date().toISOString(), ev = (coleta_id, acao, antes, depois) => D.eventos.unshift({ coleta_id, em:ag, por:'demonstracao', acao, antes, depois });
@@ -1630,14 +1670,30 @@ async function apiCross(path, corpo){
     const ini = q.get('ini'), fim = q.get('fim');
     return { ini, fim, hoje: hojeBRT(), coletas: JSON.parse(JSON.stringify(D.coletas.filter(c => c.data >= ini && c.data <= fim))).map(c => ({ ...c, assinatura: undefined })),
       canais: CANAIS_DEMO, lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
-      sugestoes: D.coletas.filter(c => c.placa).map(c => ({ placa:c.placa, motorista:c.motorista, veiculo:c.veiculo, canal_id:c.canal_id })) };
+      sugestoes: D.coletas.filter(c => c.placa).map(c => ({ placa:c.placa, motorista:c.motorista, veiculo:c.veiculo, canal_id:c.canal_id })), motoristas: JSON.parse(JSON.stringify(D.motoristas.filter(m => m.ativo))) };
+  }
+  if (path === '/motoristas') return { motoristas: D.motoristas.map(m => ({ ...m, n_cross: D.coletas.filter(c => c.motorista_id === m.id).length, ultima: D.coletas.filter(c => c.motorista_id === m.id).map(c => c.data).sort().at(-1) || null })) };
+  if (path === '/motorista') {
+    const dados = { nome: caixaAltaTxt(corpo.nome).trim(), telefone: String(corpo.telefone || '').replace(/\D/g, '') || null, documento: corpo.documento ? String(corpo.documento).toUpperCase() : null,
+      veiculo: caixaAltaTxt(corpo.veiculo).trim() || null, placa: corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null, transportadora: caixaAltaTxt(corpo.transportadora).trim() || null, ativo: corpo.ativo !== false };
+    if (!dados.nome) throw new Error('Informe o nome do motorista');
+    if (dados.telefone && (dados.telefone.length < 10 || dados.telefone.length > 11)) throw new Error('Telefone inválido: use DDD + número (10 ou 11 dígitos)');
+    const outro = dados.telefone && D.motoristas.find(m => m.telefone === dados.telefone && m.id !== corpo.id); if (outro) throw new Error(`Esse telefone já está no cadastro de ${outro.nome}`);
+    if (corpo.id) Object.assign(D.motoristas.find(m => m.id === corpo.id), dados); else D.motoristas.push({ id:String(++D.seq), ...dados });
+    return { ok:true };
   }
   if (path === '/cross/coleta') {
     const pac = Object.fromEntries(Object.entries(corpo.pacotes || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)]));
     const total = Object.values(pac).reduce((a, b) => a + b, 0);
     if (corpo.assinatura && !total) throw new Error('Informe os pacotes antes de colher a assinatura');
     if (corpo.assinatura && !corpo.motorista) throw new Error('Informe o nome do motorista antes de colher a assinatura');
-    const dados = { ...corpo, pacotes:pac, total, placa: corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null };
+    const dados = { ...corpo, pacotes:pac, total, placa: corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null,
+      motorista: caixaAltaTxt(corpo.motorista).trim() || null, veiculo: caixaAltaTxt(corpo.veiculo).trim() || null, responsavel: caixaAltaTxt(corpo.responsavel).trim() || null,
+      motorista_tel: String(corpo.motorista_tel || '').replace(/\D/g, '') || null };
+    if (dados.motorista) { let m = (dados.motorista_tel && D.motoristas.find(x => x.telefone === dados.motorista_tel)) || D.motoristas.find(x => x.nome === dados.motorista);
+      if (!m) { m = { id:String(++D.seq), nome:dados.motorista, ativo:true }; D.motoristas.push(m); }
+      ['telefone', 'documento', 'veiculo', 'placa'].forEach(k => { const v = { telefone:dados.motorista_tel, documento:dados.motorista_doc, veiculo:dados.veiculo, placa:dados.placa }[k]; if (v) m[k] = v; });
+      dados.motorista_id = m.id; }
     let c = corpo.id ? D.coletas.find(x => x.id === corpo.id) : null;
     if (!c) { c = { id:String(++D.seq), sequencia: dados.sequencia || (Math.max(0, ...D.coletas.filter(x => x.data === dados.data && x.canal_id === dados.canal_id).map(x => x.sequencia)) + 1) }; D.coletas.push(c); ev(c.id, 'coleta.criar', null, dados); }
     else ev(c.id, 'coleta.alterar', { total:c.total }, { total });
@@ -1671,6 +1727,69 @@ function telaCross(){
   const nv = document.getElementById('x-nova'); if (nv) nv.onclick = () => abrirCross(null);
   carregarCross();
 }
+
+/* =================== CADASTRO DE MOTORISTAS (CROSS e Full) =================== */
+const apiMot = (path, corpo) => DEMO ? apiCross(path, corpo) : api(path, corpo ? { metodo:'POST', corpo } : {});
+function telaMotoristas(){
+  const s = state.mot ||= { busca:'' };
+  $app.innerHTML = `
+    <div class="barra"><h2>Motoristas</h2><span class="info">cadastro único da Logística · CROSS e Full</span><span style="flex:1"></span>
+      <input id="m-busca" class="campo" placeholder="Buscar nome, placa, telefone ou transportadora" value="${esc(s.busca)}" style="width:300px">
+      <button class="btn" id="m-atualizar">Atualizar</button>${pode('motoristas', 'editar') ? '<button class="btn pri" id="m-novo">+ Motorista</button>' : ''}</div>
+    <div id="mot"><div class="carregando">Carregando…</div></div>
+    <div id="gaveta" hidden></div>`;
+  const $b = document.getElementById('m-busca'); $b.oninput = () => { s.busca = $b.value; renderMotoristas(); };
+  document.getElementById('m-atualizar').onclick = () => carregarMotoristas();
+  const nv = document.getElementById('m-novo'); if (nv) nv.onclick = () => abrirMotorista(null);
+  carregarMotoristas();
+}
+async function carregarMotoristas(){
+  const $c = document.getElementById('mot'); if (!$c) return;
+  try { state.motoristas = (await apiMot('/motoristas')).motoristas; renderMotoristas(); }
+  catch (e) { if (e instanceof SemSessao) throw e; $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function renderMotoristas(){
+  const s = state.mot, $c = document.getElementById('mot'), lista = state.motoristas || [], edita = pode('motoristas', 'editar');
+  if (!$c) return;
+  const t = s.busca.trim().toUpperCase(), td = t.replace(/\D/g, ''), tp = t.replace(/[^A-Z0-9]/g, '');
+  const vis = lista.filter(m => !t || m.nome.includes(t) || (m.transportadora || '').includes(t) || (tp && (m.placa || '').includes(tp)) || (td.length >= 3 && (m.telefone || '').includes(td)));
+  $c.innerHTML = `<div class="painel">
+    <div class="leg">Motorista novo também entra sozinho quando é digitado numa coleta do CROSS. Aqui você corrige nome, telefone, veículo, placa e transportadora, ou desativa quem não vem mais (some das sugestões, o histórico fica). As coletas antigas guardam os dados do dia em que aconteceram.</div>
+    <div class="info" style="margin-bottom:6px">${lista.filter(m => m.ativo).length} ativo(s)${t ? ` · ${vis.length} encontrado(s)` : ''}</div>
+    <div style="overflow-x:auto"><table class="tab-mot"><thead><tr><th>Nome</th><th>Telefone</th><th>Transportadora</th><th>Veículo</th><th>Placa</th><th class="n">Coletas CROSS</th><th>Última</th><th>Situação</th></tr></thead><tbody>
+    ${vis.map(m => `<tr data-mot="${m.id}" class="${m.ativo ? '' : 'inativo'}"><td><b>${esc(m.nome)}</b></td><td>${m.telefone ? `<a href="tel:${m.telefone}" onclick="event.stopPropagation()">${fmtTel(m.telefone)}</a>` : '<span class="info">–</span>'}</td>
+      <td>${esc(m.transportadora || '') || '<span class="info">–</span>'}</td><td>${esc(m.veiculo || '') || '<span class="info">–</span>'}</td><td>${m.placa ? esc(fmtPlaca(m.placa)) : '<span class="info">–</span>'}</td>
+      <td class="n">${fmtN(m.n_cross || 0)}</td><td>${m.ultima ? dataBR(m.ultima) : '<span class="info">–</span>'}</td><td>${m.ativo ? 'Ativo' : 'Inativo'}</td></tr>`).join('') || '<tr><td colspan="8" class="vazio">Nenhum motorista encontrado.</td></tr>'}
+    </tbody></table></div></div>`;
+  if (edita) $c.querySelectorAll('[data-mot]').forEach(tr => tr.onclick = () => abrirMotorista(lista.find(m => String(m.id) === tr.dataset.mot)));
+}
+function abrirMotorista(m){
+  const g = document.getElementById('gaveta'); m ||= { nome:'', ativo:true };
+  const transp = [...new Set([...(state.motoristas || []).map(x => x.transportadora).filter(Boolean), ...CANAIS_DEMO.filter(c => c.id !== 'outro').map(c => c.nome.toUpperCase())])].sort();
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">Cadastro de motoristas</div><h3>${m.id ? esc(m.nome) : 'Novo motorista'}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="gv-erro" hidden></div><div class="grade-form g2" style="margin-top:14px">
+      <label>Nome<input id="mo-nome" value="${esc(m.nome || '')}" autocapitalize="characters" placeholder="NOME E SOBRENOME"></label>
+      <label>Telefone<input id="mo-tel" value="${esc(fmtTel(m.telefone))}" inputmode="tel" placeholder="(11) 91234-5678"></label>
+      <label>Transportadora<input id="mo-transp" list="dl-transp" value="${esc(m.transportadora || '')}" autocapitalize="characters" placeholder="EX.: SHOPEE, MERCADO LIVRE, JADLOG"></label>
+      <label>Veículo<input id="mo-veic" value="${esc(m.veiculo || '')}" autocapitalize="characters" placeholder="EX.: FIORINO, VUC"></label>
+      <label>Placa<input id="mo-placa" value="${esc(m.placa || '')}" autocapitalize="characters" maxlength="8" placeholder="ABC1D23"></label>
+      <label>Documento (opcional)<input id="mo-doc" value="${esc(m.documento || '')}" placeholder="RG / CNH"></label>
+      <label class="chk"><input type="checkbox" id="mo-ativo" ${m.ativo === false ? '' : 'checked'}> Ativo (aparece nas sugestões)</label>
+    </div><div class="gv-acoes"><button class="btn pri" id="mo-ok">Salvar</button></div></div></aside>
+    <datalist id="dl-transp">${transp.map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+  const $ = k => document.getElementById(k);
+  ['mo-nome', 'mo-veic', 'mo-placa', 'mo-transp'].forEach(k => forcaCaixaAlta($(k))); mascaraTel($('mo-tel'));
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
+  $('mo-ok').onclick = async () => {
+    try { await apiMot('/motorista', { id: m.id || null, nome:$('mo-nome').value, telefone:$('mo-tel').value, transportadora:$('mo-transp').value, veiculo:$('mo-veic').value, placa:$('mo-placa').value, documento:$('mo-doc').value.trim() || null, ativo:$('mo-ativo').checked });
+      avisar('Motorista salvo'); fechar(); carregarMotoristas(); }
+    catch (e) { if (e instanceof SemSessao) throw e; const el = $('gv-erro'); el.hidden = false; el.textContent = e.message; }
+  };
+  $('mo-nome').focus();
+}
+
 async function carregarCross(){
   const s = state.cross;
   try { state.crossDados = await apiCross(`/cross?ini=${s.data}&fim=${s.data}`); renderCross(); }
@@ -1708,7 +1827,7 @@ function renderCross(){
         <div class="cx-pac"><span class="cx-tot">${fmtN(pacLoja(c))}<small>pacotes</small></span>
           <span class="cx-lojas">${ORDEM_LOJAS.filter(k => c.pacotes?.[k]).map(k => `<span class="cx-lj" style="--c:${LOJAS[k]?.borda || corLoja(k)}">${esc(nomeLoja(k))} <b>${fmtN(c.pacotes[k])}</b></span>`).join('')}</span></div>
         <div class="cx-bot">${c.placa ? `<span>🚚 <b>${esc(fmtPlaca(c.placa))}</b>${c.veiculo ? ' · ' + esc(c.veiculo) : ''}</span>` : (c.veiculo ? `<span>🚚 ${esc(c.veiculo)}</span>` : '<span class="info">sem placa</span>')}
-          ${c.motorista ? `<span>👤 ${esc(c.motorista)}</span>` : ''}${c.manifestos?.length ? `<span>📄 ${c.manifestos.map(esc).join(', ')}</span>` : ''}${c.observacao ? `<span title="${esc(c.observacao)}">💬</span>` : ''}</div>
+          ${c.motorista ? `<span>👤 ${esc(c.motorista)}${c.motorista_tel ? ` · <a href="tel:${c.motorista_tel}" onclick="event.stopPropagation()">${fmtTel(c.motorista_tel)}</a>` : ''}</span>` : ''}${c.responsavel ? `<span title="Responsável da Valenro">🧾 ${esc(c.responsavel)}</span>` : ''}${c.manifestos?.length ? `<span>📄 ${c.manifestos.map(esc).join(', ')}</span>` : ''}${c.observacao ? `<span title="${esc(c.observacao)}">💬</span>` : ''}</div>
       </div>`; }).join('')}</div>`}`;
   $c.querySelectorAll('[data-cn]').forEach(b => b.onclick = () => { s.canal = s.canal === b.dataset.cn ? 'todos' : b.dataset.cn; renderCross(); });
   const lp = document.getElementById('x-limpa'); if (lp) lp.onclick = () => { s.canal = 'todos'; renderCross(); };
@@ -1741,7 +1860,8 @@ async function abrirCross(id){
   if (id) {
     try { ({ coleta: c, eventos } = await apiCross(`/cross/coleta?id=${id}`)); }
     catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); }
-  } else c = { data: s.data, canal_id:'', sequencia:null, hora_chegada: s.data === hojeBRT() ? agoraHM() : '', hora_corte:'', hora_saida:'', pacotes:{}, manifestos:[], placa:'', veiculo:'', motorista:'', motorista_doc:'', observacao:'' };
+  } else c = { data: s.data, canal_id:'', sequencia:null, hora_chegada: s.data === hojeBRT() ? agoraHM() : '', hora_corte:'', hora_saida:'', pacotes:{}, manifestos:[], placa:'', veiculo:'', motorista:'', motorista_doc:'', observacao:'',
+    motorista_tel:'', motorista_id:null, responsavel: caixaAltaTxt(state.usuario?.nome || '') };
   const novo = !id, gerir = pode('cross', 'gerir'), editar = pode('cross', 'editar');
   const assinada = !!c.assinado_em, pode_ = editar && (!assinada || gerir), ro = pode_ ? '' : 'disabled';
   s.aberto = id;
@@ -1772,12 +1892,14 @@ async function abrirCross(id){
         <div class="gv-sec">ID / manifesto da coleta</div>
         <span class="chips" id="cx-chips"></span>
         <span class="linha-hora"><input id="cx-man" class="campo" placeholder="digite e toque em Adicionar" autocapitalize="characters" ${ro}><button type="button" class="btn mini" id="cx-man-add" ${ro}>Adicionar</button></span>
-        <div class="gv-sec">Veículo e motorista</div>
+        <div class="gv-sec">Motorista e veículo <span class="info">escolha da lista ou digite um novo: ele entra no cadastro</span></div>
         <div class="grade-form g2">
+          <label>Motorista<input id="cx-mot" list="dl-mot" value="${esc(c.motorista || '')}" placeholder="NOME DE QUEM RETIROU" autocapitalize="characters" autocomplete="off" ${ro}><span class="info" id="cx-mot-dica"></span></label>
+          <label>Telefone do motorista<input id="cx-tel" value="${esc(fmtTel(c.motorista_tel))}" inputmode="tel" placeholder="(11) 91234-5678" ${ro}></label>
           <label>Placa<input id="cx-placa" list="dl-placas" value="${esc(c.placa || '')}" placeholder="ABC1D23" autocapitalize="characters" maxlength="8" ${ro}><span class="info" id="cx-placa-dica"></span></label>
-          <label>Veículo<input id="cx-veic" value="${esc(c.veiculo || '')}" placeholder="ex.: Fox, Fiorino, VUC" ${ro}></label>
-          <label>Motorista<input id="cx-mot" value="${esc(c.motorista || '')}" placeholder="nome de quem retirou" ${ro}></label>
+          <label>Veículo<input id="cx-veic" value="${esc(c.veiculo || '')}" placeholder="EX.: FOX, FIORINO, VUC" autocapitalize="characters" ${ro}></label>
           <label>Documento (opcional)<input id="cx-doc" value="${esc(c.motorista_doc || '')}" placeholder="RG / CNH" ${ro}></label>
+          <label>Responsável pela expedição<input id="cx-resp" value="${esc(c.responsavel || '')}" placeholder="QUEM ACOMPANHOU NA DOCA" autocapitalize="characters" ${ro}></label>
         </div>
         <label class="gv-lab">Observação<textarea id="cx-obs" rows="2" maxlength="500" ${ro}>${esc(c.observacao || '')}</textarea></label>
         <div class="gv-sec">Assinatura do motorista</div>
@@ -1787,6 +1909,7 @@ async function abrirCross(id){
           ${gerir ? `<div style="margin-top:20px"><button class="btn perigo" id="cx-excluir">Excluir coleta</button> <span class="info">Para coleta lançada por engano.</span></div>` : ''}`}
       </div>
     </aside>
+    <datalist id="dl-mot">${(r.motoristas || []).map(m => `<option value="${esc(m.nome)}">${esc([m.telefone ? fmtTel(m.telefone) : '', m.veiculo, m.placa ? fmtPlaca(m.placa) : ''].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>
     <datalist id="dl-placas">${(r.sugestoes || []).map(x => `<option value="${esc(x.placa)}">${esc([x.motorista, x.veiculo].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>`;
 
   const $ = k => document.getElementById(k);
@@ -1805,11 +1928,21 @@ async function abrirCross(id){
     $('cx-chips').querySelectorAll('[data-rmm]').forEach(b => b.onclick = () => { man.splice(+b.dataset.rmm, 1); sujo = true; chips(); }); };
   const addMan = () => { const v = $('cx-man').value.trim().toUpperCase(); if (v && !man.includes(v)) { man.push(v); sujo = true; } $('cx-man').value = ''; chips(); };
   $('cx-man-add').onclick = addMan; $('cx-man').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); addMan(); } }; chips();
+  // motorista: caixa alta, e ao escolher um cadastrado preenche o resto (sem apagar o que já foi digitado)
+  let motoristaId = c.motorista_id || null;
+  ['cx-mot', 'cx-veic', 'cx-resp', 'cx-placa'].forEach(k => forcaCaixaAlta($(k))); mascaraTel($('cx-tel'));
+  const achaMot = () => { const n = caixaAltaTxt($('cx-mot').value).trim(); const m = (r.motoristas || []).find(x => x.nome === n);
+    motoristaId = m ? m.id : null; $('cx-mot-dica').textContent = n && !m ? 'Motorista novo: será cadastrado ao salvar.' : '';
+    if (m) { if (!$('cx-tel').value && m.telefone) $('cx-tel').value = fmtTel(m.telefone); if (!$('cx-veic').value && m.veiculo) $('cx-veic').value = m.veiculo;
+      if (!$('cx-placa').value && m.placa) $('cx-placa').value = m.placa; if (!$('cx-doc').value && m.documento) $('cx-doc').value = m.documento; dicaPlaca(); } };
+  $('cx-mot').addEventListener('change', achaMot);
   const dicaPlaca = () => { const p = $('cx-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); $('cx-placa-dica').textContent = p && !placaValida(p) ? 'Confira: placa fora do padrão (ABC1234 ou ABC1D23)' : ''; };
   $('cx-placa').addEventListener('input', () => {
     dicaPlaca();
     const p = $('cx-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), sug = (r.sugestoes || []).find(x => x.placa === p);
-    if (sug) { if (!$('cx-mot').value && sug.motorista) $('cx-mot').value = sug.motorista; if (!$('cx-veic').value && sug.veiculo) $('cx-veic').value = sug.veiculo; }
+    const mp = (r.motoristas || []).find(x => x.placa === p);
+    if (mp && !$('cx-mot').value) { $('cx-mot').value = mp.nome; achaMot(); }
+    else if (sug) { if (!$('cx-mot').value && sug.motorista) { $('cx-mot').value = sug.motorista; achaMot(); } if (!$('cx-veic').value && sug.veiculo) $('cx-veic').value = sug.veiculo; }
   }); dicaPlaca();
 
   // assinatura
@@ -1840,10 +1973,12 @@ async function abrirCross(id){
     if ($('cx-man').value.trim()) addMan();
     const corpo = { id: c.id || null, versao: c.atualizado_em || null, data: $('cx-data').value, canal_id: canal, sequencia: $('cx-seq').value.trim() || null,
       hora_chegada: $('cx-cheg').value || null, hora_corte: $('cx-corte').value || null, hora_saida: $('cx-saida').value || null, pacotes, manifestos: man,
-      placa: $('cx-placa').value.trim() || null, veiculo: $('cx-veic').value.trim() || null, motorista: $('cx-mot').value.trim() || null, motorista_doc: $('cx-doc').value.trim() || null,
+      placa: $('cx-placa').value.trim() || null, veiculo: caixaAltaTxt($('cx-veic').value).trim() || null, motorista: caixaAltaTxt($('cx-mot').value).trim() || null, motorista_doc: $('cx-doc').value.trim() || null,
+      motorista_tel: $('cx-tel').value.replace(/\D/g, '') || null, motorista_id: motoristaId, responsavel: caixaAltaTxt($('cx-resp').value).trim() || null,
       observacao: $('cx-obs').value.trim() || null, assinatura: pad && pad.temTinta() ? pad.png() : null };
     if (corpo.assinatura && !Object.values(pacotes).some(Boolean)) return erro('Informe os pacotes antes de colher a assinatura.');
     if (corpo.assinatura && !corpo.motorista) return erro('Informe o nome do motorista antes de colher a assinatura.');
+    if (corpo.motorista_tel && (corpo.motorista_tel.length < 10 || corpo.motorista_tel.length > 11)) return erro('Telefone do motorista: use DDD + número.');
     sv.disabled = true; sv.textContent = 'Salvando…'; erro('');
     try {
       const res = await apiCross('/cross/coleta', corpo);
@@ -2485,6 +2620,9 @@ const MENU = [
       { view:'full', titulo:'Envios Full', tela:'full' },
       { view:'cross', titulo:'Expedição - CROSS', tela:'cross' },
     ]},
+    { id:'cadastros', titulo:'Cadastros', filhos:[
+      { view:'motoristas', titulo:'Motoristas', tela:'motoristas' },
+    ]},
     { id:'indicadores', titulo:'Indicadores', filhos:[
       { view:'separados', titulo:'Produtividade', tela:'produtividade' },
       { view:'volume',    titulo:'Volume de Pedidos', soDemo:true },
@@ -2499,7 +2637,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo' };
+const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -2546,7 +2684,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -2557,6 +2695,7 @@ function irPara(view){
   if (view === 'full') return telaFull();
   if (view === 'cross') return telaCross();
   if (view === 'oo') return telaOO();
+  if (view === 'motoristas') return telaMotoristas();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
