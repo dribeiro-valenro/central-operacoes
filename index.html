@@ -207,7 +207,22 @@
   @media (max-width:560px){ .barra-sel{padding:10px 14px} .barra-sel .btn.pri{flex:1} }
   .chip-rom{font:inherit;font-size:11px;font-weight:700;color:#0b4fa8;background:#e3eefc;border:1px solid #b9d0f2;border-radius:20px;padding:1px 7px;margin-left:6px;cursor:pointer;white-space:nowrap}
   .chip-rom:hover{background:#d2e3fa}
-  .foto-bts{display:flex;gap:8px;flex-wrap:wrap} .foto-bt{cursor:pointer;font-weight:600}
+  .foto-bts{display:flex;gap:8px;flex-wrap:wrap} .foto-bt{cursor:pointer;font-weight:600;border-radius:8px 0 0 8px} .foto-par{display:inline-flex} .foto-gal{cursor:pointer;border-radius:0 8px 8px 0;border-left:0;padding-left:10px;padding-right:10px}
+  .rc-dois{display:flex;gap:18px;align-items:flex-end;margin:2px 0} .rc-dois div{display:flex;flex-direction:column} .rc-dois b{font-size:24px;line-height:1.1} .rc-dois small{font-size:11px;color:var(--mute)}
+  .rc-tot{background:#f3f6fb}
+  .grade-form .lab{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)}
+  .ab-graf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px} @media (max-width:900px){ .ab-graf{grid-template-columns:1fr} }
+  .ab-h{margin:0 0 8px;font-size:14px}
+  .ab-bar{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:12.5px;padding:3px 0} .ab-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .ab-bar i{display:block;height:9px;border-radius:5px;background:var(--pri)} .ab-bar b{text-align:right}
+  .tab-ab{font-size:12.5px} .tab-ab th,.tab-ab td{padding-left:6px;padding-right:6px}
+  .tab-ab tr.pend td{background:#fffbea} .ab-card{display:flex;flex-direction:column;gap:3px}
+  .rc-filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .cn-f{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;cursor:pointer;color:var(--ink)} .cn-f.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+  .rc-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .rc-graf{display:block;max-width:none}
+  .rc-tab th,.rc-tab td{padding-left:7px;padding-right:7px}
+  .rc-tabs{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start} @media (max-width:1000px){ .rc-tabs{grid-template-columns:1fr} }
+  .rc-tab tr.zero td{color:var(--mute)} .rc-tab tfoot td{font-weight:700;background:#eef2f8;border-top:2px solid var(--pri)} .rc-tab tbody tr{cursor:default}
   .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
   .foto{position:relative;margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
   .foto img{display:block;width:100%;height:96px;object-fit:cover;cursor:zoom-in;background:#eef0f4}
@@ -645,8 +660,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', motoristas:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', motoristas:'editar', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', motoristas:'editar', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -1445,6 +1460,7 @@ function romaneioHtml(envios, emb = {}, rom = null){
       <div class="campos">
         <div class="campo"><span>TRANSPORTADORA</span><i class="pre">${esc(emb.transportadora || '')}</i></div>
         <div class="campo"><span>Nº DA COLETA ML</span><i class="pre">${esc(emb.ml_coleta || '')}</i></div>
+        <div class="campo cheio"><span>Nº DO LACRE</span><i class="pre">${esc(emb.lacre || '')}</i></div>
         <div class="campo"><span>PLACA${emb.veiculo ? ' · VEÍCULO' : ''}</span><i class="pre">${esc([emb.placa ? fmtPlaca(emb.placa) : '', emb.veiculo].filter(Boolean).join(' · '))}</i></div>
         <div class="campo"><span>MOTORISTA${emb.telefone ? ' · TELEFONE' : ''}</span><i class="pre">${esc([emb.motorista, emb.telefone].filter(Boolean).join(' · '))}</i></div>
         <div class="campo"><span>HORÁRIO DE CHEGADA</span>${rom?.chegada_em ? `<div class="horas pre"><em>DATA</em>${dataBR(isoLocal(rom.chegada_em).slice(0, 10)).slice(0, 5)} · ${soHora(rom.chegada_em)}</div>` : '<div class="horas"><em>DATA ____/____</em>____ : ____</div>'}</div>
@@ -1512,7 +1528,7 @@ function apiRomDemo(path, corpo){
     const rs = R.romaneios.filter(r => (r.data >= de && r.data <= ate) || ['aberto', 'carregando'].includes(r.status)).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id);
     const ids = new Set(rs.flatMap(r => r.envio_ids));
     return { ini:de, fim:ate, hoje:hojeBRT(), romaneios:copia(rs).map(r => ({ ...r, doca_min:docaMin(r) })), envios:copia(D.envios.filter(e => ids.has(e.id))), carregamentos:copia(R.carregamentos.filter(c => rs.some(r => r.id === c.romaneio_id))),
-      motoristas:copia(DEMO_CROSS.motoristas.filter(m => m.ativo)) };
+      motoristas:copia(DEMO_CROSS.motoristas.filter(m => m.ativo)), responsaveis:['ARTHUR MAGDALENO', 'DAVI DUARTE', 'DEGMAR GOMES', 'DOUGLAS RIBEIRO', 'GUILHERME PORTO'] };
   }
   if (path.startsWith('/full/romaneio/historico')) return { eventos: R.eventos.filter(e => e.romaneio_id === q.get('id')) };
   if (path === '/full/romaneio') {
@@ -1522,7 +1538,7 @@ function apiRomDemo(path, corpo){
     if (outros.length) throw new Error('Já estão em outro romaneio: ' + outros.map(e => `${e.pedido} (${nRom(e.romaneio_id)})`).join(', '));
     const canc = ids.map(i => D.envios.find(e => e.id === i)).filter(e => e.status === 'cancelado');
     if (canc.length) throw new Error('Coleta cancelada não entra em romaneio: ' + canc.map(e => e.pedido).join(', '));
-    const cab = { data:corpo.data, ml_coleta:(corpo.ml_coleta || '').replace(/\s+/g, '').toUpperCase() || null, motorista:caixaAltaTxt(corpo.motorista || '').trim() || null, motorista_tel:String(corpo.motorista_tel || '').replace(/\D/g, '') || null,
+    const cab = { data:corpo.data, lacre:(corpo.lacre || '').trim().toUpperCase() || null, ml_coleta:(corpo.ml_coleta || '').replace(/\s+/g, '').toUpperCase() || null, motorista:caixaAltaTxt(corpo.motorista || '').trim() || null, motorista_tel:String(corpo.motorista_tel || '').replace(/\D/g, '') || null,
       transportadora:caixaAltaTxt(corpo.transportadora || '').trim() || null, placa:corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null,
       veiculo:caixaAltaTxt(corpo.veiculo || '').trim() || null, responsavel:caixaAltaTxt(corpo.responsavel || '').trim() || null, observacao:corpo.observacao || null };
     let m = cab.motorista ? DEMO_CROSS.motoristas.find(x => x.nome === cab.motorista) : null;
@@ -1618,7 +1634,7 @@ function renderRomaneios(){
   const t = (s.romBusca || '').trim().toUpperCase(), tp = t.replace(/[^A-Z0-9]/g, ''), td = t.replace(/\D/g, '');
   const soma = (l, f) => l.reduce((x, e) => x + (Number(f(e)) || 0), 0);
   const base = d.romaneios.filter(r => !t || (r.motorista || '').includes(t) || (r.transportadora || '').includes(t) || (tp.length >= 3 && (r.placa || '').includes(tp))
-    || nRom(r.id).includes(t) || (tp.length >= 3 && (r.ml_coleta || '').includes(tp)) || (td.length >= 3 && enviosDoRom(r).some(e => e.pedido.includes(td))));
+    || nRom(r.id).includes(t) || (tp.length >= 3 && (r.ml_coleta || '').includes(tp)) || (tp.length >= 3 && (r.lacre || '').replace(/[^A-Z0-9]/g, '').includes(tp)) || (td.length >= 3 && enviosDoRom(r).some(e => e.pedido.includes(td))));
   const lista = base.filter(r => s.romAba === 'todos' ? true : s.romAba === 'abertos' ? ['aberto', 'carregando'].includes(r.status) : r.status === 'expedido');
   const saidos = base.filter(r => r.status === 'expedido'), docas = saidos.map(docaMin).filter(x => x !== null);
   const media = docas.length ? docas.reduce((a, b) => a + b, 0) / docas.length : null;
@@ -1642,7 +1658,7 @@ function renderRomaneios(){
     <div class="painel"><div style="overflow-x:auto"><table class="tab-full tab-rom">
       <thead><tr><th>Nº</th><th>Embarque</th><th>Status</th><th style="text-align:left">Motorista</th><th>Transportadora</th><th>Placa</th><th>Coletas</th><th>Pares</th><th>Caixas</th><th>m³</th><th>Chegada</th><th>Saída</th><th>Doca</th></tr></thead>
       <tbody>${L.map(({ r, es, dm, pares, cx, m3 }) => `<tr data-rom="${r.id}" class="${s.romAberto === r.id ? 'sel' : ''} ${r.status === 'cancelado' ? 'canc' : ''}">
-        <td><b>${nRom(r.id)}</b>${r.ml_coleta ? `<div class="info" style="font-size:11px" title="Nº da coleta no Mercado Livre">ML ${esc(r.ml_coleta)}</div>` : ''}</td><td>${dataBR(r.data).slice(0, 5)}</td><td>${pillRom(r.status)}</td>
+        <td><b>${nRom(r.id)}</b>${r.ml_coleta ? `<div class="info" style="font-size:11px" title="Nº da coleta no Mercado Livre">ML ${esc(r.ml_coleta)}</div>` : ''}${r.lacre ? `<div class="info" style="font-size:11px" title="Lacre">🔒 ${esc(r.lacre)}</div>` : ''}</td><td>${dataBR(r.data).slice(0, 5)}</td><td>${pillRom(r.status)}</td>
         <td style="text-align:left">${esc(r.motorista || '') || '<span class="info">a definir</span>'}</td><td>${esc(r.transportadora || '') || '<span class="info">–</span>'}</td><td>${r.placa ? esc(fmtPlaca(r.placa)) : '<span class="info">–</span>'}</td>
         <td title="${esc(es.map(e => '#' + e.pedido).join(' '))}">${r.envio_ids.length}</td><td>${fmtN(pares)}</td><td>${fmtN(cx)}</td><td>${fmtM3(m3)}</td>
         <td>${hora(r.chegada_em)}</td><td>${hora(r.saida_em)}</td><td>${dm === null ? '<span class="info">–</span>' : `<b>${fmtDur(dm)}</b>`}</td></tr>`).join('')}
@@ -1661,16 +1677,18 @@ function camposEmbarque(r, mots, ed){
   const dis = ed ? '' : 'disabled';
   return `<div class="grade-form g2">
       <label>Data do embarque<input id="rm-data" type="date" value="${esc(r.data || hojeBRT())}" ${dis}></label>
+      <label>Nº do lacre <span class="info">(se tiver mais de um, separe por vírgula)</span><input id="rm-lacre" autocapitalize="characters" autocomplete="off" value="${esc(r.lacre || '')}" placeholder="ex.: 0012345" ${dis}></label>
       <label>Nº da coleta ML <span class="info">(agendamento no Mercado Livre)</span><input id="rm-ml" autocapitalize="characters" autocomplete="off" value="${esc(r.ml_coleta || '')}" placeholder="opcional" ${dis}></label>
       <label>Motorista<input id="rm-mot" list="dl-rm-mot" placeholder="buscar no cadastro" autocapitalize="characters" autocomplete="off" value="${esc(r.motorista || '')}" ${dis}></label>
       <label>Telefone<input id="rm-tel" inputmode="tel" value="${esc(r.motorista_tel ? fmtTel(r.motorista_tel) : '')}" ${dis}></label>
       <label>Transportadora<input id="rm-transp" list="dl-rm-transp" autocapitalize="characters" value="${esc(r.transportadora || '')}" ${dis}></label>
       <label>Placa<input id="rm-placa" autocapitalize="characters" maxlength="8" value="${esc(r.placa ? fmtPlaca(r.placa) : '')}" ${dis}></label>
       <label>Veículo<input id="rm-veic" autocapitalize="characters" value="${esc(r.veiculo || '')}" ${dis}></label>
-      <label>Responsável Valenro<input id="rm-resp" autocapitalize="characters" value="${esc(r.responsavel ?? caixaAltaTxt(state.usuario?.nome || ''))}" ${dis}></label>
+      <label>Responsável Valenro<input id="rm-resp" list="dl-rm-resp" autocomplete="off" placeholder="digite as iniciais" autocapitalize="characters" value="${esc(r.responsavel ?? caixaAltaTxt(state.usuario?.nome || ''))}" ${dis}></label>
     </div>
     <label class="gv-lab">Observação<textarea id="rm-obs" rows="2" maxlength="500" ${dis}>${esc(r.observacao || '')}</textarea></label>
     <datalist id="dl-rm-mot">${mots.map(m => `<option value="${esc(m.nome)}">${esc([m.transportadora, m.placa ? fmtPlaca(m.placa) : ''].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>
+    <datalist id="dl-rm-resp">${(state.romDados?.responsaveis || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist>
     <datalist id="dl-rm-transp">${[...new Set(mots.map(m => m.transportadora).filter(Boolean))].sort().map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
 }
 function ligarCamposEmbarque(mots){
@@ -1683,10 +1701,10 @@ function ligarCamposEmbarque(mots){
 function lerCamposEmbarque(mots){
   const $ = k => document.getElementById(k), nome = caixaAltaTxt($('rm-mot').value).trim();
   const m = mots.find(x => x.nome === nome);
-  return { data: $('rm-data').value, ml_coleta: $('rm-ml').value.replace(/\s+/g, '').toUpperCase(), motorista_id: m?.id || null, motorista: nome, motorista_tel: $('rm-tel').value.replace(/\D/g, ''), transportadora: caixaAltaTxt($('rm-transp').value).trim(),
+  return { data: $('rm-data').value, lacre: $('rm-lacre').value.trim().toUpperCase(), ml_coleta: $('rm-ml').value.replace(/\s+/g, '').toUpperCase(), motorista_id: m?.id || null, motorista: nome, motorista_tel: $('rm-tel').value.replace(/\D/g, ''), transportadora: caixaAltaTxt($('rm-transp').value).trim(),
     placa: $('rm-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), veiculo: caixaAltaTxt($('rm-veic').value).trim(), responsavel: caixaAltaTxt($('rm-resp').value).trim(), observacao: $('rm-obs').value.trim() };
 }
-const embParaImpresso = c => ({ ml_coleta: c.ml_coleta, motorista: c.motorista, telefone: c.motorista_tel ? fmtTel(c.motorista_tel) : '', transportadora: c.transportadora, placa: c.placa, veiculo: c.veiculo, responsavel: c.responsavel, data: c.data, observacao: c.observacao });
+const embParaImpresso = c => ({ lacre: c.lacre, ml_coleta: c.ml_coleta, motorista: c.motorista, telefone: c.motorista_tel ? fmtTel(c.motorista_tel) : '', transportadora: c.transportadora, placa: c.placa, veiculo: c.veiculo, responsavel: c.responsavel, data: c.data, observacao: c.observacao });
 
 // Envios › coletas marcadas › "Montar romaneio": salva (gera o nº) e imprime; ou só imprime, sem salvar
 async function montarRomaneio(){
@@ -1707,10 +1725,12 @@ async function montarRomaneio(){
       <div class="leg" style="margin:12px 0 4px">${salva ? 'Ao salvar, o romaneio ganha um número e aparece na aba <b>Romaneios</b>, onde a doca registra a chegada e a saída do veículo. Na saída, as coletas passam para <b>Expedido</b> sozinhas.' : 'Você pode imprimir o romaneio; para salvar é preciso permissão de edição no Full.'}
         Não sabe ainda quem vem buscar? Deixe o motorista em branco e preencha depois.</div>
       ${camposEmbarque({ data: dataPadrao }, mots, true)}
+      ${salva ? '<div class="gv-sec">Fotos <span class="info">sobem junto ao salvar</span></div><div id="rm-fotos"></div>' : ''}
       <div class="gv-acoes"><button class="btn" id="rm-so-imp" title="Imprime sem número e sem registrar">🖨 Só imprimir</button>${salva ? `<button class="btn pri" id="rm-ok" ${bloqueio ? 'disabled' : ''}>💾 Salvar e imprimir</button>` : ''}</div>
     </div></aside>`;
   const $ = k => document.getElementById(k);
   ligarCamposEmbarque(mots);
+  const fotosRm = $('rm-fotos') ? blocoFotos($('rm-fotos'), { alvo:'full_romaneio', id:null, tela:'full', editar:true, tipos:['comprovante', 'veiculo', 'lacre', 'outra'] }) : null;
   const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
   $('rm-so-imp').onclick = () => { imprimirHtml(romaneioHtml(L, embParaImpresso(lerCamposEmbarque(mots)))); fechar(); };
@@ -1721,6 +1741,8 @@ async function montarRomaneio(){
     ok.disabled = true;
     try {
       const res = await apiFull('/full/romaneio', { ...c, envio_ids: L.map(e => e.id) });
+      const nf = fotosRm?.pendentes() ? await fotosRm.enviarPendentes(res.id) : 0;
+      if (nf) avisar(`${nf} foto(s) anexada(s) ao romaneio`);
       const rom = { id: res.id, ...c, status:'aberto' };
       imprimirHtml(romaneioHtml(L, embParaImpresso(c), rom));
       fechar(); s.sel.clear(); avisar(`Romaneio ${nRom(res.id)} salvo`);
@@ -1784,7 +1806,7 @@ function abrirRomaneio(id, recarregando){
         ${cg.length ? resumoColeta(cg) : ''}${listaApontamentos(cg, 'carregamento', mexeCarga, soma(e => e.pares_envio ?? e.pares_plan))}
         ${mexeCarga ? `<div id="gv-form-carregamento"></div><button class="btn mini" data-nova="carregamento" style="margin-top:6px">+ Apontar carregamento</button>` : ''}
 
-        <div class="gv-sec">Fotos <span class="info">tela do app do motorista com os volumes, veículo carregado</span></div><div id="rd-fotos"></div>
+        <div class="gv-sec">Fotos <span class="info">app do motorista, veículo carregado, lacre</span></div><div id="rd-fotos"></div>
 
         <div class="gv-sec">Embarque ${edCab ? '' : r.status === 'expedido' ? '<span class="info">(veículo já saiu: só líder altera)</span>' : ''}</div>
         ${camposEmbarque(r, mots, edCab)}
@@ -1802,7 +1824,7 @@ function abrirRomaneio(id, recarregando){
   const erro = msg => { const x = $('rd-erro'); x.hidden = false; x.textContent = msg; x.scrollIntoView({ block:'nearest' }); };
   const recarregar = async msg => { g.dataset.sujo = ''; if (msg) avisar(msg); await carregarRomaneios(); };
   const enviar = async (ids, extra = {}) => {
-    const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, ml_coleta:r.ml_coleta, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, responsavel:r.responsavel, observacao:r.observacao };
+    const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, lacre:r.lacre, ml_coleta:r.ml_coleta, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, responsavel:r.responsavel, observacao:r.observacao };
     return apiFull('/full/romaneio', { id:r.id, versao:r.atualizado_em, ...c, envio_ids:ids, ...extra });
   };
   const imp = $('rd-imp'); if (imp) imp.onclick = () => imprimirHtml(romaneioHtml(es, embParaImpresso(r), r));
@@ -1836,7 +1858,7 @@ function abrirRomaneio(id, recarregando){
       dica: 'O carregamento é do veículo inteiro: pares e caixas em branco contam o romaneio todo. Aponte só o tempo carregando (a espera na doca já aparece em chegada → saída).',
       aoSalvar: () => recarregar(), aoFechar: () => { if (btn) btn.hidden = false; } });
   };
-  blocoFotos($('rd-fotos'), { alvo:'full_romaneio', id:r.id, tela:'full', editar: editar && r.status !== 'cancelado', tipos:['comprovante', 'veiculo', 'carga', 'outra'] });
+  blocoFotos($('rd-fotos'), { alvo:'full_romaneio', id:r.id, tela:'full', editar: editar && r.status !== 'cancelado', tipos:['comprovante', 'veiculo', 'lacre', 'outra'] });
   const nvc = g.querySelector('[data-nova="carregamento"]'); if (nvc) nvc.onclick = () => formCarga(null);
   g.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => formCarga(cg.find(c => c.id === b.dataset.ec)));
   g.querySelectorAll('[data-ir-envio]').forEach(b => b.onclick = () => { s.vista = 'envios'; s.romAberto = null; s.aberto = b.dataset.irEnvio; s.aba = 'todos'; s.st = null; telaFull(); });
@@ -2199,6 +2221,13 @@ const DEMO_CROSS = (() => {
     total:Object.values(l[5]).reduce((a, b) => a + b, 0), manifestos:l[6], placa:l[7] || null, veiculo:(l[8] || '').toUpperCase() || null, motorista:(l[9] || '').toUpperCase() || null, motorista_doc:null,
     motorista_tel: l[9] === 'Julio Cesar' ? '11987654321' : null, motorista_id: null, responsavel: l[10] ? 'DEGMAR' : null, observacao: l[0] === 'ml_coleta' && l[1] === 2 ? 'Alerta: motorista não aguardou conferência.' : null,
     assinatura:null, assinado_em: l[10] ? ag : null, alterada_apos_assinatura:false, atualizado_em:ag, atualizado_por:'demonstracao' }));
+  // histórico de demonstração (45 dias, sem domingo) para o resumo
+  const rnd = n => { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); };
+  for (let k = 1; k <= 45; k++) { const dd = addDias(d, -k); if (new Date(dd + 'T12:00:00Z').getUTCDay() === 0) continue;
+    [['ml_flex', ['DIGOS', 'CACAL', 'DROSA'], [18, 30, 0, 9, 0, 6]], ['shopee_rapida', ['DIGOS'], [40, 60]], ['ml_coleta', ['DIGOS', 'CACAL', 'DROSA'], [50, 50, 5, 12, 2, 8]], ['shein', ['DIGOS', 'CACAL'], [20, 25, 2, 6]]].forEach(([cn, lj, f], j) => {
+      const pac = {}; lj.forEach((l, i) => { const v = Math.round(f[i * 2] + rnd(k * 7 + j * 3 + i) * f[i * 2 + 1]); if (v) pac[l] = v; });
+      coletas.push({ id:'h' + k + '_' + j, data:dd, canal_id:cn, sequencia:1, hora_chegada:'10:00', hora_corte:null, hora_saida:'10:40', pacotes:pac, total:Object.values(pac).reduce((a, b) => a + b, 0), manifestos:[], placa:null, veiculo:null, motorista:null,
+        motorista_doc:null, motorista_tel:null, motorista_id:null, responsavel:'DEGMAR GOMES', observacao:null, assinatura:null, assinado_em:ag, alterada_apos_assinatura:false, atualizado_em:ag, atualizado_por:'demonstracao' }); }); }
   const motoristas = [];
   coletas.forEach(c => { if (!c.motorista) return; let m = motoristas.find(x => x.nome === c.motorista);
     if (!m) { m = { id:String(motoristas.length + 1), nome:c.motorista, telefone:c.motorista_tel, documento:null, veiculo:c.veiculo, placa:c.placa, transportadora:(CANAIS_DEMO.find(x => x.id === c.canal_id)?.nome || '').toUpperCase() || null, ativo:true }; motoristas.push(m); } c.motorista_id = m.id; });
@@ -2213,6 +2242,7 @@ async function apiCross(path, corpo){
     const ini = q.get('ini'), fim = q.get('fim');
     return { ini, fim, hoje: hojeBRT(), coletas: JSON.parse(JSON.stringify(D.coletas.filter(c => c.data >= ini && c.data <= fim))).map(c => ({ ...c, assinatura: undefined })),
       canais: JSON.parse(JSON.stringify(CANAIS_DEMO)), lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
+      responsaveis: ['ARTHUR MAGDALENO', 'DAVI DUARTE', 'DEGMAR GOMES', 'DOUGLAS RIBEIRO', 'GUILHERME PORTO', 'NATHAN MARQUES', 'TIAGO SANTOS', 'VINICIUS CORREA'],
       sugestoes: D.coletas.filter(c => c.placa).map(c => ({ placa:c.placa, motorista:c.motorista, veiculo:c.veiculo, canal_id:c.canal_id })), motoristas: JSON.parse(JSON.stringify(D.motoristas.filter(m => m.ativo))) };
   }
   if (path === '/motoristas') { demoRomIni(); const rs = m => DEMO_ROM.romaneios.filter(r => r.motorista_id === m.id && r.status !== 'cancelado');
@@ -2253,10 +2283,11 @@ async function apiCross(path, corpo){
 }
 
 function telaCross(){
-  const s = state.cross ||= { data: hojeBRT(), canal:'todos', loja:'todos', aberto:null };
+  const s = state.cross ||= { data: hojeBRT(), canal:'todos', loja:'todos', aberto:null, vista:'dia' };
+  if (s.vista === 'resumo') return telaResumoCross();
   $app.innerHTML = `
     <div class="barra">
-      <h2>Expedição - CROSS</h2><span style="flex:1"></span>
+      <h2>Expedição - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
       <span class="nav-dia"><button class="btn" id="x-ant" aria-label="Dia anterior">‹</button><input type="date" id="x-data" value="${s.data}" max="${hojeBRT()}"><button class="btn" id="x-prox" aria-label="Próximo dia">›</button><button class="btn" id="x-hoje">Hoje</button></span>
       <select id="x-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
       <button class="btn" id="x-atualizar">Atualizar</button>
@@ -2264,6 +2295,7 @@ function telaCross(){
     </div>
     <div id="cross"><div class="carregando">Carregando coletas…</div></div>
     <div id="gaveta" hidden></div>`;
+  ligarAbasVistaCross();
   const irDia = d => { if (d > hojeBRT()) return; s.data = d; document.getElementById('x-data').value = d; s.canal = 'todos'; carregarCross(); };
   document.getElementById('x-data').onchange = e => { if (e.target.value) irDia(e.target.value); };
   document.getElementById('x-ant').onclick = () => irDia(addDias(s.data, -1));
@@ -2273,6 +2305,376 @@ function telaCross(){
   document.getElementById('x-atualizar').onclick = () => carregarCross();
   const nv = document.getElementById('x-nova'); if (nv) nv.onclick = () => abrirCross(null);
   carregarCross();
+}
+
+// ---- Resumo das coletas CROSS: um painel só, com filtros (período, marketplace, loja), para o time e para o financeiro
+const DIAS_CURTO = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+function periodoCross(op){
+  const h = hojeBRT(), dia = +h.slice(8), mes = h.slice(0, 8), fimMes = m => addDias(addDias(m + '01', 32).slice(0, 8) + '01', -1);
+  const mesAnt = addDias(mes + '01', -1).slice(0, 8);
+  if (op === 'q_atual') return dia <= 15 ? [mes + '01', mes + '15'] : [mes + '16', fimMes(mes)];
+  if (op === 'q_ant') return dia <= 15 ? [mesAnt + '16', fimMes(mesAnt)] : [mes + '01', mes + '15'];
+  if (op === 'mes') return [mes + '01', fimMes(mes)];
+  if (op === 'mes_ant') return [mesAnt + '01', fimMes(mesAnt)];
+  if (op === '7') return [addDias(h, -6), h];
+  if (op === '30') return [addDias(h, -29), h];
+  return null;
+}
+const ROT_PER_CROSS = { q_atual:'Quinzena atual', q_ant:'Quinzena anterior', mes:'Este mês', mes_ant:'Mês anterior', '7':'Últimos 7 dias', '30':'Últimos 30 dias', outro:'Escolher datas…' };
+function telaResumoCross(){
+  const s = state.cross;
+  s.rPer ||= 'q_atual'; s.rCanais ||= []; s.rLoja ||= 'todos';
+  if (s.rPer !== 'outro') [s.rIni, s.rFim] = periodoCross(s.rPer);
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Expedição - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
+      <select id="r-per">${Object.entries(ROT_PER_CROSS).map(([k, t]) => `<option value="${k}" ${s.rPer === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <span class="datas"><input type="date" id="r-ini" value="${s.rIni}"> até <input type="date" id="r-fim" value="${s.rFim}"></span>
+      <select id="r-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.rLoja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <button class="btn" id="r-atualizar">Atualizar</button>
+    </div>
+    <div id="cx-resumo"><div class="carregando">Carregando coletas…</div></div>`;
+  ligarAbasVistaCross();
+  const $ = k => document.getElementById(k);
+  $('r-per').onchange = () => { s.rPer = $('r-per').value; if (s.rPer !== 'outro') { [s.rIni, s.rFim] = periodoCross(s.rPer); $('r-ini').value = s.rIni; $('r-fim').value = s.rFim; carregarResumoCross(); } };
+  const datas = () => { let a = $('r-ini').value, b = $('r-fim').value; if (!a || !b) return; if (b < a) [a, b] = [b, a]; s.rIni = a; s.rFim = b; s.rPer = 'outro'; $('r-per').value = 'outro'; carregarResumoCross(); };
+  $('r-ini').onchange = datas; $('r-fim').onchange = datas;
+  $('r-loja').onchange = () => { s.rLoja = $('r-loja').value; renderResumoCross(); };
+  $('r-atualizar').onclick = carregarResumoCross;
+  carregarResumoCross();
+}
+async function carregarResumoCross(){
+  const s = state.cross;
+  try { state.resumoCross = await apiCross(`/cross?ini=${s.rIni}&fim=${s.rFim}`); renderResumoCross(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('cx-resumo'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function calcResumoCross(){
+  const s = state.cross, r = state.resumoCross, h = hojeBRT();
+  const canais = s.rCanais.length ? s.rCanais : null;
+  const lojas = r.lojas.map(l => l.id).filter(id => s.rLoja === 'todos' || id === s.rLoja);
+  const cs = r.coletas.filter(c => !canais || canais.includes(c.canal_id));
+  const pac = (c, l) => Number(c.pacotes?.[l]) || 0;
+  const dias = []; for (let d = s.rIni; d <= s.rFim && d <= h; d = addDias(d, 1)) dias.push(d);
+  const linhas = dias.map(d => { const l = cs.filter(c => c.data === d), por = Object.fromEntries(lojas.map(lj => [lj, l.reduce((t, c) => t + pac(c, lj), 0)]));
+    return { d, por, total: Object.values(por).reduce((a, b) => a + b, 0), coletas: l.filter(c => lojas.some(lj => pac(c, lj))).length }; });
+  const tot = Object.fromEntries(lojas.map(lj => [lj, linhas.reduce((t, x) => t + x.por[lj], 0)])), total = Object.values(tot).reduce((a, b) => a + b, 0);
+  const porCanal = r.canais.map(cn => { const l = cs.filter(c => c.canal_id === cn.id), por = Object.fromEntries(lojas.map(lj => [lj, l.reduce((t, c) => t + pac(c, lj), 0)]));
+    return { ...cn, por, total: Object.values(por).reduce((a, b) => a + b, 0), coletas: l.filter(c => lojas.some(lj => pac(c, lj))).length }; }).filter(x => x.total || x.coletas);
+  const colLoja = Object.fromEntries(lojas.map(lj => [lj, cs.filter(c => c.data >= s.rIni && c.data <= s.rFim && c.data <= h && pac(c, lj)).length]));
+  const comColeta = linhas.filter(x => x.total), maior = comColeta.reduce((m, x) => x.total > (m?.total || 0) ? x : m, null);
+  const filtroTxt = [`${dataBR(s.rIni)} a ${dataBR(s.rFim)}`, canais ? canais.map(nomeCanal).join(', ') : 'Todos os marketplaces', s.rLoja === 'todos' ? 'Todas as lojas' : nomeLoja(s.rLoja)];
+  return { lojas, colLoja, linhas, tot, total, porCanal, comColeta, maior, coletas: linhas.reduce((t, x) => t + x.coletas, 0), filtroTxt };
+}
+function renderResumoCross(){
+  const s = state.cross, r = state.resumoCross, $c = document.getElementById('cx-resumo');
+  if (!$c || !r) return;
+  const R = calcResumoCross(), { lojas, linhas, tot, total } = R;
+  const usados = new Set(r.coletas.map(c => c.canal_id));
+  const chips = r.canais.filter(cn => cn.ativo !== false || usados.has(cn.id));
+  const maxDia = Math.max(1, ...linhas.map(x => x.total)), P = linhas.length <= 16 ? 56 : linhas.length <= 31 ? 34 : 26, W = Math.max(linhas.length * P, 300);
+  const grafico = `<svg viewBox="0 0 ${W} 150" width="${W}" height="150" class="rc-graf" role="img" aria-label="Pacotes por dia">
+    ${linhas.map((x, i) => { let y = 130; return lojas.map(lj => { const hgt = x.por[lj] / maxDia * 118; y -= hgt; return hgt ? `<rect x="${i * P + (P - Math.min(P - 6, 30)) / 2}" y="${y}" width="${Math.min(P - 6, 30)}" height="${hgt}" fill="${corLoja(lj)}"><title>${dataBR(x.d).slice(0, 5)} · ${esc(nomeLoja(lj))}: ${x.por[lj]}</title></rect>` : ''; }).join('')
+      + (x.total ? `<text x="${i * P + P / 2}" y="${Math.max(10, 126 - x.total / maxDia * 118)}" text-anchor="middle" font-size="9" fill="#566074">${x.total}</text>` : '')
+      + `<text x="${i * P + P / 2}" y="144" text-anchor="middle" font-size="9" fill="#8a93a5">${x.d.slice(8)}</text>`; }).join('')}
+    <line x1="0" y1="130.5" x2="${W}" y2="130.5" stroke="#d5dae3"/></svg>`;
+  $c.innerHTML = `
+    <div class="rc-filtros"><span class="info">Marketplace:</span>
+      <button class="cn-f ${!s.rCanais.length ? 'on' : ''}" data-rc="todos">Todos</button>
+      ${chips.map(cn => `<button class="cn-f ${s.rCanais.includes(cn.id) ? 'on' : ''}" data-rc="${cn.id}">${esc(cn.nome)}</button>`).join('')}
+      <span style="flex:1"></span>
+      <button class="btn mini" id="rc-flex" title="Flex, quinzena anterior: o resumo que vai para o financeiro">⚡ Flex · financeiro</button>
+    </div>
+    <div class="rr-res">
+      ${lojas.map(lj => `<div class="rr-tile rc-loja" style="--c:${LOJAS[lj]?.borda || corLoja(lj)}"><span>${esc(nomeLoja(lj))}</span>
+        <div class="rc-dois"><div><b>${fmtN(tot[lj])}</b><small>pacotes</small></div><div><b>${fmtN(R.colLoja[lj])}</b><small>coletas</small></div></div>
+        <small>${R.colLoja[lj] ? `${fmtN(Math.round(tot[lj] / R.colLoja[lj]))} pacotes por coleta` : 'sem coleta'} · ${fmtP(tot[lj], total)} do total</small></div>`).join('')}
+      <div class="rr-tile rc-loja rc-tot" style="--c:#02285a"><span>Total</span>
+        <div class="rc-dois"><div><b>${fmtN(total)}</b><small>pacotes</small></div><div><b>${fmtN(R.coletas)}</b><small>coletas</small></div></div>
+        <small>${R.comColeta.length ? `média ${fmtN(Math.round(total / R.comColeta.length))}/dia em ${R.comColeta.length} dia(s)` : 'sem coleta'}${R.maior ? ` · maior dia ${dataBR(R.maior.d).slice(0, 5)} (${fmtN(R.maior.total)})` : ''}</small></div>
+    </div>
+    <div class="painel">
+      <div class="rc-acoes"><b>${esc(R.filtroTxt.join(' · '))}</b><span style="flex:1"></span>
+        <button class="btn" id="rc-copiar">📋 Copiar para WhatsApp/e-mail</button><button class="btn" id="rc-csv">⬇ Excel</button><button class="btn pri" id="rc-imp">🖨 PDF</button></div>
+      <div style="overflow-x:auto">${grafico}</div>
+      <div class="legenda" style="margin:2px 0 10px">${lojas.map(lj => `<span><span class="marca-loja" style="background:${corLoja(lj)}"></span>${esc(nomeLoja(lj))}</span>`).join('')}</div>
+      <div class="rc-tabs">
+        <div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th>Data</th>${lojas.map(lj => `<th>${esc(nomeLoja(lj))}</th>`).join('')}<th>Total</th><th>Coletas</th></tr></thead><tbody>
+          ${linhas.map(x => `<tr class="${x.total ? '' : 'zero'}"><td style="text-align:left">${dataBR(x.d)} <span class="info">${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}</span></td>${lojas.map(lj => `<td>${x.por[lj] || '<span class="info">–</span>'}</td>`).join('')}<td><b>${x.total || '–'}</b></td><td>${x.coletas || '–'}</td></tr>`).join('')}
+          </tbody><tfoot><tr><td style="text-align:left">Total</td>${lojas.map(lj => `<td>${fmtN(tot[lj])}</td>`).join('')}<td>${fmtN(total)}</td><td>${fmtN(R.coletas)}</td></tr></tfoot></table></div>
+        <div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th>Marketplace</th>${lojas.map(lj => `<th>${esc(nomeLoja(lj))}</th>`).join('')}<th>Total</th><th>%</th><th>Coletas</th></tr></thead><tbody>
+          ${R.porCanal.sort((a, b) => b.total - a.total).map(x => `<tr><td style="text-align:left"><b>${esc(x.nome)}</b></td>${lojas.map(lj => `<td>${x.por[lj] ? fmtN(x.por[lj]) : '<span class="info">–</span>'}</td>`).join('')}<td><b>${fmtN(x.total)}</b></td><td>${fmtP(x.total, total)}</td><td>${x.coletas}</td></tr>`).join('') || `<tr><td colspan="${lojas.length + 4}" class="vazio">Sem coletas no período.</td></tr>`}
+          </tbody></table></div>
+      </div>
+      <div class="info" style="margin-top:8px">Conta os pacotes lançados nas coletas (assinadas ou não). Coleta em aberto ainda pode mudar.</div>
+    </div>`;
+  $c.querySelectorAll('[data-rc]').forEach(b => b.onclick = () => { const k = b.dataset.rc;
+    if (k === 'todos') s.rCanais = []; else s.rCanais = s.rCanais.includes(k) ? s.rCanais.filter(x => x !== k) : [...s.rCanais, k];
+    renderResumoCross(); });
+  document.getElementById('rc-flex').onclick = () => { s.rCanais = ['ml_flex']; s.rPer = 'q_ant'; s.rLoja = 'todos'; telaResumoCross(); };
+  document.getElementById('rc-imp').onclick = () => imprimirHtml(resumoCrossHtml(R));
+  document.getElementById('rc-csv').onclick = () => baixarCsvResumoCross(R);
+  document.getElementById('rc-copiar').onclick = () => copiarTexto(textoResumoCross(R)).then(() => avisar('Resumo copiado: é só colar no WhatsApp ou no e-mail'), () => avisar('Não consegui copiar', true));
+}
+function textoResumoCross(R){
+  const s = state.cross, canais = s.rCanais.length ? s.rCanais.map(nomeCanal).join(', ') : 'todos os marketplaces';
+  const lj = l => R.lojas.map(x => `${nomeLoja(x)} ${l[x]}`).join(' · ');
+  return [`*Coletas CROSS · ${canais}*`, `${dataBR(s.rIni)} a ${dataBR(s.rFim)}${s.rLoja === 'todos' ? '' : ' · ' + nomeLoja(s.rLoja)}`, '',
+    `*Total: ${fmtN(R.total)} pacotes* em ${R.coletas} coleta(s)`, lj(R.tot), '',
+    ...R.linhas.filter(x => x.total).map(x => `${dataBR(x.d).slice(0, 5)} ${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}: ${lj(x.por)} = *${x.total}*`),
+    ...(s.rCanais.length === 1 ? [] : ['', '_Por marketplace_', ...R.porCanal.map(x => `${x.nome}: ${fmtN(x.total)}`)])].join('\n');
+}
+async function copiarTexto(t){
+  try { await navigator.clipboard.writeText(t); return; } catch (_) {}
+  const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select();
+  const ok = document.execCommand('copy'); ta.remove(); if (!ok) throw new Error('cópia bloqueada');
+}
+function baixarCsvResumoCross(R){
+  const s = state.cross, sep = ';', L = [['Data', ...R.lojas.map(nomeLoja), 'Total', 'Coletas']];
+  R.linhas.forEach(x => L.push([dataBR(x.d), ...R.lojas.map(l => x.por[l]), x.total, x.coletas]));
+  L.push(['Total', ...R.lojas.map(l => R.tot[l]), R.total, R.coletas], [], ['Marketplace', ...R.lojas.map(nomeLoja), 'Total', 'Coletas']);
+  R.porCanal.forEach(x => L.push([x.nome, ...R.lojas.map(l => x.por[l]), x.total, x.coletas]));
+  const csv = '﻿' + L.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(sep)).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  a.download = `coletas-cross_${s.rIni}_${s.rFim}${s.rCanais.length === 1 ? '_' + s.rCanais[0] : ''}.csv`; document.body.appendChild(a); a.click(); a.remove();
+}
+function resumoCrossHtml(R){
+  const s = state.cross, quem = quemImprime(), canais = s.rCanais.length ? s.rCanais.map(nomeCanal).join(', ') : 'Todos os marketplaces';
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo coletas CROSS ${dataBR(s.rIni)} a ${dataBR(s.rFim)}</title><style>${CSS_IMPRESSO}
+  .pag{width:210mm;min-height:296mm;padding:10mm 10mm 7mm;display:flex;flex-direction:column}
+  .topo{border-radius:2mm 2mm 0 0} .topo .st{min-width:44mm} .topo .st b{font-size:12pt}
+  .filt{font-size:10.5pt;color:#566074;margin-top:4mm} .filt b{color:#1b2333}
+  .kpi em{display:block;font-style:normal;font-size:8pt;color:#566074} .kpi .tot{background:#eef2f8;border-color:#02285a}
+  .kpi{display:grid;grid-template-columns:repeat(${Math.min(R.lojas.length + 1, 5)},1fr);gap:3mm;margin-top:4mm}
+  .kpi div{border:0.5mm solid #c9cfda;border-radius:2mm;padding:2.5mm;text-align:center} .kpi span{display:block;font-size:8pt;font-weight:700;letter-spacing:1pt;color:#566074;text-transform:uppercase} .kpi b{display:block;font-size:18pt;color:#02285a}
+  h3{font-size:10pt;letter-spacing:1.5pt;color:#566074;text-transform:uppercase;margin:6mm 0 2mm}
+  table{width:100%;border-collapse:collapse;font-size:10pt} th{background:#02285a;color:#fff;font-size:8pt;letter-spacing:.8pt;text-transform:uppercase;padding:1.8mm 2mm;text-align:right} th:first-child,td:first-child{text-align:left}
+  td{padding:1.4mm 2mm;border-bottom:0.3mm solid #dfe3ea;text-align:right;font-variant-numeric:tabular-nums} tr.zero td{color:#a0a8b8}
+  tfoot td{font-weight:800;background:#eef2f8;border-top:0.5mm solid #02285a} td.t{font-weight:700}
+  .ass{margin-top:14mm}
+  ${R.linhas.length > 20 ? 'td{padding:0.3mm 2mm;font-size:8.5pt;line-height:1.3} th{padding:1.2mm 2mm} h3{margin:3mm 0 1.2mm} .kpi{margin-top:3mm} .kpi div{padding:1.5mm} .kpi b{font-size:14pt} .ass{margin-top:9mm} .topo img{height:13mm}' : ''}
+  </style></head><body><div class="pag">
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">RESUMO DE COLETAS</div><div class="t2">EXPEDIÇÃO CROSS</div></div><span class="esp"></span><span class="st"><small>PERÍODO</small><b>${dataBR(s.rIni)} a ${dataBR(s.rFim)}</b></span></div>
+    <div class="filt">Marketplace: <b>${esc(canais)}</b> · Lojas: <b>${s.rLoja === 'todos' ? 'todas' : esc(nomeLoja(s.rLoja))}</b></div>
+    <div class="kpi">${R.lojas.map(l => `<div><span>${esc(nomeLoja(l))}</span><b>${fmtN(R.tot[l])}</b><em>pacotes · ${fmtN(R.colLoja[l])} coletas</em></div>`).join('')}<div class="tot"><span>Total</span><b>${fmtN(R.total)}</b><em>pacotes · ${fmtN(R.coletas)} coletas</em></div></div>
+    <h3>Por dia</h3>
+    <table><thead><tr><th>Data</th>${R.lojas.map(l => `<th>${esc(nomeLoja(l))}</th>`).join('')}<th>Total</th><th>Coletas</th></tr></thead><tbody>
+      ${R.linhas.map(x => `<tr class="${x.total ? '' : 'zero'}"><td>${dataBR(x.d)} ${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}</td>${R.lojas.map(l => `<td>${x.por[l] || '–'}</td>`).join('')}<td class="t">${x.total || '–'}</td><td>${x.coletas || '–'}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td>${R.lojas.map(l => `<td>${fmtN(R.tot[l])}</td>`).join('')}<td>${fmtN(R.total)}</td><td>${fmtN(R.coletas)}</td></tr></tfoot></table>
+    ${s.rCanais.length === 1 ? '' : `<h3>Por marketplace</h3><table><thead><tr><th>Marketplace</th>${R.lojas.map(l => `<th>${esc(nomeLoja(l))}</th>`).join('')}<th>Total</th><th>Coletas</th></tr></thead><tbody>
+      ${R.porCanal.map(x => `<tr><td>${esc(x.nome)}</td>${R.lojas.map(l => `<td>${x.por[l] ? fmtN(x.por[l]) : '–'}</td>`).join('')}<td class="t">${fmtN(x.total)}</td><td>${x.coletas}</td></tr>`).join('')}</tbody></table>`}
+    <div class="esp2"></div>
+    <div class="ass"><div>CONFERIDO POR (LOGÍSTICA)<small>nome e data</small></div><div>RECEBIDO POR (FINANCEIRO)<small>nome e data</small></div></div>
+    <div class="rodape" style="padding:3mm 0 0;margin-top:6mm"><span>Pacotes lançados nas coletas do CROSS (Central de Operações)</span><span>Gerado em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
+  </div></body></html>`;
+}
+const abasVistaCross = s => `<div class="abas vista-full">${[['dia','Coletas do dia'],['resumo','📊 Resumo']].map(([k, t]) => `<button data-vx="${k}" class="${(s.vista || 'dia') === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+function ligarAbasVistaCross(){ document.querySelectorAll('[data-vx]').forEach(b => b.onclick = () => { if ((state.cross.vista || 'dia') === b.dataset.vx) return; state.cross.vista = b.dataset.vx; telaCross(); }); }
+
+/* =================== ABANDONO DE PEDIDOS (CROSS e Full) =================== */
+const SIT_AB = {
+  pendente:    { rot:'Pendente',     cor:'#9a5b00', fundo:'#fff1d6' },
+  resolvido:   { rot:'Resolvido',    cor:'#1a7a3e', fundo:'#e2f5e8' },
+  sem_solucao: { rot:'Sem solução',  cor:'#8a1f1f', fundo:'#fbe9e9' },
+};
+const pillAb = st => `<span class="st-full" style="color:${SIT_AB[st]?.cor};background:${SIT_AB[st]?.fundo}">${esc(SIT_AB[st]?.rot || st)}</span>`;
+const MOTIVOS_AB_DEMO = ['Sem estoque', 'Material fora do local', 'Avaria / defeito', 'Divergência de numeração', 'Divergência de cor / modelo', 'Divergência WMS x físico', 'Outro (descrever)'];
+const DEMO_AB = (() => {
+  const ag = new Date().toISOString();
+  const L = [
+    ['2026-10-20', 'cross', 'DIGOS', 'shopee_rapida', '2610193C05RFUN', '6291-900-8389-CM-39', 'CAMEL', 'KELVIN', 'Sem estoque', 'pendente', null, null],
+    ['2026-10-20', 'cross', 'CACAL', 'ml_coleta', '2000019071399942', '6371-367-29711-MCC-39', 'MOCCA', 'KELVIN', 'Sem estoque', 'pendente', null, null],
+    ['2026-10-21', 'cross', 'DIGOS', 'ml_coleta', '2000019083867356', '1483-100-29918-PT-33', 'PRETO', 'RAFAEL', 'Sem estoque', 'resolvido', 'PEGA LOJA MD ROSA', null],
+    ['2026-10-21', 'cross', 'DIGOS', 'shopee_rapida', '2610216TRH8Q6A', '6249-452-7286-BG-36', 'BEGE', 'RAFAEL', 'Sem estoque', 'sem_solucao', null, null],
+    ['2026-10-21', 'cross', 'DIGOS', 'shopee_rapida', '261021834YA5QV', '6249-452-7286-PT-36', 'PRETO', 'RAFAEL', 'Sem estoque', 'sem_solucao', null, null],
+    ['2026-10-21', 'cross', 'DIGOS', 'shopee_rapida', '2610180JTBRS6H', '2305-1574-30753-DR-27', 'DOURADO', 'RAFAEL', 'Sem estoque', 'resolvido', 'ENVIADO SUBSTITUTO', '2305-1574-30753-PRETO-27'],
+    ['2026-10-21', 'cross', 'DIGOS', 'shopee_rapida', '2610205TT5F268', '5845-203-7890-BC-39', 'BRANCO OFF', 'KELVIN', 'Material fora do local', 'resolvido', 'LOCALIZADO NO ESTOQUE', null],
+    ['2026-10-21', 'cross', 'DIGOS', 'ml_coleta', '2000019097896330', '6249-452-7286-BG-36', 'BEGE', 'KELVIN', 'Sem estoque', 'resolvido', 'ENVIADO SUBSTITUTO', '6249-1012-PT-36'],
+    ['2026-10-21', 'cross', 'DIGOS', 'ml_coleta', '2000018978744432', '6291-900-8389-BCOFF-36', 'BRANCO OFF', 'KELVIN', 'Sem estoque', 'resolvido', 'ENVIADO SUBSTITUTO', '6295-900-BC-36'],
+    ['2026-10-23', 'full', 'DIGOS', null, '80055010', '6249-452-7286-BG-36', 'BEGE', 'ARTHUR MAGDALENO', 'Divergência WMS x físico', 'pendente', null, null],
+  ];
+  return { seq: L.length, eventos: [], abandonos: L.map((l, i) => ({ id:String(i + 1), data:l[0], origem:l[1], cnpj_id:l[2], canal_id:l[3], pedido:l[4], sku:l[5], cor:l[6], quantidade:1, operador:l[7],
+    motivo:l[8], situacao:l[9], solucao:l[10], substituto:l[11], observacao:null, resolvido_em: l[9] === 'pendente' ? null : ag, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' })) };
+})();
+async function apiAb(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_AB, ag = new Date().toISOString(), q = new URLSearchParams(path.split('?')[1] || '');
+  if (path.startsWith('/abandonos')) { const ini = q.get('ini'), fim = q.get('fim');
+    return { ini, fim, hoje:hojeBRT(), abandonos: JSON.parse(JSON.stringify(D.abandonos.filter(a => (a.data >= ini && a.data <= fim) || a.situacao === 'pendente'))).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id),
+      canais: JSON.parse(JSON.stringify(CANAIS_DEMO)), lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
+      operadores: ['ARTHUR MAGDALENO', 'DEGMAR GOMES', 'KELVIN', 'RAFAEL', 'VINICIUS CORREA'], motivos: MOTIVOS_AB_DEMO }; }
+  if (path.startsWith('/abandono/historico')) return { eventos: D.eventos.filter(e => e.abandono_id === q.get('id')) };
+  if (path === '/abandono') {
+    const up = v => v ? String(v).trim().toUpperCase() || null : null;
+    const a = { ...corpo, pedido:up(corpo.pedido), sku:up(corpo.sku), cor:up(corpo.cor), operador:up(corpo.operador), solucao:up(corpo.solucao), substituto:up(corpo.substituto), quantidade:Number(corpo.quantidade) || 1 };
+    if (!a.pedido) throw new Error('Informe o pedido');
+    if (!a.motivo) throw new Error('Escolha o motivo');
+    if (a.motivo.startsWith('Outro') && !a.observacao) throw new Error('Motivo "Outro": descreva na observação');
+    if (a.situacao === 'resolvido' && !a.solucao && !a.substituto) throw new Error('Resolvido: informe a solução ou o SKU substituto');
+    delete a.versao;
+    if (!a.id) { a.id = String(++D.seq); D.abandonos.push({ ...a, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' }); D.eventos.unshift({ abandono_id:a.id, em:ag, por:'demonstracao', acao:'criar', antes:null, depois:a }); }
+    else { const x = D.abandonos.find(y => y.id === a.id); D.eventos.unshift({ abandono_id:a.id, em:ag, por:'demonstracao', acao:'alterar', antes:{ situacao:x.situacao }, depois:{ situacao:a.situacao } }); Object.assign(x, a, { atualizado_em:ag }); }
+    return { ok:true, id:a.id };
+  }
+  if (path === '/abandono/excluir') { D.abandonos = D.abandonos.filter(a => a.id !== corpo.id); return { ok:true }; }
+}
+function telaAbandono(){
+  const s = state.ab ||= { per:'30', origem:'todos', sit:'todos', busca:'', loja:'todos' };
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Abandono de pedidos</h2><span style="flex:1"></span>
+      <input id="ab-busca" class="campo" placeholder="Pedido, SKU, cor ou operador" value="${esc(s.busca)}" style="width:230px">
+      <select id="ab-per">${[['7','Últimos 7 dias'],['30','Últimos 30 dias'],['90','Últimos 90 dias'],['mes','Este mês'],['mes_ant','Mês anterior']].map(([k, t]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <select id="ab-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <div class="abas">${[['todos','CROSS e Full'],['cross','CROSS'],['full','Full']].map(([k, t]) => `<button data-abo="${k}" class="${s.origem === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <button class="btn" id="ab-atualizar">Atualizar</button>
+      ${pode('abandono', 'editar') ? '<button class="btn pri" id="ab-novo">+ Registrar abandono</button>' : ''}
+    </div>
+    <div id="ab"><div class="carregando">Carregando…</div></div>
+    <div id="gaveta" hidden></div>`;
+  const $ = k => document.getElementById(k);
+  $('ab-busca').oninput = () => { s.busca = $('ab-busca').value; renderAbandono(); };
+  $('ab-per').onchange = () => { s.per = $('ab-per').value; carregarAbandono(); };
+  $('ab-loja').onchange = () => { s.loja = $('ab-loja').value; renderAbandono(); };
+  document.querySelectorAll('[data-abo]').forEach(b => b.onclick = () => { s.origem = b.dataset.abo; document.querySelectorAll('[data-abo]').forEach(x => x.classList.toggle('on', x === b)); renderAbandono(); });
+  $('ab-atualizar').onclick = carregarAbandono;
+  const nv = $('ab-novo'); if (nv) nv.onclick = () => abrirAbandono(null);
+  carregarAbandono();
+}
+function periodoAb(op){
+  const h = hojeBRT(), mes = h.slice(0, 8), ant = addDias(mes + '01', -1);
+  return op === 'mes' ? [mes + '01', h] : op === 'mes_ant' ? [ant.slice(0, 8) + '01', ant] : [addDias(h, -Number(op) + 1), h];
+}
+async function carregarAbandono(){
+  const s = state.ab, [ini, fim] = periodoAb(s.per);
+  try { state.abDados = await apiAb(`/abandonos?ini=${ini}&fim=${fim}`); renderAbandono(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('ab'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+const nomeCanalAb = id => (state.abDados?.canais || CANAIS_DEMO).find(c => c.id === id)?.nome || (id ? id : '');
+function filtrarAb(){
+  const s = state.ab, d = state.abDados, t = s.busca.trim().toUpperCase();
+  return d.abandonos.filter(a => (s.origem === 'todos' || a.origem === s.origem) && (s.loja === 'todos' || a.cnpj_id === s.loja)
+    && (!t || [a.pedido, a.sku, a.cor, a.operador, a.substituto].some(v => (v || '').includes(t))));
+}
+function renderAbandono(){
+  const s = state.ab, d = state.abDados, $c = document.getElementById('ab');
+  if (!$c || !d) return;
+  const [ini, fim] = [d.ini, d.fim];
+  const todos = filtrarAb(), noPer = todos.filter(a => a.data >= ini && a.data <= fim);
+  const lista = todos.filter(a => s.sit === 'todos' ? true : a.situacao === s.sit);
+  const qtd = l => l.reduce((t, a) => t + (Number(a.quantidade) || 1), 0);
+  const pend = todos.filter(a => a.situacao === 'pendente'), res = noPer.filter(a => a.situacao === 'resolvido'), sem = noPer.filter(a => a.situacao === 'sem_solucao');
+  const conta = (l, f) => { const m = {}; l.forEach(a => { const k = f(a); if (k) m[k] = (m[k] || 0) + (Number(a.quantidade) || 1); }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+  const motivos = conta(noPer, a => a.motivo), skus = conta(noPer, a => a.sku).filter(x => x[1] > 1).slice(0, 6), mkts = conta(noPer, a => a.origem === 'full' ? 'Full' : nomeCanalAb(a.canal_id) || 'Sem marketplace');
+  const barras = (l, total) => l.slice(0, 6).map(([k, n]) => `<div class="ab-bar"><span>${esc(k)}</span><i style="width:${Math.max(4, n / total * 100)}%"></i><b>${n}</b></div>`).join('') || '<div class="info">–</div>';
+  const edita = pode('abandono', 'editar');
+  $c.innerHTML = `
+    <div class="rr-res">
+      <div class="rr-tile" style="--c:#02285a"><span>Abandonos no período</span><b>${noPer.length}</b><small>${qtd(noPer)} item(ns) · ${new Set(noPer.map(a => a.pedido)).size} pedido(s)</small></div>
+      <div class="rr-tile" style="--c:${SIT_AB.pendente.cor}"><span>Pendentes</span><b>${pend.length}</b><small>${pend.length ? `mais antigo: ${dataBR(pend.map(a => a.data).sort()[0])}` : 'nada pendente'}</small></div>
+      <div class="rr-tile" style="--c:${SIT_AB.resolvido.cor}"><span>Resolvidos</span><b>${res.length}</b><small>${noPer.length ? fmtP(res.length, noPer.length) : '–'} do período · ${res.filter(a => a.substituto).length} com substituto</small></div>
+      <div class="rr-tile" style="--c:${SIT_AB.sem_solucao.cor}"><span>Sem solução</span><b>${sem.length}</b><small>${noPer.length ? fmtP(sem.length, noPer.length) : '–'} do período (pedido perdido)</small></div>
+    </div>
+    <div class="ab-graf">
+      <div class="painel"><h3 class="ab-h">Motivos</h3>${barras(motivos, noPer.length || 1)}</div>
+      <div class="painel"><h3 class="ab-h">Por marketplace</h3>${barras(mkts, noPer.length || 1)}</div>
+      <div class="painel"><h3 class="ab-h">SKUs que se repetem <span class="info">ruptura recorrente</span></h3>${barras(skus, Math.max(1, ...skus.map(x => x[1])))}</div>
+    </div>
+    <div class="painel">
+      <div class="rc-acoes"><div class="abas">${[['todos','Todos'],['pendente','Pendentes'],['resolvido','Resolvidos'],['sem_solucao','Sem solução']].map(([k, t]) => `<button data-abs="${k}" class="${s.sit === k ? 'on' : ''}">${t}${k === 'pendente' && pend.length ? ` (${pend.length})` : ''}</button>`).join('')}</div>
+        <span class="info">${dataBR(ini)} a ${dataBR(fim)} + pendentes de antes</span><span style="flex:1"></span><button class="btn" id="ab-csv">⬇ Excel</button></div>
+      ${lista.length ? `<div class="so-largo" style="overflow-x:auto"><table class="tab-full tab-ab"><thead><tr><th>Data</th><th>Origem</th><th>Loja</th><th>Marketplace</th><th>Pedido</th><th>SKU / Nº</th><th>Cor</th><th>Qtd</th><th>Operador</th><th>Motivo</th><th>Situação</th><th>Solução / substituto</th></tr></thead><tbody>
+        ${lista.map(a => `<tr data-ab="${a.id}" class="${a.situacao === 'pendente' ? 'pend' : ''}"><td>${dataBR(a.data).slice(0, 5)}</td><td>${a.origem === 'full' ? 'Full' : 'CROSS'}</td><td>${a.cnpj_id ? `<span class="marca-loja" style="background:${corLoja(a.cnpj_id)}"></span>${esc(nomeLoja(a.cnpj_id))}` : '–'}</td>
+          <td>${esc(nomeCanalAb(a.canal_id)) || '–'}</td><td><b>${esc(a.pedido)}</b></td><td>${esc(a.sku || '–')}</td><td>${esc(a.cor || '–')}</td><td>${a.quantidade}</td><td>${esc(a.operador || '–')}</td><td>${esc(a.motivo)}</td><td>${pillAb(a.situacao)}</td>
+          <td style="text-align:left">${esc([a.substituto ? '↪ ' + a.substituto : '', a.solucao].filter(Boolean).join(' · ')) || '<span class="info">–</span>'}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="so-estreito">${lista.map(a => `<div class="card-full ab-card" data-ab="${a.id}" style="border-left-color:${SIT_AB[a.situacao].cor}">
+        <div class="cf-top"><b>${esc(a.pedido)}</b><span class="info">${a.origem === 'full' ? 'Full' : esc(nomeCanalAb(a.canal_id) || 'CROSS')}</span><span style="flex:1"></span>${pillAb(a.situacao)}</div>
+        <div>${esc(a.sku || '')} ${a.cor ? '· ' + esc(a.cor) : ''} · ${a.quantidade} un.</div>
+        <div class="info">${dataBR(a.data).slice(0, 5)} · ${esc(a.motivo)}${a.operador ? ' · ' + esc(a.operador) : ''}${a.substituto ? ' · ↪ ' + esc(a.substituto) : ''}</div></div>`).join('')}</div>`
+      : '<div class="vazio">Nenhum abandono com esses filtros.</div>'}
+    </div>`;
+  $c.querySelectorAll('[data-abs]').forEach(b => b.onclick = () => { s.sit = b.dataset.abs; renderAbandono(); });
+  $c.querySelectorAll('[data-ab]').forEach(el => el.onclick = () => abrirAbandono(d.abandonos.find(a => a.id === el.dataset.ab)));
+  document.getElementById('ab-csv').onclick = () => {
+    const L = [['Data', 'Origem', 'Loja', 'Marketplace', 'Pedido', 'SKU', 'Cor', 'Quantidade', 'Operador', 'Motivo', 'Situação', 'Solução', 'Substituto', 'Observação']]
+      .concat(lista.map(a => [dataBR(a.data), a.origem === 'full' ? 'Full' : 'CROSS', a.cnpj_id ? nomeLoja(a.cnpj_id) : '', nomeCanalAb(a.canal_id), a.pedido, a.sku, a.cor, a.quantidade, a.operador, a.motivo, SIT_AB[a.situacao].rot, a.solucao, a.substituto, a.observacao]));
+    const csv = '﻿' + L.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const x = document.createElement('a'); x.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); x.download = `abandonos_${d.ini}_${d.fim}.csv`; document.body.appendChild(x); x.click(); x.remove();
+  };
+}
+function abrirAbandono(a, base){
+  const d = state.abDados, g = document.getElementById('gaveta'), novo = !a;
+  const edita = pode('abandono', 'editar'), gerir = pode('abandono', 'gerir'), ro = edita ? '' : 'disabled';
+  const ult = state.ab.ultimo || {};
+  a ||= { data: hojeBRT(), origem: base?.origem || ult.origem || 'cross', cnpj_id: base?.cnpj_id || ult.cnpj_id || 'DIGOS', canal_id: base?.canal_id ?? ult.canal_id ?? '', pedido: base?.pedido || '', sku:'', cor:'', quantidade:1,
+    operador: base?.operador || ult.operador || caixaAltaTxt(state.usuario?.nome || ''), motivo: base?.motivo || 'Sem estoque', situacao:'pendente', solucao:'', substituto:'', observacao:'' };
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">${novo ? 'Novo registro' : `${dataBR(a.data)} · ${a.origem === 'full' ? 'Full' : 'CROSS'}`}</div><h3>${novo ? 'Registrar abandono' : esc(a.pedido)}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="ab-erro" hidden></div>
+      <div class="grade-form g2">
+        <label>Data<input type="date" id="ab-data" value="${a.data}" max="${hojeBRT()}" ${ro}></label>
+        <div class="lab">Origem<span class="abas" style="align-self:flex-start">${[['cross','CROSS'],['full','Full']].map(([k, t]) => `<button type="button" data-ao="${k}" class="${a.origem === k ? 'on' : ''}" ${ro}>${t}</button>`).join('')}</span></div>
+        <label>Loja<select id="ab-loja-f" ${ro}>${d.lojas.map(l => `<option value="${l.id}" ${a.cnpj_id === l.id ? 'selected' : ''}>${esc(nomeLoja(l.id))}</option>`).join('')}</select></label>
+        <label id="ab-mk-l">Marketplace<select id="ab-mk" ${ro}></select></label>
+        <label>Pedido<input id="ab-pedido" value="${esc(a.pedido)}" autocapitalize="characters" placeholder="nº do pedido / coleta" ${ro}></label>
+        <label>SKU / numeração<input id="ab-sku" value="${esc(a.sku || '')}" autocapitalize="characters" placeholder="ex.: 6249-452-7286-BG-36" ${ro}></label>
+        <label>Cor<input id="ab-cor" value="${esc(a.cor || '')}" autocapitalize="characters" ${ro}></label>
+        <label>Quantidade<input id="ab-qtd" inputmode="numeric" value="${a.quantidade}" ${ro}></label>
+        <label>Operador<input id="ab-op" list="dl-ab-op" value="${esc(a.operador || '')}" autocapitalize="characters" autocomplete="off" placeholder="digite as iniciais" ${ro}></label>
+      </div>
+      <div class="gv-sec">Motivo</div>
+      <div class="etapas">${d.motivos.map(m => `<button type="button" class="etapa ${a.motivo === m ? 'on' : ''}" data-am="${esc(m)}" ${ro} style="--c:#02285a;--f:#e8eef7">${esc(m)}</button>`).join('')}</div>
+      <div class="gv-sec">Situação</div>
+      <div class="etapas">${Object.entries(SIT_AB).map(([k, x]) => `<button type="button" class="etapa ${a.situacao === k ? 'on' : ''}" data-asit="${k}" ${ro} style="--c:${x.cor};--f:${x.fundo}">${x.rot}</button>`).join('')}</div>
+      <div class="grade-form g2" style="margin-top:12px">
+        <label>SKU substituto enviado<input id="ab-sub" value="${esc(a.substituto || '')}" autocapitalize="characters" placeholder="se mandou outro no lugar" ${ro}></label>
+        <label>Solução<input id="ab-sol" value="${esc(a.solucao || '')}" autocapitalize="characters" placeholder="ex.: peguei na loja, localizado no estoque" ${ro}></label>
+      </div>
+      <label class="gv-lab">Observação<textarea id="ab-obs" rows="2" maxlength="500" ${ro}>${esc(a.observacao || '')}</textarea></label>
+      ${edita ? `<div class="gv-acoes">${novo ? '<button class="btn" id="ab-mais">Salvar e registrar outro item</button>' : ''}<button class="btn pri" id="ab-ok">Salvar</button></div>` : ''}
+      ${novo ? '<div class="info" style="margin-top:6px">"Registrar outro item" mantém pedido, loja, marketplace e operador: é só trocar o SKU.</div>' : `
+        <div class="gv-sec">Histórico</div><div id="ab-hist" class="info">Carregando…</div>
+        <div class="info" style="margin-top:8px">Registrado em ${quando(a.criado_em)} por ${esc(String(a.criado_por).split('@')[0])}${a.resolvido_em ? ` · fechado em ${quando(a.resolvido_em)}` : ''}</div>
+        ${gerir ? '<div style="margin-top:18px"><button class="btn perigo" id="ab-excluir">Excluir registro</button> <span class="info">Só para lançamento feito por engano.</span></div>' : ''}`}
+    </div></aside>
+    <datalist id="dl-ab-op">${(d.operadores || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+  const $ = k => document.getElementById(k);
+  let origem = a.origem, motivo = a.motivo, sit = a.situacao, sujo = false;
+  g.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', () => { sujo = true; }));
+  ['ab-pedido', 'ab-sku', 'ab-cor', 'ab-op', 'ab-sub', 'ab-sol'].forEach(k => forcaCaixaAlta($(k)));
+  const mks = () => {   // marketplaces da loja escolhida (no Full, opcional)
+    const loja = $('ab-loja-f').value, l = d.canais.filter(c => (c.ativo !== false || c.id === a.canal_id) && (!c.lojas?.length || c.lojas.includes(loja)));
+    const atual = $('ab-mk').value || a.canal_id || '';
+    $('ab-mk').innerHTML = `<option value="">${origem === 'full' ? 'Mercado Livre Full' : '– escolha –'}</option>` + l.map(c => `<option value="${c.id}" ${atual === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('');
+  };
+  mks(); $('ab-loja-f').onchange = mks;
+  g.querySelectorAll('[data-ao]').forEach(b => b.onclick = () => { origem = b.dataset.ao; sujo = true; g.querySelectorAll('[data-ao]').forEach(x => x.classList.toggle('on', x === b)); mks(); });
+  g.querySelectorAll('[data-am]').forEach(b => b.onclick = () => { motivo = b.dataset.am; sujo = true; g.querySelectorAll('[data-am]').forEach(x => x.classList.toggle('on', x === b)); });
+  g.querySelectorAll('[data-asit]').forEach(b => b.onclick = () => { sit = b.dataset.asit; sujo = true; g.querySelectorAll('[data-asit]').forEach(x => x.classList.toggle('on', x === b)); });
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  $('gv-fechar').onclick = () => { if (sujo && !confirmarSaida()) return; fechar(); }; $('gv-fundo').onclick = $('gv-fechar').onclick;
+  const erro = msg => { const x = $('ab-erro'); x.hidden = !msg; x.textContent = msg || ''; if (msg) x.scrollIntoView({ block:'nearest' }); };
+  const salvar = async outro => {
+    const corpo = { id: a.id || null, versao: a.atualizado_em || null, data: $('ab-data').value, origem, cnpj_id: $('ab-loja-f').value, canal_id: $('ab-mk').value || null,
+      pedido: $('ab-pedido').value.trim(), sku: $('ab-sku').value.trim(), cor: $('ab-cor').value.trim(), quantidade: $('ab-qtd').value.trim() || 1, operador: caixaAltaTxt($('ab-op').value).trim(),
+      motivo, situacao: sit, solucao: $('ab-sol').value.trim(), substituto: $('ab-sub').value.trim(), observacao: $('ab-obs').value.trim() };
+    if (!corpo.pedido) return erro('Informe o pedido.');
+    if (origem === 'cross' && !corpo.canal_id) return erro('Escolha o marketplace.');
+    try {
+      await apiAb('/abandono', corpo); state.ab.ultimo = { origem, cnpj_id: corpo.cnpj_id, canal_id: corpo.canal_id, operador: corpo.operador };
+      avisar(novo ? 'Abandono registrado' : 'Salvo'); await carregarAbandono();
+      if (outro) abrirAbandono(null, corpo); else fechar();
+    } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); }
+  };
+  const ok = $('ab-ok'); if (ok) ok.onclick = () => salvar(false);
+  const mais = $('ab-mais'); if (mais) mais.onclick = () => salvar(true);
+  const ex = $('ab-excluir'); if (ex) ex.onclick = async () => { if (!confirmaDupla(ex, 'Clique de novo para excluir')) return;
+    try { await apiAb('/abandono/excluir', { id:a.id }); avisar('Registro excluído'); fechar(); await carregarAbandono(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); } };
+  if (!novo) apiAb(`/abandono/historico?id=${a.id}`).then(h => { const $h = $('ab-hist'); if (!$h) return;
+    $h.innerHTML = h.eventos.length ? `<table class="tab-hist"><tbody>${h.eventos.map(v => `<tr><td>${quando(v.em)}</td><td>${esc(String(v.por).split('@')[0])}</td><td><b>${esc({ criar:'Registrou', alterar:'Alterou', excluir:'Excluiu' }[v.acao] || v.acao)}</b> <span class="info">${esc(v.acao === 'alterar' ? Object.keys(v.depois || {}).join(', ') : '')}</span></td></tr>`).join('')}</tbody></table>` : 'Sem registros.';
+  }).catch(e => { if (e instanceof SemSessao) throw e; });
+  else $('ab-pedido').focus();
+  if (base) { $('ab-sku').focus(); }
 }
 
 /* =================== CADASTRO DE MOTORISTAS (CROSS e Full) =================== */
@@ -2342,7 +2744,7 @@ async function carregarCross(){
   try { state.crossDados = await apiCross(`/cross?ini=${s.data}&fim=${s.data}`); renderCross(); }
   catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('cross'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
-const nomeCanal = id => (state.crossDados?.canais || CANAIS_DEMO).find(c => c.id === id)?.nome || id;
+const nomeCanal = id => (state.crossDados?.canais || state.resumoCross?.canais || CANAIS_DEMO).find(c => c.id === id)?.nome || id;
 function renderCross(){
   const s = state.cross, r = state.crossDados, $c = document.getElementById('cross');
   if (!$c || !r) return;
@@ -2445,7 +2847,7 @@ async function abrirCross(id){
           <label>Placa<input id="cx-placa" list="dl-placas" value="${esc(c.placa || '')}" placeholder="ABC1D23" autocapitalize="characters" maxlength="8" ${ro}><span class="info" id="cx-placa-dica"></span></label>
           <label>Veículo<input id="cx-veic" value="${esc(c.veiculo || '')}" placeholder="EX.: FOX, FIORINO, VUC" autocapitalize="characters" ${ro}></label>
           <label>Documento (opcional)<input id="cx-doc" value="${esc(c.motorista_doc || '')}" placeholder="RG / CNH" ${ro}></label>
-          <label>Responsável pela expedição<input id="cx-resp" value="${esc(c.responsavel || '')}" placeholder="QUEM ACOMPANHOU NA DOCA" autocapitalize="characters" ${ro}></label>
+          <label>Responsável pela expedição<input id="cx-resp" value="${esc(c.responsavel || '')}" placeholder="DIGITE AS INICIAIS" list="dl-resp" autocomplete="off" autocapitalize="characters" ${ro}></label>
         </div>
         <label class="gv-lab">Observação<textarea id="cx-obs" rows="2" maxlength="500" ${ro}>${esc(c.observacao || '')}</textarea></label>
         <div class="gv-sec">Fotos <span class="info">tela do app do motorista com os volumes, veículo carregado</span></div>
@@ -2458,6 +2860,7 @@ async function abrirCross(id){
       </div>
     </aside>
     <datalist id="dl-mot">${(r.motoristas || []).map(m => `<option value="${esc(m.nome)}">${esc([m.telefone ? fmtTel(m.telefone) : '', m.veiculo, m.placa ? fmtPlaca(m.placa) : ''].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>
+    <datalist id="dl-resp">${(r.responsaveis || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist>
     <datalist id="dl-placas">${(r.sugestoes || []).map(x => `<option value="${esc(x.placa)}">${esc([x.motorista, x.veiculo].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>`;
 
   const $ = k => document.getElementById(k);
@@ -2570,6 +2973,7 @@ function fecharCross(){
 const FOTO_TIPOS = {
   comprovante: { rot:'App do motorista', ico:'📱', dica:'tela do app com a quantidade de volumes coletados' },
   veiculo:     { rot:'Veículo carregado', ico:'🚚', dica:'veículo com a carga e a placa visível' },
+  lacre:       { rot:'Lacre', ico:'🔒', dica:'lacre fechado, com o número legível' },
   carga:       { rot:'Carga / palete', ico:'📦', dica:'palete, caixas, avaria' },
   outra:       { rot:'Outra', ico:'📷', dica:'' },
 };
@@ -2605,8 +3009,8 @@ function blocoFotos(el, { alvo, id, tela, tipos = ['comprovante', 'veiculo', 'ou
   const desenha = () => {
     const todas = fotos.map(f => ({ ...f, salva:true })).concat(fila.map((f, i) => ({ ...f, fila:i })));
     el.innerHTML = `
-      ${editar ? `<div class="foto-bts">${tipos.map(t => `<label class="btn foto-bt"><input type="file" accept="image/*" multiple hidden data-ft="${t}">${FOTO_TIPOS[t].ico} ${esc(FOTO_TIPOS[t].rot)}</label>`).join('')}</div>
-        <div class="info" style="margin:4px 0 8px">${tipos.filter(t => FOTO_TIPOS[t].dica).map(t => `${FOTO_TIPOS[t].ico} ${FOTO_TIPOS[t].dica}`).join(' · ')}. Pode mandar várias.</div>` : ''}
+      ${editar ? `<div class="foto-bts">${tipos.map(t => `<span class="foto-par"><label class="btn foto-bt" title="Abrir a câmera"><input type="file" accept="image/*" capture="environment" hidden data-ft="${t}">${FOTO_TIPOS[t].ico} ${esc(FOTO_TIPOS[t].rot)}</label><label class="btn foto-gal" title="Escolher da galeria (várias)"><input type="file" accept="image/*" multiple hidden data-ft="${t}">🖼</label></span>`).join('')}</div>
+        <div class="info" style="margin:4px 0 8px">${tipos.filter(t => FOTO_TIPOS[t].dica).map(t => `${FOTO_TIPOS[t].ico} ${FOTO_TIPOS[t].dica}`).join(' · ')}. Toque no botão para abrir a câmera; 🖼 escolhe da galeria (várias de uma vez).</div>` : ''}
       ${todas.length ? `<div class="fotos">${todas.map(f => `<figure class="foto ${f.salva ? '' : 'na-fila'}">
           <img src="${esc(f.url || '')}" alt="${esc(FOTO_TIPOS[f.tipo]?.rot || 'foto')}" data-ver="${f.salva ? f.id : 'f' + f.fila}" loading="lazy">
           <figcaption>${FOTO_TIPOS[f.tipo]?.ico || ''} ${esc(FOTO_TIPOS[f.tipo]?.rot || '')}${f.salva ? `<small>${diaHora(f.criado_em)}</small>` : '<small>sobe ao salvar</small>'}</figcaption>
@@ -2672,6 +3076,8 @@ async function apiMkt(path, corpo){
     CANAIS_DEMO.sort((a, b) => (a.ordem ?? 100) - (b.ordem ?? 100));
     return { ok:true };
   }
+  if (path === '/marketplace/excluir') { const n = DEMO_CROSS.coletas.filter(x => x.canal_id === corpo.id).length, c = CANAIS_DEMO.find(x => x.id === corpo.id);
+    if (n) throw new Error(`${c.nome} já tem ${n} coleta(s) no histórico: desative em vez de excluir`); CANAIS_DEMO.splice(CANAIS_DEMO.indexOf(c), 1); return { ok:true }; }
 }
 function telaMarketplaces(){
   const edita = pode('cross', 'gerir');
@@ -2693,7 +3099,7 @@ function renderMarketplaces(){
   const $c = document.getElementById('mkt'), d = state.mkt, edita = pode('cross', 'gerir');
   if (!$c || !d) return;
   $c.innerHTML = `<div class="painel">
-    <div class="leg">Na coleta do CROSS aparecem só os marketplaces ativos, e dentro de cada um só as lojas marcadas aqui. Desativar não apaga o histórico: as coletas antigas continuam com o nome.${edita ? '' : ' <b>Só líderes do CROSS alteram este cadastro.</b>'}</div>
+    <div class="leg">Clique num marketplace para editar as lojas, desativar ou excluir. Na coleta do CROSS aparecem só os marketplaces ativos, e dentro de cada um só as lojas marcadas aqui. Desativar não apaga o histórico: as coletas antigas continuam com o nome.${edita ? '' : ' <b>Só líderes do CROSS alteram este cadastro.</b>'}</div>
     <div style="overflow-x:auto"><table class="tab-mot"><thead><tr><th>Marketplace</th>${d.lojas.map(l => `<th class="c">${esc(nomeLoja(l.id))}</th>`).join('')}<th class="n">Coletas CROSS</th><th>Última</th><th>Situação</th></tr></thead><tbody>
     ${d.marketplaces.map(m => `<tr data-mk="${esc(m.id)}" class="${m.ativo ? '' : 'inativo'}"><td><b>${esc(m.nome)}</b></td>
       ${d.lojas.map(l => `<td class="c">${(m.lojas || []).includes(l.id) ? `<span class="marca-loja" style="background:${corLoja(l.id)};width:12px;height:12px"></span>` : '<span class="info">–</span>'}</td>`).join('')}
@@ -2713,15 +3119,25 @@ function abrirMarketplace(m){
       </div>
       <div class="gv-sec">Lojas que vendem neste marketplace</div>
       <div class="mk-lojas">${d.lojas.map(l => `<label class="chk mk-loja" style="--c:${corLoja(l.id)}"><input type="checkbox" data-mkl="${l.id}" ${(m.lojas || []).includes(l.id) ? 'checked' : ''}> ${esc(nomeLoja(l.id))}</label>`).join('')}</div>
-      <label class="chk" style="margin-top:16px"><input type="checkbox" id="mk-ativo" ${m.ativo ? 'checked' : ''}> Ativo (aparece na coleta do CROSS)</label>
-      <div class="gv-acoes"><button class="btn pri" id="mk-ok">Salvar</button></div></div></aside>`;
+      <div class="gv-acoes"><button class="btn pri" id="mk-ok">Salvar</button></div>
+      ${novo ? '' : `<div class="gv-sec">Situação: ${m.ativo ? '<b style="color:var(--ok,#1a7a3e)">Ativo</b>' : '<b style="color:var(--bad)">Inativo</b>'}</div>
+        <div class="gv-acoes" style="justify-content:flex-start;flex-wrap:wrap">
+          <button class="btn" id="mk-ativar">${m.ativo ? '⏸ Desativar' : '▶ Reativar'}</button>
+          ${m.n_coletas ? `<span class="info">Tem ${m.n_coletas} coleta(s) no histórico: não dá para excluir, só desativar (some da coleta do CROSS, o histórico fica).</span>` : '<button class="btn perigo" id="mk-excluir">🗑 Excluir</button><span class="info">Nunca foi usado: pode excluir.</span>'}
+        </div>`}</div></aside>`;
   const $ = k => document.getElementById(k), fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
   $('mk-ok').onclick = async () => {
-    const corpo = { id: m.id || null, nome: $('mk-nome').value.trim(), ordem: $('mk-ordem').value.trim(), ativo: $('mk-ativo').checked, lojas: [...g.querySelectorAll('[data-mkl]:checked')].map(x => x.dataset.mkl) };
+    const corpo = { id: m.id || null, nome: $('mk-nome').value.trim(), ordem: $('mk-ordem').value.trim(), ativo: m.ativo !== false, lojas: [...g.querySelectorAll('[data-mkl]:checked')].map(x => x.dataset.mkl) };
     try { await apiMkt('/marketplace', corpo); avisar('Marketplace salvo'); fechar(); state.crossDados = null; await carregarMarketplaces(); }
     catch (e) { if (e instanceof SemSessao) throw e; const x = $('mk-erro'); x.hidden = false; x.textContent = e.message; }
   };
+  const erroMk = e => { if (e instanceof SemSessao) throw e; const x = $('mk-erro'); x.hidden = false; x.textContent = e.message; };
+  const at = $('mk-ativar'); if (at) at.onclick = async () => {
+    try { await apiMkt('/marketplace', { id:m.id, nome:m.nome, ordem:m.ordem, lojas:m.lojas, ativo:!m.ativo }); avisar(m.ativo ? `${m.nome} desativado` : `${m.nome} reativado`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
+  const ex = $('mk-excluir'); if (ex) ex.onclick = async () => {
+    if (!confirmaDupla(ex, 'Clique de novo para excluir')) return;
+    try { await apiMkt('/marketplace/excluir', { id:m.id }); avisar(`${m.nome} excluído`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
   $('mk-nome').focus();
 }
 
@@ -3338,6 +3754,7 @@ const MENU = [
     { id:'ferramentas', titulo:'Ferramentas', filhos:[
       { view:'full', titulo:'Envios Full', tela:'full' },
       { view:'cross', titulo:'Expedição - CROSS', tela:'cross' },
+      { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
     ]},
     { id:'cadastros', titulo:'Cadastros', filhos:[
       { view:'motoristas', titulo:'Motoristas', tela:'motoristas' },
@@ -3357,7 +3774,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross' };
+const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -3404,7 +3821,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -3417,6 +3834,7 @@ function irPara(view){
   if (view === 'oo') return telaOO();
   if (view === 'motoristas') return telaMotoristas();
   if (view === 'marketplaces') return telaMarketplaces();
+  if (view === 'abandono') return telaAbandono();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
