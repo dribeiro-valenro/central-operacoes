@@ -207,6 +207,19 @@
   @media (max-width:560px){ .barra-sel{padding:10px 14px} .barra-sel .btn.pri{flex:1} }
   .chip-rom{font:inherit;font-size:11px;font-weight:700;color:#0b4fa8;background:#e3eefc;border:1px solid #b9d0f2;border-radius:20px;padding:1px 7px;margin-left:6px;cursor:pointer;white-space:nowrap}
   .chip-rom:hover{background:#d2e3fa}
+  .foto-bts{display:flex;gap:8px;flex-wrap:wrap} .foto-bt{cursor:pointer;font-weight:600}
+  .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+  .foto{position:relative;margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .foto img{display:block;width:100%;height:96px;object-fit:cover;cursor:zoom-in;background:#eef0f4}
+  .foto figcaption{font-size:11px;padding:4px 6px;line-height:1.25} .foto figcaption small{display:block;color:var(--mute)}
+  .foto.na-fila{outline:2px dashed var(--amarelo)}
+  .foto-x{position:absolute;top:4px;right:4px;border:0;border-radius:12px;background:rgba(0,0,0,.6);color:#fff;font:inherit;font-size:13px;line-height:1;padding:4px 7px;cursor:pointer}
+  .foto-x.conf{background:var(--bad)}
+  .foto-zoom{position:fixed;inset:0;z-index:80;background:rgba(10,15,25,.92);display:flex;align-items:center;justify-content:center;padding:56px 12px 12px}
+  .foto-zoom img{max-width:100%;max-height:100%;object-fit:contain}
+  .foto-zoom-cab{position:fixed;top:0;left:0;right:0;display:flex;gap:8px;align-items:center;padding:10px 12px;color:#fff} .foto-zoom-cab span{flex:1}
+  .foto-zoom-cab .btn{background:#fff}
+  .mk-lojas{display:flex;gap:10px;flex-wrap:wrap} .mk-loja{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:8px;padding:8px 12px}
   .etapa-sec{border-left:4px solid var(--c);padding-left:8px}
   .col-form-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
   .tp-tile{font:inherit;text-align:left;cursor:pointer;color:var(--ink)} .tp-tile:hover{background:#f6f8fb} .tp-tile.on{outline:2px solid var(--c)}
@@ -1771,6 +1784,8 @@ function abrirRomaneio(id, recarregando){
         ${cg.length ? resumoColeta(cg) : ''}${listaApontamentos(cg, 'carregamento', mexeCarga, soma(e => e.pares_envio ?? e.pares_plan))}
         ${mexeCarga ? `<div id="gv-form-carregamento"></div><button class="btn mini" data-nova="carregamento" style="margin-top:6px">+ Apontar carregamento</button>` : ''}
 
+        <div class="gv-sec">Fotos <span class="info">tela do app do motorista com os volumes, veículo carregado</span></div><div id="rd-fotos"></div>
+
         <div class="gv-sec">Embarque ${edCab ? '' : r.status === 'expedido' ? '<span class="info">(veículo já saiu: só líder altera)</span>' : ''}</div>
         ${camposEmbarque(r, mots, edCab)}
         ${edCab ? '<div class="gv-acoes"><button class="btn pri" id="rd-salvar">Salvar dados do embarque</button></div>' : ''}
@@ -1821,6 +1836,7 @@ function abrirRomaneio(id, recarregando){
       dica: 'O carregamento é do veículo inteiro: pares e caixas em branco contam o romaneio todo. Aponte só o tempo carregando (a espera na doca já aparece em chegada → saída).',
       aoSalvar: () => recarregar(), aoFechar: () => { if (btn) btn.hidden = false; } });
   };
+  blocoFotos($('rd-fotos'), { alvo:'full_romaneio', id:r.id, tela:'full', editar: editar && r.status !== 'cancelado', tipos:['comprovante', 'veiculo', 'carga', 'outra'] });
   const nvc = g.querySelector('[data-nova="carregamento"]'); if (nvc) nvc.onclick = () => formCarga(null);
   g.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => formCarga(cg.find(c => c.id === b.dataset.ec)));
   g.querySelectorAll('[data-ir-envio]').forEach(b => b.onclick = () => { s.vista = 'envios'; s.romAberto = null; s.aberto = b.dataset.irEnvio; s.aba = 'todos'; s.st = null; telaFull(); });
@@ -2067,6 +2083,7 @@ function abrirEnvio(id, recarregando){
           return `<div class="gv-sec etapa-sec" style="--c:${E.cor}">${esc(E.rot)} <span class="info">${ca.length ? `${ca.length} apontamento(s)` : 'sem apontamento'}${et === 'separacao' && ca.length ? ` · ${fmtN(som)} pares${e.pares_envio ? ` · ${fmtP(som, e.pares_envio)} do a enviar` : ''}` : ''}</span></div>
           ${ca.length ? resumoColeta(ca) : ''}${listaApontamentos(ca, et, mexeColeta, paresEnvio(e))}
           ${mexeColeta ? `<div id="gv-form-${et}"></div><button class="btn mini" data-nova="${et}" style="margin-top:6px">+ Apontar ${esc(E.rot.toLowerCase())}</button>` : ''}`; }).join('')}
+        <div class="gv-sec">Fotos <span class="info">palete, carga, avaria</span></div><div id="gv-fotos"></div>
         <div class="gv-sec">Histórico <button class="btn mini" id="gv-hist-btn">Ver</button></div><div id="gv-hist"></div>
         ${gerir ? `<div style="margin-top:24px"><button class="btn perigo" id="gv-excluir">Excluir envio</button> <span class="info">Para pedido cadastrado por engano. Se o ML cancelou, use o status Cancelado.</span></div>` : ''}`}
       </div>
@@ -2115,6 +2132,7 @@ function abrirEnvio(id, recarregando){
       aoSalvar: async () => { g.dataset.sujo = ''; await carregarFull(); }, aoFechar: () => { if (btn) btn.hidden = false; } });
   };
   g.querySelectorAll('[data-nova]').forEach(b => b.onclick = () => abrirForm(b.dataset.nova, null));
+  if ($('gv-fotos')) blocoFotos($('gv-fotos'), { alvo:'full_envio', id:e.id, tela:'full', editar: mexeColeta, tipos:['carga', 'outra'] });
   g.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => abrirForm(b.dataset.ecEtapa, (r.coletas || []).find(c => c.id === b.dataset.ec)));
 
   const hb = $('gv-hist-btn');
@@ -2162,7 +2180,10 @@ const mascaraTel = el => el.addEventListener('input', () => { const d = el.value
 // campos de nome sempre em caixa alta (sem perder a posição do cursor)
 const forcaCaixaAlta = el => el.addEventListener('input', () => { const p = el.selectionStart; el.value = el.value.toUpperCase(); try { el.setSelectionRange(p, p); } catch (_) {} });
 
-const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida' }, { id:'shein', nome:'Shein' }, { id:'ml_coleta', nome:'Mercado Livre' }, { id:'ml_flex', nome:'Flex' }, { id:'correios', nome:'Correios' }, { id:'outro', nome:'Outro' }];
+const TODAS_DEMO = ['CACAL', 'DIGOS', 'DROSA'];
+const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida', lojas:['DIGOS'], ordem:10, ativo:true }, { id:'shopee_express', nome:'Shopee Express', lojas:['DIGOS'], ordem:15, ativo:true },
+  { id:'shein', nome:'Shein', lojas:TODAS_DEMO, ordem:20, ativo:true }, { id:'ml_coleta', nome:'Mercado Livre', lojas:TODAS_DEMO, ordem:30, ativo:true }, { id:'ml_flex', nome:'Flex', lojas:TODAS_DEMO, ordem:40, ativo:true },
+  { id:'correios', nome:'Correios', lojas:TODAS_DEMO, ordem:50, ativo:true }, { id:'outro', nome:'Outro', lojas:TODAS_DEMO, ordem:90, ativo:false }];
 // ---- demonstração: o caderno de 23/10/2026, em memória
 const DEMO_CROSS = (() => {
   const d = hojeBRT(), ag = new Date().toISOString();
@@ -2191,7 +2212,7 @@ async function apiCross(path, corpo){
   if (path.startsWith('/cross?')) {
     const ini = q.get('ini'), fim = q.get('fim');
     return { ini, fim, hoje: hojeBRT(), coletas: JSON.parse(JSON.stringify(D.coletas.filter(c => c.data >= ini && c.data <= fim))).map(c => ({ ...c, assinatura: undefined })),
-      canais: CANAIS_DEMO, lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
+      canais: JSON.parse(JSON.stringify(CANAIS_DEMO)), lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
       sugestoes: D.coletas.filter(c => c.placa).map(c => ({ placa:c.placa, motorista:c.motorista, veiculo:c.veiculo, canal_id:c.canal_id })), motoristas: JSON.parse(JSON.stringify(D.motoristas.filter(m => m.ativo))) };
   }
   if (path === '/motoristas') { demoRomIni(); const rs = m => DEMO_ROM.romaneios.filter(r => r.motorista_id === m.id && r.status !== 'cancelado');
@@ -2209,6 +2230,8 @@ async function apiCross(path, corpo){
   if (path === '/cross/coleta') {
     const pac = Object.fromEntries(Object.entries(corpo.pacotes || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)]));
     const total = Object.values(pac).reduce((a, b) => a + b, 0);
+    const cn = CANAIS_DEMO.find(x => x.id === corpo.canal_id), fora = Object.keys(pac).filter(l => !cn.lojas.includes(l));
+    if (fora.length) throw new Error(`${fora.join(', ')} não está vinculada a ${cn.nome}. Ajuste em Logística › Cadastros › Marketplaces.`);
     if (corpo.assinatura && !total) throw new Error('Informe os pacotes antes de colher a assinatura');
     if (corpo.assinatura && !corpo.motorista) throw new Error('Informe o nome do motorista antes de colher a assinatura');
     const dados = { ...corpo, pacotes:pac, total, placa: corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null,
@@ -2289,7 +2312,7 @@ function renderMotoristas(){
 }
 function abrirMotorista(m){
   const g = document.getElementById('gaveta'); m ||= { nome:'', ativo:true };
-  const transp = [...new Set([...(state.motoristas || []).map(x => x.transportadora).filter(Boolean), ...CANAIS_DEMO.filter(c => c.id !== 'outro').map(c => c.nome.toUpperCase())])].sort();
+  const transp = [...new Set([...(state.motoristas || []).map(x => x.transportadora).filter(Boolean), ...CANAIS_DEMO.filter(c => c.ativo).map(c => c.nome.toUpperCase())])].sort();
   g.hidden = false; document.body.classList.add('gaveta-aberta');
   g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">Cadastro de motoristas</div><h3>${m.id ? esc(m.nome) : 'Novo motorista'}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
     <div class="gv-corpo"><div class="erro" id="gv-erro" hidden></div><div class="grade-form g2" style="margin-top:14px">
@@ -2398,8 +2421,8 @@ async function abrirCross(id){
       <div class="gv-corpo">
         <div class="erro" id="gv-erro" hidden></div>
         ${assinada && !gerir ? '<div class="aviso" style="margin-top:10px">Coleta assinada pelo motorista. Só um líder pode alterar.</div>' : ''}
-        <div class="gv-sec">Canal / transportadora</div>
-        <div class="etapas canais-bt">${r.canais.map(cn => `<button type="button" class="etapa ${c.canal_id === cn.id ? 'on' : ''}" data-canal="${cn.id}" ${ro} style="--c:#02285a;--f:#e8eef7">${esc(cn.nome)}</button>`).join('')}</div>
+        <div class="gv-sec">Marketplace</div>
+        <div class="etapas canais-bt">${r.canais.filter(cn => cn.ativo !== false || cn.id === c.canal_id).map(cn => `<button type="button" class="etapa ${c.canal_id === cn.id ? 'on' : ''}" data-canal="${cn.id}" ${ro} style="--c:#02285a;--f:#e8eef7">${esc(cn.nome)}</button>`).join('')}</div>
         <div class="grade-form g2" style="margin-top:12px">
           <label>Nº da coleta no dia<span class="linha-hora"><input id="cx-seq" inputmode="numeric" value="${c.sequencia ?? ''}" placeholder="automático" ${ro}><span class="info" id="cx-seq-dica" style="align-self:center"></span></span></label>
           <label>Data<input type="date" id="cx-data" value="${c.data}" max="${hojeBRT()}" ${novo || gerir ? '' : 'disabled'}></label>
@@ -2411,8 +2434,7 @@ async function abrirCross(id){
           <label>Saída<span class="linha-hora"><input type="time" id="cx-saida" value="${c.hora_saida || ''}" ${ro}><button type="button" class="btn mini" data-agora="cx-saida" ${ro}>Agora</button></span></label>
         </div>
         <div class="gv-sec">Pacotes por loja <span class="info">Total: <b id="cx-total">0</b></span></div>
-        <div class="pac-lojas">${r.lojas.map(l => `<label class="pac" style="--c:${LOJAS[l.id]?.borda || corLoja(l.id)}"><span>${esc(nomeLoja(l.id))}</span>
-          <span class="pac-in"><button type="button" class="btn" data-menos="${l.id}" ${ro}>−</button><input inputmode="numeric" data-loja="${l.id}" value="${c.pacotes?.[l.id] || ''}" placeholder="0" ${ro}><button type="button" class="btn" data-mais="${l.id}" ${ro}>+</button></span></label>`).join('')}</div>
+        <div class="pac-lojas" id="cx-lojas"></div>
         <div class="gv-sec">ID / manifesto da coleta</div>
         <span class="chips" id="cx-chips"></span>
         <span class="linha-hora"><input id="cx-man" class="campo" placeholder="digite e toque em Adicionar" autocapitalize="characters" ${ro}><button type="button" class="btn mini" id="cx-man-add" ${ro}>Adicionar</button></span>
@@ -2426,6 +2448,8 @@ async function abrirCross(id){
           <label>Responsável pela expedição<input id="cx-resp" value="${esc(c.responsavel || '')}" placeholder="QUEM ACOMPANHOU NA DOCA" autocapitalize="characters" ${ro}></label>
         </div>
         <label class="gv-lab">Observação<textarea id="cx-obs" rows="2" maxlength="500" ${ro}>${esc(c.observacao || '')}</textarea></label>
+        <div class="gv-sec">Fotos <span class="info">tela do app do motorista com os volumes, veículo carregado</span></div>
+        <div id="cx-fotos"></div>
         <div class="gv-sec">Assinatura do motorista</div>
         <div id="cx-assin"></div>
         ${pode_ ? `<div class="gv-acoes"><button class="btn pri" id="cx-salvar">Salvar</button></div>` : ''}
@@ -2441,13 +2465,24 @@ async function abrirCross(id){
   g.querySelectorAll('.gv-corpo input, .gv-corpo textarea').forEach(el => el.addEventListener('input', () => { sujo = true; }));
   const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
   const dicaSeq = () => { $('cx-seq-dica').textContent = !$('cx-seq').value && canal ? `será a ${ordinal(proxSeq(canal))}` : ''; };
-  g.querySelectorAll('[data-canal]').forEach(b => b.onclick = () => { canal = b.dataset.canal; sujo = true; g.querySelectorAll('[data-canal]').forEach(x => x.classList.toggle('on', x === b)); dicaSeq(); });
+  // pacotes: só as lojas que vendem no marketplace escolhido (e as que já têm pacote nesta coleta)
+  const pacAtual = { ...(c.pacotes || {}) };
+  const desenhaLojas = () => {
+    g.querySelectorAll('[data-loja]').forEach(i => { pacAtual[i.dataset.loja] = parseInt(i.value) || 0; });
+    const cn = r.canais.find(x => x.id === canal), vinc = cn?.lojas?.length ? cn.lojas : r.lojas.map(l => l.id);
+    const lojas = r.lojas.filter(l => vinc.includes(l.id) || pacAtual[l.id]);
+    $('cx-lojas').innerHTML = !canal ? '<div class="info">Escolha o marketplace para lançar os pacotes por loja.</div>' : lojas.map(l => `<label class="pac" style="--c:${LOJAS[l.id]?.borda || corLoja(l.id)}"><span>${esc(nomeLoja(l.id))}${vinc.includes(l.id) ? '' : ' <i class="info">(não vinculada)</i>'}</span>
+      <span class="pac-in"><button type="button" class="btn" data-menos="${l.id}" ${ro}>−</button><input inputmode="numeric" data-loja="${l.id}" value="${pacAtual[l.id] || ''}" placeholder="0" ${ro}><button type="button" class="btn" data-mais="${l.id}" ${ro}>+</button></span></label>`).join('');
+    g.querySelectorAll('[data-loja]').forEach(i => i.addEventListener('input', () => { i.value = i.value.replace(/\D/g, ''); sujo = true; somar(); }));
+    g.querySelectorAll('[data-mais],[data-menos]').forEach(b => b.onclick = () => { const i = g.querySelector(`[data-loja="${b.dataset.mais || b.dataset.menos}"]`); i.value = Math.max(0, (parseInt(i.value) || 0) + (b.dataset.mais ? 1 : -1)) || ''; sujo = true; somar(); });
+    somar();
+  };
+  g.querySelectorAll('[data-canal]').forEach(b => b.onclick = () => { canal = b.dataset.canal; sujo = true; g.querySelectorAll('[data-canal]').forEach(x => x.classList.toggle('on', x === b)); dicaSeq(); desenhaLojas(); });
   $('cx-seq').addEventListener('input', dicaSeq); dicaSeq();
   g.querySelectorAll('[data-agora]').forEach(b => b.onclick = () => { $(b.dataset.agora).value = agoraHM(); sujo = true; });
   const somar = () => { $('cx-total').textContent = fmtN([...g.querySelectorAll('[data-loja]')].reduce((t, i) => t + (parseInt(i.value) || 0), 0)); };
-  g.querySelectorAll('[data-loja]').forEach(i => i.addEventListener('input', () => { i.value = i.value.replace(/\D/g, ''); somar(); }));
-  g.querySelectorAll('[data-mais],[data-menos]').forEach(b => b.onclick = () => { const i = g.querySelector(`[data-loja="${b.dataset.mais || b.dataset.menos}"]`); i.value = Math.max(0, (parseInt(i.value) || 0) + (b.dataset.mais ? 1 : -1)) || ''; sujo = true; somar(); });
-  somar();
+  desenhaLojas();
+  const fotos = blocoFotos($('cx-fotos'), { alvo:'cross_coleta', id: c.id || null, tela:'cross', editar: editar, tipos:['comprovante', 'veiculo', 'outra'] });
   const chips = () => { $('cx-chips').innerHTML = man.map((m, i) => `<span class="chip">${esc(m)}${pode_ ? `<button type="button" data-rmm="${i}" aria-label="Remover">×</button>` : ''}</span>`).join('') || '<span class="info">nenhum</span>';
     $('cx-chips').querySelectorAll('[data-rmm]').forEach(b => b.onclick = () => { man.splice(+b.dataset.rmm, 1); sujo = true; chips(); }); };
   const addMan = () => { const v = $('cx-man').value.trim().toUpperCase(); if (v && !man.includes(v)) { man.push(v); sujo = true; } $('cx-man').value = ''; chips(); };
@@ -2492,7 +2527,7 @@ async function abrirCross(id){
   $('gv-fundo').onclick = $('gv-fechar').onclick;
   const sv = $('cx-salvar');
   if (sv) sv.onclick = async () => {
-    if (!canal) return erro('Escolha o canal / transportadora.');
+    if (!canal) return erro('Escolha o marketplace.');
     const pacotes = Object.fromEntries([...g.querySelectorAll('[data-loja]')].map(i => [i.dataset.loja, parseInt(i.value) || 0]));
     if ($('cx-man').value.trim()) addMan();
     const corpo = { id: c.id || null, versao: c.atualizado_em || null, data: $('cx-data').value, canal_id: canal, sequencia: $('cx-seq').value.trim() || null,
@@ -2506,7 +2541,8 @@ async function abrirCross(id){
     sv.disabled = true; sv.textContent = 'Salvando…'; erro('');
     try {
       const res = await apiCross('/cross/coleta', corpo);
-      sujo = false; avisar(corpo.assinatura ? 'Coleta finalizada e assinada' : res.semMudanca ? 'Nada mudou.' : 'Coleta salva');
+      const nf = fotos.pendentes() ? await fotos.enviarPendentes(res.id || c.id) : 0;
+      sujo = false; avisar((corpo.assinatura ? 'Coleta finalizada e assinada' : res.semMudanca && !nf ? 'Nada mudou.' : 'Coleta salva') + (nf ? ` · ${nf} foto(s)` : ''));
       if (corpo.data !== s.data) { s.data = corpo.data; document.getElementById('x-data').value = s.data; }
       await carregarCross(); fecharCross();
     } catch (x) { if (x instanceof SemSessao) throw x; erro(x.message); sv.disabled = false; sv.textContent = pad && pad.temTinta() ? '✍ Salvar e finalizar' : 'Salvar'; }
@@ -2528,6 +2564,165 @@ function fecharCross(){
   state.cross.aberto = null;
   const g = document.getElementById('gaveta'); if (g) { g.hidden = true; g.innerHTML = ''; }
   document.body.classList.remove('gaveta-aberta');
+}
+
+/* =================== FOTOS DAS COLETAS (CROSS, envio Full, romaneio Full) =================== */
+const FOTO_TIPOS = {
+  comprovante: { rot:'App do motorista', ico:'📱', dica:'tela do app com a quantidade de volumes coletados' },
+  veiculo:     { rot:'Veículo carregado', ico:'🚚', dica:'veículo com a carga e a placa visível' },
+  carga:       { rot:'Carga / palete', ico:'📦', dica:'palete, caixas, avaria' },
+  outra:       { rot:'Outra', ico:'📷', dica:'' },
+};
+const DEMO_FOTOS = {};   // demonstração: fotos só na memória do navegador
+// reduz a foto do celular (12 MP, 4 MB) para ~1600 px em JPEG: sobe rápido no 4G e ocupa pouco espaço
+async function comprimirFoto(arq){
+  try {
+    const img = await createImageBitmap(arq);
+    const k = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+    cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
+    if (blob) return new File([blob], 'foto.jpg', { type:'image/jpeg' });
+  } catch (_) {}
+  if (['image/jpeg', 'image/png', 'image/webp'].includes(arq.type)) return arq;
+  throw new Error('Não consegui ler essa imagem. Tente tirar a foto pela câmera do portal.');
+}
+async function apiFotos(path, corpo){
+  if (!DEMO) return path === '/foto' ? enviarArquivoPortal(corpo, '/foto') : api(path, corpo ? { metodo:'POST', corpo } : {});
+  const q = new URLSearchParams(path.split('?')[1] || '');
+  if (path.startsWith('/fotos?')) return { fotos: JSON.parse(JSON.stringify(DEMO_FOTOS[q.get('alvo') + '|' + q.get('id')] || [])) };
+  if (path === '/foto') { const k = corpo.get('alvo') + '|' + corpo.get('alvo_id'), L = DEMO_FOTOS[k] ||= [];
+    L.push({ id:String(Date.now() + Math.random()), tipo:corpo.get('tipo'), legenda:corpo.get('legenda') || null, url:URL.createObjectURL(corpo.get('arquivo')), criado_em:new Date().toISOString(), criado_por:'demonstracao', tamanho:corpo.get('arquivo').size }); return { ok:true }; }
+  if (path === '/foto/excluir') { Object.values(DEMO_FOTOS).forEach(L => { const i = L.findIndex(f => f.id === corpo.id); if (i >= 0) L.splice(i, 1); }); return { ok:true }; }
+}
+// Bloco de fotos dentro de uma gaveta. Coleta ainda não salva (id null): as fotos ficam na fila e sobem ao salvar.
+// Retorna { pendentes(), enviarPendentes(id) }.
+function blocoFotos(el, { alvo, id, tela, tipos = ['comprovante', 'veiculo', 'outra'], editar }){
+  const fila = [];   // { arquivo, tipo, url }
+  let fotos = [];
+  const eu = state.usuario?.login || 'demonstracao', gerir = pode(tela, 'gerir');
+  const podeTirar = f => editar && (gerir || (f.criado_por === eu && Date.now() - new Date(f.criado_em) < 24 * 3600e3));
+  const desenha = () => {
+    const todas = fotos.map(f => ({ ...f, salva:true })).concat(fila.map((f, i) => ({ ...f, fila:i })));
+    el.innerHTML = `
+      ${editar ? `<div class="foto-bts">${tipos.map(t => `<label class="btn foto-bt"><input type="file" accept="image/*" multiple hidden data-ft="${t}">${FOTO_TIPOS[t].ico} ${esc(FOTO_TIPOS[t].rot)}</label>`).join('')}</div>
+        <div class="info" style="margin:4px 0 8px">${tipos.filter(t => FOTO_TIPOS[t].dica).map(t => `${FOTO_TIPOS[t].ico} ${FOTO_TIPOS[t].dica}`).join(' · ')}. Pode mandar várias.</div>` : ''}
+      ${todas.length ? `<div class="fotos">${todas.map(f => `<figure class="foto ${f.salva ? '' : 'na-fila'}">
+          <img src="${esc(f.url || '')}" alt="${esc(FOTO_TIPOS[f.tipo]?.rot || 'foto')}" data-ver="${f.salva ? f.id : 'f' + f.fila}" loading="lazy">
+          <figcaption>${FOTO_TIPOS[f.tipo]?.ico || ''} ${esc(FOTO_TIPOS[f.tipo]?.rot || '')}${f.salva ? `<small>${diaHora(f.criado_em)}</small>` : '<small>sobe ao salvar</small>'}</figcaption>
+          ${(f.salva ? podeTirar(f) : true) && editar ? `<button type="button" class="foto-x" data-fx="${f.salva ? f.id : 'f' + f.fila}" aria-label="Excluir foto">×</button>` : ''}</figure>`).join('')}</div>`
+        : `<div class="info">${editar ? 'Nenhuma foto ainda.' : 'Sem fotos.'}</div>`}`;
+    el.querySelectorAll('[data-ft]').forEach(inp => inp.onchange = async () => {
+      const arqs = [...inp.files]; inp.value = ''; if (!arqs.length) return;
+      for (const a of arqs) {
+        try {
+          const arq = await comprimirFoto(a);
+          if (!id) { fila.push({ arquivo:arq, tipo:inp.dataset.ft, url:URL.createObjectURL(arq) }); continue; }
+          const fd = new FormData(); fd.append('alvo', alvo); fd.append('alvo_id', id); fd.append('tipo', inp.dataset.ft); fd.append('arquivo', arq, 'foto.jpg');
+          await apiFotos('/foto', fd);
+        } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+      }
+      if (id) { avisar(arqs.length > 1 ? `${arqs.length} fotos enviadas` : 'Foto enviada'); await carregar(); } else desenha();
+    });
+    el.querySelectorAll('[data-ver]').forEach(img => img.onclick = () => verFoto(img.src, img.alt));
+    el.querySelectorAll('[data-fx]').forEach(b => b.onclick = async () => {
+      const k = b.dataset.fx;
+      if (k.startsWith('f')) { fila.splice(+k.slice(1), 1); return desenha(); }
+      if (b.dataset.conf !== '1') { b.dataset.conf = '1'; b.textContent = 'excluir?'; b.classList.add('conf'); return; }
+      try { await apiFotos('/foto/excluir', { id:k }); avisar('Foto excluída'); await carregar(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+    });
+  };
+  const carregar = async () => {
+    if (!id) return desenha();
+    try { fotos = (await apiFotos(`/fotos?alvo=${alvo}&id=${id}`)).fotos; desenha(); }
+    catch (e) { if (e instanceof SemSessao) throw e; el.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+  };
+  el.innerHTML = '<div class="info">Carregando fotos…</div>';
+  carregar();
+  return {
+    pendentes: () => fila.length,
+    async enviarPendentes(novoId){
+      let ok = 0;
+      for (const f of fila) {
+        const fd = new FormData(); fd.append('alvo', alvo); fd.append('alvo_id', novoId); fd.append('tipo', f.tipo); fd.append('arquivo', f.arquivo, 'foto.jpg');
+        try { await apiFotos('/foto', fd); ok++; } catch (e) { if (e instanceof SemSessao) throw e; avisar(`Foto não enviada: ${e.message}`, true); }
+      }
+      fila.length = 0; return ok;
+    },
+  };
+}
+function verFoto(url, titulo){
+  const d = document.createElement('div'); d.className = 'foto-zoom';
+  d.innerHTML = `<img src="${esc(url)}" alt="${esc(titulo || '')}"><div class="foto-zoom-cab"><span>${esc(titulo || '')}</span><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Abrir original</a><button class="btn" aria-label="Fechar">✕</button></div>`;
+  d.onclick = ev => { if (ev.target.tagName !== 'A') d.remove(); };
+  document.body.appendChild(d);
+}
+
+/* =================== CADASTRO DE MARKETPLACES =================== */
+async function apiMkt(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  if (path === '/marketplaces') return { marketplaces: CANAIS_DEMO.map(c => ({ ...c, n_coletas: DEMO_CROSS.coletas.filter(x => x.canal_id === c.id).length, ultima: DEMO_CROSS.coletas.filter(x => x.canal_id === c.id).map(x => x.data).sort().at(-1) || null })),
+    lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }] };
+  if (path === '/marketplace') {
+    const nome = String(corpo.nome || '').trim(); if (!nome) throw new Error('Informe o nome do marketplace');
+    if (!corpo.lojas?.length) throw new Error('Marque ao menos uma loja que vende neste marketplace');
+    if (CANAIS_DEMO.some(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== corpo.id)) throw new Error('Já existe um marketplace com esse nome');
+    if (corpo.id) Object.assign(CANAIS_DEMO.find(c => c.id === corpo.id), { nome, lojas:corpo.lojas, ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
+    else CANAIS_DEMO.push({ id:nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_'), nome, lojas:corpo.lojas, ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
+    CANAIS_DEMO.sort((a, b) => (a.ordem ?? 100) - (b.ordem ?? 100));
+    return { ok:true };
+  }
+}
+function telaMarketplaces(){
+  const edita = pode('cross', 'gerir');
+  $app.innerHTML = `
+    <div class="barra"><h2>Marketplaces</h2><span class="info">onde cada loja vende · usado na Expedição CROSS</span><span style="flex:1"></span>
+      <button class="btn" id="mk-atualizar">Atualizar</button>${edita ? '<button class="btn pri" id="mk-novo">+ Marketplace</button>' : ''}</div>
+    <div id="mkt"><div class="carregando">Carregando…</div></div>
+    <div id="gaveta" hidden></div>`;
+  document.getElementById('mk-atualizar').onclick = carregarMarketplaces;
+  const nv = document.getElementById('mk-novo'); if (nv) nv.onclick = () => abrirMarketplace(null);
+  carregarMarketplaces();
+}
+async function carregarMarketplaces(){
+  const $c = document.getElementById('mkt'); if (!$c) return;
+  try { state.mkt = await apiMkt('/marketplaces'); renderMarketplaces(); }
+  catch (e) { if (e instanceof SemSessao) throw e; $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function renderMarketplaces(){
+  const $c = document.getElementById('mkt'), d = state.mkt, edita = pode('cross', 'gerir');
+  if (!$c || !d) return;
+  $c.innerHTML = `<div class="painel">
+    <div class="leg">Na coleta do CROSS aparecem só os marketplaces ativos, e dentro de cada um só as lojas marcadas aqui. Desativar não apaga o histórico: as coletas antigas continuam com o nome.${edita ? '' : ' <b>Só líderes do CROSS alteram este cadastro.</b>'}</div>
+    <div style="overflow-x:auto"><table class="tab-mot"><thead><tr><th>Marketplace</th>${d.lojas.map(l => `<th class="c">${esc(nomeLoja(l.id))}</th>`).join('')}<th class="n">Coletas CROSS</th><th>Última</th><th>Situação</th></tr></thead><tbody>
+    ${d.marketplaces.map(m => `<tr data-mk="${esc(m.id)}" class="${m.ativo ? '' : 'inativo'}"><td><b>${esc(m.nome)}</b></td>
+      ${d.lojas.map(l => `<td class="c">${(m.lojas || []).includes(l.id) ? `<span class="marca-loja" style="background:${corLoja(l.id)};width:12px;height:12px"></span>` : '<span class="info">–</span>'}</td>`).join('')}
+      <td class="n">${fmtN(m.n_coletas || 0)}</td><td>${m.ultima ? dataBR(m.ultima) : '<span class="info">–</span>'}</td><td>${m.ativo ? 'Ativo' : 'Inativo'}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+  if (edita) $c.querySelectorAll('[data-mk]').forEach(tr => tr.onclick = () => abrirMarketplace(d.marketplaces.find(m => m.id === tr.dataset.mk)));
+}
+function abrirMarketplace(m){
+  const d = state.mkt, g = document.getElementById('gaveta'), novo = !m;
+  m ||= { nome:'', lojas:[], ordem:100, ativo:true };
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">Cadastro</div><h3>${novo ? 'Novo marketplace' : esc(m.nome)}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="mk-erro" hidden></div>
+      <div class="grade-form g2">
+        <label>Nome<input id="mk-nome" value="${esc(m.nome)}" placeholder="ex.: Shopee Express" maxlength="60"></label>
+        <label>Ordem na tela<input id="mk-ordem" inputmode="numeric" value="${m.ordem ?? 100}"><span class="info">menor aparece primeiro</span></label>
+      </div>
+      <div class="gv-sec">Lojas que vendem neste marketplace</div>
+      <div class="mk-lojas">${d.lojas.map(l => `<label class="chk mk-loja" style="--c:${corLoja(l.id)}"><input type="checkbox" data-mkl="${l.id}" ${(m.lojas || []).includes(l.id) ? 'checked' : ''}> ${esc(nomeLoja(l.id))}</label>`).join('')}</div>
+      <label class="chk" style="margin-top:16px"><input type="checkbox" id="mk-ativo" ${m.ativo ? 'checked' : ''}> Ativo (aparece na coleta do CROSS)</label>
+      <div class="gv-acoes"><button class="btn pri" id="mk-ok">Salvar</button></div></div></aside>`;
+  const $ = k => document.getElementById(k), fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
+  $('mk-ok').onclick = async () => {
+    const corpo = { id: m.id || null, nome: $('mk-nome').value.trim(), ordem: $('mk-ordem').value.trim(), ativo: $('mk-ativo').checked, lojas: [...g.querySelectorAll('[data-mkl]:checked')].map(x => x.dataset.mkl) };
+    try { await apiMkt('/marketplace', corpo); avisar('Marketplace salvo'); fechar(); state.crossDados = null; await carregarMarketplaces(); }
+    catch (e) { if (e instanceof SemSessao) throw e; const x = $('mk-erro'); x.hidden = false; x.textContent = e.message; }
+  };
+  $('mk-nome').focus();
 }
 
 /* =================== ONE-ON-ONE =================== */
@@ -2622,12 +2817,12 @@ const DEMO_OO = (() => {
   return { pessoas, rodadas, conversas, pontos, metas, acomps, areas, setores, arquivos, seq:100 };
 })();
 // envio de arquivo (multipart): não passa pelo api() porque ele manda JSON
-async function enviarArquivoPortal(form){
-  if (DEMO) return apiOO('/oo/arquivo', form);
+async function enviarArquivoPortal(form, path = '/oo/arquivo'){
+  if (DEMO) return apiOO(path, form);
   let s = lerSessao(); if (!s) throw new SemSessao('Faça login');
   if (s.expires_at && s.expires_at * 1000 < Date.now() + 60e3) s = await renovar();
   if (!s) throw new SemSessao('Sessão expirada');
-  const r = await fetch(API_URL + '/oo/arquivo', { method:'POST', headers:{ Authorization:'Bearer ' + s.access_token }, body:form });
+  const r = await fetch(API_URL + path, { method:'POST', headers:{ Authorization:'Bearer ' + s.access_token }, body:form });
   let j = null; try { j = await r.json(); } catch (_) {}
   if (r.status === 401) { gravarSessao(null); throw new SemSessao('Sessão expirada'); }
   if (!r.ok) throw new Error((j && j.error) || ('Erro ' + r.status));
@@ -3146,6 +3341,7 @@ const MENU = [
     ]},
     { id:'cadastros', titulo:'Cadastros', filhos:[
       { view:'motoristas', titulo:'Motoristas', tela:'motoristas' },
+      { view:'marketplaces', titulo:'Marketplaces', tela:'cross' },
     ]},
     { id:'indicadores', titulo:'Indicadores', filhos:[
       { view:'separados', titulo:'Produtividade', tela:'produtividade' },
@@ -3161,7 +3357,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas' };
+const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -3208,7 +3404,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -3220,6 +3416,7 @@ function irPara(view){
   if (view === 'cross') return telaCross();
   if (view === 'oo') return telaOO();
   if (view === 'motoristas') return telaMotoristas();
+  if (view === 'marketplaces') return telaMarketplaces();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
