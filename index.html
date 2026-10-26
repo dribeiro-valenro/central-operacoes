@@ -205,6 +205,28 @@
   .barra-sel .btn.pri{background:var(--amarelo);color:#1b2333;border-color:var(--amarelo);font-weight:700;padding:9px 16px}
   body.com-barra-sel main{padding-bottom:120px}
   @media (max-width:560px){ .barra-sel{padding:10px 14px} .barra-sel .btn.pri{flex:1} }
+  .chip-rom{font:inherit;font-size:11px;font-weight:700;color:#0b4fa8;background:#e3eefc;border:1px solid #b9d0f2;border-radius:20px;padding:1px 7px;margin-left:6px;cursor:pointer;white-space:nowrap}
+  .chip-rom:hover{background:#d2e3fa}
+  .vista-full button{font-weight:600}
+  .rr-res{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .rr-tile{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--sombra)}
+  .rr-tile span{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px}
+  .rr-tile b{font-size:24px;font-variant-numeric:tabular-nums} .rr-tile small{font-size:11px;color:var(--mute)}
+  @media (max-width:700px){ .rr-res{grid-template-columns:1fr 1fr} }
+  .tab-rom{font-size:13px} .tab-rom th,.tab-rom td{padding-left:7px;padding-right:7px}
+  .tab-rom tr.canc td{color:var(--mute);text-decoration:line-through} .tab-rom tr.canc td .st-full{text-decoration:none}
+  .docas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:560px){ .docas{grid-template-columns:1fr} }
+  .doca{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+  .doca.feito{background:#f2faf5;border-color:#bfe3cc}
+  .doca-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px} .doca-cab span{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.3px} .doca-cab b{font-size:20px}
+  .doca-ed{display:flex;gap:6px;flex-wrap:wrap} .doca-ed input{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;flex:1;min-width:0}
+  .rd-cols{display:flex;flex-direction:column;gap:6px}
+  .rd-col{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px}
+  .rd-col.prob{border-color:var(--amarelo);background:#fffbea} .rd-prob{flex-basis:100%;color:#8a5a00;font-size:12px}
+  .rd-add{display:flex;gap:6px;margin-top:8px} .rd-add select{flex:1;min-width:0;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+  .lnk{font:inherit;font-weight:700;background:none;border:0;padding:0;color:var(--pri);cursor:pointer;text-decoration:underline}
+  .tab-hist{width:100%;border-collapse:collapse;font-size:12.5px} .tab-hist td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top} .tab-hist td:first-child{white-space:nowrap;color:var(--mute)}
   .kanban{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr)) minmax(110px,.8fr);gap:10px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
   .kb{position:relative;font:inherit;text-align:left;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;box-shadow:var(--sombra);color:var(--ink);min-width:0}
   .kb:hover{background:var(--f)} .kb.on{background:var(--f);outline:2px solid var(--c)}
@@ -887,6 +909,8 @@ async function apiFull(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_FULL, ag = new Date().toISOString(), ev = (envio_id, acao, antes, depois) => D.eventos.unshift({ envio_id, em:ag, por:'demonstracao', acao, antes, depois });
   const num = v => v === '' || v === null || v === undefined ? null : Number(v);
+  if (path.startsWith('/full/romaneio')) return apiRomDemo(path, corpo);
+  demoRomIni();
   if (path.startsWith('/full/eventos')) { const id = new URLSearchParams(path.split('?')[1]).get('id'); return { eventos: D.eventos.filter(e => e.envio_id === id) }; }
   if (path.startsWith('/full')) {
     if (path.startsWith('/full?') || path === '/full') {
@@ -923,13 +947,16 @@ function periodoFull(op){
 }
 
 function telaFull(){
-  const s = state.full ||= { loja:'todos', aba:'abertos', st:null, busca:'', aberto:null, per:'padrao', ini:'', fim:'' };
+  const s = state.full ||= { loja:'todos', aba:'abertos', st:null, busca:'', aberto:null, per:'padrao', ini:'', fim:'', vista:'envios', romBusca:'', romAba:'abertos', romPer:'30' };
   s.sel ||= new Set();
+  // veio do QR do romaneio: abre a aba Romaneios com ele aberto (a doca registra chegada e saída pelo celular)
+  if (params.get('romaneio') && !s.linkRomUsado) { s.vista = 'romaneios'; s.romIr = params.get('romaneio').replace(/\D/g, ''); s.linkRomUsado = true; }
+  if (s.vista === 'romaneios') return telaRomaneios();
   // veio do QR da folha de rosto: abre o pedido direto
   if (params.get('pedido') && !s.linkUsado) { s.irPara = { pedido: params.get('pedido').replace(/\D/g, ''), loja: (params.get('loja') || '').toUpperCase() }; s.linkUsado = true; }   // coletas marcadas para o romaneio de embarque (continuam marcadas ao trocar filtros)
   $app.innerHTML = `
     <div class="barra">
-      <h2>Envios Full</h2><span style="flex:1"></span>
+      <h2>Envios Full</h2>${abasVistaFull(s)}<span style="flex:1"></span>
       <input id="f-busca" class="campo" placeholder="Buscar pedido" value="${esc(s.busca)}" inputmode="numeric" style="width:140px">
       <select id="f-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
       <select id="f-per" title="Data de expedição">
@@ -944,6 +971,7 @@ function telaFull(){
     <div id="full"><div class="carregando">Carregando envios…</div></div>
     <div id="barra-sel" class="barra-sel" hidden></div>
     <div id="gaveta" hidden></div>`;
+  ligarAbasVista();
   document.getElementById('f-loja').onchange = e => { s.loja = e.target.value; renderFull(); };
   document.querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { s.aba = b.dataset.fa; s.st = null; marcarAbas(); renderFull(); });
   const $b = document.getElementById('f-busca'); $b.oninput = () => { s.busca = $b.value; renderFull(); };
@@ -1026,6 +1054,7 @@ function renderFull(){
     return { e, quem, cestos, prev, atraso, dif };
   };
   const L = lista.map(linha);
+  const chipRom = e => e.romaneio_id ? `<button class="chip-rom" data-ir-rom="${e.romaneio_id}" title="Está no romaneio ${nRom(e.romaneio_id)}">🚚 ${nRom(e.romaneio_id)}</button>` : '';
   const pct = e => `<span class="pct-cel"><span class="mini-barra"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><span class="pct-n">${e.pct_coleta === null ? '–' : fmtN(Math.round(e.pct_coleta)) + '%'}</span></span>`;
   const dataExp = e => `${dataBR(e.data_expedicao).slice(0, 5)}${e.hora_expedicao ? ' ' + e.hora_expedicao : ''}`;
   $f.innerHTML = `
@@ -1057,7 +1086,7 @@ function renderFull(){
       <tbody>${L.map(({ e, quem, cestos, prev, atraso, dif }) => `<tr data-envio="${e.id}" class="${s.aberto === e.id ? 'sel' : ''} ${s.sel.has(e.id) ? 'marcado' : ''}">
         <td class="chk"><input type="checkbox" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} title="Incluir no romaneio"></td>
         <td><span class="marca-loja" style="background:${corLoja(e.cnpj_id)};${LOJAS[e.cnpj_id]?.borda ? `border:1px solid ${LOJAS[e.cnpj_id].borda}` : ''}"></span>${esc(nomeLoja(e.cnpj_id))}</td>
-        <td>#${esc(e.pedido)}</td><td class="${atraso ? 'atraso' : ''}">${dataExp(e)}${atraso ? ' ⚠' : ''}</td>
+        <td>#${esc(e.pedido)}${chipRom(e)}</td><td class="${atraso ? 'atraso' : ''}">${dataExp(e)}${atraso ? ' ⚠' : ''}</td>
         <td>${esc(cestos) || '<span class="info">–</span>'}</td><td>${esc(quem) || '<span class="info">–</span>'}</td>
         <td>${fmtN(e.pares_plan)}</td><td class="${prev ? 'prev' : dif ? 'dif' : ''}" title="${prev ? 'Previsto: ainda pode mudar' : dif ? 'Abaixo do plano' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</td>
         <td>${pillFull(e.status)}</td><td class="pct">${pct(e)}</td>
@@ -1066,12 +1095,12 @@ function renderFull(){
         <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto do palete">🖨</button></td></tr>`).join('')}
       </tbody>
     </table></div>
-    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 folha de rosto do palete</span><span>☑ marque as coletas do veículo para montar o romaneio</span></div></div>
+    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 folha de rosto do palete</span><span>☑ marque as coletas do veículo para montar o romaneio</span><span>🚚 R-0001 já está num romaneio</span></div></div>
     <div class="so-estreito">
       <div class="subtot-cel">Subtotal · ${fmtN(lista.length)} pedidos · plano ${fmtN(plano)} · pares ${fmtN(pares)} (${fmtP(pares, plano)}) · ${fmtN(soma(validos, e => e.caixas))} cx · ${fmtM3(soma(validos, e => e.m3))} m³</div>
       ${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
       <div class="card-full ${s.aberto === e.id ? 'sel' : ''} ${s.sel.has(e.id) ? 'marcado' : ''}" data-envio="${e.id}" role="button" tabindex="0" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
-        <div class="cf-top"><input type="checkbox" class="cf-chk" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} aria-label="Incluir no romaneio"><b>#${esc(e.pedido)}</b><span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
+        <div class="cf-top"><input type="checkbox" class="cf-chk" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} aria-label="Incluir no romaneio"><b>#${esc(e.pedido)}</b>${chipRom(e)}<span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
           <button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto do palete">🖨</button></div>
         <div class="cf-mid">${pillFull(e.status)}<span class="mini-barra larga"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><b>${e.pct_coleta === null ? '–' : Math.round(e.pct_coleta) + '%'}</b></div>
         <div class="cf-bot"><span>Plano <b>${fmtN(e.pares_plan)}</b></span><span>Pares <b class="${prev ? 'prev' : dif ? 'dif' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</b></span><span>Cx <b>${e.caixas ?? '–'}</b></span>${quem ? `<span>${esc(quem)}</span>` : ''}${cestos ? `<span>Cesto ${esc(cestos)}</span>` : ''}</div>
@@ -1082,6 +1111,7 @@ function renderFull(){
   const lt = document.getElementById('f-limpa'); if (lt) lt.onclick = limparFiltrosFull;
   const sd = document.getElementById('f-sem-data'); if (sd) sd.onclick = () => { s.per = 'padrao'; s.ini = s.fim = ''; s.aba = 'todos'; marcarAbas(); sincronizarPeriodo(); carregarFull(); };
   $f.querySelectorAll('[data-envio]').forEach(el => { el.onclick = () => abrirEnvio(el.dataset.envio); el.onkeydown = ev => { if (ev.key === 'Enter') abrirEnvio(el.dataset.envio); }; });
+  $f.querySelectorAll('[data-ir-rom]').forEach(b => b.onclick = ev => { ev.stopPropagation(); s.vista = 'romaneios'; s.romAba = 'todos'; s.romIr = b.dataset.irRom; s.aberto = null; telaFull(); });
   $f.querySelectorAll('[data-imp]').forEach(b => b.onclick = ev => { ev.stopPropagation(); imprimirFolha(r.envios.find(x => x.id === b.dataset.imp)); });
   $f.querySelectorAll('[data-sel]').forEach(c => { c.onclick = ev => ev.stopPropagation(); c.onchange = () => { c.checked ? s.sel.add(c.dataset.sel) : s.sel.delete(c.dataset.sel); renderFull(); }; });
   const st = document.getElementById('sel-todos');
@@ -1107,15 +1137,17 @@ function renderBarraSel(){
   const fech = L.filter(e => ['expedido', 'cancelado'].includes(e.status)).length;
   if (fech) avisos.push(`${fech} já expedida(s) ou cancelada(s)`);
   if (new Set(L.map(e => e.data_expedicao)).size > 1) avisos.push('datas de expedição diferentes');
+  const jaRom = L.filter(e => e.romaneio_id).length;
+  if (jaRom) avisos.push(`${jaRom} já em romaneio`);
   $b.innerHTML = `<div class="bs-txt"><b>${L.length} coleta${L.length === 1 ? '' : 's'} no romaneio</b>
       <span>${L.map(e => '#' + esc(e.pedido.slice(-3))).join(' · ')}</span>
       <span>${fmtM3(soma(e => e.m3))} m³ · ${fmtN(soma(e => e.caixas))} caixas · ${fmtN(soma(e => e.pares_envio))} pares</span>
       ${avisos.length ? `<span class="bs-aviso">⚠ ${avisos.join(' · ')}</span>` : ''}</div>
     <span style="flex:1"></span>
     <button class="btn" id="bs-limpar">Desmarcar</button>
-    <button class="btn pri" id="bs-imprimir">🖨 Romaneio de embarque</button>`;
+    <button class="btn pri" id="bs-imprimir">🚚 Montar romaneio</button>`;
   document.getElementById('bs-limpar').onclick = () => { s.sel.clear(); renderFull(); };
-  document.getElementById('bs-imprimir').onclick = imprimirRomaneio;
+  document.getElementById('bs-imprimir').onclick = montarRomaneio;
 }
 
 /* ---- QR code (modo byte, correção nível M, versões 1 a 10) embutido, sem depender de biblioteca externa ---- */
@@ -1299,7 +1331,7 @@ function folhaRostoHtml(e){
 }
 
 // Romaneio de embarque: as coletas que sobem no mesmo veículo, numa folha só, com uma assinatura do motorista
-function romaneioHtml(envios, emb = {}){
+function romaneioHtml(envios, emb = {}, rom = null){
   const L = [...envios].sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || (a.hora_expedicao || '99').localeCompare(b.hora_expedicao || '99') || a.cnpj_id.localeCompare(b.cnpj_id) || a.pedido.localeCompare(b.pedido));
   const soma = f => L.reduce((t, e) => t + (Number(f(e)) || 0), 0);
   const algumPrev = L.some(e => PREVISTO_FULL.includes(e.status));
@@ -1316,7 +1348,7 @@ function romaneioHtml(envios, emb = {}){
       <td class="n">${fmtM3(e.m3)}${prev ? '*' : ''}</td><td class="n">${e.caixas ?? '–'}${prev ? '*' : ''}</td><td class="n">${e.pares_envio === null || e.pares_envio === undefined ? '–' : fmtN(e.pares_envio)}${prev ? '*' : ''}</td>
       <td class="c"><span class="ck"></span></td></tr>`;
   };
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Romaneio de embarque · ${L.length} coletas</title><style>${CSS_IMPRESSO}
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${rom ? `Romaneio ${nRom(rom.id)}` : 'Romaneio de embarque'} · ${L.length} coletas</title><style>${CSS_IMPRESSO}
   .pag{width:210mm;min-height:296mm;padding:10mm 10mm 7mm;display:flex;flex-direction:column}
   .topo{border-radius:2mm 2mm 0 0}
   .topo .st{min-width:40mm}
@@ -1345,14 +1377,21 @@ function romaneioHtml(envios, emb = {}){
   .obs{margin-top:3mm} .obs i{display:block;border-bottom:0.35mm solid #9aa3b5;height:7mm}
   .campo i.pre{font-style:normal;font-size:13pt;font-weight:700;color:#1b2333;display:flex;align-items:flex-end;padding-bottom:1mm;white-space:nowrap;overflow:hidden}
   .ass{margin-top:16mm}
+  .sub-l{display:flex;gap:5mm;align-items:center;margin-top:3mm}
+  .sub-l .sub{margin-top:0;flex:1}
+  .qr-r{display:flex;align-items:center;gap:2.5mm;border:0.5mm solid #1b2333;border-radius:2mm;padding:1.5mm 2.5mm 1.5mm 1.5mm;max-width:62mm}
+  .qr-r svg{width:21mm;height:21mm;flex:0 0 21mm}
+  .qr-r b{display:block;font-size:8pt;letter-spacing:.5pt} .qr-r span{display:block;font-size:7pt;color:#566074;line-height:1.25;margin-top:.5mm}
+  .horas.pre{font-size:15pt}
   </style></head><body><div class="pag">
     <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">ROMANEIO DE EMBARQUE</div><div class="t2">ENVIO FULL · MERCADO LIVRE</div></div><span class="esp"></span>
-      <span class="st"><small>EMITIDO EM</small><b>${dataBR(hojeBRT())}</b></span></div>
+      ${rom ? `<span class="st"><small>ROMANEIO Nº</small><b>${nRom(rom.id)}</b></span>` : `<span class="st"><small>EMITIDO EM</small><b>${dataBR(hojeBRT())}</b></span>`}</div>
     <div class="resumo">
       <div><span>COLETAS</span><b>${L.length}</b></div><div><span>m³</span><b>${fmtM3(soma(e => e.m3))}</b></div>
       <div><span>CAIXAS</span><b>${fmtN(soma(e => e.caixas))}</b></div><div><span>PARES</span><b>${fmtN(soma(e => e.pares_envio))}</b></div>
     </div>
-    <div class="sub">Lojas: <b>${esc(lojas)}</b> · Expedição planejada: <b>${datas.map(d => dataBR(d)).join(', ')}</b></div>
+    <div class="sub-l"><div class="sub">${emb.data ? `Embarque: <b>${dataBR(emb.data)}</b> · ` : ''}Lojas: <b>${esc(lojas)}</b> · Expedição planejada: <b>${datas.map(d => dataBR(d)).join(', ')}</b>${rom ? '' : '<br><span style="color:#8a5a00">Romaneio impresso sem salvar: não tem número nem registro no portal.</span>'}</div>
+      ${rom ? `<div class="qr-r">${QR.svg(linkRomaneio(rom.id))}<div><b>DOCA: CHEGADA E SAÍDA</b><span>Escaneie para registrar no portal a chegada e a saída do veículo. Na saída, as coletas viram Expedido.</span></div></div>` : ''}</div>
     <table>
       <thead><tr><th class="c">#</th><th>Nº da coleta</th><th>Loja</th><th class="c">Expedição</th><th class="c">Status</th><th class="n">m³</th><th class="n">Caixas</th><th class="n">Pares</th><th class="c">Conferido</th></tr></thead>
       <tbody>${L.map(linha).join('')}</tbody>
@@ -1365,14 +1404,15 @@ function romaneioHtml(envios, emb = {}){
         <div class="campo cheio"><span>TRANSPORTADORA</span><i class="pre">${esc(emb.transportadora || '')}</i></div>
         <div class="campo"><span>PLACA${emb.veiculo ? ' · VEÍCULO' : ''}</span><i class="pre">${esc([emb.placa ? fmtPlaca(emb.placa) : '', emb.veiculo].filter(Boolean).join(' · '))}</i></div>
         <div class="campo"><span>MOTORISTA${emb.telefone ? ' · TELEFONE' : ''}</span><i class="pre">${esc([emb.motorista, emb.telefone].filter(Boolean).join(' · '))}</i></div>
-        <div class="campo"><span>HORÁRIO DE CHEGADA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
-        <div class="campo"><span>HORÁRIO DE SAÍDA</span><div class="horas"><em>DATA ____/____</em>____ : ____</div></div>
-        <div class="campo cheio obs"><span>OBSERVAÇÕES</span><i></i><i></i></div>
+        <div class="campo"><span>HORÁRIO DE CHEGADA</span>${rom?.chegada_em ? `<div class="horas pre"><em>DATA</em>${dataBR(isoLocal(rom.chegada_em).slice(0, 10)).slice(0, 5)} · ${soHora(rom.chegada_em)}</div>` : '<div class="horas"><em>DATA ____/____</em>____ : ____</div>'}</div>
+        <div class="campo"><span>HORÁRIO DE SAÍDA</span>${rom?.saida_em ? `<div class="horas pre"><em>DATA</em>${dataBR(isoLocal(rom.saida_em).slice(0, 10)).slice(0, 5)} · ${soHora(rom.saida_em)}</div>` : '<div class="horas"><em>DATA ____/____</em>____ : ____</div>'}</div>
+        ${emb.responsavel ? `<div class="campo cheio"><span>RESPONSÁVEL VALENRO</span><i class="pre">${esc(emb.responsavel)}</i></div>` : ''}
+        <div class="campo cheio obs"><span>OBSERVAÇÕES</span>${emb.observacao ? `<i class="pre" style="font-size:11pt;font-weight:400">${esc(emb.observacao)}</i><i></i>` : '<i></i><i></i>'}</div>
       </div>
       <div class="ass"><div>CONFERENTE / LÍDER<small>assinatura e nome legível</small></div><div>MOTORISTA<small>assinatura e documento</small></div></div>
     </div>
     <div class="esp2"></div>
-    <div class="rodape" style="padding:3mm 0 0;white-space:normal"><span>Romaneio com ${L.length} coleta${L.length === 1 ? '' : 's'}: ${L.map(e => '#' + esc(e.pedido)).join(', ')}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
+    <div class="rodape" style="padding:3mm 0 0;white-space:normal"><span>${rom ? nRom(rom.id) + ' · ' : ''}Romaneio com ${L.length} coleta${L.length === 1 ? '' : 's'}: ${L.map(e => '#' + esc(e.pedido)).join(', ')}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
   </div></body></html>`;
 }
 
@@ -1390,37 +1430,367 @@ function imprimirHtml(html){
   f.srcdoc = html;
 }
 function imprimirFolha(e){ if (e) imprimirHtml(folhaRostoHtml(e)); }
-async function imprimirRomaneio(){
+/* ---- romaneios de embarque salvos: nº, coletas, motorista, chegada e saída na doca ---- */
+const ST_ROM = {
+  aberto:     { rot:'Aguardando veículo', cor:'#9a5b00', fundo:'#fff1d6' },
+  carregando: { rot:'Na doca',            cor:'#0b4fa8', fundo:'#e3eefc' },
+  expedido:   { rot:'Saiu',               cor:'#1a7a3e', fundo:'#e2f5e8' },
+  cancelado:  { rot:'Cancelado',          cor:'#8a1f1f', fundo:'#fbe9e9' },
+};
+const nRom = id => 'R-' + String(id).padStart(4, '0');
+const pillRom = st => `<span class="st-full" style="color:${ST_ROM[st]?.cor};background:${ST_ROM[st]?.fundo}">${esc(ST_ROM[st]?.rot || st)}</span>`;
+const linkRomaneio = id => `${urlPortal()}?tela=full&romaneio=${encodeURIComponent(id)}`;
+const docaMin = r => r.chegada_em && r.saida_em ? Math.round((new Date(r.saida_em) - new Date(r.chegada_em)) / 60e3) : null;
+
+// demonstração: um romaneio que já saiu e um aguardando o veículo
+const DEMO_ROM = { romaneios: [], eventos: [], seq: 0 };
+function demoRomIni(){
+  if (DEMO_ROM.pronto) return; DEMO_ROM.pronto = true;
+  const m = DEMO_CROSS.motoristas, D = DEMO_FULL, ag = new Date().toISOString();
+  const novo = (data, mot, ids, extra) => { const id = String(++DEMO_ROM.seq);
+    DEMO_ROM.romaneios.push({ id, data, status:'aberto', motorista_id:mot?.id || null, motorista:mot?.nome || null, motorista_tel:mot?.telefone || null, transportadora:mot?.transportadora || null,
+      placa:mot?.placa || null, veiculo:mot?.veiculo || null, responsavel:'DOUGLAS RIBEIRO', observacao:null, chegada_em:null, saida_em:null, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao', envio_ids:ids, ...extra });
+    ids.forEach(e => { const x = D.envios.find(y => y.id === e); if (x) x.romaneio_id = id; }); };
+  novo('2026-10-19', m[0], ['1', '2', '3'], { status:'expedido', chegada_em:'2026-10-19T16:40:00.000Z', saida_em:'2026-10-19T17:55:00.000Z' });
+  novo('2026-10-21', m[1] || m[0], ['4', '5', '6'], { status:'expedido', chegada_em:'2026-10-21T15:10:00.000Z', saida_em:'2026-10-21T15:58:00.000Z' });
+  novo(hojeBRT(), m[0], ['11', '13', '14'], {});
+}
+function apiRomDemo(path, corpo){
+  demoRomIni();
+  const D = DEMO_FULL, R = DEMO_ROM, ag = new Date().toISOString(), q = new URLSearchParams(path.split('?')[1] || '');
+  const ev = (id, acao, antes, depois) => R.eventos.unshift({ romaneio_id:id, em:ag, por:'demonstracao', acao, antes, depois });
+  const copia = x => JSON.parse(JSON.stringify(x));
+  if (path.startsWith('/full/romaneios')) {
+    const de = q.get('ini') || addDias(hojeBRT(), -30), ate = q.get('fim') || addDias(hojeBRT(), 30);
+    const rs = R.romaneios.filter(r => (r.data >= de && r.data <= ate) || ['aberto', 'carregando'].includes(r.status)).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id);
+    const ids = new Set(rs.flatMap(r => r.envio_ids));
+    return { ini:de, fim:ate, hoje:hojeBRT(), romaneios:copia(rs).map(r => ({ ...r, doca_min:docaMin(r) })), envios:copia(D.envios.filter(e => ids.has(e.id))),
+      motoristas:copia(DEMO_CROSS.motoristas.filter(m => m.ativo)) };
+  }
+  if (path.startsWith('/full/romaneio/historico')) return { eventos: R.eventos.filter(e => e.romaneio_id === q.get('id')) };
+  if (path === '/full/romaneio') {
+    const ids = [...new Set(corpo.envio_ids)];
+    if (!ids.length) throw new Error('Selecione ao menos uma coleta para o romaneio');
+    const outros = ids.map(i => D.envios.find(e => e.id === i)).filter(e => e.romaneio_id && e.romaneio_id !== corpo.id);
+    if (outros.length) throw new Error('Já estão em outro romaneio: ' + outros.map(e => `${e.pedido} (${nRom(e.romaneio_id)})`).join(', '));
+    const canc = ids.map(i => D.envios.find(e => e.id === i)).filter(e => e.status === 'cancelado');
+    if (canc.length) throw new Error('Coleta cancelada não entra em romaneio: ' + canc.map(e => e.pedido).join(', '));
+    const cab = { data:corpo.data, motorista:caixaAltaTxt(corpo.motorista || '').trim() || null, motorista_tel:String(corpo.motorista_tel || '').replace(/\D/g, '') || null,
+      transportadora:caixaAltaTxt(corpo.transportadora || '').trim() || null, placa:corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null,
+      veiculo:caixaAltaTxt(corpo.veiculo || '').trim() || null, responsavel:caixaAltaTxt(corpo.responsavel || '').trim() || null, observacao:corpo.observacao || null };
+    let m = cab.motorista ? DEMO_CROSS.motoristas.find(x => x.nome === cab.motorista) : null;
+    if (cab.motorista && !m) { m = { id:String(DEMO_CROSS.motoristas.length + 1), nome:cab.motorista, telefone:cab.motorista_tel, documento:null, veiculo:cab.veiculo, placa:cab.placa, transportadora:cab.transportadora, ativo:true }; DEMO_CROSS.motoristas.push(m); }
+    cab.motorista_id = m?.id || null;
+    let r;
+    if (!corpo.id) { r = { id:String(++R.seq), status:'aberto', chegada_em:null, saida_em:null, criado_em:ag, criado_por:'demonstracao', envio_ids:[], ...cab }; R.romaneios.push(r); ev(r.id, 'criar', null, { ...cab, envio_ids:ids }); }
+    else {
+      r = R.romaneios.find(x => x.id === corpo.id);
+      if (corpo.versao && corpo.versao !== r.atualizado_em) throw new Error('Alguém alterou este romaneio enquanto você editava. Feche e abra de novo.');
+      if (r.status === 'expedido' && [...r.envio_ids].sort().join() !== [...ids].sort().join()) throw new Error('Romaneio já expedido: as coletas não podem mais ser trocadas');
+      ev(r.id, 'alterar', null, cab); Object.assign(r, cab);
+    }
+    r.envio_ids.forEach(i => { const e = D.envios.find(x => x.id === i); if (e) e.romaneio_id = null; });
+    r.envio_ids = ids; ids.forEach(i => { D.envios.find(x => x.id === i).romaneio_id = r.id; });
+    r.atualizado_em = ag; r.atualizado_por = 'demonstracao';
+    return { ok:true, id:r.id };
+  }
+  if (path === '/full/romaneio/evento') {
+    const r = R.romaneios.find(x => x.id === corpo.id), em = corpo.em ? deLocal(corpo.em) : ag;
+    if (corpo.tipo === 'chegada') { if (r.saida_em && em > r.saida_em) throw new Error('A chegada não pode ser depois da saída'); r.chegada_em = em; if (r.status === 'aberto') r.status = 'carregando'; ev(r.id, 'chegada', null, { chegada_em:em }); }
+    else {
+      if (!r.chegada_em) throw new Error('Registre primeiro a chegada do veículo (pode ser com o horário de quando ele chegou)');
+      if (em < r.chegada_em) throw new Error('A saída não pode ser antes da chegada');
+      if (!r.motorista || !r.placa) throw new Error('Para registrar a saída, informe motorista e placa no romaneio');
+      const es = r.envio_ids.map(i => D.envios.find(x => x.id === i));
+      if (!r.saida_em) {
+        const prob = es.map(e => e.status === 'cancelado' ? `${e.pedido}: está cancelado (retire do romaneio)` : e.pares_envio === null || e.pares_envio === '' ? `${e.pedido}: falta a quantidade de pares enviada`
+          : Number(e.pares_envio) < Number(e.pares_plan) && !e.motivo_diferenca ? `${e.pedido}: saíram ${e.pares_envio} de ${e.pares_plan} pares, falta o motivo da diferença` : null).filter(Boolean);
+        if (prob.length) throw new Error('Antes de registrar a saída, acerte as coletas: ' + prob.join('; '));
+        es.forEach(e => { if (e.status !== 'expedido') { D.eventos.unshift({ envio_id:e.id, em:ag, por:'demonstracao', acao:'envio.status', antes:{ status:e.status }, depois:{ status:'expedido', romaneio:r.id } }); e.status = 'expedido'; e.status_em = em; } });
+      }
+      r.saida_em = em; r.status = 'expedido'; ev(r.id, 'saida', null, { saida_em:em });
+    }
+    r.atualizado_em = ag; return { ok:true };
+  }
+  if (path === '/full/romaneio/cancelar') {
+    const r = R.romaneios.find(x => x.id === corpo.id);
+    if (r.status === 'expedido') throw new Error('Romaneio já expedido não pode ser cancelado: o veículo já saiu.');
+    r.envio_ids.forEach(i => { const e = D.envios.find(x => x.id === i); if (e) e.romaneio_id = null; });
+    ev(r.id, 'cancelar', { status:r.status, envio_ids:r.envio_ids }, null); r.envio_ids = []; r.status = 'cancelado'; r.atualizado_em = ag; return { ok:true };
+  }
+}
+
+// ---- tela: lista de romaneios (aba "Romaneios" do Envios Full)
+function barraRomaneios(s){
+  return `
+    <div class="barra">
+      <h2>Envios Full</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <input id="r-busca" class="campo" placeholder="Motorista, placa, transportadora ou pedido" value="${esc(s.romBusca)}" style="width:260px">
+      <select id="r-per">${[['30','Últimos 30 dias'],['90','Últimos 90 dias'],['365','Últimos 12 meses']].map(([k, t]) => `<option value="${k}" ${s.romPer === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <div class="abas">${[['abertos','Em aberto'],['expedidos','Saíram'],['todos','Todos']].map(([k, t]) => `<button data-ra="${k}" class="${s.romAba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <button class="btn" id="r-atualizar">Atualizar</button>
+    </div>
+    <div id="rom"><div class="carregando">Carregando romaneios…</div></div>
+    <div id="gaveta" hidden></div>`;
+}
+const abasVistaFull = s => `<div class="abas vista-full">${[['envios','Envios'],['romaneios','🚚 Romaneios']].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+function ligarAbasVista(){
+  document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { if (state.full.vista === b.dataset.vista) return; state.full.vista = b.dataset.vista; state.full.aberto = null; state.full.romAberto = null; telaFull(); });
+}
+function telaRomaneios(){
+  const s = state.full;
+  $app.innerHTML = barraRomaneios(s);
+  ligarAbasVista();
+  const $b = document.getElementById('r-busca'); $b.oninput = () => { s.romBusca = $b.value; renderRomaneios(); };
+  document.getElementById('r-per').onchange = e => { s.romPer = e.target.value; carregarRomaneios(); };
+  document.querySelectorAll('[data-ra]').forEach(b => b.onclick = () => { s.romAba = b.dataset.ra; document.querySelectorAll('[data-ra]').forEach(x => x.classList.toggle('on', x === b)); renderRomaneios(); });
+  document.getElementById('r-atualizar').onclick = () => carregarRomaneios();
+  carregarRomaneios();
+}
+async function carregarRomaneios(){
+  const s = state.full, h = hojeBRT();
+  try {
+    const [rd, fd] = await Promise.all([apiFull(`/full/romaneios?ini=${addDias(h, -Number(s.romPer || 30))}&fim=${addDias(h, 30)}`), apiFull('/full')]);
+    state.romDados = rd; state.fullDados = fd;
+    if (s.romIr) {
+      if (rd.romaneios.some(r => r.id === s.romIr)) s.romAberto = s.romIr; else avisar(`Romaneio ${nRom(s.romIr)} não encontrado no período`, true);
+      s.romIr = null; try { history.replaceState(null, '', location.pathname + '?tela=full'); } catch (_) {}
+    }
+    renderRomaneios(); if (s.romAberto) abrirRomaneio(s.romAberto, true);
+  } catch (e) { if (e instanceof SemSessao) throw e; const $r = document.getElementById('rom'); if ($r) $r.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+// envios do romaneio: os da lista do romaneio (inclui expedidos antigos) com os dados mais novos do Full por cima
+function enviosDoRom(r){
+  const mapa = new Map((state.romDados?.envios || []).map(e => [e.id, e]));
+  (state.fullDados?.envios || []).forEach(e => mapa.set(e.id, e));
+  return r.envio_ids.map(i => mapa.get(i)).filter(Boolean);
+}
+function renderRomaneios(){
+  const s = state.full, d = state.romDados, $r = document.getElementById('rom');
+  if (!$r || !d) return;
+  const t = (s.romBusca || '').trim().toUpperCase(), tp = t.replace(/[^A-Z0-9]/g, ''), td = t.replace(/\D/g, '');
+  const soma = (l, f) => l.reduce((x, e) => x + (Number(f(e)) || 0), 0);
+  const base = d.romaneios.filter(r => !t || (r.motorista || '').includes(t) || (r.transportadora || '').includes(t) || (tp.length >= 3 && (r.placa || '').includes(tp))
+    || nRom(r.id).includes(t) || (td.length >= 3 && enviosDoRom(r).some(e => e.pedido.includes(td))));
+  const lista = base.filter(r => s.romAba === 'todos' ? true : s.romAba === 'abertos' ? ['aberto', 'carregando'].includes(r.status) : r.status === 'expedido');
+  const saidos = base.filter(r => r.status === 'expedido'), docas = saidos.map(docaMin).filter(x => x !== null);
+  const media = docas.length ? docas.reduce((a, b) => a + b, 0) / docas.length : null;
+  const tile = (rot, v, sub, cor) => `<div class="rr-tile" style="--c:${cor}"><span>${rot}</span><b>${v}</b><small>${sub}</small></div>`;
+  const linha = r => { const es = enviosDoRom(r), dm = docaMin(r);
+    return { r, es, dm, pares: soma(es, e => e.pares_envio ?? e.pares_plan), cx: soma(es, e => e.caixas), m3: soma(es, e => e.m3) }; };
+  const L = lista.map(linha);
+  // por transportadora (só romaneios que saíram no período)
+  const porT = {};
+  saidos.forEach(r => { const k = r.transportadora || 'SEM TRANSPORTADORA', x = porT[k] ||= { n:0, col:0, pares:0, docas:[] }, l = linha(r);
+    x.n++; x.col += l.es.length; x.pares += l.pares; if (l.dm !== null) x.docas.push(l.dm); });
+  const hora = iso => iso ? `${dataBR(isoLocal(iso).slice(0, 10)).slice(0, 5)} ${soHora(iso)}` : '<span class="info">–</span>';
+  $r.innerHTML = `
+    <div class="rr-res">
+      ${tile('Aguardando veículo', base.filter(r => r.status === 'aberto').length, 'romaneios montados', ST_ROM.aberto.cor)}
+      ${tile('Na doca agora', base.filter(r => r.status === 'carregando').length, 'veículo carregando', ST_ROM.carregando.cor)}
+      ${tile('Saíram', saidos.length, `${fmtN(soma(saidos, r => r.envio_ids.length))} coletas no período`, ST_ROM.expedido.cor)}
+      ${tile('Tempo médio de doca', media === null ? '–' : fmtDur(media), docas.length ? `chegada → saída · ${docas.length} veículo(s)` : 'registre chegada e saída', '#02285a')}
+    </div>
+    ${!L.length ? `<div class="painel"><div class="vazio">Nenhum romaneio ${s.romAba === 'abertos' ? 'em aberto' : 'com esses filtros'}. Para montar um: em <b>Envios</b>, marque as coletas do veículo e clique em <b>🚚 Montar romaneio</b>.</div></div>` : `
+    <div class="painel"><div style="overflow-x:auto"><table class="tab-full tab-rom">
+      <thead><tr><th>Nº</th><th>Embarque</th><th>Status</th><th style="text-align:left">Motorista</th><th>Transportadora</th><th>Placa</th><th>Coletas</th><th>Pares</th><th>Caixas</th><th>m³</th><th>Chegada</th><th>Saída</th><th>Doca</th></tr></thead>
+      <tbody>${L.map(({ r, es, dm, pares, cx, m3 }) => `<tr data-rom="${r.id}" class="${s.romAberto === r.id ? 'sel' : ''} ${r.status === 'cancelado' ? 'canc' : ''}">
+        <td><b>${nRom(r.id)}</b></td><td>${dataBR(r.data).slice(0, 5)}</td><td>${pillRom(r.status)}</td>
+        <td style="text-align:left">${esc(r.motorista || '') || '<span class="info">a definir</span>'}</td><td>${esc(r.transportadora || '') || '<span class="info">–</span>'}</td><td>${r.placa ? esc(fmtPlaca(r.placa)) : '<span class="info">–</span>'}</td>
+        <td title="${esc(es.map(e => '#' + e.pedido).join(' '))}">${r.envio_ids.length}</td><td>${fmtN(pares)}</td><td>${fmtN(cx)}</td><td>${fmtM3(m3)}</td>
+        <td>${hora(r.chegada_em)}</td><td>${hora(r.saida_em)}</td><td>${dm === null ? '<span class="info">–</span>' : `<b>${fmtDur(dm)}</b>`}</td></tr>`).join('')}
+      </tbody></table></div></div>`}
+    ${Object.keys(porT).length ? `<div class="painel" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Por transportadora <span class="info" style="font-weight:400">· romaneios que saíram no período</span></h3>
+      <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Transportadora</th><th>Romaneios</th><th>Coletas</th><th>Pares</th><th>Tempo médio de doca</th><th>Maior tempo</th></tr></thead><tbody>
+      ${Object.entries(porT).sort((a, b) => b[1].n - a[1].n).map(([k, x]) => `<tr data-transp="${esc(k)}"><td style="text-align:left"><b>${esc(k)}</b></td><td>${x.n}</td><td>${x.col}</td><td>${fmtN(x.pares)}</td>
+        <td>${x.docas.length ? fmtDur(x.docas.reduce((a, b) => a + b, 0) / x.docas.length) : '–'}</td><td>${x.docas.length ? fmtDur(Math.max(...x.docas)) : '–'}</td></tr>`).join('')}
+      </tbody></table></div><div class="info" style="margin-top:6px">Clique numa transportadora para ver os romaneios dela. Tempo de doca = da chegada do veículo até a saída.</div></div>` : ''}`;
+  $r.querySelectorAll('[data-rom]').forEach(tr => tr.onclick = () => abrirRomaneio(tr.dataset.rom));
+  $r.querySelectorAll('[data-transp]').forEach(tr => tr.onclick = () => { s.romBusca = tr.dataset.transp === 'SEM TRANSPORTADORA' ? '' : tr.dataset.transp; s.romAba = 'todos'; telaRomaneios(); });
+}
+
+// campos do embarque (usados para montar e para editar)
+function camposEmbarque(r, mots, ed){
+  const dis = ed ? '' : 'disabled';
+  return `<div class="grade-form g2">
+      <label>Data do embarque<input id="rm-data" type="date" value="${esc(r.data || hojeBRT())}" ${dis}></label>
+      <label>Motorista<input id="rm-mot" list="dl-rm-mot" placeholder="buscar no cadastro" autocapitalize="characters" autocomplete="off" value="${esc(r.motorista || '')}" ${dis}></label>
+      <label>Telefone<input id="rm-tel" inputmode="tel" value="${esc(r.motorista_tel ? fmtTel(r.motorista_tel) : '')}" ${dis}></label>
+      <label>Transportadora<input id="rm-transp" list="dl-rm-transp" autocapitalize="characters" value="${esc(r.transportadora || '')}" ${dis}></label>
+      <label>Placa<input id="rm-placa" autocapitalize="characters" maxlength="8" value="${esc(r.placa ? fmtPlaca(r.placa) : '')}" ${dis}></label>
+      <label>Veículo<input id="rm-veic" autocapitalize="characters" value="${esc(r.veiculo || '')}" ${dis}></label>
+      <label>Responsável Valenro<input id="rm-resp" autocapitalize="characters" value="${esc(r.responsavel ?? caixaAltaTxt(state.usuario?.nome || ''))}" ${dis}></label>
+    </div>
+    <label class="gv-lab">Observação<textarea id="rm-obs" rows="2" maxlength="500" ${dis}>${esc(r.observacao || '')}</textarea></label>
+    <datalist id="dl-rm-mot">${mots.map(m => `<option value="${esc(m.nome)}">${esc([m.transportadora, m.placa ? fmtPlaca(m.placa) : ''].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>
+    <datalist id="dl-rm-transp">${[...new Set(mots.map(m => m.transportadora).filter(Boolean))].sort().map(t => `<option value="${esc(t)}">`).join('')}</datalist>`;
+}
+function ligarCamposEmbarque(mots){
+  const $ = k => document.getElementById(k);
+  if (!$('rm-mot')) return;
+  ['rm-mot', 'rm-transp', 'rm-placa', 'rm-veic', 'rm-resp'].forEach(k => forcaCaixaAlta($(k))); mascaraTel($('rm-tel'));
+  $('rm-mot').addEventListener('change', () => { const m = mots.find(x => x.nome === caixaAltaTxt($('rm-mot').value).trim()); if (!m) return;
+    $('rm-tel').value = fmtTel(m.telefone); $('rm-transp').value = m.transportadora || ''; $('rm-placa').value = m.placa ? fmtPlaca(m.placa) : ''; $('rm-veic').value = m.veiculo || ''; });
+}
+function lerCamposEmbarque(mots){
+  const $ = k => document.getElementById(k), nome = caixaAltaTxt($('rm-mot').value).trim();
+  const m = mots.find(x => x.nome === nome);
+  return { data: $('rm-data').value, motorista_id: m?.id || null, motorista: nome, motorista_tel: $('rm-tel').value.replace(/\D/g, ''), transportadora: caixaAltaTxt($('rm-transp').value).trim(),
+    placa: $('rm-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), veiculo: caixaAltaTxt($('rm-veic').value).trim(), responsavel: caixaAltaTxt($('rm-resp').value).trim(), observacao: $('rm-obs').value.trim() };
+}
+const embParaImpresso = c => ({ motorista: c.motorista, telefone: c.motorista_tel ? fmtTel(c.motorista_tel) : '', transportadora: c.transportadora, placa: c.placa, veiculo: c.veiculo, responsavel: c.responsavel, data: c.data, observacao: c.observacao });
+
+// Envios › coletas marcadas › "Montar romaneio": salva (gera o nº) e imprime; ou só imprime, sem salvar
+async function montarRomaneio(){
   const s = state.full, r = state.fullDados;
   const L = r.envios.filter(e => s.sel.has(e.id));
   if (!L.length) return avisar('Selecione as coletas do veículo', true);
-  // escolhe o motorista do cadastro (opcional): o romaneio sai com os dados preenchidos
-  let mots = [];
-  if (pode('motoristas', 'ver')) { try { mots = (await apiMot('/motoristas')).motoristas.filter(m => m.ativo); } catch (e) { if (e instanceof SemSessao) throw e; } }
+  let mots = state.romDados?.motoristas || [];
+  try { state.romDados = await apiFull(`/full/romaneios?ini=${addDias(hojeBRT(), -30)}&fim=${addDias(hojeBRT(), 30)}`); mots = state.romDados.motoristas; } catch (e) { if (e instanceof SemSessao) throw e; }
+  const salva = pode('full', 'editar');
+  const jaEm = L.filter(e => e.romaneio_id), canc = L.filter(e => e.status === 'cancelado');
+  const bloqueio = jaEm.length ? `Já estão em romaneio: ${jaEm.map(e => `#${e.pedido} (${nRom(e.romaneio_id)})`).join(', ')}. Para mudar, abra o romaneio na aba Romaneios.`
+    : canc.length ? `Coleta cancelada não entra em romaneio: ${canc.map(e => '#' + e.pedido).join(', ')}` : '';
+  const datas = L.map(e => e.data_expedicao).sort(), dataPadrao = datas.includes(hojeBRT()) ? hojeBRT() : datas[0];
   const g = document.getElementById('gaveta'); g.hidden = false; document.body.classList.add('gaveta-aberta');
-  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">${L.length} coleta(s)</div><h3>Romaneio de embarque</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
-    <div class="gv-corpo"><div class="leg" style="margin-top:12px">Se já sabe quem vai buscar, escolha o motorista e o romaneio sai preenchido. Deixe em branco para preencher à mão na doca.</div>
-    <div class="grade-form g2">
-      <label>Motorista<input id="rm-mot" list="dl-rm-mot" placeholder="buscar no cadastro" autocapitalize="characters" autocomplete="off"></label>
-      <label>Telefone<input id="rm-tel" inputmode="tel"></label>
-      <label>Transportadora<input id="rm-transp" autocapitalize="characters"></label>
-      <label>Placa<input id="rm-placa" autocapitalize="characters" maxlength="8"></label>
-      <label>Veículo<input id="rm-veic" autocapitalize="characters"></label>
-    </div>
-    ${pode('motoristas', 'editar') ? '<div class="info" style="margin-top:8px">Motorista novo? Cadastre em Logística › Cadastros › Motoristas.</div>' : ''}
-    <div class="gv-acoes"><button class="btn pri" id="rm-ok">🖨 Imprimir romaneio</button></div></div></aside>
-    <datalist id="dl-rm-mot">${mots.map(m => `<option value="${esc(m.nome)}">${esc([m.transportadora, m.placa ? fmtPlaca(m.placa) : ''].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>`;
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">${L.length} coleta(s) · ${L.map(e => '#' + esc(e.pedido.slice(-3))).join(' ')}</div><h3>Montar romaneio de embarque</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo">
+      <div class="erro" id="rm-erro" ${bloqueio ? '' : 'hidden'}>${esc(bloqueio)}</div>
+      <div class="leg" style="margin:12px 0 4px">${salva ? 'Ao salvar, o romaneio ganha um número e aparece na aba <b>Romaneios</b>, onde a doca registra a chegada e a saída do veículo. Na saída, as coletas passam para <b>Expedido</b> sozinhas.' : 'Você pode imprimir o romaneio; para salvar é preciso permissão de edição no Full.'}
+        Não sabe ainda quem vem buscar? Deixe o motorista em branco e preencha depois.</div>
+      ${camposEmbarque({ data: dataPadrao }, mots, true)}
+      <div class="gv-acoes"><button class="btn" id="rm-so-imp" title="Imprime sem número e sem registrar">🖨 Só imprimir</button>${salva ? `<button class="btn pri" id="rm-ok" ${bloqueio ? 'disabled' : ''}>💾 Salvar e imprimir</button>` : ''}</div>
+    </div></aside>`;
   const $ = k => document.getElementById(k);
-  ['rm-mot', 'rm-transp', 'rm-placa', 'rm-veic'].forEach(k => forcaCaixaAlta($(k))); mascaraTel($('rm-tel'));
-  $('rm-mot').addEventListener('change', () => { const m = mots.find(x => x.nome === caixaAltaTxt($('rm-mot').value).trim()); if (!m) return;
-    $('rm-tel').value = fmtTel(m.telefone); $('rm-transp').value = m.transportadora || ''; $('rm-placa').value = m.placa || ''; $('rm-veic').value = m.veiculo || ''; });
+  ligarCamposEmbarque(mots);
   const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
-  $('rm-ok').onclick = () => {
-    const emb = { motorista: caixaAltaTxt($('rm-mot').value).trim(), telefone: $('rm-tel').value.trim(), transportadora: caixaAltaTxt($('rm-transp').value).trim(), placa: $('rm-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), veiculo: caixaAltaTxt($('rm-veic').value).trim() };
-    imprimirHtml(romaneioHtml(L, emb)); fechar();
+  $('rm-so-imp').onclick = () => { imprimirHtml(romaneioHtml(L, embParaImpresso(lerCamposEmbarque(mots)))); fechar(); };
+  const ok = $('rm-ok');
+  if (ok) ok.onclick = async () => {
+    const c = lerCamposEmbarque(mots);
+    if (!c.data) { $('rm-erro').hidden = false; $('rm-erro').textContent = 'Informe a data do embarque'; return; }
+    ok.disabled = true;
+    try {
+      const res = await apiFull('/full/romaneio', { ...c, envio_ids: L.map(e => e.id) });
+      const rom = { id: res.id, ...c, status:'aberto' };
+      imprimirHtml(romaneioHtml(L, embParaImpresso(c), rom));
+      fechar(); s.sel.clear(); avisar(`Romaneio ${nRom(res.id)} salvo`);
+      await carregarFull();
+    } catch (e) { if (e instanceof SemSessao) throw e; $('rm-erro').hidden = false; $('rm-erro').textContent = e.message; ok.disabled = false; }
   };
   $('rm-mot').focus();
+}
+
+// gaveta do romaneio: dados do embarque, coletas, chegada/saída na doca, reimprimir, cancelar, histórico
+function fecharRomaneio(){
+  state.full.romAberto = null;
+  const g = document.getElementById('gaveta'); if (g) { g.hidden = true; g.innerHTML = ''; }
+  document.body.classList.remove('gaveta-aberta'); renderRomaneios();
+}
+function abrirRomaneio(id, recarregando){
+  const s = state.full, d = state.romDados, g = document.getElementById('gaveta');
+  if (!g || !d) return;
+  const r = d.romaneios.find(x => x.id === id);
+  if (!r) return fecharRomaneio();
+  if (recarregando && g.dataset.sujo === '1') return;
+  s.romAberto = id; g.dataset.sujo = '';
+  const editar = pode('full', 'editar'), gerir = pode('full', 'gerir');
+  const ativo = ['aberto', 'carregando'].includes(r.status);
+  const edCab = editar && (ativo || (r.status === 'expedido' && gerir));
+  const edCol = editar && ativo, mots = d.motoristas || [];
+  const es = enviosDoRom(r), dm = docaMin(r);
+  const soma = f => es.reduce((t, e) => t + (Number(f(e)) || 0), 0);
+  const problema = e => e.status === 'cancelado' ? 'cancelado: retire do romaneio' : e.pares_envio === null || e.pares_envio === '' ? 'falta a qtd. de pares enviada'
+    : Number(e.pares_envio) < Number(e.pares_plan) && !e.motivo_diferenca ? 'abaixo do plano sem motivo' : '';
+  const candidatos = (state.fullDados?.envios || []).filter(e => !e.romaneio_id && !['expedido', 'cancelado'].includes(e.status) && !r.envio_ids.includes(e.id))
+    .sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || a.pedido.localeCompare(b.pedido));
+  const corrige = r.status === 'expedido' ? gerir : editar;
+  const hDoca = (tipo, rot, valor) => `
+    <div class="doca ${valor ? 'feito' : ''}"><div class="doca-cab"><span>${rot}</span><b>${valor ? `${dataBR(isoLocal(valor).slice(0, 10)).slice(0, 5)} ${soHora(valor)}` : '–'}</b></div>
+      ${r.status !== 'cancelado' && (valor ? corrige : editar) ? `<div class="doca-ed"><input type="datetime-local" id="rd-${tipo}-em" value="${valor ? isoLocal(valor) : agoraLocal()}"><button class="btn ${valor ? '' : 'pri'}" data-evento="${tipo}">${valor ? 'Corrigir horário' : tipo === 'chegada' ? '🚚 Veículo chegou' : '✅ Veículo saiu'}</button></div>` : ''}</div>`;
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `
+    <div class="gv-fundo" id="gv-fundo"></div>
+    <aside class="gv">
+      <div class="gv-cab"><div><div class="info">Romaneio de embarque · ${dataBR(r.data)}</div><h3>${nRom(r.id)} ${pillRom(r.status)}</h3></div><span style="flex:1"></span>
+        ${r.status !== 'cancelado' ? '<button class="btn" id="rd-imp">🖨 Imprimir</button>' : ''}<button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
+      <div class="gv-corpo">
+        <div class="erro" id="rd-erro" hidden></div>
+        <div class="gv-sec">Doca</div>
+        <div class="docas">${hDoca('chegada', 'Chegada do veículo', r.chegada_em)}${hDoca('saida', 'Saída do veículo', r.saida_em)}</div>
+        ${dm !== null ? `<div class="info" style="margin-top:6px">Tempo de doca: <b>${fmtDur(dm)}</b></div>` : r.status === 'carregando' ? `<div class="info" style="margin-top:6px">Na doca há ${fmtDur((Date.now() - new Date(r.chegada_em)) / 60e3)}</div>` : ''}
+        ${ativo && editar ? '<div class="info" style="margin-top:4px">Ao registrar a saída, todas as coletas do romaneio passam para <b>Expedido</b>. Antes disso, cada uma precisa ter a quantidade de pares enviada (e o motivo, se ficou abaixo do plano).</div>' : ''}
+
+        <div class="gv-sec">Coletas <span class="info">${es.length} · ${fmtN(soma(e => e.pares_envio ?? e.pares_plan))} pares · ${fmtN(soma(e => e.caixas))} cx · ${fmtM3(soma(e => e.m3))} m³</span></div>
+        <div class="rd-cols">${es.map(e => { const p = ativo ? problema(e) : ''; return `
+          <div class="rd-col ${p ? 'prob' : ''}"><span class="marca-loja" style="background:${corLoja(e.cnpj_id)}"></span>
+            <button class="lnk" data-ir-envio="${e.id}" title="Abrir a coleta">#${esc(e.pedido)}</button><span class="info">${esc(nomeLoja(e.cnpj_id))}</span>${pillFull(e.status)}
+            <span style="flex:1"></span><span>${e.pares_envio === null || e.pares_envio === '' ? '–' : fmtN(e.pares_envio)}/${fmtN(e.pares_plan)} pares</span>
+            ${edCol ? `<button class="btn mini" data-tirar="${e.id}" title="Retirar do romaneio">✕</button>` : ''}
+            ${p ? `<div class="rd-prob">⚠ ${esc(p)}</div>` : ''}</div>`; }).join('') || '<div class="vazio">Sem coletas.</div>'}</div>
+        ${edCol ? `<div class="rd-add"><select id="rd-add"><option value="">Incluir outra coleta…</option>${candidatos.map(e => `<option value="${e.id}">#${esc(e.pedido)} · ${esc(nomeLoja(e.cnpj_id))} · ${dataBR(e.data_expedicao).slice(0, 5)} · ${esc(ST_FULL[e.status].rot)}</option>`).join('')}</select><button class="btn" id="rd-add-ok">Incluir</button></div>` : ''}
+
+        <div class="gv-sec">Embarque ${edCab ? '' : r.status === 'expedido' ? '<span class="info">(veículo já saiu: só líder altera)</span>' : ''}</div>
+        ${camposEmbarque(r, mots, edCab)}
+        ${edCab ? '<div class="gv-acoes"><button class="btn pri" id="rd-salvar">Salvar dados do embarque</button></div>' : ''}
+
+        ${gerir && ativo ? '<div class="gv-acoes" style="justify-content:flex-start;margin-top:22px"><button class="btn perigo" id="rd-cancelar">Cancelar romaneio</button><span class="info">as coletas ficam livres para outro romaneio</span></div>' : ''}
+        <div class="gv-sec">Histórico</div><div id="rd-hist" class="info">Carregando…</div>
+        <div class="info" style="margin-top:10px">Criado em ${quando(r.criado_em)} por ${esc(String(r.criado_por).split('@')[0])} · última alteração ${quando(r.atualizado_em)} por ${esc(String(r.atualizado_por).split('@')[0])}</div>
+      </div>
+    </aside>`;
+  const $ = k => document.getElementById(k);
+  ligarCamposEmbarque(mots);
+  g.querySelectorAll('.grade-form input, .grade-form textarea').forEach(i => i.addEventListener('input', () => { g.dataset.sujo = '1'; }));
+  $('gv-fechar').onclick = fecharRomaneio; $('gv-fundo').onclick = fecharRomaneio;
+  const erro = msg => { const x = $('rd-erro'); x.hidden = false; x.textContent = msg; x.scrollIntoView({ block:'nearest' }); };
+  const recarregar = async msg => { g.dataset.sujo = ''; if (msg) avisar(msg); await carregarRomaneios(); };
+  const enviar = async (ids, extra = {}) => {
+    const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, responsavel:r.responsavel, observacao:r.observacao };
+    return apiFull('/full/romaneio', { id:r.id, versao:r.atualizado_em, ...c, envio_ids:ids, ...extra });
+  };
+  const imp = $('rd-imp'); if (imp) imp.onclick = () => imprimirHtml(romaneioHtml(es, embParaImpresso(r), r));
+  g.querySelectorAll('[data-evento]').forEach(b => b.onclick = async () => {
+    const tipo = b.dataset.evento, em = $(`rd-${tipo}-em`).value;
+    if (tipo === 'saida' && !r.saida_em && !confirmaDupla(b, `Confirmar saída? ${es.length} coleta(s) vão para Expedido`)) return;
+    b.disabled = true;
+    try { await apiFull('/full/romaneio/evento', { id:r.id, tipo, em, versao:r.atualizado_em }); await recarregar(tipo === 'chegada' ? 'Chegada registrada' : r.saida_em ? 'Horário de saída corrigido' : `Saída registrada: ${es.length} coleta(s) expedida(s)`); }
+    catch (e) { if (e instanceof SemSessao) throw e; b.disabled = false; erro(e.message); }
+  });
+  g.querySelectorAll('[data-tirar]').forEach(b => b.onclick = async () => {
+    const ids = r.envio_ids.filter(i => i !== b.dataset.tirar);
+    if (!ids.length) return erro('O romaneio precisa de ao menos uma coleta. Para desfazer, cancele o romaneio.');
+    try { await enviar(ids); await recarregar('Coleta retirada do romaneio'); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); }
+  });
+  const add = $('rd-add-ok'); if (add) add.onclick = async () => {
+    const v = $('rd-add').value; if (!v) return;
+    try { await enviar([...r.envio_ids, v]); await recarregar('Coleta incluída no romaneio'); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); }
+  };
+  const sv = $('rd-salvar'); if (sv) sv.onclick = async () => {
+    sv.disabled = true;
+    try { await enviar(r.envio_ids); await recarregar('Romaneio salvo'); } catch (e) { if (e instanceof SemSessao) throw e; sv.disabled = false; erro(e.message); }
+  };
+  const cn = $('rd-cancelar'); if (cn) cn.onclick = async () => {
+    if (!confirmaDupla(cn, 'Clique de novo para cancelar o romaneio')) return;
+    try { await apiFull('/full/romaneio/cancelar', { id:r.id }); await recarregar(`Romaneio ${nRom(r.id)} cancelado`); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); }
+  };
+  g.querySelectorAll('[data-ir-envio]').forEach(b => b.onclick = () => { s.vista = 'envios'; s.romAberto = null; s.aberto = b.dataset.irEnvio; s.aba = 'todos'; s.st = null; telaFull(); });
+  // histórico
+  apiFull(`/full/romaneio/historico?id=${r.id}`).then(h => {
+    const $h = $('rd-hist'); if (!$h) return;
+    const ROT = { criar:'Romaneio montado', alterar:'Dados alterados', chegada:'Chegada do veículo', saida:'Saída do veículo', cancelar:'Cancelado', incluir_coleta:'Coleta incluída', retirar_coleta:'Coleta retirada' };
+    const det = ev => ev.acao === 'chegada' ? soHora(ev.depois.chegada_em) + (ev.antes ? ' (corrigido)' : '') : ev.acao === 'saida' ? soHora(ev.depois.saida_em) + (ev.antes ? ' (corrigido)' : '')
+      : ev.acao === 'incluir_coleta' ? (ev.depois.pedidos || ev.depois.envio_ids || []).map(p => '#' + p).join(' ') : ev.acao === 'alterar' ? Object.keys(ev.depois || {}).filter(k => k !== 'motorista_id').join(', ') : '';
+    $h.innerHTML = h.eventos.length ? `<table class="tab-hist"><tbody>${h.eventos.map(ev => `<tr><td>${quando(ev.em)}</td><td>${esc(String(ev.por).split('@')[0])}</td><td><b>${esc(ROT[ev.acao] || ev.acao)}</b> <span class="info">${esc(det(ev))}</span></td></tr>`).join('')}</tbody></table>` : 'Sem registros.';
+  }).catch(e => { if (e instanceof SemSessao) throw e; const $h = $('rd-hist'); if ($h) $h.textContent = e.message; });
+}
+// botão que pede um segundo clique para confirmar (sem diálogo do navegador)
+function confirmaDupla(btn, txt){
+  if (btn.dataset.conf === '1') return true;
+  btn.dataset.conf = '1'; const orig = btn.textContent; btn.textContent = txt;
+  setTimeout(() => { if (btn.isConnected) { btn.dataset.conf = ''; btn.textContent = orig; } }, 4000);
+  return false;
 }
 
 // ---- gaveta de edição (lateral no computador, tela cheia no celular)
@@ -1465,6 +1835,7 @@ function abrirEnvio(id, recarregando){
         <div class="gv-sec">Etapa</div>
         <div class="etapas">${ORDEM_FULL.map(st => `<button type="button" class="etapa ${e.status === st ? 'on' : ''}" data-st="${st}" ${ro(editar)} style="--c:${ST_FULL[st].cor};--f:${ST_FULL[st].fundo}">${esc(ST_FULL[st].rot)}</button>`).join('')}</div>
         ${!novo && e.status_em ? `<div class="info" style="margin-top:4px">Neste status desde ${quando(e.status_em)}</div>` : ''}
+        ${!novo && e.romaneio_id ? `<div class="info" style="margin-top:4px">No romaneio de embarque <button class="chip-rom" id="gv-ir-rom">🚚 ${nRom(e.romaneio_id)}</button></div>` : ''}
         <div class="gv-sec">Pedido ${gerir ? '' : '<span class="info">(só líder altera)</span>'}</div>
         <div class="grade-form g2">
           <label>Loja<select id="gv-loja" ${ro(gerir)}>${r.lojas.map(l => `<option value="${l.id}" ${l.id === e.cnpj_id ? 'selected' : ''}>${esc(nomeLoja(l.id))}</option>`).join('')}</select></label>
@@ -1518,6 +1889,7 @@ function abrirEnvio(id, recarregando){
   $('gv-fechar').onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; fecharEnvio(); };
   $('gv-fundo').onclick = $('gv-fechar').onclick;
   const ib = $('gv-imp'); if (ib) ib.onclick = () => imprimirFolha(e);
+  const ir = $('gv-ir-rom'); if (ir) ir.onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; s.vista = 'romaneios'; s.romAba = 'todos'; s.romIr = e.romaneio_id; s.aberto = null; telaFull(); };
   const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
 
   const sv = $('gv-salvar');
@@ -1672,7 +2044,9 @@ async function apiCross(path, corpo){
       canais: CANAIS_DEMO, lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
       sugestoes: D.coletas.filter(c => c.placa).map(c => ({ placa:c.placa, motorista:c.motorista, veiculo:c.veiculo, canal_id:c.canal_id })), motoristas: JSON.parse(JSON.stringify(D.motoristas.filter(m => m.ativo))) };
   }
-  if (path === '/motoristas') return { motoristas: D.motoristas.map(m => ({ ...m, n_cross: D.coletas.filter(c => c.motorista_id === m.id).length, ultima: D.coletas.filter(c => c.motorista_id === m.id).map(c => c.data).sort().at(-1) || null })) };
+  if (path === '/motoristas') { demoRomIni(); const rs = m => DEMO_ROM.romaneios.filter(r => r.motorista_id === m.id && r.status !== 'cancelado');
+    return { motoristas: D.motoristas.map(m => ({ ...m, n_cross: D.coletas.filter(c => c.motorista_id === m.id).length, n_full: rs(m).length,
+      ultima: D.coletas.filter(c => c.motorista_id === m.id).map(c => c.data).concat(rs(m).map(r => r.data)).sort().at(-1) || null })) }; }
   if (path === '/motorista') {
     const dados = { nome: caixaAltaTxt(corpo.nome).trim(), telefone: String(corpo.telefone || '').replace(/\D/g, '') || null, documento: corpo.documento ? String(corpo.documento).toUpperCase() : null,
       veiculo: caixaAltaTxt(corpo.veiculo).trim() || null, placa: corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null, transportadora: caixaAltaTxt(corpo.transportadora).trim() || null, ativo: corpo.ativo !== false };
@@ -1754,12 +2128,12 @@ function renderMotoristas(){
   const t = s.busca.trim().toUpperCase(), td = t.replace(/\D/g, ''), tp = t.replace(/[^A-Z0-9]/g, '');
   const vis = lista.filter(m => !t || m.nome.includes(t) || (m.transportadora || '').includes(t) || (tp && (m.placa || '').includes(tp)) || (td.length >= 3 && (m.telefone || '').includes(td)));
   $c.innerHTML = `<div class="painel">
-    <div class="leg">Motorista novo também entra sozinho quando é digitado numa coleta do CROSS. Aqui você corrige nome, telefone, veículo, placa e transportadora, ou desativa quem não vem mais (some das sugestões, o histórico fica). As coletas antigas guardam os dados do dia em que aconteceram.</div>
+    <div class="leg">Motorista novo também entra sozinho quando é digitado numa coleta do CROSS ou num romaneio do Full. Aqui você corrige nome, telefone, veículo, placa e transportadora, ou desativa quem não vem mais (some das sugestões, o histórico fica). As coletas antigas guardam os dados do dia em que aconteceram.</div>
     <div class="info" style="margin-bottom:6px">${lista.filter(m => m.ativo).length} ativo(s)${t ? ` · ${vis.length} encontrado(s)` : ''}</div>
-    <div style="overflow-x:auto"><table class="tab-mot"><thead><tr><th>Nome</th><th>Telefone</th><th>Transportadora</th><th>Veículo</th><th>Placa</th><th class="n">Coletas CROSS</th><th>Última</th><th>Situação</th></tr></thead><tbody>
+    <div style="overflow-x:auto"><table class="tab-mot"><thead><tr><th>Nome</th><th>Telefone</th><th>Transportadora</th><th>Veículo</th><th>Placa</th><th class="n">Coletas CROSS</th><th class="n">Romaneios Full</th><th>Última</th><th>Situação</th></tr></thead><tbody>
     ${vis.map(m => `<tr data-mot="${m.id}" class="${m.ativo ? '' : 'inativo'}"><td><b>${esc(m.nome)}</b></td><td>${m.telefone ? `<a href="tel:${m.telefone}" onclick="event.stopPropagation()">${fmtTel(m.telefone)}</a>` : '<span class="info">–</span>'}</td>
       <td>${esc(m.transportadora || '') || '<span class="info">–</span>'}</td><td>${esc(m.veiculo || '') || '<span class="info">–</span>'}</td><td>${m.placa ? esc(fmtPlaca(m.placa)) : '<span class="info">–</span>'}</td>
-      <td class="n">${fmtN(m.n_cross || 0)}</td><td>${m.ultima ? dataBR(m.ultima) : '<span class="info">–</span>'}</td><td>${m.ativo ? 'Ativo' : 'Inativo'}</td></tr>`).join('') || '<tr><td colspan="8" class="vazio">Nenhum motorista encontrado.</td></tr>'}
+      <td class="n">${fmtN(m.n_cross || 0)}</td><td class="n">${fmtN(m.n_full || 0)}</td><td>${m.ultima ? dataBR(m.ultima) : '<span class="info">–</span>'}</td><td>${m.ativo ? 'Ativo' : 'Inativo'}</td></tr>`).join('') || '<tr><td colspan="9" class="vazio">Nenhum motorista encontrado.</td></tr>'}
     </tbody></table></div></div>`;
   if (edita) $c.querySelectorAll('[data-mot]').forEach(tr => tr.onclick = () => abrirMotorista(lista.find(m => String(m.id) === tr.dataset.mot)));
 }
