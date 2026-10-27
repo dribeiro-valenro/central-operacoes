@@ -804,8 +804,10 @@ function formUsuario(r, u){
 function ligarFormUsuario(r){
   const s = state.pes, u = s.editando, exc = { ...(u.permissoes || {}) };
   const bf = document.getElementById('pf-foto');
-  if (bf) bf.onclick = () => editarFoto({ titulo:`Foto · ${u.nome}`, nome:u.nome, foto:u.foto, salvar: async f => {
-    if (!DEMO) await api('/pessoas/usuario/foto', { metodo:'POST', corpo:{ login:u.login, foto:f } });
+  if (bf) bf.onclick = () => editarFoto({ titulo:`Foto · ${u.nome}`, nome:u.nome, foto:u.foto, salvar: async (f, m) => {
+    if (!DEMO) await api('/pessoas/usuario/foto', { metodo:'POST', corpo:{ login:u.login, foto:f, foto_mini:m } });
+    else sincronizarFotoDemo(u.login, null, f, m);
+    state.ooDados = null;
     u.foto = f; if (state.usuario && state.usuario.login === u.login) { state.usuario.foto = f; mostrarUsuario(state.usuario); } renderPessoas(); } });
   const $perfil = document.getElementById('pf-perfil');
   const desenhaTelas = () => {
@@ -3347,6 +3349,13 @@ async function fotoQuadrada(arq, tam = 320){
   while (url.length > 110000 && q > 0.4) { q -= 0.1; url = cv.toDataURL('image/jpeg', q); }
   return url;
 }
+// miniatura (64 px, ~3 KB) para as listas; gerada a partir da foto já recortada
+async function miniDe(foto){
+  if (!foto) return null;
+  const img = new Image(); img.src = foto; await img.decode().catch(() => null);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64; cv.getContext('2d').drawImage(img, 0, 0, 64, 64);
+  return cv.toDataURL('image/jpeg', 0.8);
+}
 const iniciais = nome => String(nome || '?').trim().split(/\s+/).filter(Boolean).map((p, i, a) => i === 0 || i === a.length - 1 ? p[0] : '').join('').toUpperCase().slice(0, 2);
 const avatar = (nome, foto, tam = 32) => foto ? `<img class="avatar" src="${esc(foto)}" alt="" style="width:${tam}px;height:${tam}px">`
   : `<span class="avatar ini" style="width:${tam}px;height:${tam}px;font-size:${Math.round(tam * 0.4)}px">${esc(iniciais(nome))}</span>`;
@@ -3366,16 +3375,24 @@ function editarFoto({ titulo, nome, foto, salvar }){
     d.querySelectorAll('[data-fq]').forEach(i => i.onchange = async () => { const f = i.files[0]; if (!f) return; try { nova = await fotoQuadrada(f); desenha(); } catch (e) { avisar(e.message, true); } });
     const rm = d.querySelector('#fq-rm'); if (rm) rm.onclick = () => { nova = null; desenha(); };
     d.querySelector('#fq-x').onclick = () => d.remove();
-    d.querySelector('#fq-ok').onclick = async ev => { ev.target.disabled = true; try { await salvar(nova); avisar(nova ? 'Foto salva' : 'Foto removida'); d.remove(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); ev.target.disabled = false; } };
+    d.querySelector('#fq-ok').onclick = async ev => { ev.target.disabled = true; try { await salvar(nova, await miniDe(nova)); avisar(nova ? 'Foto salva' : 'Foto removida'); d.remove(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); ev.target.disabled = false; } };
   };
   d.onclick = ev => { if (ev.target === d) d.remove(); };
   desenha(); document.body.appendChild(d);
 }
+// demonstração: foto da pessoa do One-on-One e do usuário ligados ficam iguais
+function sincronizarFotoDemo(login, pessoaId, f, m){
+  const pp = DEMO_OO.pessoas.filter(x => (pessoaId && x.id === pessoaId) || (login && x.usuario_login === login));
+  pp.forEach(x => { x.foto = f; x.foto_mini = m; });
+  const lg = login || pp[0]?.usuario_login, u = lg ? DEMO_PESSOAS.usuarios.find(x => x.login === lg) : null;
+  if (u) { u.foto = f; u.foto_mini = m; if (state.usuario?.login === lg) { state.usuario.foto = f; mostrarUsuario(state.usuario); } }
+}
 async function minhaFoto(){
   const u = state.usuario || { nome:'Demonstração' };
-  editarFoto({ titulo:'Minha foto', nome:u.nome, foto:u.foto, salvar: async f => {
-    if (!DEMO) await api('/me/foto', { metodo:'POST', corpo:{ foto:f } });
-    u.foto = f; state.usuario = u; mostrarUsuario(u);
+  editarFoto({ titulo:'Minha foto', nome:u.nome, foto:u.foto, salvar: async (f, m) => {
+    if (!DEMO) await api('/me/foto', { metodo:'POST', corpo:{ foto:f, foto_mini:m } });
+    else sincronizarFotoDemo(u.login, null, f, m);
+    u.foto = f; u.foto_mini = m; state.usuario = u; mostrarUsuario(u); state.ooDados = null;
     if (state.pesDados?.usuarios) { const x = state.pesDados.usuarios.find(y => y.login === u.login); if (x) { x.foto = f; if (document.getElementById('pes')) renderPessoas(); } }
   } });
 }
@@ -3789,10 +3806,15 @@ async function apiOO(path, corpo){
   if (path.startsWith('/oo?') || path === '/oo') {
     const rid = q.get('rodada') || D.rodadas.find(r => r.ativa)?.id || D.rodadas[0]?.id;
     D.pessoas.forEach(p => { p.n_arquivos = D.arquivos.filter(a => a.pessoa_id === p.id).length; });
-    return clone({ rodada:rid, rodadas:D.rodadas, areas:D.areas, setores:D.setores, pessoas:D.pessoas, conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), nivel:'gerir', hoje:h });
+    return clone({ rodada:rid, rodadas:D.rodadas, areas:D.areas, setores:D.setores, pessoas:D.pessoas, usuarios:DEMO_PESSOAS.usuarios.filter(u => u.ativo).map(u => ({ login:u.login, nome:u.nome })), conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), nivel:'gerir', hoje:h });
   }
   if (path.startsWith('/oo/arquivo?')) { const a = D.arquivos.find(x => x.id === q.get('id')); return { url: a._url || 'about:blank', nome: a.nome }; }
-  if (path === '/oo/foto') { D.pessoas.find(x => x.id === String(corpo.pessoa_id)).foto = corpo.foto; return { ok:true }; }
+  if (path === '/oo/foto') { const pp = D.pessoas.find(x => x.id === String(corpo.pessoa_id)); sincronizarFotoDemo(pp.usuario_login, pp.id, corpo.foto, corpo.foto_mini); return { ok:true }; }
+  if (path === '/oo/vincular') { const pp = D.pessoas.find(x => x.id === String(corpo.pessoa_id)), u = corpo.login ? DEMO_PESSOAS.usuarios.find(x => x.login === corpo.login) : null;
+    if (u && D.pessoas.some(x => x.usuario_login === u.login && x.id !== pp.id)) throw new Error('Esse usuário já está ligado a outra pessoa');
+    pp.usuario_login = u ? u.login : null;
+    if (u && !pp.foto && u.foto) { pp.foto = u.foto; pp.foto_mini = u.foto_mini; } else if (u && pp.foto && !u.foto) { u.foto = pp.foto; u.foto_mini = pp.foto_mini; }
+    return { ok:true }; }
   if (path === '/oo/arquivo') { const f = corpo.get('arquivo'), id = String(++D.seq);
     D.arquivos.unshift({ id, pessoa_id:String(corpo.get('pessoa_id')), nome:f.name, descricao:corpo.get('descricao') || null, tipo:f.type, tamanho:f.size, enviado_em:new Date().toISOString(), enviado_por:'demonstracao', _url:URL.createObjectURL(f) }); return { ok:true, id }; }
   const tab = { pessoa:'pessoas', rodada:'rodadas', conversa:'conversas', ponto:'pontos', meta:'metas', acomp:'acomps', area:'areas', setor:'setores', arquivo:'arquivos' }[corpo.registro];
@@ -3873,7 +3895,7 @@ function renderOO(){
       <thead><tr><th>Pessoa</th><th>Função</th><th>Setor</th><th>Etapa</th><th>Folha entregue</th><th>Conversa</th><th>Pontos</th><th>PDI</th><th>Próximo acompanhamento</th><th></th></tr></thead>
       <tbody>${linhas.map(({ p, c, et }) => {
         const prox = c?.proximo_acomp, atraso = (prox && prox < hoje) || (c?.prazo_proximo && c.prazo_proximo < hoje);
-        return `<tr data-pes="${p.id}" class="${vePessoalOO() ? '' : 'sem-click'}"><td><b>${esc(p.nome)}</b>${p.n_arquivos ? ' <span class="info" title="arquivos na ficha">📎</span>' : ''}</td><td>${esc(p.funcao || '')}</td>
+        return `<tr data-pes="${p.id}" class="${vePessoalOO() ? '' : 'sem-click'}"><td><span class="nome-av">${avatar(p.nome, p.foto_mini, 30)}<b>${esc(p.nome)}</b></span>${p.n_arquivos ? ' <span class="info" title="arquivos na ficha">📎</span>' : ''}</td><td>${esc(p.funcao || '')}</td>
           <td>${p.setor_id ? esc(nomeSetorOO(p.setor_id)) : `<span class="info">${esc(nomeAreaOO(p.area_id) || '–')}</span>`}</td><td>${pillOO(et)}</td>
           <td>${c?.recebido_em ? dataBR(c.recebido_em) : '<span class="info">–</span>'}</td>
           <td>${c?.conversa_em ? dataBR(c.conversa_em) + (c.conversa_em > hoje ? ' <span class="info">(agendada)</span>' : '') : '<span class="info">–</span>'}</td>
@@ -4028,6 +4050,12 @@ function imprimirPreparacaoOO(p, conv){
 }
 
 // ---- gaveta da pessoa: as 4 etapas
+// sugere o usuário do portal com o mesmo nome (ex.: "Guilherme Porto" dentro de "Guilherme Lucio Porto da Silva")
+function sugerirUsuarioOO(p, usuarios){
+  const pal = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const pp = pal(p.nome);
+  return usuarios.find(u => { const up = pal(u.nome); return up.length && pp.length && up[0] === pp[0] && (up.every(w => pp.includes(w)) || pp.every(w => up.includes(w))); }) || null;
+}
 async function abrirPessoaOO(pessoaId){
   const s = state.oo, r = state.ooDados, g = document.getElementById('gaveta');
   const p = r.pessoas.find(x => String(x.id) === String(pessoaId)); if (!p || !g) return;
@@ -4061,6 +4089,9 @@ async function abrirPessoaOO(pessoaId){
           <label>Data de nascimento<input type="date" id="fi-nasc" value="${p.nascimento || ''}" ${ro}><span class="info">${p.nascimento ? `${idadeOO(p.nascimento, hoje)} anos · aniversário ${(a => a.dias === 0 ? 'hoje 🎂' : `em ${a.dias} dia(s)`)(aniversarioOO(p.nascimento, hoje))}` : ''}</span></label>
           <label>Admissão<input type="date" id="fi-adm" value="${p.admissao || ''}" ${ro}><span class="info">${p.admissao ? tempoCasaOO(p.admissao, hoje) + ' de casa' : ''}</span></label>
           <label>Onde mora<input id="fi-mora" value="${esc(p.mora_em || '')}" placeholder="cidade / bairro" ${ro}></label>
+          ${(r.usuarios || []).length ? (() => { const usados = new Set(r.pessoas.filter(x => x.usuario_login && x.id !== p.id).map(x => x.usuario_login)), sugest = !p.usuario_login ? sugerirUsuarioOO(p, r.usuarios.filter(u => !usados.has(u.login))) : null;
+            return `<label>Usuário do portal <span class="info">(a foto fica igual nos dois lugares)</span><select id="fi-usuario" ${ro}><option value="">Não tem acesso ao portal</option>${r.usuarios.filter(u => !usados.has(u.login)).map(u => `<option value="${esc(u.login)}" ${p.usuario_login === u.login ? 'selected' : ''}>${esc(u.nome)}</option>`).join('')}</select>
+              ${sugest && !ro ? `<span class="info">Parece ser <button type="button" class="lnk" id="fi-usuario-sug" data-login="${esc(sugest.login)}">${esc(sugest.nome)}</button>?</span>` : ''}</label>`; })() : ''}
           <label class="chk" style="grid-column:1/-1"><input type="checkbox" id="fi-ativo" ${p.ativo ? 'checked' : ''} ${ro}> Ativa (aparece no time)</label>
         </div>
         <label class="gv-lab">Questões pessoais que a pessoa quis compartilhar<textarea id="fi-notas" rows="3" ${ro} placeholder="Ex.: estuda à noite, filho pequeno, mudança de casa. Registre só o que a pessoa contou e concordou que fosse anotado.">${esc(p.notas_pessoais || '')}</textarea></label>
@@ -4105,7 +4136,18 @@ async function abrirPessoaOO(pessoaId){
   const recarregar = async () => { const top = g.querySelector('.gv-corpo').scrollTop; state.ooDados.pessoas = (await apiOO('/oo' + (s.rodada ? `?rodada=${s.rodada}` : ''))).pessoas; await abrirPessoaOO(p.id); const c = g.querySelector('.gv-corpo'); if (c) c.scrollTop = top; };
   const salvarConv = campos => tentar(async () => { const id = await garantirConversa(); await apiOO('/oo/salvar', { registro:'conversa', id, ...campos }); avisar('Salvo'); });
   $('oo-imp-prep').onclick = () => imprimirPreparacaoOO(p, conv.id ? conv : null);
-  const bfo = $('oo-foto'); if (bfo && edita) bfo.onclick = () => editarFoto({ titulo:`Foto · ${p.nome}`, nome:p.nome, foto:d.foto, salvar: async f => { await apiOO('/oo/foto', { pessoa_id:p.id, foto:f }); abrirPessoaOO(p.id); } });
+  const bfo = $('oo-foto'); if (bfo && edita) bfo.onclick = () => editarFoto({ titulo:`Foto · ${p.nome}`, nome:p.nome, foto:d.foto, salvar: async (f, m) => {
+    await apiOO('/oo/foto', { pessoa_id:p.id, foto:f, foto_mini:m });
+    if (p.usuario_login && state.usuario?.login === p.usuario_login) { state.usuario.foto = f; state.usuario.foto_mini = m; mostrarUsuario(state.usuario); }
+    state.pesDados = null; await carregarOO(); abrirPessoaOO(p.id); } });
+  // fotos enviadas antes da miniatura existir: gera a miniatura uma vez, sem a pessoa perceber
+  if (edita && d.foto && !p.foto_mini) miniDe(d.foto).then(async m => { await apiOO('/oo/foto', { pessoa_id:p.id, foto:d.foto, foto_mini:m }); p.foto_mini = m; }).catch(() => {});
+  // ligar à conta do portal (a foto passa a ser a mesma nos dois lugares)
+  const sv = $('fi-usuario'); if (sv) sv.onchange = async () => {
+    try { await apiOO('/oo/vincular', { pessoa_id:p.id, login: sv.value || null }); avisar(sv.value ? 'Ligado ao usuário do portal: a foto agora é a mesma nos dois lugares' : 'Desligado do usuário do portal');
+      state.pesDados = null; await carregarOO(); abrirPessoaOO(p.id); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); sv.value = p.usuario_login || ''; } };
+  const sug = $('fi-usuario-sug'); if (sug) sug.onclick = () => { sv.value = sug.dataset.login; sv.onchange(); };
   $('oo-imp-pdi').onclick = () => imprimirHtml(folhaPdiHtml(p, conv, d.metas, d.acomps, rodada));
   g.querySelectorAll('[data-abrir-arq]').forEach(b => b.onclick = () => abrirArquivoOO(b.dataset.abrirArq));
   ligarAreaSetorOO();
@@ -5068,6 +5110,7 @@ async function iniciar(){
     const me = await api('/me');
     state.usuario = me.usuario;
     mostrarUsuario(me.usuario);
+    if (me.usuario.foto && !me.usuario.foto_mini) miniDe(me.usuario.foto).then(m => api('/me/foto', { metodo:'POST', corpo:{ foto:me.usuario.foto, foto_mini:m } })).catch(() => {});
     state.cnpjs = (await api('/cnpjs')).cnpjs;
     irPara(params.get('tela') || 'separados');
   } catch (e) {
