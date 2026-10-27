@@ -217,6 +217,21 @@
   .tab-ab{font-size:12.5px} .tab-ab th,.tab-ab td{padding-left:6px;padding-right:6px}
   .tab-ab tr.pend td{background:#fffbea} .ab-card{display:flex;flex-direction:column;gap:3px}
   .oo-inativos{margin:10px 0 4px;font-size:13px} .oo-inativos summary{cursor:pointer;color:var(--mute)} .oo-inativos > div{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .rc-col{display:block;font-size:10.5px;font-style:italic;color:var(--mute);font-weight:400;line-height:1.1}
+  .leg-full b{color:var(--ink)} .leg-full .prev,.leg-full .dif{font-weight:600}
+  .tag-jan{display:block;font-size:10.5px;font-weight:700;border-radius:10px;padding:0 6px;margin-top:2px;width:max-content;margin-left:auto;margin-right:auto} .tag-jan.fora{background:#fbe9e9;color:#8a1f1f} .tag-jan.antes{background:#e3eefc;color:#0b4fa8} .tag-jan.ok{background:#e2f5e8;color:#1a7a3e}
+  .tab-rom tr.subtot td{background:#eef2f8;color:var(--pri);font-weight:700;border-bottom:2px solid var(--pri)} .tab-rom tr.subtot td:first-child{text-align:left} .tab-rom tr.subtot small{display:block;font-weight:400;font-size:11px;color:var(--mute)}
+  .cod-in{font-size:18px !important;font-weight:700;letter-spacing:1px}
+  .cod-card{background:#fff8dc;border:1px solid #f1d98a;border-radius:6px;padding:0 6px}
+  .avatar{border-radius:50%;object-fit:cover;flex:0 0 auto;vertical-align:middle;background:#e8eef7}
+  .avatar.ini{display:inline-flex;align-items:center;justify-content:center;background:#f1c300;color:#02285a;font-weight:800}
+  .usr-btn{font:inherit;color:inherit;background:none;border:0;display:inline-flex;gap:8px;align-items:center;cursor:pointer;padding:2px 6px;border-radius:20px} .usr-btn:hover{background:rgba(255,255,255,.12)}
+  .nome-av{display:inline-flex;gap:8px;align-items:center}
+  .oo-foto{position:relative;border:0;background:none;padding:0;margin-right:12px;cursor:pointer;flex:0 0 68px;width:68px;height:68px;display:inline-flex;align-items:center;justify-content:center} .oo-foto:disabled{cursor:default} .oo-foto span{position:absolute;right:-4px;bottom:-2px;background:#fff;border-radius:50%;font-size:13px;padding:2px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .foto-modal{position:fixed;inset:0;z-index:90;background:rgba(10,15,25,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+  .foto-modal-box{background:var(--card,#fff);border-radius:14px;padding:18px 20px;width:min(380px,100%);box-shadow:0 10px 40px rgba(0,0,0,.3)} .foto-modal-box h3{margin:0 0 12px}
+  .foto-prev{display:flex;justify-content:center;margin:6px 0 14px}
+  .tab-ponto td{vertical-align:middle}
   .rc-filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
   .cn-f{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;cursor:pointer;color:var(--ink)} .cn-f.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   .rc-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
@@ -547,7 +562,8 @@ function mostrarUsuario(u){
   const el = document.getElementById('usuario');
   if (!el) return;
   el.hidden = !u;
-  if (u) el.innerHTML = `${esc(u.nome)} <button class="btn" id="btn-sair">Sair</button>`;
+  if (u) el.innerHTML = `<button class="usr-btn" id="btn-perfil" title="Trocar minha foto">${avatar(u.nome, u.foto, 30)}<span>${esc(u.nome)}</span></button> <button class="btn" id="btn-sair">Sair</button>`;
+  const bp = document.getElementById('btn-perfil'); if (bp) bp.onclick = minhaFoto;
   const b = document.getElementById('btn-sair');
   if (b) b.onclick = () => { gravarSessao(null); state.sepDados = null; telaLogin(); };
 }
@@ -635,7 +651,7 @@ const ehExcluido = u => USUARIOS_EXCLUIDOS.some(g => g.toLowerCase() === String(
 /* =================== PESSOAS E ACESSOS =================== */
 // Permissões chegam prontas do servidor (perfil + exceções). Esconder o menu é só conveniência:
 // a Edge Function confere de novo em toda chamada.
-const ROT_PERFIL = { admin:'Admin', lider:'Líder', operacional:'Operacional' };
+const ROT_PERFIL = { admin:'Admin', lider:'Líder', operacional:'Operacional', rh:'RH' };
 const ROT_NIVEL = { nenhum:'Sem acesso', resumo:'Só resumo', ver:'Ver', editar:'Editar', gerir:'Gerenciar' };
 const ROT_FUNCAO_WMS = { operacional:'Operacional', lider:'Líder', apoio:'Apoio', gestao:'Gestão' };
 function pode(tela, nivel = 'ver'){
@@ -661,8 +677,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Envios Full', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Expedição - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'editar', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', cross:'nenhum', abandono:'nenhum', motoristas:'nenhum', ponto:'gerir', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -736,7 +752,7 @@ function renderPessoas(){
       <div style="overflow-x:auto"><table>
         <thead><tr><th>Nome</th><th>Usuário</th><th>Perfil</th><th>Telas</th><th>No WMS</th><th>Último acesso</th><th>Situação</th>${edita ? '<th></th>' : ''}</tr></thead>
         <tbody>${lista.map(u => `<tr${u.ativo ? '' : ' class="inativo"'}>
-          <td>${esc(u.nome)}</td><td><code>${esc(semDominio(u.login, r.dominio))}</code></td><td>${ROT_PERFIL[u.perfil] || esc(u.perfil)}</td>
+          <td><span class="nome-av">${avatar(u.nome, u.foto, 26)}${esc(u.nome)}</span></td><td><code>${esc(semDominio(u.login, r.dominio))}</code></td><td>${ROT_PERFIL[u.perfil] || esc(u.perfil)}</td>
           <td>${resumo(u)}</td><td>${u.colaborador_wms ? esc(nomeWms(u.colaborador_wms)) : '<span class="info">–</span>'}</td>
           <td>${u.ultimo_acesso ? quando(u.ultimo_acesso) : '<span class="info">nunca entrou</span>'}</td>
           <td>${u.ativo ? 'Ativo' : 'Desativado'}</td>
@@ -754,7 +770,7 @@ function formUsuario(r, u){
   const opcWms = r.colaboradores.filter(c => !ehGenerico(c.usuario)).map(c => `<option value="${esc(c.usuario)}" ${u.colaborador_wms === c.usuario ? 'selected' : ''}>${esc(nomeWms(c.usuario))}</option>`).join('');
   return `
     <div class="painel form-pes" id="p-form">
-      <h3>${novo ? 'Novo acesso' : `Editar · ${esc(u.nome)}`}</h3>
+      <h3 class="nome-av">${novo ? 'Novo acesso' : `${avatar(u.nome, u.foto, 40)} Editar · ${esc(u.nome)} <button type="button" class="btn mini" id="pf-foto">📷 Foto</button>`}</h3>
       <div class="erro" id="pf-erro" hidden></div>
       <div class="grade-form">
         <label>Nome completo<input id="pf-nome" value="${esc(u.nome || '')}" placeholder="Ex.: Arthur Magdaleno" autocomplete="off"></label>
@@ -782,6 +798,10 @@ function formUsuario(r, u){
 }
 function ligarFormUsuario(r){
   const s = state.pes, u = s.editando, exc = { ...(u.permissoes || {}) };
+  const bf = document.getElementById('pf-foto');
+  if (bf) bf.onclick = () => editarFoto({ titulo:`Foto · ${u.nome}`, nome:u.nome, foto:u.foto, salvar: async f => {
+    if (!DEMO) await api('/pessoas/usuario/foto', { metodo:'POST', corpo:{ login:u.login, foto:f } });
+    u.foto = f; if (state.usuario && state.usuario.login === u.login) { state.usuario.foto = f; mostrarUsuario(state.usuario); } renderPessoas(); } });
   const $perfil = document.getElementById('pf-perfil');
   const desenhaTelas = () => {
     const perfil = $perfil.value;
@@ -1008,13 +1028,14 @@ function telaFull(){
   // veio do QR do romaneio: abre a aba Romaneios com ele aberto (a doca registra chegada e saída pelo celular)
   if (params.get('romaneio') && !s.linkRomUsado) { s.vista = 'romaneios'; s.romIr = params.get('romaneio').replace(/\D/g, ''); s.linkRomUsado = true; }
   if (s.vista === 'romaneios') return telaRomaneios();
+  if (s.vista === 'resumo') return telaResumoFull();
   if (s.vista === 'tempos' && pode('full', 'gerir')) return telaTempos();
   if (s.vista === 'tempos') s.vista = 'envios';
   // veio do QR da folha de rosto: abre o pedido direto
   if (params.get('pedido') && !s.linkUsado) { s.irPara = { pedido: params.get('pedido').replace(/\D/g, ''), loja: (params.get('loja') || '').toUpperCase() }; s.linkUsado = true; }   // coletas marcadas para o romaneio de embarque (continuam marcadas ao trocar filtros)
   $app.innerHTML = `
     <div class="barra">
-      <h2>Envios Full</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
       <input id="f-busca" class="campo" placeholder="Buscar pedido" value="${esc(s.busca)}" inputmode="numeric" style="width:140px">
       <select id="f-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
       <select id="f-per" title="Data de expedição">
@@ -1153,7 +1174,7 @@ function renderFull(){
         <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto do palete">🖨</button></td></tr>`).join('')}
       </tbody>
     </table></div>
-    <div class="legenda"><span><b class="prev">123</b> previsto (até conferir)</span><span><b class="dif">123</b> abaixo do plano</span><span class="atraso">⚠ data de expedição vencida</span><span>🖨 folha de rosto do palete</span><span>☑ marque as coletas do veículo para montar o romaneio</span><span>🚚 R-0001 já está num romaneio</span></div></div>
+    <div class="legenda leg-full"><b>Legenda:</b><span><span class="prev">número em itálico amarelo</span> = previsto (pode mudar até a conferência)</span><span><span class="dif">número em vermelho</span> = abaixo do plano</span><span class="atraso">⚠ = data de expedição já passou</span><span>🖨 folha de rosto do palete</span><span>☑ marcar para o romaneio</span><span><span class="chip-rom" style="margin:0">🚚 R-…</span> já está num romaneio</span></div></div>
     <div class="so-estreito">
       <div class="subtot-cel">Subtotal · ${fmtN(lista.length)} pedidos · plano ${fmtN(plano)} · pares ${fmtN(pares)} (${fmtP(pares, plano)}) · ${fmtN(soma(validos, e => e.caixas))} cx · ${fmtM3(soma(validos, e => e.m3))} m³</div>
       ${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
@@ -1448,7 +1469,7 @@ function romaneioHtml(envios, emb = {}, rom = null){
       <div><span>COLETAS</span><b>${L.length}</b></div><div><span>m³</span><b>${fmtM3(soma(e => e.m3))}</b></div>
       <div><span>CAIXAS</span><b>${fmtN(soma(e => e.caixas))}</b></div><div><span>PARES</span><b>${fmtN(soma(e => e.pares_envio))}</b></div>
     </div>
-    <div class="sub-l"><div class="sub">${emb.data ? `Embarque: <b>${dataBR(emb.data)}</b> · ` : ''}Lojas: <b>${esc(lojas)}</b> · Expedição planejada: <b>${datas.map(d => dataBR(d)).join(', ')}</b>${rom ? '' : '<br><span style="color:#8a5a00">Romaneio impresso sem salvar: não tem número nem registro no portal.</span>'}</div>
+    <div class="sub-l"><div class="sub">${emb.data ? `Embarque: <b>${dataBR(emb.data)}${emb.janela_ini ? ` · janela ${esc(emb.janela_ini)}${emb.janela_fim ? '–' + esc(emb.janela_fim) : ''}` : ''}</b> · ` : ''}Lojas: <b>${esc(lojas)}</b> · Expedição planejada: <b>${datas.map(d => dataBR(d)).join(', ')}</b>${rom ? '' : '<br><span style="color:#8a5a00">Romaneio impresso sem salvar: não tem número nem registro no portal.</span>'}</div>
       ${rom ? `<div class="qr-r">${QR.svg(linkRomaneio(rom.id))}<div><b>DOCA: CHEGADA E SAÍDA</b><span>Escaneie para registrar no portal a chegada e a saída do veículo. Na saída, as coletas viram Expedido.</span></div></div>` : ''}</div>
     <table>
       <thead><tr><th class="c">#</th><th>Nº da coleta</th><th>Loja</th><th class="c">Expedição</th><th class="c">Status</th><th class="n">m³</th><th class="n">Caixas</th><th class="n">Pares</th><th class="c">Conferido</th></tr></thead>
@@ -1500,6 +1521,11 @@ const ST_ROM = {
 const nRom = id => 'R-' + String(id).padStart(4, '0');
 const pillRom = st => `<span class="st-full" style="color:${ST_ROM[st]?.cor};background:${ST_ROM[st]?.fundo}">${esc(ST_ROM[st]?.rot || st)}</span>`;
 const linkRomaneio = id => `${urlPortal()}?tela=full&romaneio=${encodeURIComponent(id)}`;
+const janelaTxt = r => r.janela_ini ? `${r.janela_ini}${r.janela_fim ? '–' + r.janela_fim : ''}` : '';
+// chegada x janela: 'antes', 'dentro', 'fora' (depois do fim) ou null
+const naJanela = r => { if (!r.chegada_em || !r.janela_ini) return null; const h = isoLocal(r.chegada_em), dia = h.slice(0, 10), hm = h.slice(11, 16);
+  if (dia < r.data || (dia === r.data && hm < r.janela_ini)) return 'antes'; if (dia > r.data || (r.janela_fim && hm > r.janela_fim)) return 'fora'; return 'dentro'; };
+const tagJanela = r => { const j = naJanela(r); return j === 'fora' ? '<span class="tag-jan fora" title="Chegou depois da janela">fora da janela</span>' : j === 'antes' ? '<span class="tag-jan antes">antes da janela</span>' : j === 'dentro' ? '<span class="tag-jan ok">na janela</span>' : ''; };
 const docaMin = r => r.chegada_em && r.saida_em ? Math.round((new Date(r.saida_em) - new Date(r.chegada_em)) / 60e3) : null;
 
 // demonstração: um romaneio que já saiu e um aguardando o veículo
@@ -1511,9 +1537,9 @@ function demoRomIni(){
     DEMO_ROM.romaneios.push({ id, data, status:'aberto', motorista_id:mot?.id || null, motorista:mot?.nome || null, motorista_tel:mot?.telefone || null, transportadora:mot?.transportadora || null,
       placa:mot?.placa || null, veiculo:mot?.veiculo || null, responsavel:'DOUGLAS RIBEIRO', observacao:null, chegada_em:null, saida_em:null, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao', envio_ids:ids, ...extra });
     ids.forEach(e => { const x = D.envios.find(y => y.id === e); if (x) x.romaneio_id = id; }); };
-  novo('2026-10-19', m[0], ['1', '2', '3'], { status:'expedido', chegada_em:'2026-10-19T16:40:00.000Z', saida_em:'2026-10-19T17:55:00.000Z' });
-  novo('2026-10-21', m[1] || m[0], ['4', '5', '6'], { status:'expedido', chegada_em:'2026-10-21T15:10:00.000Z', saida_em:'2026-10-21T15:58:00.000Z' });
-  novo(hojeBRT(), m[0], ['11', '13', '14'], {});
+  novo('2026-10-19', m[0], ['1', '2', '3'], { janela_ini:'13:00', janela_fim:'15:00', status:'expedido', chegada_em:'2026-10-19T16:40:00.000Z', saida_em:'2026-10-19T17:55:00.000Z' });
+  novo('2026-10-21', m[1] || m[0], ['4', '5', '6'], { janela_ini:'10:00', janela_fim:'12:00', status:'expedido', chegada_em:'2026-10-21T15:10:00.000Z', saida_em:'2026-10-21T15:58:00.000Z' });
+  novo(hojeBRT(), m[0], ['11', '13', '14'], { janela_ini:'09:00', janela_fim:'11:00' });
   const mais = (iso, min) => new Date(new Date(iso).getTime() + min * 60e3).toISOString();
   DEMO_ROM.carregamentos.push(
     { id:'901', romaneio_id:'1', etapa:'carregamento', coletadores:['davi duarte', 'guilherme', 'vitor'], pares:null, caixas:null, periodos:[{ inicio:mais('2026-10-19T16:40:00.000Z', 15), fim:mais('2026-10-19T17:55:00.000Z', -10) }] },
@@ -1539,7 +1565,7 @@ function apiRomDemo(path, corpo){
     if (outros.length) throw new Error('Já estão em outro romaneio: ' + outros.map(e => `${e.pedido} (${nRom(e.romaneio_id)})`).join(', '));
     const canc = ids.map(i => D.envios.find(e => e.id === i)).filter(e => e.status === 'cancelado');
     if (canc.length) throw new Error('Coleta cancelada não entra em romaneio: ' + canc.map(e => e.pedido).join(', '));
-    const cab = { data:corpo.data, lacre:(corpo.lacre || '').trim().toUpperCase() || null, ml_coleta:(corpo.ml_coleta || '').replace(/\s+/g, '').toUpperCase() || null, motorista:caixaAltaTxt(corpo.motorista || '').trim() || null, motorista_tel:String(corpo.motorista_tel || '').replace(/\D/g, '') || null,
+    const cab = { data:corpo.data, janela_ini:corpo.janela_ini || null, janela_fim:corpo.janela_fim || null, lacre:(corpo.lacre || '').trim().toUpperCase() || null, ml_coleta:(corpo.ml_coleta || '').replace(/\s+/g, '').toUpperCase() || null, motorista:caixaAltaTxt(corpo.motorista || '').trim() || null, motorista_tel:String(corpo.motorista_tel || '').replace(/\D/g, '') || null,
       transportadora:caixaAltaTxt(corpo.transportadora || '').trim() || null, placa:corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null,
       veiculo:caixaAltaTxt(corpo.veiculo || '').trim() || null, responsavel:caixaAltaTxt(corpo.responsavel || '').trim() || null, observacao:corpo.observacao || null };
     let m = cab.motorista ? DEMO_CROSS.motoristas.find(x => x.nome === cab.motorista) : null;
@@ -1588,7 +1614,7 @@ function apiRomDemo(path, corpo){
 function barraRomaneios(s){
   return `
     <div class="barra">
-      <h2>Envios Full</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
       <input id="r-busca" class="campo" placeholder="Motorista, placa, transportadora, pedido ou coleta ML" value="${esc(s.romBusca)}" style="width:260px">
       <select id="r-per">${[['30','Últimos 30 dias'],['90','Últimos 90 dias'],['365','Últimos 12 meses']].map(([k, t]) => `<option value="${k}" ${s.romPer === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <div class="abas">${[['abertos','Em aberto'],['expedidos','Saíram'],['todos','Todos']].map(([k, t]) => `<button data-ra="${k}" class="${s.romAba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
@@ -1597,7 +1623,7 @@ function barraRomaneios(s){
     <div id="rom"><div class="carregando">Carregando romaneios…</div></div>
     <div id="gaveta" hidden></div>`;
 }
-const abasVistaFull = s => `<div class="abas vista-full">${[['envios','Envios'],['romaneios','🚚 Romaneios'], ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+const abasVistaFull = s => `<div class="abas vista-full">${[['envios','Envios'],['romaneios','🚚 Romaneios'],['resumo','📊 Resumo'], ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 function ligarAbasVista(){
   document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { if (state.full.vista === b.dataset.vista) return; state.full.vista = b.dataset.vista; state.full.aberto = null; state.full.romAberto = null; telaFull(); });
 }
@@ -1653,16 +1679,19 @@ function renderRomaneios(){
       ${tile('Aguardando veículo', base.filter(r => r.status === 'aberto').length, 'romaneios montados', ST_ROM.aberto.cor)}
       ${tile('Na doca agora', base.filter(r => r.status === 'carregando').length, 'veículo carregando', ST_ROM.carregando.cor)}
       ${tile('Saíram', saidos.length, `${fmtN(soma(saidos, r => r.envio_ids.length))} coletas no período`, ST_ROM.expedido.cor)}
+      ${(() => { const c = saidos.map(naJanela).filter(Boolean); return c.length ? tile('Chegada na janela', `${c.filter(x => x !== 'fora').length}/${c.length}`, `${fmtP(c.filter(x => x !== 'fora').length, c.length)} dos veículos que tinham janela`, '#0f6e66') : ''; })()}
       ${tile('Tempo médio de doca', media === null ? '–' : fmtDur(media), docas.length ? `chegada → saída · ${docas.length} veículo(s)` : 'registre chegada e saída', '#02285a')}
     </div>
     ${!L.length ? `<div class="painel"><div class="vazio">Nenhum romaneio ${s.romAba === 'abertos' ? 'em aberto' : 'com esses filtros'}. Para montar um: em <b>Envios</b>, marque as coletas do veículo e clique em <b>🚚 Montar romaneio</b>.</div></div>` : `
     <div class="painel"><div style="overflow-x:auto"><table class="tab-full tab-rom">
-      <thead><tr><th>Nº</th><th>Embarque</th><th>Status</th><th style="text-align:left">Motorista</th><th>Transportadora</th><th>Placa</th><th>Coletas</th><th>Pares</th><th>Caixas</th><th>m³</th><th>Chegada</th><th>Saída</th><th>Doca</th></tr></thead>
+      <thead>${(() => { const v = L.filter(x => x.r.status !== 'cancelado'); return `<tr class="subtot"><td colspan="6">Total · ${v.length} embarque${v.length === 1 ? '' : 's'}${v.length !== L.length ? ` <small>(sem os cancelados)</small>` : ''}</td>
+        <td>${fmtN(soma(v, x => x.r.envio_ids.length))}<small>coletas</small></td><td>${fmtN(soma(v, x => x.pares))}<small>pares</small></td><td>${fmtN(soma(v, x => x.cx))}<small>caixas</small></td><td>${fmtM3(soma(v, x => x.m3))}<small>m³</small></td><td colspan="3"></td></tr>`; })()}
+      <tr><th>Nº</th><th>Embarque</th><th>Status</th><th style="text-align:left">Motorista</th><th>Transportadora</th><th>Placa</th><th>Coletas</th><th>Pares</th><th>Caixas</th><th>m³</th><th>Chegada</th><th>Saída</th><th>Doca</th></tr></thead>
       <tbody>${L.map(({ r, es, dm, pares, cx, m3 }) => `<tr data-rom="${r.id}" class="${s.romAberto === r.id ? 'sel' : ''} ${r.status === 'cancelado' ? 'canc' : ''}">
-        <td><b>${nRom(r.id)}</b>${r.ml_coleta ? `<div class="info" style="font-size:11px" title="Nº da coleta no Mercado Livre">ML ${esc(r.ml_coleta)}</div>` : ''}${r.lacre ? `<div class="info" style="font-size:11px" title="Lacre">🔒 ${esc(r.lacre)}</div>` : ''}</td><td>${dataBR(r.data).slice(0, 5)}</td><td>${pillRom(r.status)}</td>
+        <td><b>${nRom(r.id)}</b>${r.ml_coleta ? `<div class="info" style="font-size:11px" title="Nº da coleta no Mercado Livre">ML ${esc(r.ml_coleta)}</div>` : ''}${r.lacre ? `<div class="info" style="font-size:11px" title="Lacre">🔒 ${esc(r.lacre)}</div>` : ''}</td><td>${dataBR(r.data).slice(0, 5)}${r.janela_ini ? `<div class="info" style="font-size:11px">${janelaTxt(r)}</div>` : ''}</td><td>${pillRom(r.status)}</td>
         <td style="text-align:left">${esc(r.motorista || '') || '<span class="info">a definir</span>'}</td><td>${esc(r.transportadora || '') || '<span class="info">–</span>'}</td><td>${r.placa ? esc(fmtPlaca(r.placa)) : '<span class="info">–</span>'}</td>
         <td title="${esc(es.map(e => '#' + e.pedido).join(' '))}">${r.envio_ids.length}</td><td>${fmtN(pares)}</td><td>${fmtN(cx)}</td><td>${fmtM3(m3)}</td>
-        <td>${hora(r.chegada_em)}</td><td>${hora(r.saida_em)}</td><td>${dm === null ? '<span class="info">–</span>' : `<b>${fmtDur(dm)}</b>`}</td></tr>`).join('')}
+        <td>${hora(r.chegada_em)}${tagJanela(r)}</td><td>${hora(r.saida_em)}</td><td>${dm === null ? '<span class="info">–</span>' : `<b>${fmtDur(dm)}</b>`}</td></tr>`).join('')}
       </tbody></table></div></div>`}
     ${Object.keys(porT).length ? `<div class="painel" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Por transportadora <span class="info" style="font-weight:400">· romaneios que saíram no período</span></h3>
       <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Transportadora</th><th>Romaneios</th><th>Coletas</th><th>Pares</th><th>Tempo médio de doca</th><th>Maior tempo</th></tr></thead><tbody>
@@ -1678,6 +1707,7 @@ function camposEmbarque(r, mots, ed){
   const dis = ed ? '' : 'disabled';
   return `<div class="grade-form g2">
       <label>Data do embarque<input id="rm-data" type="date" value="${esc(r.data || hojeBRT())}" ${dis}></label>
+      <label>Janela de chegada <span class="info">(a do site do Mercado Livre)</span><span class="linha-hora"><input id="rm-jini" type="time" value="${esc(r.janela_ini || '')}" ${dis}> até <input id="rm-jfim" type="time" value="${esc(r.janela_fim || '')}" ${dis}></span></label>
       <label>Nº do lacre <span class="info">(se tiver mais de um, separe por vírgula)</span><input id="rm-lacre" autocapitalize="characters" autocomplete="off" value="${esc(r.lacre || '')}" placeholder="ex.: 0012345" ${dis}></label>
       <label>Nº da coleta ML <span class="info">(agendamento no Mercado Livre)</span><input id="rm-ml" autocapitalize="characters" autocomplete="off" value="${esc(r.ml_coleta || '')}" placeholder="opcional" ${dis}></label>
       <label>Motorista<input id="rm-mot" list="dl-rm-mot" placeholder="buscar no cadastro" autocapitalize="characters" autocomplete="off" value="${esc(r.motorista || '')}" ${dis}></label>
@@ -1702,10 +1732,10 @@ function ligarCamposEmbarque(mots){
 function lerCamposEmbarque(mots){
   const $ = k => document.getElementById(k), nome = caixaAltaTxt($('rm-mot').value).trim();
   const m = mots.find(x => x.nome === nome);
-  return { data: $('rm-data').value, lacre: $('rm-lacre').value.trim().toUpperCase(), ml_coleta: $('rm-ml').value.replace(/\s+/g, '').toUpperCase(), motorista_id: m?.id || null, motorista: nome, motorista_tel: $('rm-tel').value.replace(/\D/g, ''), transportadora: caixaAltaTxt($('rm-transp').value).trim(),
+  return { data: $('rm-data').value, janela_ini: $('rm-jini').value || null, janela_fim: $('rm-jfim').value || null, lacre: $('rm-lacre').value.trim().toUpperCase(), ml_coleta: $('rm-ml').value.replace(/\s+/g, '').toUpperCase(), motorista_id: m?.id || null, motorista: nome, motorista_tel: $('rm-tel').value.replace(/\D/g, ''), transportadora: caixaAltaTxt($('rm-transp').value).trim(),
     placa: $('rm-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), veiculo: caixaAltaTxt($('rm-veic').value).trim(), responsavel: caixaAltaTxt($('rm-resp').value).trim(), observacao: $('rm-obs').value.trim() };
 }
-const embParaImpresso = c => ({ lacre: c.lacre, ml_coleta: c.ml_coleta, motorista: c.motorista, telefone: c.motorista_tel ? fmtTel(c.motorista_tel) : '', transportadora: c.transportadora, placa: c.placa, veiculo: c.veiculo, responsavel: c.responsavel, data: c.data, observacao: c.observacao });
+const embParaImpresso = c => ({ janela_ini: c.janela_ini, janela_fim: c.janela_fim, lacre: c.lacre, ml_coleta: c.ml_coleta, motorista: c.motorista, telefone: c.motorista_tel ? fmtTel(c.motorista_tel) : '', transportadora: c.transportadora, placa: c.placa, veiculo: c.veiculo, responsavel: c.responsavel, data: c.data, observacao: c.observacao });
 
 // Envios › coletas marcadas › "Montar romaneio": salva (gera o nº) e imprime; ou só imprime, sem salvar
 async function montarRomaneio(){
@@ -1785,12 +1815,13 @@ function abrirRomaneio(id, recarregando){
   g.innerHTML = `
     <div class="gv-fundo" id="gv-fundo"></div>
     <aside class="gv">
-      <div class="gv-cab"><div><div class="info">Romaneio de embarque · ${dataBR(r.data)}</div><h3>${nRom(r.id)} ${pillRom(r.status)}</h3></div><span style="flex:1"></span>
+      <div class="gv-cab"><div><div class="info">Romaneio de embarque · ${dataBR(r.data)}${r.janela_ini ? ` · janela ${janelaTxt(r)}` : ''}</div><h3>${nRom(r.id)} ${pillRom(r.status)}</h3></div><span style="flex:1"></span>
         ${r.status !== 'cancelado' ? '<button class="btn" id="rd-imp">🖨 Imprimir</button>' : ''}<button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
       <div class="gv-corpo">
         <div class="erro" id="rd-erro" hidden></div>
         <div class="gv-sec">Doca</div>
         <div class="docas">${hDoca('chegada', 'Chegada do veículo', r.chegada_em)}${hDoca('saida', 'Saída do veículo', r.saida_em)}</div>
+        ${r.janela_ini ? `<div class="info" style="margin-top:6px">Janela planejada: <b>${dataBR(r.data).slice(0, 5)} ${janelaTxt(r)}</b> ${tagJanela(r)}</div>` : ''}
         ${dm !== null ? `<div class="info" style="margin-top:6px">Tempo de doca: <b>${fmtDur(dm)}</b></div>` : r.status === 'carregando' ? `<div class="info" style="margin-top:6px">Na doca há ${fmtDur((Date.now() - new Date(r.chegada_em)) / 60e3)}</div>` : ''}
         ${ativo && editar ? '<div class="info" style="margin-top:4px">Ao registrar a saída, todas as coletas do romaneio passam para <b>Expedido</b>. Antes disso, cada uma precisa ter a quantidade de pares enviada (e o motivo, se ficou abaixo do plano).</div>' : ''}
 
@@ -1825,7 +1856,7 @@ function abrirRomaneio(id, recarregando){
   const erro = msg => { const x = $('rd-erro'); x.hidden = false; x.textContent = msg; x.scrollIntoView({ block:'nearest' }); };
   const recarregar = async msg => { g.dataset.sujo = ''; if (msg) avisar(msg); await carregarRomaneios(); };
   const enviar = async (ids, extra = {}) => {
-    const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, lacre:r.lacre, ml_coleta:r.ml_coleta, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, responsavel:r.responsavel, observacao:r.observacao };
+    const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, janela_ini:r.janela_ini, janela_fim:r.janela_fim, lacre:r.lacre, ml_coleta:r.ml_coleta, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, responsavel:r.responsavel, observacao:r.observacao };
     return apiFull('/full/romaneio', { id:r.id, versao:r.atualizado_em, ...c, envio_ids:ids, ...extra });
   };
   const imp = $('rd-imp'); if (imp) imp.onclick = () => imprimirHtml(romaneioHtml(es, embParaImpresso(r), r));
@@ -1886,7 +1917,7 @@ function telaTempos(){
   const s = state.full; s.tPer ||= '30'; s.tEtapa ||= 'todas';
   $app.innerHTML = `
     <div class="barra">
-      <h2>Envios Full</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
       <select id="t-per">${[['7','Últimos 7 dias'],['30','Últimos 30 dias'],['90','Últimos 90 dias'],['mes','Este mês']].map(([k, t]) => `<option value="${k}" ${s.tPer === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <button class="btn" id="t-atualizar">Atualizar</button>
     </div>
@@ -1921,7 +1952,7 @@ function renderTempos(){
   const s = state.full, d = state.temposDados, $t = document.getElementById('tempos');
   if (!$t || !d) return;
   const { et, pes, semHora } = calcTempos(d.apontamentos);
-  const ordem = Object.keys(ETAPAS_TRAB);
+  const ordem = Object.keys(ETAPAS_TRAB).filter(k => k !== 'etiquetagem' || et[k]);
   const lista = pes.filter(p => s.tEtapa === 'todas' || p.etapa === s.tEtapa)
     .sort((a, b) => ordem.indexOf(a.etapa) - ordem.indexOf(b.etapa) || nomeWms(a.pessoa).localeCompare(nomeWms(b.pessoa)));
   const tile = k => { const E = ETAPAS_TRAB[k], x = et[k];
@@ -1946,6 +1977,104 @@ function renderTempos(){
         <br>Não compare etapas entre si (conferir 1 par não é o mesmo esforço que separar 1 par) nem pessoas com poucos apontamentos: o mix de pedidos pesa muito. Use como conversa, não como ranking.</div>
     </div>`;
   $t.querySelectorAll('[data-te]').forEach(b => b.onclick = () => { s.tEtapa = s.tEtapa === b.dataset.te && b.classList.contains('tp-tile') ? 'todas' : b.dataset.te; renderTempos(); });
+}
+
+// ---- aba "Resumo" do Gestão - FULL: pedidos e pares por dia, mês ou ano (expedido x plano), com filtro de loja
+const ROT_PER_FULL = { '30':'Últimos 30 dias', mes:'Este mês', '90':'Últimos 3 meses', ano:'Este ano', '365':'Últimos 12 meses' };
+function periodoResumoFull(op){
+  const h = hojeBRT();
+  if (op === 'mes') return [h.slice(0, 8) + '01', h];
+  if (op === 'ano') return [h.slice(0, 5) + '01-01', h];
+  return [addDias(h, -Number(op) + 1), h];
+}
+const MESES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function telaResumoFull(){
+  const s = state.full; s.rfPer ||= '30'; s.rfGrao ||= 'dia'; s.rfMet ||= 'pares'; s.rfGraf ||= 'barra'; s.rfLoja ||= 'todos';
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <select id="rf-per">${Object.entries(ROT_PER_FULL).map(([k, t]) => `<option value="${k}" ${s.rfPer === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <select id="rf-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.rfLoja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <div class="abas">${[['dia','Dia'],['mes','Mês'],['ano','Ano']].map(([k, t]) => `<button data-rfg="${k}" class="${s.rfGrao === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="abas">${[['pares','Pares'],['pedidos','Pedidos']].map(([k, t]) => `<button data-rfm="${k}" class="${s.rfMet === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="abas">${[['barra','▮ Barras'],['linha','⟋ Linha']].map(([k, t]) => `<button data-rft="${k}" class="${s.rfGraf === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    </div>
+    <div id="rf"><div class="carregando">Carregando envios…</div></div>`;
+  ligarAbasVista();
+  const $ = k => document.getElementById(k);
+  $('rf-per').onchange = () => { s.rfPer = $('rf-per').value; if (['ano', '365'].includes(s.rfPer) && s.rfGrao === 'dia') s.rfGrao = 'mes'; telaResumoFull(); };
+  $('rf-loja').onchange = () => { s.rfLoja = $('rf-loja').value; renderResumoFull(); };
+  document.querySelectorAll('[data-rfg]').forEach(b => b.onclick = () => { s.rfGrao = b.dataset.rfg; document.querySelectorAll('[data-rfg]').forEach(x => x.classList.toggle('on', x === b)); renderResumoFull(); });
+  document.querySelectorAll('[data-rfm]').forEach(b => b.onclick = () => { s.rfMet = b.dataset.rfm; document.querySelectorAll('[data-rfm]').forEach(x => x.classList.toggle('on', x === b)); renderResumoFull(); });
+  document.querySelectorAll('[data-rft]').forEach(b => b.onclick = () => { s.rfGraf = b.dataset.rft; document.querySelectorAll('[data-rft]').forEach(x => x.classList.toggle('on', x === b)); renderResumoFull(); });
+  carregarResumoFull();
+}
+async function carregarResumoFull(){
+  const s = state.full, [ini, fim] = periodoResumoFull(s.rfPer);
+  try { state.resumoFull = await apiFull(`/full?ini=${ini}&fim=${fim}`); state.resumoFull._ini = ini; state.resumoFull._fim = fim; renderResumoFull(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('rf'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function calcResumoFull(){
+  const s = state.full, d = state.resumoFull, ini = d._ini, fim = d._fim;
+  const chave = dt => s.rfGrao === 'ano' ? dt.slice(0, 4) : s.rfGrao === 'mes' ? dt.slice(0, 7) : dt;
+  const rot = k => s.rfGrao === 'ano' ? k : s.rfGrao === 'mes' ? `${MESES_CURTO[+k.slice(5, 7) - 1]}/${k.slice(2, 4)}` : `${k.slice(8)}/${k.slice(5, 7)}`;
+  const lojas = (d.lojas || state.cnpjs).map(l => l.id).filter(id => s.rfLoja === 'todos' || id === s.rfLoja);
+  const env = d.envios.filter(e => e.status !== 'cancelado' && lojas.includes(e.cnpj_id));
+  const chaves = []; for (let x = ini; x <= fim; x = addDias(x, 1)) { const k = chave(x); if (!chaves.includes(k)) chaves.push(k); }
+  const novo = () => ({ ped:0, pares:0, pedPlano:0, plano:0, porLoja:Object.fromEntries(lojas.map(l => [l, { ped:0, pares:0 }])) });
+  const B = Object.fromEntries(chaves.map(k => [k, novo()])), T = novo();
+  env.forEach(e => { const b = B[chave(e.data_expedicao)]; if (!b) return;
+    [b, T].forEach(x => { x.pedPlano++; x.plano += Number(e.pares_plan) || 0;
+      if (e.status === 'expedido') { x.ped++; x.pares += Number(e.pares_envio ?? e.pares_plan) || 0; x.porLoja[e.cnpj_id].ped++; x.porLoja[e.cnpj_id].pares += Number(e.pares_envio ?? e.pares_plan) || 0; } }); });
+  const planoExp = env.filter(e => e.status === 'expedido').reduce((t, e) => t + (Number(e.pares_plan) || 0), 0);
+  return { lojas, linhas: chaves.map(k => ({ k, rot: rot(k), ...B[k] })), T, planoExp, abertos: env.filter(e => e.status !== 'expedido').length };
+}
+function graficoFull(linhas, met, tipo){
+  const v = x => met === 'pares' ? x.pares : x.ped, vp = x => met === 'pares' ? x.plano : x.pedPlano;
+  const max = Math.max(1, ...linhas.map(x => Math.max(v(x), vp(x)))), n = linhas.length, P = n <= 16 ? 56 : n <= 31 ? 34 : n <= 60 ? 20 : 14, W = Math.max(n * P, 300), H = 170, base = 140, alt = 125;
+  const y = val => base - val / max * alt;
+  let corpo = '';
+  if (tipo === 'barra') corpo = linhas.map((x, i) => { const bw = Math.min(P - 6, 34), x0 = i * P + (P - bw) / 2;
+    return `<rect x="${x0}" y="${y(vp(x))}" width="${bw}" height="${base - y(vp(x))}" fill="#dfe5ef"><title>${x.rot} · plano: ${fmtN(vp(x))}</title></rect>
+      <rect x="${x0 + bw * 0.18}" y="${y(v(x))}" width="${bw * 0.64}" height="${base - y(v(x))}" fill="#02285a"><title>${x.rot} · expedido: ${fmtN(v(x))}</title></rect>
+      ${v(x) && P >= 30 ? `<text x="${i * P + P / 2}" y="${y(Math.max(v(x), vp(x))) - 3}" text-anchor="middle" font-size="9" fill="#566074">${fmtN(v(x))}</text>` : ''}`; }).join('');
+  else { const pts = f => linhas.map((x, i) => `${i * P + P / 2},${y(f(x))}`).join(' ');
+    corpo = `<polyline points="${pts(vp)}" fill="none" stroke="#b9c3d3" stroke-width="2" stroke-dasharray="4 3"/><polyline points="${pts(v)}" fill="none" stroke="#02285a" stroke-width="2.5"/>
+      ${linhas.map((x, i) => `<circle cx="${i * P + P / 2}" cy="${y(v(x))}" r="3" fill="#02285a"><title>${x.rot} · expedido: ${fmtN(v(x))} · plano: ${fmtN(vp(x))}</title></circle>${v(x) && P >= 30 ? `<text x="${i * P + P / 2}" y="${y(v(x)) - 6}" text-anchor="middle" font-size="9" fill="#566074">${fmtN(v(x))}</text>` : ''}`).join('')}`; }
+  const passo = Math.ceil(n / Math.floor(W / 34));
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="rc-graf" role="img" aria-label="${met} por período">${corpo}
+    <line x1="0" y1="${base + 0.5}" x2="${W}" y2="${base + 0.5}" stroke="#d5dae3"/>${linhas.map((x, i) => i % passo ? '' : `<text x="${i * P + P / 2}" y="${H - 14}" text-anchor="middle" font-size="9" fill="#8a93a5">${x.rot}</text>`).join('')}</svg>`;
+}
+function renderResumoFull(){
+  const s = state.full, $c = document.getElementById('rf');
+  if (!$c || !state.resumoFull) return;
+  const R = calcResumoFull(), { lojas, linhas, T } = R, met = s.rfMet;
+  const cel = (p, ped, forte) => p || ped ? `${forte ? `<b>${fmtN(p)}</b>` : fmtN(p)}<i class="rc-col">${fmtN(ped)} pedido${ped === 1 ? '' : 's'}</i>` : '<span class="info">–</span>';
+  $c.innerHTML = `
+    <div class="rr-res">
+      ${lojas.map(l => `<div class="rr-tile rc-loja" style="--c:${LOJAS[l]?.borda || corLoja(l)}"><span>${esc(nomeLoja(l))}</span>
+        <div class="rc-dois"><div><b>${fmtN(T.porLoja[l].pares)}</b><small>pares</small></div><div><b>${fmtN(T.porLoja[l].ped)}</b><small>pedidos</small></div></div>
+        <small>expedidos · ${fmtP(T.porLoja[l].pares, T.pares)} do total</small></div>`).join('')}
+      <div class="rr-tile rc-loja rc-tot" style="--c:#02285a"><span>Total expedido</span>
+        <div class="rc-dois"><div><b>${fmtN(T.pares)}</b><small>pares</small></div><div><b>${fmtN(T.ped)}</b><small>pedidos</small></div></div>
+        <small>${R.planoExp ? `${fmtP(T.pares, R.planoExp)} do plano desses pedidos` : 'nada expedido'}${R.abertos ? ` · ${R.abertos} ainda em aberto` : ''}</small></div>
+    </div>
+    <div class="painel">
+      <div class="rc-acoes"><b>${met === 'pares' ? 'Pares' : 'Pedidos'} por ${{ dia:'dia', mes:'mês', ano:'ano' }[s.rfGrao]} · ${dataBR(state.resumoFull._ini)} a ${dataBR(state.resumoFull._fim)}${s.rfLoja === 'todos' ? '' : ' · ' + esc(nomeLoja(s.rfLoja))}</b><span style="flex:1"></span><button class="btn" id="rf-csv">⬇ Excel</button></div>
+      <div style="overflow-x:auto">${graficoFull(linhas, met, s.rfGraf)}</div>
+      <div class="legenda" style="margin:2px 0 10px"><span><span class="marca-loja" style="background:#02285a"></span>Expedido</span><span><span class="marca-loja" style="background:#dfe5ef;border:1px solid #b9c3d3"></span>Plano (todos os pedidos programados, menos cancelados)</span><span class="info">pela data de expedição planejada</span></div>
+      <div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th>${{ dia:'Dia', mes:'Mês', ano:'Ano' }[s.rfGrao]}</th>${lojas.map(l => `<th>${esc(nomeLoja(l))}</th>`).join('')}<th>Total expedido</th><th>Plano</th><th>% do plano</th></tr></thead><tbody>
+        ${linhas.map(x => `<tr class="${x.pedPlano ? '' : 'zero'}"><td style="text-align:left">${x.rot}</td>${lojas.map(l => `<td>${cel(x.porLoja[l].pares, x.porLoja[l].ped)}</td>`).join('')}<td>${cel(x.pares, x.ped, true)}</td><td>${cel(x.plano, x.pedPlano)}</td><td>${x.plano ? fmtP(x.pares, x.plano) : '–'}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td style="text-align:left">Total</td>${lojas.map(l => `<td>${cel(T.porLoja[l].pares, T.porLoja[l].ped)}</td>`).join('')}<td>${cel(T.pares, T.ped)}</td><td>${cel(T.plano, T.pedPlano)}</td><td>${T.plano ? fmtP(T.pares, T.plano) : '–'}</td></tr></tfoot></table></div>
+      <div class="info" style="margin-top:8px">Pares expedidos = quantidade enviada dos pedidos com status Expedido. "% do plano" compara com o plano de todos os pedidos do período (inclusive os que ainda não saíram).</div>
+    </div>`;
+  document.getElementById('rf-csv').onclick = () => {
+    const L = [['Período', ...lojas.flatMap(l => [`${nomeLoja(l)} pares`, `${nomeLoja(l)} pedidos`]), 'Pares expedidos', 'Pedidos expedidos', 'Pares plano', 'Pedidos plano']];
+    linhas.forEach(x => L.push([x.rot, ...lojas.flatMap(l => [x.porLoja[l].pares, x.porLoja[l].ped]), x.pares, x.ped, x.plano, x.pedPlano]));
+    L.push(['Total', ...lojas.flatMap(l => [T.porLoja[l].pares, T.porLoja[l].ped]), T.pares, T.ped, T.plano, T.pedPlano]);
+    const csv = '﻿' + L.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = `full_resumo_${state.resumoFull._ini}_${state.resumoFull._fim}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  };
 }
 
 // ---- gaveta de edição (lateral no computador, tela cheia no celular)
@@ -1975,7 +2104,7 @@ const ETAPAS_TRAB = {
   etiquetagem:  { rot:'Etiquetagem',  quem:'Etiquetadores', feito:'etiquetados', cor:'#9a5b00' },
   carregamento: { rot:'Carregamento', quem:'Carregadores',  feito:'carregados',  cor:'#0f6e66' },
 };
-const ETAPAS_ENVIO = ['separacao', 'conferencia', 'etiquetagem'];
+const ETAPAS_ENVIO = ['separacao', 'conferencia'];   // etiquetagem saiu (27/10): apontamentos antigos continuam visíveis
 const etapaDe = c => c.etapa || 'separacao';
 // pares/caixas que valem para a produtividade: o que foi digitado; em branco, o pedido (ou o romaneio) inteiro, menos na separação
 const paresAp = (c, padrao) => c.pares ?? (etapaDe(c) === 'separacao' ? null : padrao ?? null);
@@ -2102,10 +2231,10 @@ function abrirEnvio(id, recarregando){
         ${editar ? `<div class="gv-acoes"><button class="btn pri" id="gv-salvar">${novo ? 'Cadastrar envio' : 'Salvar'}</button></div>` : ''}
 
         ${novo ? '<div class="info" style="margin-top:14px">As coletas são lançadas depois de cadastrar o envio.</div>' : `
-        ${ETAPAS_ENVIO.map(et => { const ca = coletasDe(id, et), E = ETAPAS_TRAB[et], som = ca.reduce((t, c) => t + (Number(c.pares) || 0), 0);
+        ${[...ETAPAS_ENVIO, ...(coletasDe(id, 'etiquetagem').length ? ['etiquetagem'] : [])].map(et => { const ca = coletasDe(id, et), E = ETAPAS_TRAB[et], som = ca.reduce((t, c) => t + (Number(c.pares) || 0), 0);
           return `<div class="gv-sec etapa-sec" style="--c:${E.cor}">${esc(E.rot)} <span class="info">${ca.length ? `${ca.length} apontamento(s)` : 'sem apontamento'}${et === 'separacao' && ca.length ? ` · ${fmtN(som)} pares${e.pares_envio ? ` · ${fmtP(som, e.pares_envio)} do a enviar` : ''}` : ''}</span></div>
           ${ca.length ? resumoColeta(ca) : ''}${listaApontamentos(ca, et, mexeColeta, paresEnvio(e))}
-          ${mexeColeta ? `<div id="gv-form-${et}"></div><button class="btn mini" data-nova="${et}" style="margin-top:6px">+ Apontar ${esc(E.rot.toLowerCase())}</button>` : ''}`; }).join('')}
+          ${mexeColeta && ETAPAS_ENVIO.includes(et) ? `<div id="gv-form-${et}"></div><button class="btn mini" data-nova="${et}" style="margin-top:6px">+ Apontar ${esc(E.rot.toLowerCase())}</button>` : ''}`; }).join('')}
         <div class="gv-sec">Fotos <span class="info">palete, carga, avaria</span></div><div id="gv-fotos"></div>
         <div class="gv-sec">Histórico <button class="btn mini" id="gv-hist-btn">Ver</button></div><div id="gv-hist"></div>
         ${gerir ? `<div style="margin-top:24px"><button class="btn perigo" id="gv-excluir">Excluir envio</button> <span class="info">Para pedido cadastrado por engano. Se o ML cancelou, use o status Cancelado.</span></div>` : ''}`}
@@ -2205,7 +2334,7 @@ const forcaCaixaAlta = el => el.addEventListener('input', () => { const p = el.s
 
 const TODAS_DEMO = ['CACAL', 'DIGOS', 'DROSA'];
 const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida', lojas:['DIGOS'], ordem:10, ativo:true }, { id:'shopee_express', nome:'Shopee Express', lojas:['DIGOS'], ordem:15, ativo:true },
-  { id:'shein', nome:'Shein', lojas:TODAS_DEMO, ordem:20, ativo:true }, { id:'ml_coleta', nome:'Mercado Livre', lojas:TODAS_DEMO, ordem:30, ativo:true }, { id:'ml_flex', nome:'Flex', lojas:TODAS_DEMO, ordem:40, ativo:true },
+  { id:'shein', nome:'Shein', lojas:TODAS_DEMO, ordem:20, ativo:true, campos:['cod_completa', 'cod_parcial'] }, { id:'ml_coleta', nome:'Mercado Livre', lojas:TODAS_DEMO, ordem:30, ativo:true, campos:['cod_autorizacao'] }, { id:'ml_flex', nome:'Flex', lojas:TODAS_DEMO, ordem:40, ativo:true },
   { id:'correios', nome:'Correios', lojas:TODAS_DEMO, ordem:50, ativo:true }, { id:'outro', nome:'Outro', lojas:TODAS_DEMO, ordem:90, ativo:false }];
 // ---- demonstração: o caderno de 23/10/2026, em memória
 const DEMO_CROSS = (() => {
@@ -2263,6 +2392,7 @@ async function apiCross(path, corpo){
     const total = Object.values(pac).reduce((a, b) => a + b, 0);
     const cn = CANAIS_DEMO.find(x => x.id === corpo.canal_id), fora = Object.keys(pac).filter(l => !cn.lojas.includes(l));
     if (fora.length) throw new Error(`${fora.join(', ')} não está vinculada a ${cn.nome}. Ajuste em Logística › Cadastros › Marketplaces.`);
+    Object.keys(CAMPOS_COLETA).forEach(k => { corpo[k] = (cn.campos || []).includes(k) && corpo[k] ? String(corpo[k]).toUpperCase() : null; });
     if (corpo.assinatura && !total) throw new Error('Informe os pacotes antes de colher a assinatura');
     if (corpo.assinatura && !corpo.motorista) throw new Error('Informe o nome do motorista antes de colher a assinatura');
     const dados = { ...corpo, pacotes:pac, total, placa: corpo.placa ? corpo.placa.toUpperCase().replace(/[^A-Z0-9]/g, '') : null,
@@ -2288,7 +2418,7 @@ function telaCross(){
   if (s.vista === 'resumo') return telaResumoCross();
   $app.innerHTML = `
     <div class="barra">
-      <h2>Expedição - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
+      <h2>Gestão - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
       <span class="nav-dia"><button class="btn" id="x-ant" aria-label="Dia anterior">‹</button><input type="date" id="x-data" value="${s.data}" max="${hojeBRT()}"><button class="btn" id="x-prox" aria-label="Próximo dia">›</button><button class="btn" id="x-hoje">Hoje</button></span>
       <select id="x-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
       <button class="btn" id="x-atualizar">Atualizar</button>
@@ -2328,7 +2458,7 @@ function telaResumoCross(){
   if (s.rPer !== 'outro') [s.rIni, s.rFim] = periodoCross(s.rPer);
   $app.innerHTML = `
     <div class="barra">
-      <h2>Expedição - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
+      <h2>Gestão - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
       <select id="r-per">${Object.entries(ROT_PER_CROSS).map(([k, t]) => `<option value="${k}" ${s.rPer === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <span class="datas"><input type="date" id="r-ini" value="${s.rIni}"> até <input type="date" id="r-fim" value="${s.rFim}"></span>
       <select id="r-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.rLoja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
@@ -2357,10 +2487,12 @@ function calcResumoCross(){
   const pac = (c, l) => Number(c.pacotes?.[l]) || 0;
   const dias = []; for (let d = s.rIni; d <= s.rFim && d <= h; d = addDias(d, 1)) dias.push(d);
   const linhas = dias.map(d => { const l = cs.filter(c => c.data === d), por = Object.fromEntries(lojas.map(lj => [lj, l.reduce((t, c) => t + pac(c, lj), 0)]));
-    return { d, por, total: Object.values(por).reduce((a, b) => a + b, 0), coletas: l.filter(c => lojas.some(lj => pac(c, lj))).length }; });
+    const col = Object.fromEntries(lojas.map(lj => [lj, l.filter(c => pac(c, lj)).length]));
+    return { d, por, col, total: Object.values(por).reduce((a, b) => a + b, 0), coletas: l.filter(c => lojas.some(lj => pac(c, lj))).length }; });
   const tot = Object.fromEntries(lojas.map(lj => [lj, linhas.reduce((t, x) => t + x.por[lj], 0)])), total = Object.values(tot).reduce((a, b) => a + b, 0);
   const porCanal = r.canais.map(cn => { const l = cs.filter(c => c.canal_id === cn.id), por = Object.fromEntries(lojas.map(lj => [lj, l.reduce((t, c) => t + pac(c, lj), 0)]));
-    return { ...cn, por, total: Object.values(por).reduce((a, b) => a + b, 0), coletas: l.filter(c => lojas.some(lj => pac(c, lj))).length }; }).filter(x => x.total || x.coletas);
+    const col = Object.fromEntries(lojas.map(lj => [lj, l.filter(c => c.data <= h && pac(c, lj)).length]));
+    return { ...cn, por, col, total: Object.values(por).reduce((a, b) => a + b, 0), coletas: l.filter(c => lojas.some(lj => pac(c, lj))).length }; }).filter(x => x.total || x.coletas).sort((a, b) => b.total - a.total);
   const colLoja = Object.fromEntries(lojas.map(lj => [lj, cs.filter(c => c.data >= s.rIni && c.data <= s.rFim && c.data <= h && pac(c, lj)).length]));
   const comColeta = linhas.filter(x => x.total), maior = comColeta.reduce((m, x) => x.total > (m?.total || 0) ? x : m, null);
   const filtroTxt = [`${dataBR(s.rIni)} a ${dataBR(s.rFim)}`, canais ? canais.map(nomeCanal).join(', ') : 'Todos os marketplaces', s.rLoja === 'todos' ? 'Todas as lojas' : nomeLoja(s.rLoja)];
@@ -2370,6 +2502,8 @@ function renderResumoCross(){
   const s = state.cross, r = state.resumoCross, $c = document.getElementById('cx-resumo');
   if (!$c || !r) return;
   const R = calcResumoCross(), { lojas, linhas, tot, total } = R;
+  // célula: pacotes em cima, coletas embaixo (menor, em itálico)
+  const cel = (p, c, forte) => p || c ? `${forte ? `<b>${fmtN(p)}</b>` : fmtN(p)}<i class="rc-col">${fmtN(c)} coleta${c === 1 ? '' : 's'}</i>` : '<span class="info">–</span>';
   const usados = new Set(r.coletas.map(c => c.canal_id));
   const chips = r.canais.filter(cn => cn.ativo !== false || usados.has(cn.id));
   const maxDia = Math.max(1, ...linhas.map(x => x.total)), P = linhas.length <= 16 ? 56 : linhas.length <= 31 ? 34 : 26, W = Math.max(linhas.length * P, 300);
@@ -2399,12 +2533,12 @@ function renderResumoCross(){
       <div style="overflow-x:auto">${grafico}</div>
       <div class="legenda" style="margin:2px 0 10px">${lojas.map(lj => `<span><span class="marca-loja" style="background:${corLoja(lj)}"></span>${esc(nomeLoja(lj))}</span>`).join('')}</div>
       <div class="rc-tabs">
-        <div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th>Data</th>${lojas.map(lj => `<th>${esc(nomeLoja(lj))}</th>`).join('')}<th>Total</th><th>Coletas</th></tr></thead><tbody>
-          ${linhas.map(x => `<tr class="${x.total ? '' : 'zero'}"><td style="text-align:left">${dataBR(x.d)} <span class="info">${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}</span></td>${lojas.map(lj => `<td>${x.por[lj] || '<span class="info">–</span>'}</td>`).join('')}<td><b>${x.total || '–'}</b></td><td>${x.coletas || '–'}</td></tr>`).join('')}
-          </tbody><tfoot><tr><td style="text-align:left">Total</td>${lojas.map(lj => `<td>${fmtN(tot[lj])}</td>`).join('')}<td>${fmtN(total)}</td><td>${fmtN(R.coletas)}</td></tr></tfoot></table></div>
-        <div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th>Marketplace</th>${lojas.map(lj => `<th>${esc(nomeLoja(lj))}</th>`).join('')}<th>Total</th><th>%</th><th>Coletas</th></tr></thead><tbody>
-          ${R.porCanal.sort((a, b) => b.total - a.total).map(x => `<tr><td style="text-align:left"><b>${esc(x.nome)}</b></td>${lojas.map(lj => `<td>${x.por[lj] ? fmtN(x.por[lj]) : '<span class="info">–</span>'}</td>`).join('')}<td><b>${fmtN(x.total)}</b></td><td>${fmtP(x.total, total)}</td><td>${x.coletas}</td></tr>`).join('') || `<tr><td colspan="${lojas.length + 4}" class="vazio">Sem coletas no período.</td></tr>`}
-          </tbody></table></div>
+        <div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th>Data</th>${lojas.map(lj => `<th>${esc(nomeLoja(lj))}</th>`).join('')}<th>Total</th></tr></thead><tbody>
+          ${linhas.map(x => `<tr class="${x.total ? '' : 'zero'}"><td style="text-align:left">${dataBR(x.d)} <span class="info">${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}</span></td>${lojas.map(lj => `<td>${cel(x.por[lj], x.col[lj])}</td>`).join('')}<td>${cel(x.total, x.coletas, true)}</td></tr>`).join('')}
+          </tbody><tfoot><tr><td style="text-align:left">Total</td>${lojas.map(lj => `<td>${cel(tot[lj], R.colLoja[lj])}</td>`).join('')}<td>${cel(total, R.coletas)}</td></tr></tfoot></table></div>
+        <div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th>Marketplace</th>${lojas.map(lj => `<th>${esc(nomeLoja(lj))}</th>`).join('')}<th>Total</th><th>%</th></tr></thead><tbody>
+          ${R.porCanal.map(x => `<tr><td style="text-align:left"><b>${esc(x.nome)}</b></td>${lojas.map(lj => `<td>${cel(x.por[lj], x.col[lj])}</td>`).join('')}<td>${cel(x.total, x.coletas, true)}</td><td>${fmtP(x.total, total)}</td></tr>`).join('') || `<tr><td colspan="${lojas.length + 3}" class="vazio">Sem coletas no período.</td></tr>`}
+          </tbody>${R.porCanal.length ? `<tfoot><tr><td style="text-align:left">Total</td>${lojas.map(lj => `<td>${cel(tot[lj], R.colLoja[lj])}</td>`).join('')}<td>${cel(total, R.coletas)}</td><td>100%</td></tr></tfoot>` : ''}</table></div>
       </div>
       <div class="info" style="margin-top:8px">Conta os pacotes lançados nas coletas (assinadas ou não). Coleta em aberto ainda pode mudar.</div>
     </div>`;
@@ -2418,11 +2552,11 @@ function renderResumoCross(){
 }
 function textoResumoCross(R){
   const s = state.cross, canais = s.rCanais.length ? s.rCanais.map(nomeCanal).join(', ') : 'todos os marketplaces';
-  const lj = l => R.lojas.map(x => `${nomeLoja(x)} ${l[x]}`).join(' · ');
+  const lj = (l, c) => R.lojas.map(x => `${nomeLoja(x)} ${fmtN(l[x])}${c ? ` (${c[x]})` : ''}`).join(' · ');
   return [`*Coletas CROSS · ${canais}*`, `${dataBR(s.rIni)} a ${dataBR(s.rFim)}${s.rLoja === 'todos' ? '' : ' · ' + nomeLoja(s.rLoja)}`, '',
-    `*Total: ${fmtN(R.total)} pacotes* em ${R.coletas} coleta(s)`, lj(R.tot), '',
-    ...R.linhas.filter(x => x.total).map(x => `${dataBR(x.d).slice(0, 5)} ${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}: ${lj(x.por)} = *${x.total}*`),
-    ...(s.rCanais.length === 1 ? [] : ['', '_Por marketplace_', ...R.porCanal.map(x => `${x.nome}: ${fmtN(x.total)}`)])].join('\n');
+    `*Total: ${fmtN(R.total)} pacotes em ${R.coletas} coleta(s)*`, lj(R.tot, R.colLoja), '_(entre parênteses: nº de coletas)_', '',
+    ...R.linhas.filter(x => x.total).map(x => `${dataBR(x.d).slice(0, 5)} ${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}: ${lj(x.por, x.col)} = *${x.total}* (${x.coletas})`),
+    ...(s.rCanais.length === 1 ? [] : ['', '_Por marketplace_', ...R.porCanal.map(x => `${x.nome}: ${fmtN(x.total)} pacotes (${x.coletas})`), `*Total: ${fmtN(R.total)} pacotes (${R.coletas})*`])].join('\n');
 }
 async function copiarTexto(t){
   try { await navigator.clipboard.writeText(t); return; } catch (_) {}
@@ -2430,16 +2564,19 @@ async function copiarTexto(t){
   const ok = document.execCommand('copy'); ta.remove(); if (!ok) throw new Error('cópia bloqueada');
 }
 function baixarCsvResumoCross(R){
-  const s = state.cross, sep = ';', L = [['Data', ...R.lojas.map(nomeLoja), 'Total', 'Coletas']];
-  R.linhas.forEach(x => L.push([dataBR(x.d), ...R.lojas.map(l => x.por[l]), x.total, x.coletas]));
-  L.push(['Total', ...R.lojas.map(l => R.tot[l]), R.total, R.coletas], [], ['Marketplace', ...R.lojas.map(nomeLoja), 'Total', 'Coletas']);
-  R.porCanal.forEach(x => L.push([x.nome, ...R.lojas.map(l => x.por[l]), x.total, x.coletas]));
+  const s = state.cross, sep = ';', cab = p => [p, ...R.lojas.flatMap(l => [`${nomeLoja(l)} pacotes`, `${nomeLoja(l)} coletas`]), 'Total pacotes', 'Total coletas'];
+  const L = [cab('Data')];
+  R.linhas.forEach(x => L.push([dataBR(x.d), ...R.lojas.flatMap(l => [x.por[l], x.col[l]]), x.total, x.coletas]));
+  L.push(['Total', ...R.lojas.flatMap(l => [R.tot[l], R.colLoja[l]]), R.total, R.coletas], [], cab('Marketplace'));
+  R.porCanal.forEach(x => L.push([x.nome, ...R.lojas.flatMap(l => [x.por[l], x.col[l]]), x.total, x.coletas]));
+  L.push(['Total', ...R.lojas.flatMap(l => [R.tot[l], R.colLoja[l]]), R.total, R.coletas]);
   const csv = '﻿' + L.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(sep)).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
   a.download = `coletas-cross_${s.rIni}_${s.rFim}${s.rCanais.length === 1 ? '_' + s.rCanais[0] : ''}.csv`; document.body.appendChild(a); a.click(); a.remove();
 }
 function resumoCrossHtml(R){
   const s = state.cross, quem = quemImprime(), canais = s.rCanais.length ? s.rCanais.map(nomeCanal).join(', ') : 'Todos os marketplaces';
+  const pc = (p, c) => p || c ? `${fmtN(p)}<i>(${fmtN(c)})</i>` : '–';
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo coletas CROSS ${dataBR(s.rIni)} a ${dataBR(s.rFim)}</title><style>${CSS_IMPRESSO}
   .pag{width:210mm;min-height:296mm;padding:10mm 10mm 7mm;display:flex;flex-direction:column}
   .topo{border-radius:2mm 2mm 0 0} .topo .st{min-width:44mm} .topo .st b{font-size:12pt}
@@ -2451,18 +2588,22 @@ function resumoCrossHtml(R){
   table{width:100%;border-collapse:collapse;font-size:10pt} th{background:#02285a;color:#fff;font-size:8pt;letter-spacing:.8pt;text-transform:uppercase;padding:1.8mm 2mm;text-align:right} th:first-child,td:first-child{text-align:left}
   td{padding:1.4mm 2mm;border-bottom:0.3mm solid #dfe3ea;text-align:right;font-variant-numeric:tabular-nums} tr.zero td{color:#a0a8b8}
   tfoot td{font-weight:800;background:#eef2f8;border-top:0.5mm solid #02285a} td.t{font-weight:700}
+  td i{font-style:italic;font-weight:400;font-size:7.5pt;color:#677086;margin-left:1.2mm}
   .ass{margin-top:14mm}
-  ${R.linhas.length > 20 ? 'td{padding:0.3mm 2mm;font-size:8.5pt;line-height:1.3} th{padding:1.2mm 2mm} h3{margin:3mm 0 1.2mm} .kpi{margin-top:3mm} .kpi div{padding:1.5mm} .kpi b{font-size:14pt} .ass{margin-top:9mm} .topo img{height:13mm}' : ''}
+  .leg-col{font-size:7.5pt;color:#677086;margin-top:1mm;font-style:italic}
+  ${R.linhas.length > 20 ? 'td{padding:0.15mm 2mm;font-size:8pt;line-height:1.25} td i{font-size:7pt} .leg-col{margin-top:0.5mm} th{padding:1.2mm 2mm} h3{margin:3mm 0 1.2mm} .kpi{margin-top:3mm} .kpi div{padding:1.5mm} .kpi b{font-size:14pt} .ass{margin-top:9mm} .topo img{height:13mm}' : ''}
   </style></head><body><div class="pag">
     <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">RESUMO DE COLETAS</div><div class="t2">EXPEDIÇÃO CROSS</div></div><span class="esp"></span><span class="st"><small>PERÍODO</small><b>${dataBR(s.rIni)} a ${dataBR(s.rFim)}</b></span></div>
     <div class="filt">Marketplace: <b>${esc(canais)}</b> · Lojas: <b>${s.rLoja === 'todos' ? 'todas' : esc(nomeLoja(s.rLoja))}</b></div>
     <div class="kpi">${R.lojas.map(l => `<div><span>${esc(nomeLoja(l))}</span><b>${fmtN(R.tot[l])}</b><em>pacotes · ${fmtN(R.colLoja[l])} coletas</em></div>`).join('')}<div class="tot"><span>Total</span><b>${fmtN(R.total)}</b><em>pacotes · ${fmtN(R.coletas)} coletas</em></div></div>
     <h3>Por dia</h3>
-    <table><thead><tr><th>Data</th>${R.lojas.map(l => `<th>${esc(nomeLoja(l))}</th>`).join('')}<th>Total</th><th>Coletas</th></tr></thead><tbody>
-      ${R.linhas.map(x => `<tr class="${x.total ? '' : 'zero'}"><td>${dataBR(x.d)} ${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}</td>${R.lojas.map(l => `<td>${x.por[l] || '–'}</td>`).join('')}<td class="t">${x.total || '–'}</td><td>${x.coletas || '–'}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td>Total</td>${R.lojas.map(l => `<td>${fmtN(R.tot[l])}</td>`).join('')}<td>${fmtN(R.total)}</td><td>${fmtN(R.coletas)}</td></tr></tfoot></table>
-    ${s.rCanais.length === 1 ? '' : `<h3>Por marketplace</h3><table><thead><tr><th>Marketplace</th>${R.lojas.map(l => `<th>${esc(nomeLoja(l))}</th>`).join('')}<th>Total</th><th>Coletas</th></tr></thead><tbody>
-      ${R.porCanal.map(x => `<tr><td>${esc(x.nome)}</td>${R.lojas.map(l => `<td>${x.por[l] ? fmtN(x.por[l]) : '–'}</td>`).join('')}<td class="t">${fmtN(x.total)}</td><td>${x.coletas}</td></tr>`).join('')}</tbody></table>`}
+    <table><thead><tr><th>Data</th>${R.lojas.map(l => `<th>${esc(nomeLoja(l))}</th>`).join('')}<th>Total</th></tr></thead><tbody>
+      ${R.linhas.map(x => `<tr class="${x.total ? '' : 'zero'}"><td>${dataBR(x.d)} ${DIAS_CURTO[new Date(x.d + 'T12:00:00Z').getUTCDay()]}</td>${R.lojas.map(l => `<td>${pc(x.por[l], x.col[l])}</td>`).join('')}<td class="t">${pc(x.total, x.coletas)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td>${R.lojas.map(l => `<td>${pc(R.tot[l], R.colLoja[l])}</td>`).join('')}<td>${pc(R.total, R.coletas)}</td></tr></tfoot></table>
+    <div class="leg-col">Em itálico, entre parênteses: número de coletas.</div>
+    ${s.rCanais.length === 1 ? '' : `<h3>Por marketplace</h3><table><thead><tr><th>Marketplace</th>${R.lojas.map(l => `<th>${esc(nomeLoja(l))}</th>`).join('')}<th>Total</th></tr></thead><tbody>
+      ${R.porCanal.map(x => `<tr><td>${esc(x.nome)}</td>${R.lojas.map(l => `<td>${pc(x.por[l], x.col[l])}</td>`).join('')}<td class="t">${pc(x.total, x.coletas)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Total</td>${R.lojas.map(l => `<td>${pc(R.tot[l], R.colLoja[l])}</td>`).join('')}<td>${pc(R.total, R.coletas)}</td></tr></tfoot></table>`}
     <div class="esp2"></div>
     <div class="ass"><div>CONFERIDO POR (LOGÍSTICA)<small>nome e data</small></div><div>RECEBIDO POR (FINANCEIRO)<small>nome e data</small></div></div>
     <div class="rodape" style="padding:3mm 0 0;margin-top:6mm"><span>Pacotes lançados nas coletas do CROSS (Central de Operações)</span><span>Gerado em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
@@ -2745,6 +2886,7 @@ async function carregarCross(){
   try { state.crossDados = await apiCross(`/cross?ini=${s.data}&fim=${s.data}`); renderCross(); }
   catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('cross'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
+const CAMPOS_COLETA = { cod_completa:'Código coleta - Completa', cod_parcial:'Código coleta - Parcial', cod_autorizacao:'Código de autorização' };
 const nomeCanal = id => (state.crossDados?.canais || state.resumoCross?.canais || CANAIS_DEMO).find(c => c.id === id)?.nome || id;
 function renderCross(){
   const s = state.cross, r = state.crossDados, $c = document.getElementById('cross');
@@ -2777,7 +2919,7 @@ function renderCross(){
         <div class="cx-pac"><span class="cx-tot">${fmtN(pacLoja(c))}<small>pacotes</small></span>
           <span class="cx-lojas">${ORDEM_LOJAS.filter(k => c.pacotes?.[k]).map(k => `<span class="cx-lj" style="--c:${LOJAS[k]?.borda || corLoja(k)}">${esc(nomeLoja(k))} <b>${fmtN(c.pacotes[k])}</b></span>`).join('')}</span></div>
         <div class="cx-bot">${c.placa ? `<span>🚚 <b>${esc(fmtPlaca(c.placa))}</b>${c.veiculo ? ' · ' + esc(c.veiculo) : ''}</span>` : (c.veiculo ? `<span>🚚 ${esc(c.veiculo)}</span>` : '<span class="info">sem placa</span>')}
-          ${c.motorista ? `<span>👤 ${esc(c.motorista)}${c.motorista_tel ? ` · <a href="tel:${c.motorista_tel}" onclick="event.stopPropagation()">${fmtTel(c.motorista_tel)}</a>` : ''}</span>` : ''}${c.responsavel ? `<span title="Responsável da Valenro">🧾 ${esc(c.responsavel)}</span>` : ''}${c.manifestos?.length ? `<span>📄 ${c.manifestos.map(esc).join(', ')}</span>` : ''}${c.observacao ? `<span title="${esc(c.observacao)}">💬</span>` : ''}</div>
+          ${c.motorista ? `<span>👤 ${esc(c.motorista)}${c.motorista_tel ? ` · <a href="tel:${c.motorista_tel}" onclick="event.stopPropagation()">${fmtTel(c.motorista_tel)}</a>` : ''}</span>` : ''}${c.responsavel ? `<span title="Responsável da Valenro">🧾 ${esc(c.responsavel)}</span>` : ''}${c.manifestos?.length ? `<span>📄 ${c.manifestos.map(esc).join(', ')}</span>` : ''}${Object.keys(CAMPOS_COLETA).filter(k => c[k]).map(k => `<span class="cod-card" title="${CAMPOS_COLETA[k]}">🔑 ${esc(CAMPOS_COLETA[k].replace('Código coleta - ', '').replace('Código de ', ''))}: <b>${esc(c[k])}</b></span>`).join('')}${c.observacao ? `<span title="${esc(c.observacao)}">💬</span>` : ''}</div>
       </div>`; }).join('')}</div>`}`;
   $c.querySelectorAll('[data-cn]').forEach(b => b.onclick = () => { s.canal = s.canal === b.dataset.cn ? 'todos' : b.dataset.cn; renderCross(); });
   const lp = document.getElementById('x-limpa'); if (lp) lp.onclick = () => { s.canal = 'todos'; renderCross(); };
@@ -2841,6 +2983,7 @@ async function abrirCross(id){
         <div class="gv-sec">ID / manifesto da coleta</div>
         <span class="chips" id="cx-chips"></span>
         <span class="linha-hora"><input id="cx-man" class="campo" placeholder="digite e toque em Adicionar" autocapitalize="characters" ${ro}><button type="button" class="btn mini" id="cx-man-add" ${ro}>Adicionar</button></span>
+        <div id="cx-cods"></div>
         <div class="gv-sec">Motorista e veículo <span class="info">escolha da lista ou digite um novo: ele entra no cadastro</span></div>
         <div class="grade-form g2">
           <label>Motorista<input id="cx-mot" list="dl-mot" value="${esc(c.motorista || '')}" placeholder="NOME DE QUEM RETIROU" autocapitalize="characters" autocomplete="off" ${ro}><span class="info" id="cx-mot-dica"></span></label>
@@ -2881,11 +3024,19 @@ async function abrirCross(id){
     g.querySelectorAll('[data-mais],[data-menos]').forEach(b => b.onclick = () => { const i = g.querySelector(`[data-loja="${b.dataset.mais || b.dataset.menos}"]`); i.value = Math.max(0, (parseInt(i.value) || 0) + (b.dataset.mais ? 1 : -1)) || ''; sujo = true; somar(); });
     somar();
   };
-  g.querySelectorAll('[data-canal]').forEach(b => b.onclick = () => { canal = b.dataset.canal; sujo = true; g.querySelectorAll('[data-canal]').forEach(x => x.classList.toggle('on', x === b)); dicaSeq(); desenhaLojas(); });
+  // códigos que o motorista pede (só nos marketplaces que usam: Shein, Mercado Livre coleta...)
+  const cods = Object.fromEntries(Object.keys(CAMPOS_COLETA).map(k => [k, c[k] || '']));
+  const desenhaCods = () => {
+    g.querySelectorAll('[data-cod]').forEach(i => { cods[i.dataset.cod] = i.value; });
+    const cn = r.canais.find(x => x.id === canal), campos = (cn?.campos || []).filter(k => CAMPOS_COLETA[k]);
+    $('cx-cods').innerHTML = campos.length ? `<div class="gv-sec">Códigos da coleta <span class="info">informe ao motorista</span></div><div class="grade-form g2">${campos.map(k => `<label>${CAMPOS_COLETA[k]}<input data-cod="${k}" class="cod-in" value="${esc(cods[k])}" autocapitalize="characters" autocomplete="off" ${ro}></label>`).join('')}</div>` : '';
+    g.querySelectorAll('[data-cod]').forEach(i => { forcaCaixaAlta(i); i.addEventListener('input', () => { sujo = true; }); });
+  };
+  g.querySelectorAll('[data-canal]').forEach(b => b.onclick = () => { canal = b.dataset.canal; sujo = true; g.querySelectorAll('[data-canal]').forEach(x => x.classList.toggle('on', x === b)); dicaSeq(); desenhaLojas(); desenhaCods(); });
   $('cx-seq').addEventListener('input', dicaSeq); dicaSeq();
   g.querySelectorAll('[data-agora]').forEach(b => b.onclick = () => { $(b.dataset.agora).value = agoraHM(); sujo = true; });
   const somar = () => { $('cx-total').textContent = fmtN([...g.querySelectorAll('[data-loja]')].reduce((t, i) => t + (parseInt(i.value) || 0), 0)); };
-  desenhaLojas();
+  desenhaLojas(); desenhaCods();
   const fotos = blocoFotos($('cx-fotos'), { alvo:'cross_coleta', id: c.id || null, tela:'cross', editar: editar, tipos:['comprovante', 'veiculo', 'outra'] });
   const chips = () => { $('cx-chips').innerHTML = man.map((m, i) => `<span class="chip">${esc(m)}${pode_ ? `<button type="button" data-rmm="${i}" aria-label="Remover">×</button>` : ''}</span>`).join('') || '<span class="info">nenhum</span>';
     $('cx-chips').querySelectorAll('[data-rmm]').forEach(b => b.onclick = () => { man.splice(+b.dataset.rmm, 1); sujo = true; chips(); }); };
@@ -2938,7 +3089,8 @@ async function abrirCross(id){
       hora_chegada: $('cx-cheg').value || null, hora_corte: $('cx-corte').value || null, hora_saida: $('cx-saida').value || null, pacotes, manifestos: man,
       placa: $('cx-placa').value.trim() || null, veiculo: caixaAltaTxt($('cx-veic').value).trim() || null, motorista: caixaAltaTxt($('cx-mot').value).trim() || null, motorista_doc: $('cx-doc').value.trim() || null,
       motorista_tel: $('cx-tel').value.replace(/\D/g, '') || null, motorista_id: motoristaId, responsavel: caixaAltaTxt($('cx-resp').value).trim() || null,
-      observacao: $('cx-obs').value.trim() || null, assinatura: pad && pad.temTinta() ? pad.png() : null };
+      observacao: $('cx-obs').value.trim() || null, assinatura: pad && pad.temTinta() ? pad.png() : null,
+      ...Object.fromEntries(Object.keys(CAMPOS_COLETA).map(k => { const i = g.querySelector(`[data-cod="${k}"]`); return [k, i ? i.value.trim() || null : null]; })) };
     if (corpo.assinatura && !Object.values(pacotes).some(Boolean)) return erro('Informe os pacotes antes de colher a assinatura.');
     if (corpo.assinatura && !corpo.motorista) return erro('Informe o nome do motorista antes de colher a assinatura.');
     if (corpo.motorista_tel && (corpo.motorista_tel.length < 10 || corpo.motorista_tel.length > 11)) return erro('Telefone do motorista: use DDD + número.');
@@ -3072,7 +3224,7 @@ async function apiMkt(path, corpo){
     const nome = String(corpo.nome || '').trim(); if (!nome) throw new Error('Informe o nome do marketplace');
     if (!corpo.lojas?.length) throw new Error('Marque ao menos uma loja que vende neste marketplace');
     if (CANAIS_DEMO.some(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== corpo.id)) throw new Error('Já existe um marketplace com esse nome');
-    if (corpo.id) Object.assign(CANAIS_DEMO.find(c => c.id === corpo.id), { nome, lojas:corpo.lojas, ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
+    if (corpo.id) Object.assign(CANAIS_DEMO.find(c => c.id === corpo.id), { nome, lojas:corpo.lojas, campos:corpo.campos || [], ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
     else CANAIS_DEMO.push({ id:nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_'), nome, lojas:corpo.lojas, ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
     CANAIS_DEMO.sort((a, b) => (a.ordem ?? 100) - (b.ordem ?? 100));
     return { ok:true };
@@ -3120,6 +3272,8 @@ function abrirMarketplace(m){
       </div>
       <div class="gv-sec">Lojas que vendem neste marketplace</div>
       <div class="mk-lojas">${d.lojas.map(l => `<label class="chk mk-loja" style="--c:${corLoja(l.id)}"><input type="checkbox" data-mkl="${l.id}" ${(m.lojas || []).includes(l.id) ? 'checked' : ''}> ${esc(nomeLoja(l.id))}</label>`).join('')}</div>
+      <div class="gv-sec">Códigos pedidos pelo motorista <span class="info">aparecem na coleta do CROSS deste marketplace</span></div>
+      <div class="mk-lojas">${Object.entries(CAMPOS_COLETA).map(([k, t]) => `<label class="chk mk-loja" style="--c:#02285a"><input type="checkbox" data-mkc="${k}" ${(m.campos || []).includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
       <div class="gv-acoes"><button class="btn pri" id="mk-ok">Salvar</button></div>
       ${novo ? '' : `<div class="gv-sec">Situação: ${m.ativo ? '<b style="color:var(--ok,#1a7a3e)">Ativo</b>' : '<b style="color:var(--bad)">Inativo</b>'}</div>
         <div class="gv-acoes" style="justify-content:flex-start;flex-wrap:wrap">
@@ -3129,17 +3283,203 @@ function abrirMarketplace(m){
   const $ = k => document.getElementById(k), fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
   $('mk-ok').onclick = async () => {
-    const corpo = { id: m.id || null, nome: $('mk-nome').value.trim(), ordem: $('mk-ordem').value.trim(), ativo: m.ativo !== false, lojas: [...g.querySelectorAll('[data-mkl]:checked')].map(x => x.dataset.mkl) };
+    const corpo = { id: m.id || null, nome: $('mk-nome').value.trim(), ordem: $('mk-ordem').value.trim(), ativo: m.ativo !== false, lojas: [...g.querySelectorAll('[data-mkl]:checked')].map(x => x.dataset.mkl), campos: [...g.querySelectorAll('[data-mkc]:checked')].map(x => x.dataset.mkc) };
     try { await apiMkt('/marketplace', corpo); avisar('Marketplace salvo'); fechar(); state.crossDados = null; await carregarMarketplaces(); }
     catch (e) { if (e instanceof SemSessao) throw e; const x = $('mk-erro'); x.hidden = false; x.textContent = e.message; }
   };
   const erroMk = e => { if (e instanceof SemSessao) throw e; const x = $('mk-erro'); x.hidden = false; x.textContent = e.message; };
   const at = $('mk-ativar'); if (at) at.onclick = async () => {
-    try { await apiMkt('/marketplace', { id:m.id, nome:m.nome, ordem:m.ordem, lojas:m.lojas, ativo:!m.ativo }); avisar(m.ativo ? `${m.nome} desativado` : `${m.nome} reativado`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
+    try { await apiMkt('/marketplace', { id:m.id, nome:m.nome, ordem:m.ordem, lojas:m.lojas, campos:m.campos || [], ativo:!m.ativo }); avisar(m.ativo ? `${m.nome} desativado` : `${m.nome} reativado`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
   const ex = $('mk-excluir'); if (ex) ex.onclick = async () => {
     if (!confirmaDupla(ex, 'Clique de novo para excluir')) return;
     try { await apiMkt('/marketplace/excluir', { id:m.id }); avisar(`${m.nome} excluído`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
   $('mk-nome').focus();
+}
+
+/* =================== FOTOS DE ROSTO (usuário e One-on-One) =================== */
+// recorta no centro (quadrado) e reduz: ~20-40 KB, guardado no banco
+async function fotoQuadrada(arq, tam = 320){
+  const img = await createImageBitmap(arq).catch(() => null);
+  if (!img) throw new Error('Não consegui ler essa imagem');
+  const lado = Math.min(img.width, img.height), cv = document.createElement('canvas'); cv.width = cv.height = tam;
+  cv.getContext('2d').drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, tam, tam);
+  let q = 0.85, url = cv.toDataURL('image/jpeg', q);
+  while (url.length > 110000 && q > 0.4) { q -= 0.1; url = cv.toDataURL('image/jpeg', q); }
+  return url;
+}
+const iniciais = nome => String(nome || '?').trim().split(/\s+/).filter(Boolean).map((p, i, a) => i === 0 || i === a.length - 1 ? p[0] : '').join('').toUpperCase().slice(0, 2);
+const avatar = (nome, foto, tam = 32) => foto ? `<img class="avatar" src="${esc(foto)}" alt="" style="width:${tam}px;height:${tam}px">`
+  : `<span class="avatar ini" style="width:${tam}px;height:${tam}px;font-size:${Math.round(tam * 0.4)}px">${esc(iniciais(nome))}</span>`;
+// janela pequena para escolher/tirar a foto, ver a prévia e salvar
+function editarFoto({ titulo, nome, foto, salvar }){
+  const d = document.createElement('div'); d.className = 'foto-modal';
+  let nova = foto || null;
+  const desenha = () => {
+    d.innerHTML = `<div class="foto-modal-box"><h3>${esc(titulo)}</h3>
+      <div class="foto-prev">${avatar(nome, nova, 140)}</div>
+      <div class="foto-bts" style="justify-content:center">
+        <label class="btn foto-bt" style="border-radius:8px"><input type="file" accept="image/*" capture="user" hidden data-fq>📷 Tirar foto</label>
+        <label class="btn foto-bt" style="border-radius:8px"><input type="file" accept="image/*" hidden data-fq>🖼 Escolher</label>
+        ${nova ? '<button class="btn perigo" id="fq-rm">Remover</button>' : ''}</div>
+      <div class="info" style="text-align:center;margin-top:8px">A foto é recortada no centro (quadrada) e reduzida antes de salvar.</div>
+      <div class="gv-acoes"><button class="btn" id="fq-x">Cancelar</button><button class="btn pri" id="fq-ok" ${nova === (foto || null) ? 'disabled' : ''}>Salvar</button></div></div>`;
+    d.querySelectorAll('[data-fq]').forEach(i => i.onchange = async () => { const f = i.files[0]; if (!f) return; try { nova = await fotoQuadrada(f); desenha(); } catch (e) { avisar(e.message, true); } });
+    const rm = d.querySelector('#fq-rm'); if (rm) rm.onclick = () => { nova = null; desenha(); };
+    d.querySelector('#fq-x').onclick = () => d.remove();
+    d.querySelector('#fq-ok').onclick = async ev => { ev.target.disabled = true; try { await salvar(nova); avisar(nova ? 'Foto salva' : 'Foto removida'); d.remove(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); ev.target.disabled = false; } };
+  };
+  d.onclick = ev => { if (ev.target === d) d.remove(); };
+  desenha(); document.body.appendChild(d);
+}
+async function minhaFoto(){
+  const u = state.usuario || { nome:'Demonstração' };
+  editarFoto({ titulo:'Minha foto', nome:u.nome, foto:u.foto, salvar: async f => {
+    if (!DEMO) await api('/me/foto', { metodo:'POST', corpo:{ foto:f } });
+    u.foto = f; state.usuario = u; mostrarUsuario(u);
+    if (state.pesDados?.usuarios) { const x = state.pesDados.usuarios.find(y => y.login === u.login); if (x) { x.foto = f; if (document.getElementById('pes')) renderPessoas(); } }
+  } });
+}
+
+/* =================== APONTAMENTOS DE PONTO (Gestão do time) =================== */
+const TIPOS_PONTO = {
+  falta:             { rot:'Falta',             cor:'#8a1f1f', fundo:'#fbe9e9' },
+  falta_justificada: { rot:'Falta justificada', cor:'#9a5b00', fundo:'#fff1d6' },
+  atraso:            { rot:'Atraso',            cor:'#6b3fa0', fundo:'#efe7fa', hora:'Chegou às' },
+  saida_antecipada:  { rot:'Saída antecipada',  cor:'#0b4fa8', fundo:'#e3eefc', hora:'Saiu às' },
+  saida_retorno:     { rot:'Saída e retorno',   cor:'#0f6e66', fundo:'#dff5f1', hora:'Saiu às', fim:'Voltou às' },
+  outro:             { rot:'Outro',             cor:'#566074', fundo:'#eef0f4', hora:'Horário (opcional)' },
+};
+const pillPonto = t => `<span class="st-full" style="color:${TIPOS_PONTO[t]?.cor};background:${TIPOS_PONTO[t]?.fundo}">${esc(TIPOS_PONTO[t]?.rot || t)}</span>`;
+const DEMO_PONTO = (() => { const h = hojeBRT(), ag = new Date().toISOString();
+  const L = [[0, 'KELVIN', 'saida_retorno', '10:00', '11:20', 'Consulta médica (trouxe declaração)', 'guilherme.porto@op.valenro.local'],
+    [-1, 'RAFAEL', 'atraso', '08:40', null, 'Ônibus quebrou', 'degmar.gomes@op.valenro.local'], [-2, 'ESTEVÃO', 'falta', null, null, 'Não avisou', 'guilherme.porto@op.valenro.local'],
+    [-3, 'ESTEVÃO', 'falta_justificada', null, null, 'Atestado entregue ao RH', 'douglas.ribeiro@op.valenro.local'], [-6, 'VITOR', 'saida_antecipada', '15:30', null, 'Problema familiar, combinado com o líder', 'degmar.gomes@op.valenro.local'],
+    [-9, 'RAFAEL', 'atraso', '08:25', null, 'Trânsito', 'degmar.gomes@op.valenro.local']];
+  return { seq:L.length, eventos:[], lista:L.map((l, i) => ({ id:String(i + 1), data:addDias(h, l[0]), pessoa:l[1], tipo:l[2], hora_ini:l[3], hora_fim:l[4], motivo:l[5], observacao:null, criado_em:ag, criado_por:l[6], atualizado_em:ag, atualizado_por:l[6] })) }; })();
+async function apiPonto(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_PONTO, ag = new Date().toISOString(), q = new URLSearchParams(path.split('?')[1] || '');
+  if (path.startsWith('/ponto?')) return { ini:q.get('ini'), fim:q.get('fim'), hoje:hojeBRT(), apontamentos: JSON.parse(JSON.stringify(D.lista.filter(a => a.data >= q.get('ini') && a.data <= q.get('fim')))).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id),
+    pessoas:['ARTHUR MAGDALENO', 'CÉSAR', 'DAVI DUARTE', 'ESTEVÃO', 'KELVIN', 'RAFAEL', 'VITOR', 'VINICIUS CORREA'],
+    autores:[{ login:'douglas.ribeiro@op.valenro.local', nome:'Douglas Ribeiro' }, { login:'guilherme.porto@op.valenro.local', nome:'Guilherme Porto' }, { login:'degmar.gomes@op.valenro.local', nome:'Degmar Gomes' }, { login:'demonstracao', nome:'Demonstração' }] };
+  if (path.startsWith('/ponto/historico')) return { eventos: D.eventos.filter(e => e.apontamento_id === q.get('id')) };
+  if (path === '/ponto/apontamento') {
+    const a = { ...corpo, pessoa: caixaAltaTxt(corpo.pessoa || '').trim() };
+    if (!a.pessoa) throw new Error('Informe o colaborador'); if (!a.motivo) throw new Error('Informe o motivo');
+    if (['atraso', 'saida_antecipada', 'saida_retorno'].includes(a.tipo) && !a.hora_ini) throw new Error('Informe o horário');
+    if (!a.id) { a.id = String(++D.seq); D.lista.push({ ...a, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' }); D.eventos.unshift({ apontamento_id:a.id, em:ag, por:'demonstracao', acao:'criar' }); }
+    else { Object.assign(D.lista.find(x => x.id === a.id), a, { atualizado_em:ag, atualizado_por:'demonstracao' }); D.eventos.unshift({ apontamento_id:a.id, em:ag, por:'demonstracao', acao:'alterar', depois:a }); }
+    return { ok:true, id:a.id };
+  }
+  if (path === '/ponto/excluir') { D.lista = D.lista.filter(a => a.id !== corpo.id); return { ok:true }; }
+}
+function telaPonto(){
+  const s = state.ponto ||= { per:'30', tipo:'todos', busca:'' };
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Apontamentos de ponto</h2><span class="restrito" title="Só Gestão, líderes e RH">🔒 acesso restrito</span><span style="flex:1"></span>
+      <input id="pt-busca" class="campo" placeholder="Colaborador ou motivo" value="${esc(s.busca)}" style="width:200px">
+      <select id="pt-per">${[['7','Últimos 7 dias'],['30','Últimos 30 dias'],['mes','Este mês'],['mes_ant','Mês anterior'],['90','Últimos 90 dias']].map(([k, t]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <select id="pt-tipo"><option value="todos">Todos os tipos</option>${Object.entries(TIPOS_PONTO).map(([k, t]) => `<option value="${k}" ${s.tipo === k ? 'selected' : ''}>${t.rot}</option>`).join('')}</select>
+      <button class="btn" id="pt-atualizar">Atualizar</button>
+      ${pode('ponto', 'editar') ? '<button class="btn pri" id="pt-novo">+ Novo apontamento</button>' : ''}
+    </div>
+    <div id="ponto"><div class="carregando">Carregando…</div></div>
+    <div id="gaveta" hidden></div>`;
+  const $ = k => document.getElementById(k);
+  $('pt-busca').oninput = () => { s.busca = $('pt-busca').value; renderPonto(); };
+  $('pt-per').onchange = () => { s.per = $('pt-per').value; carregarPonto(); };
+  $('pt-tipo').onchange = () => { s.tipo = $('pt-tipo').value; renderPonto(); };
+  $('pt-atualizar').onclick = carregarPonto;
+  const nv = $('pt-novo'); if (nv) nv.onclick = () => abrirPonto(null);
+  carregarPonto();
+}
+async function carregarPonto(){
+  const [ini, fim] = periodoAb(state.ponto.per);
+  try { state.pontoDados = await apiPonto(`/ponto?ini=${ini}&fim=${fim}`); renderPonto(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('ponto'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+const autorPonto = login => (state.pontoDados?.autores || []).find(a => a.login === login)?.nome || String(login || '').split('@')[0];
+function renderPonto(){
+  const s = state.ponto, d = state.pontoDados, $c = document.getElementById('ponto');
+  if (!$c || !d) return;
+  const t = s.busca.trim().toUpperCase();
+  const lista = d.apontamentos.filter(a => (s.tipo === 'todos' || a.tipo === s.tipo) && (!t || a.pessoa.includes(t) || (a.motivo || '').toUpperCase().includes(t)));
+  const n = k => lista.filter(a => k.includes(a.tipo)).length;
+  const porPessoa = {}; lista.forEach(a => { const x = porPessoa[a.pessoa] ||= { falta:0, falta_justificada:0, atraso:0, saida:0, outro:0, total:0 };
+    x[a.tipo.startsWith('saida') ? 'saida' : a.tipo]++; x.total++; });
+  const horario = a => a.tipo === 'saida_retorno' ? `${a.hora_ini || '?'} → ${a.hora_fim || 'não voltou'}` : a.hora_ini || '';
+  $c.innerHTML = `
+    <div class="rr-res">
+      <div class="rr-tile" style="--c:#02285a"><span>Apontamentos</span><b>${lista.length}</b><small>${Object.keys(porPessoa).length} pessoa(s) · ${dataBR(d.ini)} a ${dataBR(d.fim)}</small></div>
+      <div class="rr-tile" style="--c:${TIPOS_PONTO.falta.cor}"><span>Faltas</span><b>${n(['falta', 'falta_justificada'])}</b><small>${n(['falta_justificada'])} justificada(s)</small></div>
+      <div class="rr-tile" style="--c:${TIPOS_PONTO.atraso.cor}"><span>Atrasos</span><b>${n(['atraso'])}</b><small>chegou depois do horário</small></div>
+      <div class="rr-tile" style="--c:${TIPOS_PONTO.saida_retorno.cor}"><span>Saídas</span><b>${n(['saida_antecipada', 'saida_retorno'])}</b><small>${n(['saida_retorno'])} com retorno</small></div>
+    </div>
+    <div class="painel">
+      <div class="rc-acoes"><b>Apontamentos</b><span style="flex:1"></span><button class="btn" id="pt-csv">⬇ Excel</button></div>
+      ${lista.length ? `<div style="overflow-x:auto"><table class="tab-full tab-ponto"><thead><tr><th>Data</th><th style="text-align:left">Colaborador</th><th>Tipo</th><th>Horário</th><th style="text-align:left">Motivo</th><th>Lançado por</th></tr></thead><tbody>
+        ${lista.map(a => `<tr data-pt="${a.id}"><td>${dataBR(a.data)} <span class="info">${DIAS_CURTO[new Date(a.data + 'T12:00:00Z').getUTCDay()]}</span></td><td style="text-align:left"><b>${esc(a.pessoa)}</b></td><td>${pillPonto(a.tipo)}</td><td>${horario(a) || '<span class="info">–</span>'}</td>
+          <td style="text-align:left;white-space:normal;max-width:340px">${esc(a.motivo)}${a.observacao ? ` <span class="info" title="${esc(a.observacao)}">💬</span>` : ''}</td>
+          <td>${esc(autorPonto(a.criado_por))}<div class="info" style="font-size:11px">${quando(a.criado_em)}${a.atualizado_por !== a.criado_por ? ` · editado por ${esc(autorPonto(a.atualizado_por))}` : ''}</div></td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="vazio">Nenhum apontamento com esses filtros.</div>'}
+    </div>
+    ${Object.keys(porPessoa).length ? `<div class="painel" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Por colaborador <span class="info" style="font-weight:400">· no período</span></h3>
+      <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Colaborador</th><th>Faltas</th><th>Justificadas</th><th>Atrasos</th><th>Saídas</th><th>Outros</th><th>Total</th></tr></thead><tbody>
+      ${Object.entries(porPessoa).sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0])).map(([p, x]) => `<tr data-ptp="${esc(p)}"><td style="text-align:left"><b>${esc(p)}</b></td><td>${x.falta || '–'}</td><td>${x.falta_justificada || '–'}</td><td>${x.atraso || '–'}</td><td>${x.saida || '–'}</td><td>${x.outro || '–'}</td><td><b>${x.total}</b></td></tr>`).join('')}
+      </tbody></table></div><div class="info" style="margin-top:6px">Clique num colaborador para ver só os apontamentos dele.</div></div>` : ''}`;
+  $c.querySelectorAll('[data-pt]').forEach(tr => tr.onclick = () => abrirPonto(d.apontamentos.find(a => a.id === tr.dataset.pt)));
+  $c.querySelectorAll('[data-ptp]').forEach(tr => tr.onclick = () => { s.busca = tr.dataset.ptp; document.getElementById('pt-busca').value = s.busca; renderPonto(); });
+  document.getElementById('pt-csv').onclick = () => {
+    const L = [['Data', 'Colaborador', 'Tipo', 'Horário', 'Retorno', 'Motivo', 'Observação', 'Lançado por', 'Lançado em']].concat(lista.map(a => [dataBR(a.data), a.pessoa, TIPOS_PONTO[a.tipo].rot, a.hora_ini, a.hora_fim, a.motivo, a.observacao, autorPonto(a.criado_por), quando(a.criado_em)]));
+    const csv = '﻿' + L.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const x = document.createElement('a'); x.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); x.download = `ponto_${d.ini}_${d.fim}.csv`; document.body.appendChild(x); x.click(); x.remove();
+  };
+}
+function abrirPonto(a){
+  const d = state.pontoDados, g = document.getElementById('gaveta'), novo = !a;
+  const eu = state.usuario?.login || 'demonstracao', gerir = pode('ponto', 'gerir');
+  const edita = pode('ponto', 'editar') && (novo || gerir || a.criado_por === eu), ro = edita ? '' : 'disabled';
+  a ||= { data: hojeBRT(), pessoa:'', tipo:'falta', hora_ini:'', hora_fim:'', motivo:'', observacao:'' };
+  let tipo = a.tipo, sujo = false;
+  g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">${novo ? 'Novo' : dataBR(a.data)}</div><h3>${novo ? 'Apontamento de ponto' : esc(a.pessoa)}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="pt-erro" hidden></div>
+      ${!novo && !edita ? '<div class="aviso" style="margin-top:10px">Só quem lançou (ou a Gestão/RH) pode alterar este apontamento.</div>' : ''}
+      <div class="grade-form g2">
+        <label>Data<input type="date" id="pt-data" value="${a.data}" max="${hojeBRT()}" ${ro}></label>
+        <label>Colaborador<input id="pt-pes" list="dl-pt-pes" value="${esc(a.pessoa)}" autocapitalize="characters" autocomplete="off" placeholder="digite as iniciais" ${ro}></label>
+      </div>
+      <div class="gv-sec">Tipo</div>
+      <div class="etapas">${Object.entries(TIPOS_PONTO).map(([k, t]) => `<button type="button" class="etapa ${tipo === k ? 'on' : ''}" data-ptt="${k}" ${ro} style="--c:${t.cor};--f:${t.fundo}">${t.rot}</button>`).join('')}</div>
+      <div class="grade-form g2" id="pt-horas" style="margin-top:12px"></div>
+      <label class="gv-lab">Motivo<input id="pt-mot" class="campo" value="${esc(a.motivo || '')}" maxlength="300" placeholder="ex.: consulta médica, problema com transporte, não avisou" ${ro}></label>
+      <label class="gv-lab">Observação<textarea id="pt-obs" rows="2" maxlength="600" ${ro}>${esc(a.observacao || '')}</textarea></label>
+      <div class="info" style="margin-top:6px">⚠ Não escreva diagnóstico, CID nem detalhes de saúde: basta "consulta médica" ou "atestado entregue ao RH". O atestado em si fica com o RH.</div>
+      ${edita ? '<div class="gv-acoes"><button class="btn pri" id="pt-ok">Salvar</button></div>' : ''}
+      ${novo ? '' : `<div class="info" style="margin-top:12px">Lançado por <b>${esc(autorPonto(a.criado_por))}</b> em ${quando(a.criado_em)}${a.atualizado_por !== a.criado_por ? ` · última alteração por <b>${esc(autorPonto(a.atualizado_por))}</b> em ${quando(a.atualizado_em)}` : ''}</div>
+        ${gerir ? '<div style="margin-top:18px"><button class="btn perigo" id="pt-excluir">Excluir apontamento</button></div>' : ''}`}
+    </div></aside>
+    <datalist id="dl-pt-pes">${(d.pessoas || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+  const $ = k => document.getElementById(k);
+  forcaCaixaAlta($('pt-pes'));
+  const horas = () => { const t = TIPOS_PONTO[tipo]; const hi = $('pt-hi')?.value ?? a.hora_ini ?? '', hf = $('pt-hf')?.value ?? a.hora_fim ?? '';
+    $('pt-horas').innerHTML = (t.hora ? `<label>${t.hora}<input type="time" id="pt-hi" value="${esc(hi || '')}" ${ro}></label>` : '') + (t.fim ? `<label>${t.fim}<input type="time" id="pt-hf" value="${esc(hf || '')}" ${ro}><span class="info">em branco = não voltou</span></label>` : ''); };
+  horas();
+  g.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', () => { sujo = true; }));
+  g.querySelectorAll('[data-ptt]').forEach(b => b.onclick = () => { tipo = b.dataset.ptt; sujo = true; g.querySelectorAll('[data-ptt]').forEach(x => x.classList.toggle('on', x === b)); horas(); });
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  $('gv-fechar').onclick = () => { if (sujo && !confirmarSaida()) return; fechar(); }; $('gv-fundo').onclick = $('gv-fechar').onclick;
+  const erro = m => { const x = $('pt-erro'); x.hidden = !m; x.textContent = m || ''; };
+  const ok = $('pt-ok'); if (ok) ok.onclick = async () => {
+    const corpo = { id: a.id || null, data: $('pt-data').value, pessoa: caixaAltaTxt($('pt-pes').value).trim(), tipo, hora_ini: $('pt-hi')?.value || null, hora_fim: $('pt-hf')?.value || null, motivo: $('pt-mot').value.trim(), observacao: $('pt-obs').value.trim() || null };
+    if (!corpo.pessoa) return erro('Informe o colaborador.'); if (!corpo.motivo) return erro('Informe o motivo.');
+    ok.disabled = true;
+    try { await apiPonto('/ponto/apontamento', corpo); avisar('Apontamento salvo'); fechar(); await carregarPonto(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); ok.disabled = false; }
+  };
+  const ex = $('pt-excluir'); if (ex) ex.onclick = async () => { if (!confirmaDupla(ex, 'Clique de novo para excluir')) return;
+    try { await apiPonto('/ponto/excluir', { id:a.id }); avisar('Apontamento excluído'); fechar(); await carregarPonto(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); } };
+  if (novo) $('pt-pes').focus();
 }
 
 /* =================== ONE-ON-ONE =================== */
@@ -3261,8 +3601,9 @@ async function apiOO(path, corpo){
   if (path.startsWith('/oo/conversa')) {
     const c = D.conversas.find(x => x.rodada_id === q.get('rodada') && x.pessoa_id === q.get('pessoa'));
     const arquivos = clone(D.arquivos.filter(a => a.pessoa_id === q.get('pessoa')));
-    if (!c) return { conversa:null, pontos:[], metas:[], acomps:[], arquivos };
-    return { ...clone({ conversa:c, pontos:D.pontos.filter(p => p.conversa_id === c.id), metas:D.metas.filter(m => m.conversa_id === c.id), acomps:D.acomps.filter(a => a.conversa_id === c.id).sort((a, b) => b.data.localeCompare(a.data)) }), arquivos };
+    const foto = D.pessoas.find(x => x.id === q.get('pessoa'))?.foto || null;
+    if (!c) return { conversa:null, pontos:[], metas:[], acomps:[], arquivos, foto };
+    return { foto, ...clone({ conversa:c, pontos:D.pontos.filter(p => p.conversa_id === c.id), metas:D.metas.filter(m => m.conversa_id === c.id), acomps:D.acomps.filter(a => a.conversa_id === c.id).sort((a, b) => b.data.localeCompare(a.data)) }), arquivos };
   }
   if (path.startsWith('/oo/compilado')) {
     const convs = D.conversas.filter(c => c.rodada_id === q.get('rodada'));
@@ -3275,6 +3616,7 @@ async function apiOO(path, corpo){
     return clone({ rodada:rid, rodadas:D.rodadas, areas:D.areas, setores:D.setores, pessoas:D.pessoas, conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), nivel:'gerir', hoje:h });
   }
   if (path.startsWith('/oo/arquivo?')) { const a = D.arquivos.find(x => x.id === q.get('id')); return { url: a._url || 'about:blank', nome: a.nome }; }
+  if (path === '/oo/foto') { D.pessoas.find(x => x.id === String(corpo.pessoa_id)).foto = corpo.foto; return { ok:true }; }
   if (path === '/oo/arquivo') { const f = corpo.get('arquivo'), id = String(++D.seq);
     D.arquivos.unshift({ id, pessoa_id:String(corpo.get('pessoa_id')), nome:f.name, descricao:corpo.get('descricao') || null, tipo:f.type, tamanho:f.size, enviado_em:new Date().toISOString(), enviado_por:'demonstracao', _url:URL.createObjectURL(f) }); return { ok:true, id }; }
   const tab = { pessoa:'pessoas', rodada:'rodadas', conversa:'conversas', ponto:'pontos', meta:'metas', acomp:'acomps', area:'areas', setor:'setores', arquivo:'arquivos' }[corpo.registro];
@@ -3529,7 +3871,7 @@ async function abrirPessoaOO(pessoaId){
   g.innerHTML = `
     <div class="gv-fundo" id="gv-fundo"></div>
     <aside class="gv gv-larga">
-      <div class="gv-cab"><div><div class="info">${esc([p.funcao, nomeAreaOO(p.area_id), nomeSetorOO(p.setor_id)].filter(Boolean).join(' · '))}</div><h3>${esc(p.nome)}</h3></div><span style="flex:1"></span>
+      <div class="gv-cab"><button type="button" class="oo-foto" id="oo-foto" ${edita ? 'title="Trocar a foto"' : 'disabled'}>${avatar(p.nome, d.foto, 64)}${edita ? '<span>📷</span>' : ''}</button><div><div class="info">${esc([p.funcao, nomeAreaOO(p.area_id), nomeSetorOO(p.setor_id)].filter(Boolean).join(' · '))}</div><h3>${esc(p.nome)}</h3></div><span style="flex:1"></span>
         <button class="btn" id="oo-imp-prep" title="Folha de preparação com nome">🖨 Preparação</button>
         <button class="btn" id="oo-imp-pdi" title="Folha do PDI" ${d.metas.length ? '' : 'disabled'}>🖨 PDI</button>
         <button class="btn" id="gv-fechar" aria-label="Fechar">✕</button></div>
@@ -3543,7 +3885,7 @@ async function abrirPessoaOO(pessoaId){
           <label>Data de nascimento<input type="date" id="fi-nasc" value="${p.nascimento || ''}" ${ro}><span class="info">${p.nascimento ? `${idadeOO(p.nascimento, hoje)} anos · aniversário ${(a => a.dias === 0 ? 'hoje 🎂' : `em ${a.dias} dia(s)`)(aniversarioOO(p.nascimento, hoje))}` : ''}</span></label>
           <label>Admissão<input type="date" id="fi-adm" value="${p.admissao || ''}" ${ro}><span class="info">${p.admissao ? tempoCasaOO(p.admissao, hoje) + ' de casa' : ''}</span></label>
           <label>Onde mora<input id="fi-mora" value="${esc(p.mora_em || '')}" placeholder="cidade / bairro" ${ro}></label>
-          <label class="chk"><input type="checkbox" id="fi-ativo" ${p.ativo ? 'checked' : ''} ${ro}> Ativa (aparece no time)</label>
+          <label class="chk" style="grid-column:1/-1"><input type="checkbox" id="fi-ativo" ${p.ativo ? 'checked' : ''} ${ro}> Ativa (aparece no time)</label>
         </div>
         <label class="gv-lab">Questões pessoais que a pessoa quis compartilhar<textarea id="fi-notas" rows="3" ${ro} placeholder="Ex.: estuda à noite, filho pequeno, mudança de casa. Registre só o que a pessoa contou e concordou que fosse anotado.">${esc(p.notas_pessoais || '')}</textarea></label>
         ${edita ? '<div class="gv-acoes"><button class="btn pri" id="fi-salvar">Salvar ficha</button></div>' : ''}
@@ -3587,6 +3929,7 @@ async function abrirPessoaOO(pessoaId){
   const recarregar = async () => { const top = g.querySelector('.gv-corpo').scrollTop; state.ooDados.pessoas = (await apiOO('/oo' + (s.rodada ? `?rodada=${s.rodada}` : ''))).pessoas; await abrirPessoaOO(p.id); const c = g.querySelector('.gv-corpo'); if (c) c.scrollTop = top; };
   const salvarConv = campos => tentar(async () => { const id = await garantirConversa(); await apiOO('/oo/salvar', { registro:'conversa', id, ...campos }); avisar('Salvo'); });
   $('oo-imp-prep').onclick = () => imprimirPreparacaoOO(p, conv.id ? conv : null);
+  const bfo = $('oo-foto'); if (bfo && edita) bfo.onclick = () => editarFoto({ titulo:`Foto · ${p.nome}`, nome:p.nome, foto:d.foto, salvar: async f => { await apiOO('/oo/foto', { pessoa_id:p.id, foto:f }); abrirPessoaOO(p.id); } });
   $('oo-imp-pdi').onclick = () => imprimirHtml(folhaPdiHtml(p, conv, d.metas, d.acomps, rodada));
   g.querySelectorAll('[data-abrir-arq]').forEach(b => b.onclick = () => abrirArquivoOO(b.dataset.abrirArq));
   ligarAreaSetorOO();
@@ -3756,8 +4099,8 @@ function folhaPdiHtml(p, conv, metas, acomps, rodada){
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
     { id:'ferramentas', titulo:'Ferramentas', filhos:[
-      { view:'full', titulo:'Envios Full', tela:'full' },
-      { view:'cross', titulo:'Expedição - CROSS', tela:'cross' },
+      { view:'full', titulo:'Gestão - FULL', tela:'full' },
+      { view:'cross', titulo:'Gestão - CROSS', tela:'cross' },
       { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
     ]},
     { id:'cadastros', titulo:'Cadastros', filhos:[
@@ -3772,13 +4115,14 @@ const MENU = [
   { id:'comercial', titulo:'Comercial', tag:'Em desenvolvimento', filhos:[] },
   { id:'gestao', titulo:'Gestão do time', filhos:[
     { view:'oo', titulo:'One-on-One', tela:'oo' },
+    { view:'ponto', titulo:'Apontamentos de ponto', tela:'ponto' },
   ]},
   { id:'admin', titulo:'Administração', filhos:[
     { view:'pessoas', titulo:'Pessoas e acessos', tela:'pessoas' },
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono' };
+const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -3825,7 +4169,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -3839,6 +4183,7 @@ function irPara(view){
   if (view === 'motoristas') return telaMotoristas();
   if (view === 'marketplaces') return telaMarketplaces();
   if (view === 'abandono') return telaAbandono();
+  if (view === 'ponto') return telaPonto();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
@@ -4539,7 +4884,7 @@ async function iniciar(){
   document.getElementById('selo-demo').hidden = !DEMO;
   if (DEMO) {
     state.cnpjs = [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }];
-    mostrarUsuario({ nome:'Demonstração' });
+    state.usuario ||= { nome:'Demonstração', login:'demonstracao', foto:null }; mostrarUsuario(state.usuario);
     return irPara(params.get('tela') || 'separados');
   }
   if (!lerSessao()) return telaLogin();
