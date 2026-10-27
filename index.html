@@ -216,6 +216,7 @@
   .ab-bar{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:12.5px;padding:3px 0} .ab-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .ab-bar i{display:block;height:9px;border-radius:5px;background:var(--pri)} .ab-bar b{text-align:right}
   .tab-ab{font-size:12.5px} .tab-ab th,.tab-ab td{padding-left:6px;padding-right:6px}
   .tab-ab tr.pend td{background:#fffbea} .ab-card{display:flex;flex-direction:column;gap:3px}
+  .oo-inativos{margin:10px 0 4px;font-size:13px} .oo-inativos summary{cursor:pointer;color:var(--mute)} .oo-inativos > div{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
   .rc-filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
   .cn-f{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;cursor:pointer;color:var(--ink)} .cn-f.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   .rc-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
@@ -3363,6 +3364,9 @@ function renderOO(){
           <td class="${atraso ? 'atraso' : ''}">${prox ? dataBR(prox) + (prox < hoje ? ' ⚠' : '') : (c?.prazo_proximo ? `<span class="info">meta até ${dataBR(c.prazo_proximo)}</span>` : '<span class="info">–</span>')}</td>
           <td style="white-space:nowrap"><button class="btn mini imp" data-imp-prep="${p.id}" title="Folha de preparação com o nome">🖨</button></td></tr>`; }).join('')}
       </tbody></table></div>
+      ${(() => { const ina = r.pessoas.filter(p => p.ativo === false && filtraPessoaOO(p)); return ina.length && vePessoalOO() ? `<details class="oo-inativos"><summary>Pessoas inativas (${ina.length}): não aparecem no time nem nos números</summary>
+        <div>${ina.map(p => `<button class="btn mini" data-pes="${p.id}" title="Abrir a ficha para reativar">${esc(p.nome)}${p.funcao ? ` · <span class="info">${esc(p.funcao)}</span>` : ''}</button>`).join('')}</div>
+        <div class="info">Abra a ficha e marque "Ativa" para trazer a pessoa de volta com todo o histórico.</div></details>` : ''; })()}
       <div class="legenda">${vePessoalOO() ? '<span>Clique na pessoa para abrir a ficha e as 4 etapas.</span>' : '<span>Seu acesso é só de resumo: as fichas individuais não abrem.</span>'}<span>🖨 folha de preparação com nome, área, setor e datas</span></div></div>`;
   if (vePessoalOO()) $o.querySelectorAll('[data-pes]').forEach(tr => tr.onclick = () => abrirPessoaOO(tr.dataset.pes));
   $o.querySelectorAll('[data-imp-prep]').forEach(b => b.onclick = ev => { ev.stopPropagation(); const p = r.pessoas.find(x => String(x.id) === b.dataset.impPrep); imprimirPreparacaoOO(p, r.conversas.find(x => String(x.pessoa_id) === String(p.id))); });
@@ -3431,14 +3435,14 @@ function formSimplesOO(tipo, atual){
     <div class="gv-corpo"><div class="erro" id="gv-erro" hidden></div><div class="grade-form g2" style="margin-top:14px">
     ${tipo === 'pessoa' ? `<label>Nome<input id="f1" value="${esc(p.nome || '')}"></label><label>Função<input id="f2" value="${esc(p.funcao || '')}" placeholder="ex.: Operacional"></label>
       ${selAreaSetorOO(p)}
-      <label class="chk"><input type="checkbox" id="f3" ${p.ativo === false ? '' : 'checked'}> Ativa (aparece no time)</label>`
+      ${atual ? `<label class="chk" style="grid-column:1/-1"><input type="checkbox" id="f3" ${p.ativo === false ? '' : 'checked'}> Ativa (aparece no time)</label>` : ''}`
     : `<label>Nome<input id="f1" placeholder="ex.: Rodada 2 · jan/2027"></label><label>Início<input id="f2" type="date" value="${hojeBRT()}"></label>`}
     </div><div class="gv-acoes"><button class="btn pri" id="f-ok">Salvar</button></div></div></aside>`;
   const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   document.getElementById('gv-fechar').onclick = fechar; document.getElementById('gv-fundo').onclick = fechar;
   document.getElementById('f-ok').onclick = async () => {
     const v1 = document.getElementById('f1').value.trim(), v2 = document.getElementById('f2').value.trim();
-    const corpo = tipo === 'pessoa' ? { registro:tipo, id: p.id || null, nome:v1, funcao:v2 || null, ativo: document.getElementById('f3').checked,
+    const corpo = tipo === 'pessoa' ? { registro:tipo, id: p.id || null, nome:v1, funcao:v2 || null, ativo: document.getElementById('f3') ? document.getElementById('f3').checked : true,
       area_id: document.getElementById('fs-area').value || null, setor_id: document.getElementById('fs-setor').value || null } : { registro:tipo, nome:v1, inicio:v2, ativa:true };
     try { const res = await apiOO('/oo/salvar', corpo); if (tipo === 'rodada') state.oo.rodada = String(res.id); avisar('Salvo'); fechar(); await carregarOO(); if (atual) abrirPessoaOO(p.id); }
     catch (e) { if (e instanceof SemSessao) throw e; const el = document.getElementById('gv-erro'); el.hidden = false; el.textContent = e.message; }
