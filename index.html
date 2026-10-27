@@ -232,6 +232,7 @@
   .foto-modal-box{background:var(--card,#fff);border-radius:14px;padding:18px 20px;width:min(380px,100%);box-shadow:0 10px 40px rgba(0,0,0,.3)} .foto-modal-box h3{margin:0 0 12px}
   .foto-prev{display:flex;justify-content:center;margin:6px 0 14px}
   .tab-ponto td{vertical-align:middle}
+  .btn.btn-rh{background:#8a1f1f;border-color:#8a1f1f;color:#fff;font-weight:600} .btn.btn-rh:hover{background:#a52a2a;border-color:#a52a2a}
   .pt-abas{margin-bottom:12px} .pt-badge{background:#c0392b;color:#fff;border-radius:10px;padding:0 7px;font-size:11px;margin-left:4px}
   .pt-aviso{margin:0 0 12px} .tab-ponto tr.pend td{background:#fffbea} .pt-sug{color:#0b4fa8;font-size:12.5px}
   .pt-sug-it{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px}
@@ -3382,15 +3383,23 @@ async function minhaFoto(){
 /* =================== APONTAMENTOS DE PONTO (Gestão do time) =================== */
 // Apontamento: o líder registra (falta, atraso, saída, almoço...). Inconsistência: o RH lança o que achou no ponto e um líder justifica.
 const TIPOS_PONTO = {
+  ajuste_batida:     { rot:'Ajuste de batida',  cor:'#7a4b12', fundo:'#f6ecdc' },
   falta:             { rot:'Falta',             cor:'#8a1f1f', fundo:'#fbe9e9' },
   falta_justificada: { rot:'Falta justificada', cor:'#9a5b00', fundo:'#fff1d6' },
   atraso:            { rot:'Atraso',            cor:'#6b3fa0', fundo:'#efe7fa', hora:'Chegou às' },
   saida_antecipada:  { rot:'Saída antecipada',  cor:'#0b4fa8', fundo:'#e3eefc', hora:'Saiu às' },
   saida_retorno:     { rot:'Saída e retorno',   cor:'#0f6e66', fundo:'#dff5f1', hora:'Saiu às', fim:'Voltou às' },
-  almoco:            { rot:'Almoço',            cor:'#7a4b12', fundo:'#f6ecdc', hora:'Saiu para o almoço (opcional)', fim:'Voltou do almoço (opcional)' },
   outro:             { rot:'Outro',             cor:'#566074', fundo:'#eef0f4', hora:'Horário (opcional)' },
 };
-const DETALHE_ALMOCO = { entrada:'Entrada', saida:'Saída', ambos:'Entrada e saída' };
+// apontamento no mesmo formato das inconsistências: escolhe o grupo e a batida numa escolha só
+const OPC_AP = [
+  { grupo:'Ajuste de batida · Jornada', cor:'#7a4b12', fundo:'#f6ecdc', itens:[['ajuste_batida', 'entrada', 'Entrada'], ['ajuste_batida', 'saida', 'Saída'], ['ajuste_batida', 'ambos', 'Entrada e saída']] },
+  { grupo:'Ajuste de batida · Almoço', cor:'#7a4b12', fundo:'#f6ecdc', itens:[['ajuste_batida', 'almoco_entrada', 'Entrada'], ['ajuste_batida', 'almoco_saida', 'Saída'], ['ajuste_batida', 'almoco_ambos', 'Entrada e saída']] },
+  { grupo:'Ocorrências', itens:[['falta', null, 'Falta'], ['falta_justificada', null, 'Falta justificada'], ['atraso', null, 'Atraso'], ['saida_antecipada', null, 'Saída antecipada'], ['saida_retorno', null, 'Saída e retorno'], ['outro', null, 'Outro']] },
+];
+// horários do ajuste: 1ª batida em hora_ini, 2ª em hora_fim (só quando são as duas)
+const HORAS_AJUSTE = { entrada:['Horário real da entrada'], saida:['Horário real da saída'], ambos:['Horário real da entrada', 'Horário real da saída'],
+  almoco_saida:['Saiu para o almoço às'], almoco_entrada:['Voltou do almoço às'], almoco_ambos:['Saiu para o almoço às', 'Voltou do almoço às'] };
 const TIPOS_INC = { ausencia_batida:'Ausência de batida', almoco_reduzido:'Almoço reduzido', almoco_estendido:'Almoço estendido', jornada_estendida:'Jornada estendida' };
 const BATIDA_ROT = { entrada:'Entrada', saida:'Saída', ambos:'Entrada e saída', almoco_entrada:'Almoço · entrada', almoco_saida:'Almoço · saída', almoco_ambos:'Almoço · entrada e saída' };
 // opções da tela (tipo + batida numa escolha só)
@@ -3400,7 +3409,7 @@ const OPC_INC = [
   { grupo:'Divergências', itens:[['almoco_reduzido', null, 'Almoço reduzido'], ['almoco_estendido', null, 'Almoço estendido'], ['jornada_estendida', null, 'Jornada estendida']] },
 ];
 const incTxt = i => i.tipo === 'ausencia_batida' ? `Ausência de batida · ${BATIDA_ROT[i.batida] || ''}` : TIPOS_INC[i.tipo] || i.tipo;
-const tipoPontoTxt = a => `${TIPOS_PONTO[a.tipo]?.rot || a.tipo}${a.tipo === 'almoco' && a.detalhe ? ` · ${DETALHE_ALMOCO[a.detalhe].toLowerCase()}` : ''}`;
+const tipoPontoTxt = a => a.tipo === 'ajuste_batida' ? `Ajuste de batida · ${a.detalhe?.startsWith('almoco') ? BATIDA_ROT[a.detalhe] : 'Jornada · ' + (BATIDA_ROT[a.detalhe] || '').toLowerCase()}` : TIPOS_PONTO[a.tipo]?.rot || a.tipo;
 const pillPonto = a => `<span class="st-full" style="color:${TIPOS_PONTO[a.tipo]?.cor};background:${TIPOS_PONTO[a.tipo]?.fundo}">${esc(tipoPontoTxt(a))}</span>`;
 const pillInc = i => i.situacao === 'pendente' ? '<span class="st-full" style="color:#9a5b00;background:#fff1d6">Pendente</span>' : '<span class="st-full" style="color:#1a7a3e;background:#e2f5e8">Justificada</span>';
 
@@ -3408,7 +3417,7 @@ const DEMO_PONTO = (() => { const h = hojeBRT(), ag = new Date().toISOString();
   const L = [[0, 'KELVIN', 'saida_retorno', '10:00', '11:20', 'Consulta médica (trouxe declaração)', 'guilherme.porto@op.valenro.local', null],
     [-1, 'RAFAEL', 'atraso', '08:40', null, 'Ônibus quebrou', 'degmar.gomes@op.valenro.local', null], [-2, 'ESTEVÃO', 'falta', null, null, 'Não avisou', 'guilherme.porto@op.valenro.local', null],
     [-3, 'ESTEVÃO', 'falta_justificada', null, null, 'Atestado entregue ao RH', 'douglas.ribeiro@op.valenro.local', null], [-6, 'VITOR', 'saida_antecipada', '15:30', null, 'Problema familiar, combinado com o líder', 'degmar.gomes@op.valenro.local', null],
-    [-4, 'CÉSAR', 'almoco', null, null, 'Esqueceu de bater a volta do almoço', 'guilherme.porto@op.valenro.local', 'entrada']];
+    [-4, 'CÉSAR', 'ajuste_batida', '13:00', null, 'Esqueceu de bater a volta do almoço', 'guilherme.porto@op.valenro.local', 'almoco_entrada']];
   const I = [[-4, 'CÉSAR', 'ausencia_batida', 'almoco_entrada'], [-5, 'DAVI DUARTE', 'almoco_estendido', null], [-1, 'RAFAEL', 'ausencia_batida', 'entrada'], [-8, 'KELVIN', 'jornada_estendida', null, 'Ficou para fechar o carregamento do Full (combinado)', 'guilherme.porto@op.valenro.local']];
   return { seq:20, eventos:[],
     lista:L.map((l, i) => ({ id:String(i + 1), data:addDias(h, l[0]), pessoa:l[1], tipo:l[2], detalhe:l[7], hora_ini:l[3], hora_fim:l[4], motivo:l[5], criado_em:ag, criado_por:l[6], atualizado_em:ag, atualizado_por:l[6] })),
@@ -3426,7 +3435,7 @@ async function apiPonto(path, corpo){
     const a = { ...corpo, pessoa: caixaAltaTxt(corpo.pessoa || '').trim() };
     if (!a.pessoa) throw new Error('Informe o colaborador'); if (!a.motivo) throw new Error('Informe o motivo');
     if (['atraso', 'saida_antecipada', 'saida_retorno'].includes(a.tipo) && !a.hora_ini) throw new Error('Informe o horário');
-    if (a.tipo === 'almoco' && !a.detalhe) throw new Error('Almoço: escolha entrada, saída ou ambos');
+    if (a.tipo === 'ajuste_batida' && !a.detalhe) throw new Error('Ajuste de batida: escolha qual batida');
     if (!a.id) { a.id = String(++D.seq); D.lista.push({ ...a, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu }); }
     else Object.assign(D.lista.find(x => x.id === a.id), a, { atualizado_em:ag, atualizado_por:eu });
     return { ok:true, id:a.id };
@@ -3455,7 +3464,7 @@ function telaPonto(){
       <input id="pt-busca" class="campo" placeholder="Colaborador ou motivo" value="${esc(s.busca)}" style="width:200px">
       <select id="pt-per">${[['7','Últimos 7 dias'],['30','Últimos 30 dias'],['mes','Este mês'],['mes_ant','Mês anterior'],['90','Últimos 90 dias']].map(([k, t]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <button class="btn" id="pt-atualizar">Atualizar</button>
-      ${pode('ponto', 'gerir') ? '<button class="btn pri" id="pt-inc-novo">+ Nova inconsistência</button>' : ''}
+      ${pode('ponto', 'gerir') ? '<button class="btn btn-rh" id="pt-inc-novo" title="Lançada pelo RH: fica pendente até um líder justificar">⚠ RH · Nova inconsistência</button>' : ''}
       ${pode('ponto', 'editar') ? '<button class="btn pri" id="pt-novo">+ Novo apontamento</button>' : ''}
     </div>
     <div id="ponto"><div class="carregando">Carregando…</div></div>
@@ -3475,7 +3484,8 @@ async function carregarPonto(){
 }
 const autorPonto = login => (state.pontoDados?.autores || []).find(a => a.login === login)?.nome || String(login || '').split('@')[0];
 const apontDoDia = i => (state.pontoDados?.apontamentos || []).filter(a => a.pessoa === i.pessoa && a.data === i.data);
-const horarioPonto = a => a.tipo === 'saida_retorno' || a.tipo === 'almoco' ? (a.hora_ini || a.hora_fim ? `${a.hora_ini || '?'} → ${a.hora_fim || (a.tipo === 'almoco' ? '?' : 'não voltou')}` : '') : a.hora_ini || '';
+const horarioPonto = a => a.tipo === 'saida_retorno' ? `${a.hora_ini || '?'} → ${a.hora_fim || 'não voltou'}`
+  : a.tipo === 'ajuste_batida' && a.detalhe?.endsWith('ambos') ? (a.hora_ini || a.hora_fim ? `${a.hora_ini || '?'} / ${a.hora_fim || '?'}` : '') : a.hora_ini || '';
 function renderPonto(){
   const s = state.ponto, d = state.pontoDados, $c = document.getElementById('ponto');
   if (!$c || !d) return;
@@ -3510,14 +3520,14 @@ function renderPonto(){
   } else {
     const lista = d.apontamentos.filter(a => a.data >= d.ini && a.data <= d.fim && (s.tipo === 'todos' || a.tipo === s.tipo) && (!t || a.pessoa.includes(t) || (a.motivo || '').toUpperCase().includes(t)));
     const n = k => lista.filter(a => k.includes(a.tipo)).length;
-    const porPessoa = {}; lista.forEach(a => { const x = porPessoa[a.pessoa] ||= { falta:0, falta_justificada:0, atraso:0, saida:0, almoco:0, outro:0, total:0 };
+    const porPessoa = {}; lista.forEach(a => { const x = porPessoa[a.pessoa] ||= { ajuste_batida:0, falta:0, falta_justificada:0, atraso:0, saida:0, outro:0, total:0 };
       x[a.tipo.startsWith('saida') ? 'saida' : a.tipo]++; x.total++; });
     $c.innerHTML = `${abas}${aviso}
       <div class="rr-res">
         <div class="rr-tile" style="--c:#02285a"><span>Apontamentos</span><b>${lista.length}</b><small>${Object.keys(porPessoa).length} pessoa(s) · ${dataBR(d.ini)} a ${dataBR(d.fim)}</small></div>
+        <div class="rr-tile" style="--c:${TIPOS_PONTO.ajuste_batida.cor}"><span>Ajustes de batida</span><b>${n(['ajuste_batida'])}</b><small>${lista.filter(a => a.tipo === 'ajuste_batida' && a.detalhe?.startsWith('almoco')).length} de almoço</small></div>
         <div class="rr-tile" style="--c:${TIPOS_PONTO.falta.cor}"><span>Faltas</span><b>${n(['falta', 'falta_justificada'])}</b><small>${n(['falta_justificada'])} justificada(s)</small></div>
-        <div class="rr-tile" style="--c:${TIPOS_PONTO.atraso.cor}"><span>Atrasos</span><b>${n(['atraso'])}</b><small>chegou depois do horário</small></div>
-        <div class="rr-tile" style="--c:${TIPOS_PONTO.saida_retorno.cor}"><span>Saídas e almoço</span><b>${n(['saida_antecipada', 'saida_retorno', 'almoco'])}</b><small>${n(['almoco'])} de almoço</small></div>
+        <div class="rr-tile" style="--c:${TIPOS_PONTO.atraso.cor}"><span>Atrasos e saídas</span><b>${n(['atraso', 'saida_antecipada', 'saida_retorno'])}</b><small>${n(['atraso'])} atraso(s) · ${n(['saida_antecipada', 'saida_retorno'])} saída(s)</small></div>
       </div>
       <div class="painel">
         <div class="rc-acoes"><select id="pt-tipo"><option value="todos">Todos os tipos</option>${Object.entries(TIPOS_PONTO).map(([k, x]) => `<option value="${k}" ${s.tipo === k ? 'selected' : ''}>${x.rot}</option>`).join('')}</select><span style="flex:1"></span><button class="btn" id="pt-csv">⬇ Excel</button></div>
@@ -3528,8 +3538,8 @@ function renderPonto(){
         </tbody></table></div>` : '<div class="vazio">Nenhum apontamento com esses filtros.</div>'}
       </div>
       ${Object.keys(porPessoa).length ? `<div class="painel" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Por colaborador <span class="info" style="font-weight:400">· no período</span></h3>
-        <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Colaborador</th><th>Faltas</th><th>Justificadas</th><th>Atrasos</th><th>Saídas</th><th>Almoço</th><th>Outros</th><th>Total</th></tr></thead><tbody>
-        ${Object.entries(porPessoa).sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0])).map(([p, x]) => `<tr data-ptp="${esc(p)}"><td style="text-align:left"><b>${esc(p)}</b></td><td>${x.falta || '–'}</td><td>${x.falta_justificada || '–'}</td><td>${x.atraso || '–'}</td><td>${x.saida || '–'}</td><td>${x.almoco || '–'}</td><td>${x.outro || '–'}</td><td><b>${x.total}</b></td></tr>`).join('')}
+        <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Colaborador</th><th>Ajustes de batida</th><th>Faltas</th><th>Justificadas</th><th>Atrasos</th><th>Saídas</th><th>Outros</th><th>Total</th></tr></thead><tbody>
+        ${Object.entries(porPessoa).sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0])).map(([p, x]) => `<tr data-ptp="${esc(p)}"><td style="text-align:left"><b>${esc(p)}</b></td><td>${x.ajuste_batida || '–'}</td><td>${x.falta || '–'}</td><td>${x.falta_justificada || '–'}</td><td>${x.atraso || '–'}</td><td>${x.saida || '–'}</td><td>${x.outro || '–'}</td><td><b>${x.total}</b></td></tr>`).join('')}
         </tbody></table></div><div class="info" style="margin-top:6px">Clique num colaborador para ver só os apontamentos dele.</div></div>` : ''}`;
     document.getElementById('pt-tipo').onchange = e => { s.tipo = e.target.value; renderPonto(); };
     $c.querySelectorAll('[data-pt]').forEach(tr => tr.onclick = () => abrirPonto(d.apontamentos.find(a => a.id === tr.dataset.pt)));
@@ -3554,7 +3564,7 @@ function abrirPonto(a, base){
   const d = state.pontoDados, novo = !a;
   const eu = state.usuario?.login || 'demonstracao', gerir = pode('ponto', 'gerir');
   const edita = pode('ponto', 'editar') && (novo || gerir || a.criado_por === eu), ro = edita ? '' : 'disabled';
-  a ||= { data: base?.data || hojeBRT(), pessoa: base?.pessoa || '', tipo: base?.tipo || 'falta', detalhe: base?.detalhe || null, hora_ini:'', hora_fim:'', motivo:'' };
+  a ||= { data: base?.data || hojeBRT(), pessoa: base?.pessoa || '', tipo: base?.tipo || null, detalhe: base?.detalhe || null, hora_ini:'', hora_fim:'', motivo:'' };
   let tipo = a.tipo, detalhe = a.detalhe, sujo = false;
   const g = gavetaPonto(novo ? 'Apontamento de ponto' : esc(a.pessoa), novo ? 'Novo' : dataBR(a.data), `
       ${!novo && !edita ? '<div class="aviso" style="margin-top:10px">Só quem lançou (ou a Gestão/RH) pode alterar este apontamento.</div>' : ''}
@@ -3563,9 +3573,8 @@ function abrirPonto(a, base){
         <label>Data<input type="date" id="pt-data" value="${a.data}" max="${hojeBRT()}" ${ro}></label>
         <label>Colaborador<input id="pt-pes" list="dl-pt-pes" value="${esc(a.pessoa)}" autocapitalize="characters" autocomplete="off" placeholder="digite as iniciais" ${ro}></label>
       </div>
-      <div class="gv-sec">Tipo</div>
-      <div class="etapas">${Object.entries(TIPOS_PONTO).map(([k, t]) => `<button type="button" class="etapa ${tipo === k ? 'on' : ''}" data-ptt="${k}" ${ro} style="--c:${t.cor};--f:${t.fundo}">${t.rot}</button>`).join('')}</div>
-      <div id="pt-alm"></div>
+      ${OPC_AP.map(gr => `<div class="gv-sec">${gr.grupo}</div><div class="etapas">${gr.itens.map(([t, dt, r]) => { const c = TIPOS_PONTO[t];
+        return `<button type="button" class="etapa ${tipo === t && (detalhe || null) === dt ? 'on' : ''}" data-ptt="${t}" data-ptd="${dt || ''}" ${ro} style="--c:${c.cor};--f:${c.fundo}">${r}</button>`; }).join('')}</div>`).join('')}
       <div class="grade-form g2" id="pt-horas" style="margin-top:12px"></div>
       <label class="gv-lab">Motivo<input id="pt-mot" class="campo" value="${esc(a.motivo || '')}" maxlength="300" placeholder="ex.: consulta médica, esqueceu de bater, problema com transporte" ${ro}></label>
       <div class="info" style="margin-top:6px">⚠ Não escreva diagnóstico, CID nem detalhes de saúde: basta "consulta médica" ou "atestado entregue ao RH".</div>
@@ -3574,20 +3583,22 @@ function abrirPonto(a, base){
         ${gerir ? '<div style="margin-top:18px"><button class="btn perigo" id="pt-excluir">Excluir apontamento</button></div>' : ''}`}`);
   const $ = k => document.getElementById(k);
   forcaCaixaAlta($('pt-pes'));
-  const horas = () => { const t = TIPOS_PONTO[tipo]; const hi = $('pt-hi')?.value ?? a.hora_ini ?? '', hf = $('pt-hf')?.value ?? a.hora_fim ?? '';
-    $('pt-alm').innerHTML = tipo === 'almoco' ? `<div class="gv-sec">Batida do almoço</div><div class="etapas">${Object.entries(DETALHE_ALMOCO).map(([k, r]) => `<button type="button" class="etapa ${detalhe === k ? 'on' : ''}" data-ptd="${k}" ${ro} style="--c:#7a4b12;--f:#f6ecdc">${r}</button>`).join('')}</div>` : '';
-    g.querySelectorAll('[data-ptd]').forEach(b => b.onclick = () => { detalhe = b.dataset.ptd; sujo = true; g.querySelectorAll('[data-ptd]').forEach(x => x.classList.toggle('on', x === b)); });
-    $('pt-horas').innerHTML = (t.hora ? `<label>${t.hora}<input type="time" id="pt-hi" value="${esc(hi || '')}" ${ro}></label>` : '') + (t.fim ? `<label>${t.fim}<input type="time" id="pt-hf" value="${esc(hf || '')}" ${ro}>${tipo === 'saida_retorno' ? '<span class="info">em branco = não voltou</span>' : ''}</label>` : ''); };
+  const horas = () => { const hi = $('pt-hi')?.value ?? a.hora_ini ?? '', hf = $('pt-hf')?.value ?? a.hora_fim ?? '';
+    if (!tipo) { $('pt-horas').innerHTML = ''; return; }
+    const t = TIPOS_PONTO[tipo], rot = tipo === 'ajuste_batida' ? (HORAS_AJUSTE[detalhe] || []) : [t.hora, t.fim].filter(Boolean);
+    $('pt-horas').innerHTML = (rot[0] ? `<label>${rot[0]}<input type="time" id="pt-hi" value="${esc(hi || '')}" ${ro}>${tipo === 'ajuste_batida' ? '<span class="info">o horário real, para o RH ajustar</span>' : ''}</label>` : '')
+      + (rot[1] ? `<label>${rot[1]}<input type="time" id="pt-hf" value="${esc(hf || '')}" ${ro}>${tipo === 'saida_retorno' ? '<span class="info">em branco = não voltou</span>' : ''}</label>` : ''); };
   horas();
   g.querySelectorAll('input').forEach(el => el.addEventListener('input', () => { sujo = true; }));
-  g.querySelectorAll('[data-ptt]').forEach(b => b.onclick = () => { tipo = b.dataset.ptt; sujo = true; g.querySelectorAll('[data-ptt]').forEach(x => x.classList.toggle('on', x === b)); horas(); });
+  g.querySelectorAll('[data-ptt]').forEach(b => b.onclick = () => { tipo = b.dataset.ptt; detalhe = b.dataset.ptd || null; sujo = true; g.querySelectorAll('[data-ptt]').forEach(x => x.classList.toggle('on', x === b)); horas(); });
   const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = () => { if (sujo && !confirmarSaida()) return; fechar(); }; $('gv-fundo').onclick = $('gv-fechar').onclick;
   const erro = m => { const x = $('pt-erro'); x.hidden = !m; x.textContent = m || ''; };
   const ok = $('pt-ok'); if (ok) ok.onclick = async () => {
-    const corpo = { id: a.id || null, data: $('pt-data').value, pessoa: caixaAltaTxt($('pt-pes').value).trim(), tipo, detalhe: tipo === 'almoco' ? detalhe : null, hora_ini: $('pt-hi')?.value || null, hora_fim: $('pt-hf')?.value || null, motivo: $('pt-mot').value.trim() };
+    if (!tipo) return erro('Escolha o tipo do apontamento.');
+    const corpo = { id: a.id || null, data: $('pt-data').value, pessoa: caixaAltaTxt($('pt-pes').value).trim(), tipo, detalhe: tipo === 'ajuste_batida' ? detalhe : null, hora_ini: $('pt-hi')?.value || null, hora_fim: $('pt-hf')?.value || null, motivo: $('pt-mot').value.trim() };
     if (!corpo.pessoa) return erro('Informe o colaborador.'); if (!corpo.motivo) return erro('Informe o motivo.');
-    if (tipo === 'almoco' && !detalhe) return erro('Almoço: escolha entrada, saída ou ambos.');
+    if (tipo === 'ajuste_batida' && !detalhe) return erro('Ajuste de batida: escolha qual batida.');
     ok.disabled = true;
     try {
       const res = await apiPonto('/ponto/apontamento', corpo);
@@ -3641,8 +3652,7 @@ function abrirInconsistencia(i){
   g.querySelectorAll('[data-usar-ap]').forEach(b => b.onclick = () => tentar(() => apiPonto('/ponto/inconsistencia/justificar', { id:i.id, apontamento_id:b.dataset.usarAp, justificativa: $('ic-just')?.value.trim() || null }), 'Inconsistência justificada'));
   const jo = $('ic-just-ok'); if (jo) jo.onclick = () => { const j = $('ic-just').value.trim(); if (!j) return erro('Escreva a justificativa (ou use um apontamento já lançado).');
     tentar(() => apiPonto('/ponto/inconsistencia/justificar', { id:i.id, justificativa:j, apontamento_id:null }), 'Inconsistência justificada'); };
-  const la = $('ic-ap'); if (la) la.onclick = () => abrirPonto(null, { pessoa:i.pessoa, data:i.data, tipo: i.batida?.startsWith('almoco') || i.tipo.startsWith('almoco') ? 'almoco' : 'outro',
-    detalhe: i.batida === 'almoco_entrada' ? 'entrada' : i.batida === 'almoco_saida' ? 'saida' : i.batida === 'almoco_ambos' ? 'ambos' : null, inc:i });
+  const la = $('ic-ap'); if (la) la.onclick = () => abrirPonto(null, { pessoa:i.pessoa, data:i.data, tipo: i.tipo === 'ausencia_batida' ? 'ajuste_batida' : null, detalhe: i.tipo === 'ausencia_batida' ? i.batida : null, inc:i });
   const re = $('ic-reabrir'); if (re) re.onclick = () => tentar(() => apiPonto('/ponto/inconsistencia/justificar', { id:i.id, reabrir:true }), 'Inconsistência reaberta');
   const ex = $('ic-excluir'); if (ex) ex.onclick = () => { if (!confirmaDupla(ex, 'Clique de novo para excluir')) return; tentar(() => apiPonto('/ponto/inconsistencia/excluir', { id:i.id }), 'Inconsistência excluída'); };
   if (novo) $('ic-pes').focus();
