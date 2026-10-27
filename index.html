@@ -232,6 +232,10 @@
   .foto-modal-box{background:var(--card,#fff);border-radius:14px;padding:18px 20px;width:min(380px,100%);box-shadow:0 10px 40px rgba(0,0,0,.3)} .foto-modal-box h3{margin:0 0 12px}
   .foto-prev{display:flex;justify-content:center;margin:6px 0 14px}
   .tab-ponto td{vertical-align:middle}
+  .pt-abas{margin-bottom:12px} .pt-badge{background:#c0392b;color:#fff;border-radius:10px;padding:0 7px;font-size:11px;margin-left:4px}
+  .pt-aviso{margin:0 0 12px} .tab-ponto tr.pend td{background:#fffbea} .pt-sug{color:#0b4fa8;font-size:12.5px}
+  .pt-sug-it{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px}
+  .pt-just{border:1px solid #bfe3cc;background:#f2faf5;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
   .rc-filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
   .cn-f{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;cursor:pointer;color:var(--ink)} .cn-f.on{background:var(--pri);color:#fff;border-color:var(--pri)}
   .rc-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
@@ -1455,7 +1459,9 @@ function romaneioHtml(envios, emb = {}, rom = null){
   .emb .rot{color:#1b2333}
   .obs{margin-top:3mm} .obs i{display:block;border-bottom:0.35mm solid #9aa3b5;height:7mm}
   .campo i.pre{font-style:normal;font-size:13pt;font-weight:700;color:#1b2333;display:flex;align-items:flex-end;padding-bottom:1mm;white-space:nowrap;overflow:hidden}
-  .ass{margin-top:16mm}
+  .emb .campo span{margin-top:2mm} .emb .campo i{height:7mm} .emb .horas{height:7mm} .resumo{margin-top:4mm} table{margin-top:4mm}
+  .ass{margin-top:19mm} .ass div{position:relative}
+  .ass .ass-img{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);height:15mm;max-width:80%;object-fit:contain;mix-blend-mode:multiply}
   .sub-l{display:flex;gap:5mm;align-items:center;margin-top:3mm}
   .sub-l .sub{margin-top:0;flex:1}
   .qr-r{display:flex;align-items:center;gap:2.5mm;border:0.5mm solid #1b2333;border-radius:2mm;padding:1.5mm 2.5mm 1.5mm 1.5mm;max-width:62mm}
@@ -1481,16 +1487,16 @@ function romaneioHtml(envios, emb = {}, rom = null){
       <div class="rot">Dados do embarque</div>
       <div class="campos">
         <div class="campo"><span>TRANSPORTADORA</span><i class="pre">${esc(emb.transportadora || '')}</i></div>
-        <div class="campo"><span>Nº DA COLETA ML</span><i class="pre">${esc(emb.ml_coleta || '')}</i></div>
-        <div class="campo cheio"><span>Nº DO LACRE</span><i class="pre">${esc(emb.lacre || '')}</i></div>
         <div class="campo"><span>PLACA${emb.veiculo ? ' · VEÍCULO' : ''}</span><i class="pre">${esc([emb.placa ? fmtPlaca(emb.placa) : '', emb.veiculo].filter(Boolean).join(' · '))}</i></div>
         <div class="campo"><span>MOTORISTA${emb.telefone ? ' · TELEFONE' : ''}</span><i class="pre">${esc([emb.motorista, emb.telefone].filter(Boolean).join(' · '))}</i></div>
+        <div class="campo"><span>Nº DA COLETA ML</span><i class="pre">${esc(emb.ml_coleta || '')}</i></div>
+        <div class="campo"><span>Nº DO LACRE</span><i class="pre">${esc(emb.lacre || '')}</i></div>
+        <div class="campo"><span>RESPONSÁVEL VALENRO</span><i class="pre">${esc(emb.responsavel || '')}</i></div>
         <div class="campo"><span>HORÁRIO DE CHEGADA</span>${rom?.chegada_em ? `<div class="horas pre"><em>DATA</em>${dataBR(isoLocal(rom.chegada_em).slice(0, 10)).slice(0, 5)} · ${soHora(rom.chegada_em)}</div>` : '<div class="horas"><em>DATA ____/____</em>____ : ____</div>'}</div>
         <div class="campo"><span>HORÁRIO DE SAÍDA</span>${rom?.saida_em ? `<div class="horas pre"><em>DATA</em>${dataBR(isoLocal(rom.saida_em).slice(0, 10)).slice(0, 5)} · ${soHora(rom.saida_em)}</div>` : '<div class="horas"><em>DATA ____/____</em>____ : ____</div>'}</div>
-        ${emb.responsavel ? `<div class="campo cheio"><span>RESPONSÁVEL VALENRO</span><i class="pre">${esc(emb.responsavel)}</i></div>` : ''}
-        <div class="campo cheio obs"><span>OBSERVAÇÕES</span>${emb.observacao ? `<i class="pre" style="font-size:11pt;font-weight:400">${esc(emb.observacao)}</i><i></i>` : '<i></i><i></i>'}</div>
+        <div class="campo cheio obs"><span>OBSERVAÇÕES</span>${emb.observacao ? `<i class="pre" style="font-size:11pt;font-weight:400">${esc(emb.observacao)}</i>` : '<i></i>'}</div>
       </div>
-      <div class="ass"><div>CONFERENTE / LÍDER<small>assinatura e nome legível</small></div><div>MOTORISTA<small>assinatura e documento</small></div></div>
+      <div class="ass"><div>CONFERENTE / LÍDER<small>assinatura e nome legível</small></div><div>${rom?.assinatura ? `<img class="ass-img" src="${rom.assinatura}" alt="">` : ''}MOTORISTA<small>${rom?.assinado_em ? `assinado digitalmente em ${quando(rom.assinado_em)}` : 'assinatura e documento'}</small></div></div>
     </div>
     <div class="esp2"></div>
     <div class="rodape" style="padding:3mm 0 0;white-space:normal"><span>${rom ? nRom(rom.id) + ' · ' : ''}Romaneio com ${L.length} coleta${L.length === 1 ? '' : 's'}: ${L.map(e => '#' + esc(e.pedido)).join(', ')}</span><span>Impresso em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
@@ -1602,6 +1608,10 @@ function apiRomDemo(path, corpo){
     }
     r.atualizado_em = ag; return { ok:true };
   }
+  if (path.startsWith('/full/romaneio/assinatura')) return { assinatura: R.romaneios.find(x => x.id === q.get('id'))?.assinatura || null };
+  if (path === '/full/romaneio/assinar') { const r = R.romaneios.find(x => x.id === corpo.id);
+    if (!r.motorista) throw new Error('Informe o motorista no romaneio antes de colher a assinatura');
+    Object.assign(r, { assinatura:corpo.assinatura, assinado_em:ag, assinado_por:'demonstracao', atualizado_em:ag }); ev(r.id, 'assinar', null, { motorista:r.motorista }); return { ok:true }; }
   if (path === '/full/romaneio/cancelar') {
     const r = R.romaneios.find(x => x.id === corpo.id);
     if (r.status === 'expedido') throw new Error('Romaneio já expedido não pode ser cancelado: o veículo já saiu.');
@@ -1688,7 +1698,7 @@ function renderRomaneios(){
         <td>${fmtN(soma(v, x => x.r.envio_ids.length))}<small>coletas</small></td><td>${fmtN(soma(v, x => x.pares))}<small>pares</small></td><td>${fmtN(soma(v, x => x.cx))}<small>caixas</small></td><td>${fmtM3(soma(v, x => x.m3))}<small>m³</small></td><td colspan="3"></td></tr>`; })()}
       <tr><th>Nº</th><th>Embarque</th><th>Status</th><th style="text-align:left">Motorista</th><th>Transportadora</th><th>Placa</th><th>Coletas</th><th>Pares</th><th>Caixas</th><th>m³</th><th>Chegada</th><th>Saída</th><th>Doca</th></tr></thead>
       <tbody>${L.map(({ r, es, dm, pares, cx, m3 }) => `<tr data-rom="${r.id}" class="${s.romAberto === r.id ? 'sel' : ''} ${r.status === 'cancelado' ? 'canc' : ''}">
-        <td><b>${nRom(r.id)}</b>${r.ml_coleta ? `<div class="info" style="font-size:11px" title="Nº da coleta no Mercado Livre">ML ${esc(r.ml_coleta)}</div>` : ''}${r.lacre ? `<div class="info" style="font-size:11px" title="Lacre">🔒 ${esc(r.lacre)}</div>` : ''}</td><td>${dataBR(r.data).slice(0, 5)}${r.janela_ini ? `<div class="info" style="font-size:11px">${janelaTxt(r)}</div>` : ''}</td><td>${pillRom(r.status)}</td>
+        <td><b>${nRom(r.id)}</b>${r.ml_coleta ? `<div class="info" style="font-size:11px" title="Nº da coleta no Mercado Livre">ML ${esc(r.ml_coleta)}</div>` : ''}${r.lacre ? `<div class="info" style="font-size:11px" title="Lacre">🔒 ${esc(r.lacre)}</div>` : ''}</td><td>${dataBR(r.data).slice(0, 5)}${r.janela_ini ? `<div class="info" style="font-size:11px">${janelaTxt(r)}</div>` : ''}</td><td>${pillRom(r.status)}${r.assinado_em ? ' <span title="Assinado pelo motorista">✍</span>' : ''}</td>
         <td style="text-align:left">${esc(r.motorista || '') || '<span class="info">a definir</span>'}</td><td>${esc(r.transportadora || '') || '<span class="info">–</span>'}</td><td>${r.placa ? esc(fmtPlaca(r.placa)) : '<span class="info">–</span>'}</td>
         <td title="${esc(es.map(e => '#' + e.pedido).join(' '))}">${r.envio_ids.length}</td><td>${fmtN(pares)}</td><td>${fmtN(cx)}</td><td>${fmtM3(m3)}</td>
         <td>${hora(r.chegada_em)}${tagJanela(r)}</td><td>${hora(r.saida_em)}</td><td>${dm === null ? '<span class="info">–</span>' : `<b>${fmtDur(dm)}</b>`}</td></tr>`).join('')}
@@ -1839,6 +1849,7 @@ function abrirRomaneio(id, recarregando){
         ${mexeCarga ? `<div id="gv-form-carregamento"></div><button class="btn mini" data-nova="carregamento" style="margin-top:6px">+ Apontar carregamento</button>` : ''}
 
         <div class="gv-sec">Fotos <span class="info">app do motorista, veículo carregado, lacre</span></div><div id="rd-fotos"></div>
+        <div class="gv-sec">Assinatura do motorista</div><div id="rd-assin"></div>
 
         <div class="gv-sec">Embarque ${edCab ? '' : r.status === 'expedido' ? '<span class="info">(veículo já saiu: só líder altera)</span>' : ''}</div>
         ${camposEmbarque(r, mots, edCab)}
@@ -1859,10 +1870,14 @@ function abrirRomaneio(id, recarregando){
     const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, janela_ini:r.janela_ini, janela_fim:r.janela_fim, lacre:r.lacre, ml_coleta:r.ml_coleta, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, responsavel:r.responsavel, observacao:r.observacao };
     return apiFull('/full/romaneio', { id:r.id, versao:r.atualizado_em, ...c, envio_ids:ids, ...extra });
   };
-  const imp = $('rd-imp'); if (imp) imp.onclick = () => imprimirHtml(romaneioHtml(es, embParaImpresso(r), r));
+  const imp = $('rd-imp'); if (imp) imp.onclick = async () => {
+    let assinatura = null;
+    if (r.assinado_em) { try { ({ assinatura } = await apiFull(`/full/romaneio/assinatura?id=${r.id}`)); } catch (e) { if (e instanceof SemSessao) throw e; } }
+    imprimirHtml(romaneioHtml(es, embParaImpresso(r), { ...r, assinatura }));
+  };
   g.querySelectorAll('[data-evento]').forEach(b => b.onclick = async () => {
     const tipo = b.dataset.evento, em = $(`rd-${tipo}-em`).value;
-    if (tipo === 'saida' && !r.saida_em && !confirmaDupla(b, `Confirmar saída? ${es.length} coleta(s) vão para Expedido`)) return;
+    if (tipo === 'saida' && !r.saida_em && !confirmaDupla(b, `Confirmar saída${r.assinado_em ? '' : ' SEM assinatura'}? ${es.length} coleta(s) vão para Expedido`)) return;
     b.disabled = true;
     try { await apiFull('/full/romaneio/evento', { id:r.id, tipo, em, versao:r.atualizado_em }); await recarregar(tipo === 'chegada' ? 'Chegada registrada' : r.saida_em ? 'Horário de saída corrigido' : `Saída registrada: ${es.length} coleta(s) expedida(s)`); }
     catch (e) { if (e instanceof SemSessao) throw e; b.disabled = false; erro(e.message); }
@@ -1891,6 +1906,30 @@ function abrirRomaneio(id, recarregando){
       aoSalvar: () => recarregar(), aoFechar: () => { if (btn) btn.hidden = false; } });
   };
   blocoFotos($('rd-fotos'), { alvo:'full_romaneio', id:r.id, tela:'full', editar: editar && r.status !== 'cancelado', tipos:['comprovante', 'veiculo', 'lacre', 'outra'] });
+  // assinatura do motorista (igual ao CROSS)
+  const desenhaAssinRom = async refazer => {
+    const $a = $('rd-assin'); if (!$a) return;
+    if (r.assinado_em && !refazer) {
+      $a.innerHTML = `<div class="assin-ok"><img id="rd-assin-img" alt="Assinatura do motorista"><div><b>✍ Assinado${r.motorista ? ' por ' + esc(r.motorista) : ''}</b><br><span class="info">${quando(r.assinado_em)}${r.assinado_por ? ` · colhida por ${esc(String(r.assinado_por).split('@')[0])}` : ''}</span></div>
+        ${gerir && r.status !== 'cancelado' ? '<button type="button" class="btn mini" id="rd-reassinar">Colher nova assinatura</button>' : ''}</div>`;
+      const ra = $('rd-reassinar'); if (ra) ra.onclick = () => desenhaAssinRom(true);
+      try { const { assinatura } = await apiFull(`/full/romaneio/assinatura?id=${r.id}`); const im = $('rd-assin-img'); if (im && assinatura) im.src = assinatura; } catch (e) { if (e instanceof SemSessao) throw e; }
+      return;
+    }
+    if (!editar || r.status === 'cancelado') { $a.innerHTML = '<div class="vazio">Ainda não assinado.</div>'; return; }
+    $a.innerHTML = `<div class="pad"><canvas id="rd-pad"></canvas><span class="pad-linha">assinatura do motorista</span></div>
+      <div class="gv-acoes" style="justify-content:space-between;margin-top:6px"><span class="info">Peça ao motorista para assinar com o dedo ao conferir as coletas.${r.motorista ? '' : ' <b>Informe o motorista no embarque antes.</b>'}</span>
+        <span style="display:flex;gap:6px"><button type="button" class="btn mini" id="rd-pad-limpar">Limpar</button><button type="button" class="btn pri" id="rd-assinar">✍ Salvar assinatura</button></span></div>`;
+    const pad = padAssinatura($('rd-pad'));
+    $('rd-pad-limpar').onclick = () => pad.limpar();
+    $('rd-assinar').onclick = async ev => {
+      if (!pad.temTinta()) return erro('O motorista ainda não assinou no quadro.');
+      ev.target.disabled = true;
+      try { await apiFull('/full/romaneio/assinar', { id:r.id, assinatura:pad.png() }); await recarregar('Assinatura do motorista salva'); }
+      catch (e) { if (e instanceof SemSessao) throw e; ev.target.disabled = false; erro(e.message); }
+    };
+  };
+  desenhaAssinRom(false);
   const nvc = g.querySelector('[data-nova="carregamento"]'); if (nvc) nvc.onclick = () => formCarga(null);
   g.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => formCarga(cg.find(c => c.id === b.dataset.ec)));
   g.querySelectorAll('[data-ir-envio]').forEach(b => b.onclick = () => { s.vista = 'envios'; s.romAberto = null; s.aberto = b.dataset.irEnvio; s.aba = 'todos'; s.st = null; telaFull(); });
@@ -3341,47 +3380,82 @@ async function minhaFoto(){
 }
 
 /* =================== APONTAMENTOS DE PONTO (Gestão do time) =================== */
+// Apontamento: o líder registra (falta, atraso, saída, almoço...). Inconsistência: o RH lança o que achou no ponto e um líder justifica.
 const TIPOS_PONTO = {
   falta:             { rot:'Falta',             cor:'#8a1f1f', fundo:'#fbe9e9' },
   falta_justificada: { rot:'Falta justificada', cor:'#9a5b00', fundo:'#fff1d6' },
   atraso:            { rot:'Atraso',            cor:'#6b3fa0', fundo:'#efe7fa', hora:'Chegou às' },
   saida_antecipada:  { rot:'Saída antecipada',  cor:'#0b4fa8', fundo:'#e3eefc', hora:'Saiu às' },
   saida_retorno:     { rot:'Saída e retorno',   cor:'#0f6e66', fundo:'#dff5f1', hora:'Saiu às', fim:'Voltou às' },
+  almoco:            { rot:'Almoço',            cor:'#7a4b12', fundo:'#f6ecdc', hora:'Saiu para o almoço (opcional)', fim:'Voltou do almoço (opcional)' },
   outro:             { rot:'Outro',             cor:'#566074', fundo:'#eef0f4', hora:'Horário (opcional)' },
 };
-const pillPonto = t => `<span class="st-full" style="color:${TIPOS_PONTO[t]?.cor};background:${TIPOS_PONTO[t]?.fundo}">${esc(TIPOS_PONTO[t]?.rot || t)}</span>`;
+const DETALHE_ALMOCO = { entrada:'Entrada', saida:'Saída', ambos:'Entrada e saída' };
+const TIPOS_INC = { ausencia_batida:'Ausência de batida', almoco_reduzido:'Almoço reduzido', almoco_estendido:'Almoço estendido', jornada_estendida:'Jornada estendida' };
+const BATIDA_ROT = { entrada:'Entrada', saida:'Saída', ambos:'Entrada e saída', almoco_entrada:'Almoço · entrada', almoco_saida:'Almoço · saída', almoco_ambos:'Almoço · entrada e saída' };
+// opções da tela (tipo + batida numa escolha só)
+const OPC_INC = [
+  { grupo:'Ausência de batida · Jornada', itens:[['ausencia_batida', 'entrada', 'Entrada'], ['ausencia_batida', 'saida', 'Saída'], ['ausencia_batida', 'ambos', 'Entrada e saída']] },
+  { grupo:'Ausência de batida · Almoço', itens:[['ausencia_batida', 'almoco_entrada', 'Entrada'], ['ausencia_batida', 'almoco_saida', 'Saída'], ['ausencia_batida', 'almoco_ambos', 'Entrada e saída']] },
+  { grupo:'Divergências', itens:[['almoco_reduzido', null, 'Almoço reduzido'], ['almoco_estendido', null, 'Almoço estendido'], ['jornada_estendida', null, 'Jornada estendida']] },
+];
+const incTxt = i => i.tipo === 'ausencia_batida' ? `Ausência de batida · ${BATIDA_ROT[i.batida] || ''}` : TIPOS_INC[i.tipo] || i.tipo;
+const tipoPontoTxt = a => `${TIPOS_PONTO[a.tipo]?.rot || a.tipo}${a.tipo === 'almoco' && a.detalhe ? ` · ${DETALHE_ALMOCO[a.detalhe].toLowerCase()}` : ''}`;
+const pillPonto = a => `<span class="st-full" style="color:${TIPOS_PONTO[a.tipo]?.cor};background:${TIPOS_PONTO[a.tipo]?.fundo}">${esc(tipoPontoTxt(a))}</span>`;
+const pillInc = i => i.situacao === 'pendente' ? '<span class="st-full" style="color:#9a5b00;background:#fff1d6">Pendente</span>' : '<span class="st-full" style="color:#1a7a3e;background:#e2f5e8">Justificada</span>';
+
 const DEMO_PONTO = (() => { const h = hojeBRT(), ag = new Date().toISOString();
-  const L = [[0, 'KELVIN', 'saida_retorno', '10:00', '11:20', 'Consulta médica (trouxe declaração)', 'guilherme.porto@op.valenro.local'],
-    [-1, 'RAFAEL', 'atraso', '08:40', null, 'Ônibus quebrou', 'degmar.gomes@op.valenro.local'], [-2, 'ESTEVÃO', 'falta', null, null, 'Não avisou', 'guilherme.porto@op.valenro.local'],
-    [-3, 'ESTEVÃO', 'falta_justificada', null, null, 'Atestado entregue ao RH', 'douglas.ribeiro@op.valenro.local'], [-6, 'VITOR', 'saida_antecipada', '15:30', null, 'Problema familiar, combinado com o líder', 'degmar.gomes@op.valenro.local'],
-    [-9, 'RAFAEL', 'atraso', '08:25', null, 'Trânsito', 'degmar.gomes@op.valenro.local']];
-  return { seq:L.length, eventos:[], lista:L.map((l, i) => ({ id:String(i + 1), data:addDias(h, l[0]), pessoa:l[1], tipo:l[2], hora_ini:l[3], hora_fim:l[4], motivo:l[5], observacao:null, criado_em:ag, criado_por:l[6], atualizado_em:ag, atualizado_por:l[6] })) }; })();
+  const L = [[0, 'KELVIN', 'saida_retorno', '10:00', '11:20', 'Consulta médica (trouxe declaração)', 'guilherme.porto@op.valenro.local', null],
+    [-1, 'RAFAEL', 'atraso', '08:40', null, 'Ônibus quebrou', 'degmar.gomes@op.valenro.local', null], [-2, 'ESTEVÃO', 'falta', null, null, 'Não avisou', 'guilherme.porto@op.valenro.local', null],
+    [-3, 'ESTEVÃO', 'falta_justificada', null, null, 'Atestado entregue ao RH', 'douglas.ribeiro@op.valenro.local', null], [-6, 'VITOR', 'saida_antecipada', '15:30', null, 'Problema familiar, combinado com o líder', 'degmar.gomes@op.valenro.local', null],
+    [-4, 'CÉSAR', 'almoco', null, null, 'Esqueceu de bater a volta do almoço', 'guilherme.porto@op.valenro.local', 'entrada']];
+  const I = [[-4, 'CÉSAR', 'ausencia_batida', 'almoco_entrada'], [-5, 'DAVI DUARTE', 'almoco_estendido', null], [-1, 'RAFAEL', 'ausencia_batida', 'entrada'], [-8, 'KELVIN', 'jornada_estendida', null, 'Ficou para fechar o carregamento do Full (combinado)', 'guilherme.porto@op.valenro.local']];
+  return { seq:20, eventos:[],
+    lista:L.map((l, i) => ({ id:String(i + 1), data:addDias(h, l[0]), pessoa:l[1], tipo:l[2], detalhe:l[7], hora_ini:l[3], hora_fim:l[4], motivo:l[5], criado_em:ag, criado_por:l[6], atualizado_em:ag, atualizado_por:l[6] })),
+    inc:I.map((l, i) => ({ id:String(i + 1), data:addDias(h, l[0]), pessoa:l[1], tipo:l[2], batida:l[3], situacao: l[4] ? 'justificada' : 'pendente', justificativa:l[4] || null, apontamento_id:null,
+      justificado_em: l[4] ? ag : null, justificado_por:l[5] || null, criado_em:ag, criado_por:'rh.valenro@op.valenro.local', atualizado_em:ag, atualizado_por:'rh.valenro@op.valenro.local' })) }; })();
 async function apiPonto(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
-  const D = DEMO_PONTO, ag = new Date().toISOString(), q = new URLSearchParams(path.split('?')[1] || '');
-  if (path.startsWith('/ponto?')) return { ini:q.get('ini'), fim:q.get('fim'), hoje:hojeBRT(), apontamentos: JSON.parse(JSON.stringify(D.lista.filter(a => a.data >= q.get('ini') && a.data <= q.get('fim')))).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id),
-    pessoas:['ARTHUR MAGDALENO', 'CÉSAR', 'DAVI DUARTE', 'ESTEVÃO', 'KELVIN', 'RAFAEL', 'VITOR', 'VINICIUS CORREA'],
-    autores:[{ login:'douglas.ribeiro@op.valenro.local', nome:'Douglas Ribeiro' }, { login:'guilherme.porto@op.valenro.local', nome:'Guilherme Porto' }, { login:'degmar.gomes@op.valenro.local', nome:'Degmar Gomes' }, { login:'demonstracao', nome:'Demonstração' }] };
-  if (path.startsWith('/ponto/historico')) return { eventos: D.eventos.filter(e => e.apontamento_id === q.get('id')) };
+  const D = DEMO_PONTO, ag = new Date().toISOString(), q = new URLSearchParams(path.split('?')[1] || ''), eu = state.usuario?.login || 'demonstracao';
+  if (path.startsWith('/ponto?')) { const ini = q.get('ini'), fim = q.get('fim'), pend = D.inc.filter(i => i.situacao === 'pendente');
+    return { ini, fim, hoje:hojeBRT(), apontamentos: JSON.parse(JSON.stringify(D.lista.filter(a => (a.data >= ini && a.data <= fim) || pend.some(i => i.pessoa === a.pessoa && i.data === a.data)))).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id),
+      inconsistencias: JSON.parse(JSON.stringify(D.inc.filter(i => (i.data >= ini && i.data <= fim) || i.situacao === 'pendente'))).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id),
+      pessoas:['ARTHUR MAGDALENO', 'CÉSAR', 'DAVI DUARTE', 'ESTEVÃO', 'KELVIN', 'RAFAEL', 'VITOR', 'VINICIUS CORREA'],
+      autores:[{ login:'douglas.ribeiro@op.valenro.local', nome:'Douglas Ribeiro' }, { login:'guilherme.porto@op.valenro.local', nome:'Guilherme Porto' }, { login:'degmar.gomes@op.valenro.local', nome:'Degmar Gomes' }, { login:'rh.valenro@op.valenro.local', nome:'RH' }, { login:'demonstracao', nome:'Demonstração' }] }; }
   if (path === '/ponto/apontamento') {
     const a = { ...corpo, pessoa: caixaAltaTxt(corpo.pessoa || '').trim() };
     if (!a.pessoa) throw new Error('Informe o colaborador'); if (!a.motivo) throw new Error('Informe o motivo');
     if (['atraso', 'saida_antecipada', 'saida_retorno'].includes(a.tipo) && !a.hora_ini) throw new Error('Informe o horário');
-    if (!a.id) { a.id = String(++D.seq); D.lista.push({ ...a, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' }); D.eventos.unshift({ apontamento_id:a.id, em:ag, por:'demonstracao', acao:'criar' }); }
-    else { Object.assign(D.lista.find(x => x.id === a.id), a, { atualizado_em:ag, atualizado_por:'demonstracao' }); D.eventos.unshift({ apontamento_id:a.id, em:ag, por:'demonstracao', acao:'alterar', depois:a }); }
+    if (a.tipo === 'almoco' && !a.detalhe) throw new Error('Almoço: escolha entrada, saída ou ambos');
+    if (!a.id) { a.id = String(++D.seq); D.lista.push({ ...a, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu }); }
+    else Object.assign(D.lista.find(x => x.id === a.id), a, { atualizado_em:ag, atualizado_por:eu });
     return { ok:true, id:a.id };
   }
   if (path === '/ponto/excluir') { D.lista = D.lista.filter(a => a.id !== corpo.id); return { ok:true }; }
+  if (path === '/ponto/inconsistencia') {
+    const i = { ...corpo, pessoa: caixaAltaTxt(corpo.pessoa || '').trim() };
+    if (!i.pessoa) throw new Error('Informe o colaborador'); if (!i.tipo) throw new Error('Escolha o tipo');
+    if (!i.id) { i.id = String(++D.seq); D.inc.push({ ...i, situacao:'pendente', justificativa:null, apontamento_id:null, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu }); }
+    else Object.assign(D.inc.find(x => x.id === i.id), i, { atualizado_em:ag, atualizado_por:eu });
+    return { ok:true, id:i.id };
+  }
+  if (path === '/ponto/inconsistencia/justificar') { const i = D.inc.find(x => x.id === corpo.id);
+    if (corpo.reabrir) Object.assign(i, { situacao:'pendente' });
+    else { if (!corpo.justificativa && !corpo.apontamento_id) throw new Error('Escreva a justificativa (ou ligue a um apontamento já lançado)');
+      Object.assign(i, { situacao:'justificada', justificativa:corpo.justificativa || null, apontamento_id:corpo.apontamento_id || null, justificado_em:ag, justificado_por:eu }); }
+    return { ok:true }; }
+  if (path === '/ponto/inconsistencia/excluir') { D.inc = D.inc.filter(i => i.id !== corpo.id); return { ok:true }; }
 }
 function telaPonto(){
-  const s = state.ponto ||= { per:'30', tipo:'todos', busca:'' };
+  const s = state.ponto ||= { per:'30', tipo:'todos', busca:'', aba:'inc', sit:'pendente' };
+  s.aba ||= 'inc'; s.sit ||= 'pendente';
   $app.innerHTML = `
     <div class="barra">
       <h2>Apontamentos de ponto</h2><span class="restrito" title="Só Gestão, líderes e RH">🔒 acesso restrito</span><span style="flex:1"></span>
       <input id="pt-busca" class="campo" placeholder="Colaborador ou motivo" value="${esc(s.busca)}" style="width:200px">
       <select id="pt-per">${[['7','Últimos 7 dias'],['30','Últimos 30 dias'],['mes','Este mês'],['mes_ant','Mês anterior'],['90','Últimos 90 dias']].map(([k, t]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-      <select id="pt-tipo"><option value="todos">Todos os tipos</option>${Object.entries(TIPOS_PONTO).map(([k, t]) => `<option value="${k}" ${s.tipo === k ? 'selected' : ''}>${t.rot}</option>`).join('')}</select>
       <button class="btn" id="pt-atualizar">Atualizar</button>
+      ${pode('ponto', 'gerir') ? '<button class="btn pri" id="pt-inc-novo">+ Nova inconsistência</button>' : ''}
       ${pode('ponto', 'editar') ? '<button class="btn pri" id="pt-novo">+ Novo apontamento</button>' : ''}
     </div>
     <div id="ponto"><div class="carregando">Carregando…</div></div>
@@ -3389,9 +3463,9 @@ function telaPonto(){
   const $ = k => document.getElementById(k);
   $('pt-busca').oninput = () => { s.busca = $('pt-busca').value; renderPonto(); };
   $('pt-per').onchange = () => { s.per = $('pt-per').value; carregarPonto(); };
-  $('pt-tipo').onchange = () => { s.tipo = $('pt-tipo').value; renderPonto(); };
   $('pt-atualizar').onclick = carregarPonto;
   const nv = $('pt-novo'); if (nv) nv.onclick = () => abrirPonto(null);
+  const ni = $('pt-inc-novo'); if (ni) ni.onclick = () => abrirInconsistencia(null);
   carregarPonto();
 }
 async function carregarPonto(){
@@ -3400,86 +3474,178 @@ async function carregarPonto(){
   catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('ponto'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 const autorPonto = login => (state.pontoDados?.autores || []).find(a => a.login === login)?.nome || String(login || '').split('@')[0];
+const apontDoDia = i => (state.pontoDados?.apontamentos || []).filter(a => a.pessoa === i.pessoa && a.data === i.data);
+const horarioPonto = a => a.tipo === 'saida_retorno' || a.tipo === 'almoco' ? (a.hora_ini || a.hora_fim ? `${a.hora_ini || '?'} → ${a.hora_fim || (a.tipo === 'almoco' ? '?' : 'não voltou')}` : '') : a.hora_ini || '';
 function renderPonto(){
   const s = state.ponto, d = state.pontoDados, $c = document.getElementById('ponto');
   if (!$c || !d) return;
-  const t = s.busca.trim().toUpperCase();
-  const lista = d.apontamentos.filter(a => (s.tipo === 'todos' || a.tipo === s.tipo) && (!t || a.pessoa.includes(t) || (a.motivo || '').toUpperCase().includes(t)));
-  const n = k => lista.filter(a => k.includes(a.tipo)).length;
-  const porPessoa = {}; lista.forEach(a => { const x = porPessoa[a.pessoa] ||= { falta:0, falta_justificada:0, atraso:0, saida:0, outro:0, total:0 };
-    x[a.tipo.startsWith('saida') ? 'saida' : a.tipo]++; x.total++; });
-  const horario = a => a.tipo === 'saida_retorno' ? `${a.hora_ini || '?'} → ${a.hora_fim || 'não voltou'}` : a.hora_ini || '';
-  $c.innerHTML = `
-    <div class="rr-res">
-      <div class="rr-tile" style="--c:#02285a"><span>Apontamentos</span><b>${lista.length}</b><small>${Object.keys(porPessoa).length} pessoa(s) · ${dataBR(d.ini)} a ${dataBR(d.fim)}</small></div>
-      <div class="rr-tile" style="--c:${TIPOS_PONTO.falta.cor}"><span>Faltas</span><b>${n(['falta', 'falta_justificada'])}</b><small>${n(['falta_justificada'])} justificada(s)</small></div>
-      <div class="rr-tile" style="--c:${TIPOS_PONTO.atraso.cor}"><span>Atrasos</span><b>${n(['atraso'])}</b><small>chegou depois do horário</small></div>
-      <div class="rr-tile" style="--c:${TIPOS_PONTO.saida_retorno.cor}"><span>Saídas</span><b>${n(['saida_antecipada', 'saida_retorno'])}</b><small>${n(['saida_retorno'])} com retorno</small></div>
-    </div>
-    <div class="painel">
-      <div class="rc-acoes"><b>Apontamentos</b><span style="flex:1"></span><button class="btn" id="pt-csv">⬇ Excel</button></div>
-      ${lista.length ? `<div style="overflow-x:auto"><table class="tab-full tab-ponto"><thead><tr><th>Data</th><th style="text-align:left">Colaborador</th><th>Tipo</th><th>Horário</th><th style="text-align:left">Motivo</th><th>Lançado por</th></tr></thead><tbody>
-        ${lista.map(a => `<tr data-pt="${a.id}"><td>${dataBR(a.data)} <span class="info">${DIAS_CURTO[new Date(a.data + 'T12:00:00Z').getUTCDay()]}</span></td><td style="text-align:left"><b>${esc(a.pessoa)}</b></td><td>${pillPonto(a.tipo)}</td><td>${horario(a) || '<span class="info">–</span>'}</td>
-          <td style="text-align:left;white-space:normal;max-width:340px">${esc(a.motivo)}${a.observacao ? ` <span class="info" title="${esc(a.observacao)}">💬</span>` : ''}</td>
-          <td>${esc(autorPonto(a.criado_por))}<div class="info" style="font-size:11px">${quando(a.criado_em)}${a.atualizado_por !== a.criado_por ? ` · editado por ${esc(autorPonto(a.atualizado_por))}` : ''}</div></td></tr>`).join('')}
-      </tbody></table></div>` : '<div class="vazio">Nenhum apontamento com esses filtros.</div>'}
-    </div>
-    ${Object.keys(porPessoa).length ? `<div class="painel" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Por colaborador <span class="info" style="font-weight:400">· no período</span></h3>
-      <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Colaborador</th><th>Faltas</th><th>Justificadas</th><th>Atrasos</th><th>Saídas</th><th>Outros</th><th>Total</th></tr></thead><tbody>
-      ${Object.entries(porPessoa).sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0])).map(([p, x]) => `<tr data-ptp="${esc(p)}"><td style="text-align:left"><b>${esc(p)}</b></td><td>${x.falta || '–'}</td><td>${x.falta_justificada || '–'}</td><td>${x.atraso || '–'}</td><td>${x.saida || '–'}</td><td>${x.outro || '–'}</td><td><b>${x.total}</b></td></tr>`).join('')}
-      </tbody></table></div><div class="info" style="margin-top:6px">Clique num colaborador para ver só os apontamentos dele.</div></div>` : ''}`;
-  $c.querySelectorAll('[data-pt]').forEach(tr => tr.onclick = () => abrirPonto(d.apontamentos.find(a => a.id === tr.dataset.pt)));
-  $c.querySelectorAll('[data-ptp]').forEach(tr => tr.onclick = () => { s.busca = tr.dataset.ptp; document.getElementById('pt-busca').value = s.busca; renderPonto(); });
-  document.getElementById('pt-csv').onclick = () => {
-    const L = [['Data', 'Colaborador', 'Tipo', 'Horário', 'Retorno', 'Motivo', 'Observação', 'Lançado por', 'Lançado em']].concat(lista.map(a => [dataBR(a.data), a.pessoa, TIPOS_PONTO[a.tipo].rot, a.hora_ini, a.hora_fim, a.motivo, a.observacao, autorPonto(a.criado_por), quando(a.criado_em)]));
-    const csv = '﻿' + L.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
-    const x = document.createElement('a'); x.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); x.download = `ponto_${d.ini}_${d.fim}.csv`; document.body.appendChild(x); x.click(); x.remove();
-  };
+  const t = s.busca.trim().toUpperCase(), pend = d.inconsistencias.filter(i => i.situacao === 'pendente');
+  const abas = `<div class="abas pt-abas">${[['inc', `⚠ Inconsistências${pend.length ? ` <b class="pt-badge">${pend.length}</b>` : ''}`], ['apont', 'Apontamentos']].map(([k, r]) => `<button data-pta="${k}" class="${s.aba === k ? 'on' : ''}">${r}</button>`).join('')}</div>`;
+  const aviso = pend.length && !pode('ponto', 'gerir') ? `<div class="aviso pt-aviso">⚠ ${pend.length} inconsistência${pend.length === 1 ? '' : 's'} do RH esperando justificativa de um líder.</div>` : '';
+  if (s.aba === 'inc') {
+    const lista = d.inconsistencias.filter(i => (s.sit === 'todas' || i.situacao === s.sit) && (!t || i.pessoa.includes(t) || (i.justificativa || '').toUpperCase().includes(t)));
+    const noPer = d.inconsistencias.filter(i => i.data >= d.ini && i.data <= d.fim);
+    $c.innerHTML = `${abas}${aviso}
+      <div class="rr-res">
+        <div class="rr-tile" style="--c:#9a5b00"><span>Pendentes</span><b>${pend.length}</b><small>${pend.length ? `mais antiga: ${dataBR(pend.map(i => i.data).sort()[0])}` : 'nada para justificar'}</small></div>
+        <div class="rr-tile" style="--c:#1a7a3e"><span>Justificadas</span><b>${noPer.filter(i => i.situacao === 'justificada').length}</b><small>no período</small></div>
+        <div class="rr-tile" style="--c:#8a1f1f"><span>Ausência de batida</span><b>${noPer.filter(i => i.tipo === 'ausencia_batida').length}</b><small>no período</small></div>
+        <div class="rr-tile" style="--c:#0b4fa8"><span>Divergências</span><b>${noPer.filter(i => i.tipo !== 'ausencia_batida').length}</b><small>almoço / jornada</small></div>
+      </div>
+      <div class="painel">
+        <div class="rc-acoes"><div class="abas">${[['pendente','Pendentes'],['justificada','Justificadas'],['todas','Todas']].map(([k, r]) => `<button data-pts="${k}" class="${s.sit === k ? 'on' : ''}">${r}</button>`).join('')}</div><span style="flex:1"></span><button class="btn" id="pt-inc-csv">⬇ Excel</button></div>
+        ${lista.length ? `<div style="overflow-x:auto"><table class="tab-full tab-ponto"><thead><tr><th>Data</th><th style="text-align:left">Colaborador</th><th style="text-align:left">Inconsistência</th><th>Situação</th><th style="text-align:left">Justificativa</th><th>Lançada por</th><th>Justificada por</th></tr></thead><tbody>
+          ${lista.map(i => { const sug = i.situacao === 'pendente' ? apontDoDia(i) : [], ap = i.apontamento_id ? d.apontamentos.find(a => a.id === String(i.apontamento_id)) : null;
+            return `<tr data-inc="${i.id}" class="${i.situacao === 'pendente' ? 'pend' : ''}"><td>${dataBR(i.data)} <span class="info">${DIAS_CURTO[new Date(i.data + 'T12:00:00Z').getUTCDay()]}</span></td><td style="text-align:left"><b>${esc(i.pessoa)}</b></td>
+            <td style="text-align:left">${esc(incTxt(i))}</td><td>${pillInc(i)}</td>
+            <td style="text-align:left;white-space:normal;max-width:320px">${i.situacao === 'justificada' ? `${ap ? `${pillPonto(ap)} ` : ''}${esc(i.justificativa || (ap ? ap.motivo : ''))}` : sug.length ? `<span class="pt-sug">💡 já tem apontamento: ${esc(tipoPontoTxt(sug[0]))} · ${esc(sug[0].motivo)}</span>` : '<span class="info">aguardando líder</span>'}</td>
+            <td>${esc(autorPonto(i.criado_por))}<div class="info" style="font-size:11px">${quando(i.criado_em)}</div></td>
+            <td>${i.justificado_por ? `${esc(autorPonto(i.justificado_por))}<div class="info" style="font-size:11px">${quando(i.justificado_em)}</div>` : '<span class="info">–</span>'}</td></tr>`; }).join('')}
+        </tbody></table></div>` : `<div class="vazio">${s.sit === 'pendente' ? 'Nenhuma inconsistência pendente. 👏' : 'Nenhuma inconsistência com esses filtros.'}</div>`}
+      </div>`;
+    $c.querySelectorAll('[data-inc]').forEach(tr => tr.onclick = () => abrirInconsistencia(d.inconsistencias.find(i => i.id === tr.dataset.inc)));
+    $c.querySelectorAll('[data-pts]').forEach(b => b.onclick = () => { s.sit = b.dataset.pts; renderPonto(); });
+    document.getElementById('pt-inc-csv').onclick = () => baixarCsv(`inconsistencias_${d.ini}_${d.fim}.csv`, [['Data', 'Colaborador', 'Inconsistência', 'Situação', 'Justificativa', 'Lançada por', 'Lançada em', 'Justificada por', 'Justificada em']]
+      .concat(lista.map(i => [dataBR(i.data), i.pessoa, incTxt(i), i.situacao === 'pendente' ? 'Pendente' : 'Justificada', i.justificativa, autorPonto(i.criado_por), quando(i.criado_em), i.justificado_por ? autorPonto(i.justificado_por) : '', i.justificado_em ? quando(i.justificado_em) : ''])));
+  } else {
+    const lista = d.apontamentos.filter(a => a.data >= d.ini && a.data <= d.fim && (s.tipo === 'todos' || a.tipo === s.tipo) && (!t || a.pessoa.includes(t) || (a.motivo || '').toUpperCase().includes(t)));
+    const n = k => lista.filter(a => k.includes(a.tipo)).length;
+    const porPessoa = {}; lista.forEach(a => { const x = porPessoa[a.pessoa] ||= { falta:0, falta_justificada:0, atraso:0, saida:0, almoco:0, outro:0, total:0 };
+      x[a.tipo.startsWith('saida') ? 'saida' : a.tipo]++; x.total++; });
+    $c.innerHTML = `${abas}${aviso}
+      <div class="rr-res">
+        <div class="rr-tile" style="--c:#02285a"><span>Apontamentos</span><b>${lista.length}</b><small>${Object.keys(porPessoa).length} pessoa(s) · ${dataBR(d.ini)} a ${dataBR(d.fim)}</small></div>
+        <div class="rr-tile" style="--c:${TIPOS_PONTO.falta.cor}"><span>Faltas</span><b>${n(['falta', 'falta_justificada'])}</b><small>${n(['falta_justificada'])} justificada(s)</small></div>
+        <div class="rr-tile" style="--c:${TIPOS_PONTO.atraso.cor}"><span>Atrasos</span><b>${n(['atraso'])}</b><small>chegou depois do horário</small></div>
+        <div class="rr-tile" style="--c:${TIPOS_PONTO.saida_retorno.cor}"><span>Saídas e almoço</span><b>${n(['saida_antecipada', 'saida_retorno', 'almoco'])}</b><small>${n(['almoco'])} de almoço</small></div>
+      </div>
+      <div class="painel">
+        <div class="rc-acoes"><select id="pt-tipo"><option value="todos">Todos os tipos</option>${Object.entries(TIPOS_PONTO).map(([k, x]) => `<option value="${k}" ${s.tipo === k ? 'selected' : ''}>${x.rot}</option>`).join('')}</select><span style="flex:1"></span><button class="btn" id="pt-csv">⬇ Excel</button></div>
+        ${lista.length ? `<div style="overflow-x:auto"><table class="tab-full tab-ponto"><thead><tr><th>Data</th><th style="text-align:left">Colaborador</th><th>Tipo</th><th>Horário</th><th style="text-align:left">Motivo</th><th>Lançado por</th></tr></thead><tbody>
+          ${lista.map(a => `<tr data-pt="${a.id}"><td>${dataBR(a.data)} <span class="info">${DIAS_CURTO[new Date(a.data + 'T12:00:00Z').getUTCDay()]}</span></td><td style="text-align:left"><b>${esc(a.pessoa)}</b></td><td>${pillPonto(a)}</td><td>${horarioPonto(a) || '<span class="info">–</span>'}</td>
+            <td style="text-align:left;white-space:normal;max-width:340px">${esc(a.motivo)}</td>
+            <td>${esc(autorPonto(a.criado_por))}<div class="info" style="font-size:11px">${quando(a.criado_em)}${a.atualizado_por !== a.criado_por ? ` · editado por ${esc(autorPonto(a.atualizado_por))}` : ''}</div></td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="vazio">Nenhum apontamento com esses filtros.</div>'}
+      </div>
+      ${Object.keys(porPessoa).length ? `<div class="painel" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Por colaborador <span class="info" style="font-weight:400">· no período</span></h3>
+        <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Colaborador</th><th>Faltas</th><th>Justificadas</th><th>Atrasos</th><th>Saídas</th><th>Almoço</th><th>Outros</th><th>Total</th></tr></thead><tbody>
+        ${Object.entries(porPessoa).sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0])).map(([p, x]) => `<tr data-ptp="${esc(p)}"><td style="text-align:left"><b>${esc(p)}</b></td><td>${x.falta || '–'}</td><td>${x.falta_justificada || '–'}</td><td>${x.atraso || '–'}</td><td>${x.saida || '–'}</td><td>${x.almoco || '–'}</td><td>${x.outro || '–'}</td><td><b>${x.total}</b></td></tr>`).join('')}
+        </tbody></table></div><div class="info" style="margin-top:6px">Clique num colaborador para ver só os apontamentos dele.</div></div>` : ''}`;
+    document.getElementById('pt-tipo').onchange = e => { s.tipo = e.target.value; renderPonto(); };
+    $c.querySelectorAll('[data-pt]').forEach(tr => tr.onclick = () => abrirPonto(d.apontamentos.find(a => a.id === tr.dataset.pt)));
+    $c.querySelectorAll('[data-ptp]').forEach(tr => tr.onclick = () => { s.busca = tr.dataset.ptp; document.getElementById('pt-busca').value = s.busca; renderPonto(); });
+    document.getElementById('pt-csv').onclick = () => baixarCsv(`ponto_${d.ini}_${d.fim}.csv`, [['Data', 'Colaborador', 'Tipo', 'Horário', 'Retorno', 'Motivo', 'Lançado por', 'Lançado em']]
+      .concat(lista.map(a => [dataBR(a.data), a.pessoa, tipoPontoTxt(a), a.hora_ini, a.hora_fim, a.motivo, autorPonto(a.criado_por), quando(a.criado_em)])));
+  }
+  $c.querySelectorAll('[data-pta]').forEach(b => b.onclick = () => { s.aba = b.dataset.pta; renderPonto(); });
 }
-function abrirPonto(a){
-  const d = state.pontoDados, g = document.getElementById('gaveta'), novo = !a;
+function baixarCsv(nome, L){
+  const csv = '﻿' + L.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+  const x = document.createElement('a'); x.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); x.download = nome; document.body.appendChild(x); x.click(); x.remove();
+}
+function gavetaPonto(titulo, sub, corpo){
+  const g = document.getElementById('gaveta'); g.hidden = false; document.body.classList.add('gaveta-aberta');
+  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">${sub}</div><h3>${titulo}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
+    <div class="gv-corpo"><div class="erro" id="pt-erro" hidden></div>${corpo}</div></aside>
+    <datalist id="dl-pt-pes">${(state.pontoDados.pessoas || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+  return g;
+}
+function abrirPonto(a, base){
+  const d = state.pontoDados, novo = !a;
   const eu = state.usuario?.login || 'demonstracao', gerir = pode('ponto', 'gerir');
   const edita = pode('ponto', 'editar') && (novo || gerir || a.criado_por === eu), ro = edita ? '' : 'disabled';
-  a ||= { data: hojeBRT(), pessoa:'', tipo:'falta', hora_ini:'', hora_fim:'', motivo:'', observacao:'' };
-  let tipo = a.tipo, sujo = false;
-  g.hidden = false; document.body.classList.add('gaveta-aberta');
-  g.innerHTML = `<div class="gv-fundo" id="gv-fundo"></div><aside class="gv"><div class="gv-cab"><div><div class="info">${novo ? 'Novo' : dataBR(a.data)}</div><h3>${novo ? 'Apontamento de ponto' : esc(a.pessoa)}</h3></div><span style="flex:1"></span><button class="btn" id="gv-fechar">✕</button></div>
-    <div class="gv-corpo"><div class="erro" id="pt-erro" hidden></div>
+  a ||= { data: base?.data || hojeBRT(), pessoa: base?.pessoa || '', tipo: base?.tipo || 'falta', detalhe: base?.detalhe || null, hora_ini:'', hora_fim:'', motivo:'' };
+  let tipo = a.tipo, detalhe = a.detalhe, sujo = false;
+  const g = gavetaPonto(novo ? 'Apontamento de ponto' : esc(a.pessoa), novo ? 'Novo' : dataBR(a.data), `
       ${!novo && !edita ? '<div class="aviso" style="margin-top:10px">Só quem lançou (ou a Gestão/RH) pode alterar este apontamento.</div>' : ''}
+      ${base?.inc ? `<div class="aviso" style="margin-top:10px">Este apontamento vai justificar a inconsistência: <b>${esc(incTxt(base.inc))}</b>.</div>` : ''}
       <div class="grade-form g2">
         <label>Data<input type="date" id="pt-data" value="${a.data}" max="${hojeBRT()}" ${ro}></label>
         <label>Colaborador<input id="pt-pes" list="dl-pt-pes" value="${esc(a.pessoa)}" autocapitalize="characters" autocomplete="off" placeholder="digite as iniciais" ${ro}></label>
       </div>
       <div class="gv-sec">Tipo</div>
       <div class="etapas">${Object.entries(TIPOS_PONTO).map(([k, t]) => `<button type="button" class="etapa ${tipo === k ? 'on' : ''}" data-ptt="${k}" ${ro} style="--c:${t.cor};--f:${t.fundo}">${t.rot}</button>`).join('')}</div>
+      <div id="pt-alm"></div>
       <div class="grade-form g2" id="pt-horas" style="margin-top:12px"></div>
-      <label class="gv-lab">Motivo<input id="pt-mot" class="campo" value="${esc(a.motivo || '')}" maxlength="300" placeholder="ex.: consulta médica, problema com transporte, não avisou" ${ro}></label>
-      <label class="gv-lab">Observação<textarea id="pt-obs" rows="2" maxlength="600" ${ro}>${esc(a.observacao || '')}</textarea></label>
-      <div class="info" style="margin-top:6px">⚠ Não escreva diagnóstico, CID nem detalhes de saúde: basta "consulta médica" ou "atestado entregue ao RH". O atestado em si fica com o RH.</div>
+      <label class="gv-lab">Motivo<input id="pt-mot" class="campo" value="${esc(a.motivo || '')}" maxlength="300" placeholder="ex.: consulta médica, esqueceu de bater, problema com transporte" ${ro}></label>
+      <div class="info" style="margin-top:6px">⚠ Não escreva diagnóstico, CID nem detalhes de saúde: basta "consulta médica" ou "atestado entregue ao RH".</div>
       ${edita ? '<div class="gv-acoes"><button class="btn pri" id="pt-ok">Salvar</button></div>' : ''}
       ${novo ? '' : `<div class="info" style="margin-top:12px">Lançado por <b>${esc(autorPonto(a.criado_por))}</b> em ${quando(a.criado_em)}${a.atualizado_por !== a.criado_por ? ` · última alteração por <b>${esc(autorPonto(a.atualizado_por))}</b> em ${quando(a.atualizado_em)}` : ''}</div>
-        ${gerir ? '<div style="margin-top:18px"><button class="btn perigo" id="pt-excluir">Excluir apontamento</button></div>' : ''}`}
-    </div></aside>
-    <datalist id="dl-pt-pes">${(d.pessoas || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+        ${gerir ? '<div style="margin-top:18px"><button class="btn perigo" id="pt-excluir">Excluir apontamento</button></div>' : ''}`}`);
   const $ = k => document.getElementById(k);
   forcaCaixaAlta($('pt-pes'));
   const horas = () => { const t = TIPOS_PONTO[tipo]; const hi = $('pt-hi')?.value ?? a.hora_ini ?? '', hf = $('pt-hf')?.value ?? a.hora_fim ?? '';
-    $('pt-horas').innerHTML = (t.hora ? `<label>${t.hora}<input type="time" id="pt-hi" value="${esc(hi || '')}" ${ro}></label>` : '') + (t.fim ? `<label>${t.fim}<input type="time" id="pt-hf" value="${esc(hf || '')}" ${ro}><span class="info">em branco = não voltou</span></label>` : ''); };
+    $('pt-alm').innerHTML = tipo === 'almoco' ? `<div class="gv-sec">Batida do almoço</div><div class="etapas">${Object.entries(DETALHE_ALMOCO).map(([k, r]) => `<button type="button" class="etapa ${detalhe === k ? 'on' : ''}" data-ptd="${k}" ${ro} style="--c:#7a4b12;--f:#f6ecdc">${r}</button>`).join('')}</div>` : '';
+    g.querySelectorAll('[data-ptd]').forEach(b => b.onclick = () => { detalhe = b.dataset.ptd; sujo = true; g.querySelectorAll('[data-ptd]').forEach(x => x.classList.toggle('on', x === b)); });
+    $('pt-horas').innerHTML = (t.hora ? `<label>${t.hora}<input type="time" id="pt-hi" value="${esc(hi || '')}" ${ro}></label>` : '') + (t.fim ? `<label>${t.fim}<input type="time" id="pt-hf" value="${esc(hf || '')}" ${ro}>${tipo === 'saida_retorno' ? '<span class="info">em branco = não voltou</span>' : ''}</label>` : ''); };
   horas();
-  g.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', () => { sujo = true; }));
+  g.querySelectorAll('input').forEach(el => el.addEventListener('input', () => { sujo = true; }));
   g.querySelectorAll('[data-ptt]').forEach(b => b.onclick = () => { tipo = b.dataset.ptt; sujo = true; g.querySelectorAll('[data-ptt]').forEach(x => x.classList.toggle('on', x === b)); horas(); });
   const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = () => { if (sujo && !confirmarSaida()) return; fechar(); }; $('gv-fundo').onclick = $('gv-fechar').onclick;
   const erro = m => { const x = $('pt-erro'); x.hidden = !m; x.textContent = m || ''; };
   const ok = $('pt-ok'); if (ok) ok.onclick = async () => {
-    const corpo = { id: a.id || null, data: $('pt-data').value, pessoa: caixaAltaTxt($('pt-pes').value).trim(), tipo, hora_ini: $('pt-hi')?.value || null, hora_fim: $('pt-hf')?.value || null, motivo: $('pt-mot').value.trim(), observacao: $('pt-obs').value.trim() || null };
+    const corpo = { id: a.id || null, data: $('pt-data').value, pessoa: caixaAltaTxt($('pt-pes').value).trim(), tipo, detalhe: tipo === 'almoco' ? detalhe : null, hora_ini: $('pt-hi')?.value || null, hora_fim: $('pt-hf')?.value || null, motivo: $('pt-mot').value.trim() };
     if (!corpo.pessoa) return erro('Informe o colaborador.'); if (!corpo.motivo) return erro('Informe o motivo.');
+    if (tipo === 'almoco' && !detalhe) return erro('Almoço: escolha entrada, saída ou ambos.');
     ok.disabled = true;
-    try { await apiPonto('/ponto/apontamento', corpo); avisar('Apontamento salvo'); fechar(); await carregarPonto(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); ok.disabled = false; }
+    try {
+      const res = await apiPonto('/ponto/apontamento', corpo);
+      if (base?.inc) await apiPonto('/ponto/inconsistencia/justificar', { id:base.inc.id, apontamento_id:res.id, justificativa:null });
+      avisar(base?.inc ? 'Apontamento salvo e inconsistência justificada' : 'Apontamento salvo'); fechar(); await carregarPonto();
+    } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); ok.disabled = false; }
   };
   const ex = $('pt-excluir'); if (ex) ex.onclick = async () => { if (!confirmaDupla(ex, 'Clique de novo para excluir')) return;
     try { await apiPonto('/ponto/excluir', { id:a.id }); avisar('Apontamento excluído'); fechar(); await carregarPonto(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); } };
-  if (novo) $('pt-pes').focus();
+  if (novo && !base) $('pt-pes').focus();
+}
+// inconsistência: RH lança (nome, data, tipo); líder justifica (texto ou apontamento já lançado)
+function abrirInconsistencia(i){
+  const d = state.pontoDados, novo = !i, gerir = pode('ponto', 'gerir'), editar = pode('ponto', 'editar'), eu = state.usuario?.login || 'demonstracao';
+  i ||= { data: hojeBRT(), pessoa:'', tipo:null, batida:null, situacao:'pendente' };
+  const edCab = gerir && (novo || i.situacao === 'pendente'), ro = edCab ? '' : 'disabled';
+  let tipo = i.tipo, batida = i.batida;
+  const sug = novo ? [] : apontDoDia(i);
+  const ap = i.apontamento_id ? d.apontamentos.find(a => a.id === String(i.apontamento_id)) : null;
+  const podeJust = editar && !novo && (i.situacao === 'pendente' || gerir || i.justificado_por === eu);
+  const g = gavetaPonto(novo ? 'Nova inconsistência' : esc(i.pessoa), novo ? 'Lançada pelo RH, fica pendente até um líder justificar' : `${dataBR(i.data)} · ${esc(incTxt(i))}`, `
+      <div class="grade-form g2">
+        <label>Colaborador<input id="ic-pes" list="dl-pt-pes" value="${esc(i.pessoa)}" autocapitalize="characters" autocomplete="off" placeholder="digite as iniciais" ${ro}></label>
+        <label>Data da inconsistência<input type="date" id="ic-data" value="${i.data}" max="${hojeBRT()}" ${ro}></label>
+      </div>
+      ${OPC_INC.map(gr => `<div class="gv-sec">${gr.grupo}</div><div class="etapas">${gr.itens.map(([t, b, r]) => `<button type="button" class="etapa ${tipo === t && (batida || null) === b ? 'on' : ''}" data-ict="${t}" data-icb="${b || ''}" ${ro} style="--c:${t === 'ausencia_batida' ? '#8a1f1f' : '#0b4fa8'};--f:${t === 'ausencia_batida' ? '#fbe9e9' : '#e3eefc'}">${r}</button>`).join('')}</div>`).join('')}
+      ${edCab ? `<div class="gv-acoes"><button class="btn pri" id="ic-ok">${novo ? 'Lançar inconsistência' : 'Salvar'}</button></div>` : ''}
+      ${novo ? '<div class="info" style="margin-top:8px">Depois de lançada, ela aparece como pendente para os líderes. Se o líder já tiver lançado um apontamento dessa pessoa nesse dia, o portal sugere usar como justificativa.</div>' : `
+        <div class="gv-sec">Justificativa ${pillInc(i)}</div>
+        ${i.situacao === 'justificada' ? `<div class="pt-just">${ap ? `<div>${pillPonto(ap)} ${esc(ap.motivo)} <span class="info">(apontamento de ${esc(autorPonto(ap.criado_por))})</span></div>` : ''}${i.justificativa ? `<div>${esc(i.justificativa)}</div>` : ''}
+          <div class="info">por <b>${esc(autorPonto(i.justificado_por))}</b> em ${quando(i.justificado_em)}</div></div>` : ''}
+        ${podeJust ? `
+          ${sug.length ? `<div class="info" style="margin:8px 0 4px">💡 Apontamentos já lançados para ${esc(i.pessoa)} em ${dataBR(i.data)}:</div>${sug.map(a => `<div class="pt-sug-it"><div>${pillPonto(a)} ${horarioPonto(a) ? `<b>${horarioPonto(a)}</b> · ` : ''}${esc(a.motivo)} <span class="info">por ${esc(autorPonto(a.criado_por))}</span></div><button class="btn mini" data-usar-ap="${a.id}">Usar como justificativa</button></div>`).join('')}` : ''}
+          <label class="gv-lab">${i.situacao === 'justificada' ? 'Alterar justificativa' : 'Justificativa do líder'}<input id="ic-just" class="campo" maxlength="400" value="${esc(i.situacao === 'justificada' ? i.justificativa || '' : '')}" placeholder="ex.: esqueceu de bater a volta do almoço, voltou 13:00 (confirmado)"></label>
+          <div class="gv-acoes"><button class="btn" id="ic-ap" title="Lançar um apontamento completo e justificar com ele">+ Lançar apontamento</button><button class="btn pri" id="ic-just-ok">Justificar</button></div>` : ''}
+        ${i.situacao === 'justificada' && gerir ? '<div class="gv-acoes" style="justify-content:flex-start"><button class="btn" id="ic-reabrir">↩ Reabrir (voltar para pendente)</button></div>' : ''}
+        <div class="info" style="margin-top:12px">Lançada por <b>${esc(autorPonto(i.criado_por))}</b> em ${quando(i.criado_em)}</div>
+        ${gerir ? '<div style="margin-top:18px"><button class="btn perigo" id="ic-excluir">Excluir inconsistência</button> <span class="info">só para lançamento feito por engano</span></div>' : ''}`}`);
+  const $ = k => document.getElementById(k);
+  forcaCaixaAlta($('ic-pes'));
+  g.querySelectorAll('[data-ict]').forEach(b => b.onclick = () => { tipo = b.dataset.ict; batida = b.dataset.icb || null; g.querySelectorAll('[data-ict]').forEach(x => x.classList.toggle('on', x === b)); });
+  const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
+  $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
+  const erro = m => { const x = $('pt-erro'); x.hidden = !m; x.textContent = m || ''; if (m) x.scrollIntoView({ block:'nearest' }); };
+  const tentar = async (fn, msg) => { try { await fn(); avisar(msg); fechar(); await carregarPonto(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); } };
+  const ok = $('ic-ok'); if (ok) ok.onclick = () => {
+    const corpo = { id: i.id || null, pessoa: caixaAltaTxt($('ic-pes').value).trim(), data: $('ic-data').value, tipo, batida };
+    if (!corpo.pessoa) return erro('Informe o colaborador.'); if (!tipo) return erro('Escolha o tipo da inconsistência.');
+    tentar(() => apiPonto('/ponto/inconsistencia', corpo), novo ? 'Inconsistência lançada: pendente para os líderes' : 'Salvo');
+  };
+  g.querySelectorAll('[data-usar-ap]').forEach(b => b.onclick = () => tentar(() => apiPonto('/ponto/inconsistencia/justificar', { id:i.id, apontamento_id:b.dataset.usarAp, justificativa: $('ic-just')?.value.trim() || null }), 'Inconsistência justificada'));
+  const jo = $('ic-just-ok'); if (jo) jo.onclick = () => { const j = $('ic-just').value.trim(); if (!j) return erro('Escreva a justificativa (ou use um apontamento já lançado).');
+    tentar(() => apiPonto('/ponto/inconsistencia/justificar', { id:i.id, justificativa:j, apontamento_id:null }), 'Inconsistência justificada'); };
+  const la = $('ic-ap'); if (la) la.onclick = () => abrirPonto(null, { pessoa:i.pessoa, data:i.data, tipo: i.batida?.startsWith('almoco') || i.tipo.startsWith('almoco') ? 'almoco' : 'outro',
+    detalhe: i.batida === 'almoco_entrada' ? 'entrada' : i.batida === 'almoco_saida' ? 'saida' : i.batida === 'almoco_ambos' ? 'ambos' : null, inc:i });
+  const re = $('ic-reabrir'); if (re) re.onclick = () => tentar(() => apiPonto('/ponto/inconsistencia/justificar', { id:i.id, reabrir:true }), 'Inconsistência reaberta');
+  const ex = $('ic-excluir'); if (ex) ex.onclick = () => { if (!confirmaDupla(ex, 'Clique de novo para excluir')) return; tentar(() => apiPonto('/ponto/inconsistencia/excluir', { id:i.id }), 'Inconsistência excluída'); };
+  if (novo) $('ic-pes').focus();
 }
 
 /* =================== ONE-ON-ONE =================== */
