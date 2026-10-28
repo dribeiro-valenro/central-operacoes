@@ -179,6 +179,7 @@
   .grade-form input:disabled{background:#f3f5f8}
   .campo{font-size:13px;padding:6px 9px}
   label.chk{flex-direction:row !important;align-items:center;gap:8px !important;color:var(--ink) !important;font-size:13px}
+  label.chk input[type=checkbox]{width:auto !important;flex:none;margin:0}
   select.exc{border-color:var(--amarelo);background:#fff8dc}
   table.perm{max-width:760px}
   /* Envios Full */
@@ -266,6 +267,37 @@
   .rr-tile{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--sombra)}
   .rr-tile span{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px}
   .rr-tile b{font-size:24px;font-variant-numeric:tabular-nums} .rr-tile small{font-size:11px;color:var(--mute)}
+
+  /* testes de perfil */
+  .tst-intro ul{margin:6px 0 0;padding-left:20px;line-height:1.55}
+  .tst-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin:12px 0}
+  .tst-card{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0}
+  .tst-ico{font-size:32px;line-height:1} .tst-bts{display:flex;gap:6px;flex-wrap:wrap}
+  .tst-run{max-width:680px;margin:0 auto;text-align:center;padding:18px 16px}
+  .tst-prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:14px} .tst-prog i{display:block;height:100%;background:var(--azul,#0b4fa8);transition:width .2s}
+  .tst-n{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.4px}
+  .tst-q{font-size:20px;font-weight:700;margin:10px 0 18px;line-height:1.35;min-height:54px}
+  .tst-lik{display:flex;flex-direction:column;gap:8px;max-width:420px;margin:0 auto}
+  .tst-op{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);font:inherit;font-size:15px;cursor:pointer;text-align:left;color:var(--ink)}
+  .tst-op:hover{border-color:#0b4fa8} .tst-op.on{border-color:#0b4fa8;background:#e8f0fb;font-weight:700}
+  .tst-dot{width:14px;height:14px;border-radius:50%;flex:none;border:2px solid #0b4fa8;background:color-mix(in srgb,#0b4fa8 calc(var(--n)*25%),transparent)}
+  .tst-par{display:flex;gap:10px;align-items:stretch;justify-content:center}
+  .tst-mot{flex:1;max-width:280px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 12px;border:2px solid var(--line);border-radius:12px;background:var(--card);font:inherit;font-size:15px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .tst-mot span{font-size:32px} .tst-mot:hover{border-color:#9a5b00} .tst-mot.on{border-color:#9a5b00;background:#fff4e0}
+  .tst-ou{align-self:center;color:var(--mute);font-size:13px}
+  .tst-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .tst-res{margin-top:12px} .tst-res h3{margin:0 0 10px;font-size:16px}
+  .b5-l{padding:8px 0;border-bottom:1px solid var(--line)} .b5-top{display:flex;justify-content:space-between;gap:8px}
+  .b5-faixa{font-size:12px;font-weight:700;color:var(--mute);text-transform:uppercase}
+  .b5-bar{position:relative;height:10px;background:var(--line);border-radius:5px;margin:6px 0;overflow:hidden}
+  .b5-bar i{display:block;height:100%;border-radius:5px} .b5-bar span{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,0,0,.25)}
+  .b5-txt{font-size:13px} .b5-dica{font-size:13px;background:#fff8e1;border-left:3px solid #e0a800;padding:6px 8px;border-radius:4px;margin-top:5px;color:#4a3b00}
+  .mt-l{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);opacity:.75} .mt-l.top{opacity:1}
+  .mt-n{width:26px;font-weight:700;color:var(--mute);padding-top:3px} .mt-ico{font-size:22px} .mt-pts{color:#9a5b00;letter-spacing:1px;font-size:12px;white-space:nowrap}
+  .tst-oo{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px} .tst-oo .tst-res{margin-top:6px}
+  .b5-chip{font-size:12px;padding:2px 7px;border-radius:9px;background:var(--line);white-space:nowrap} .b5-chip.alto{background:#e3f1e7;color:#1a5e30} .b5-chip.baixo{background:#fde8e0;color:#8a3a12}
+  .mt-chip{display:inline-block;font-size:12px;padding:2px 7px;border-radius:9px;background:#fff4e0;color:#6b4000;margin:1px 3px 1px 0;white-space:nowrap}
+  @media (max-width:600px){ .tst-q{font-size:17px} .tst-par{flex-direction:column;align-items:stretch} .tst-mot{max-width:none;flex-direction:row;padding:12px} .tst-mot span{font-size:26px} .tst-ou{align-self:center} }
   @media (max-width:700px){ .rr-res{grid-template-columns:1fr 1fr} }
   .tab-rom{font-size:13px} .tab-rom th,.tab-rom td{padding-left:7px;padding-right:7px}
   .tab-rom tr.canc td{color:var(--mute);text-decoration:line-through} .tab-rom tr.canc td .st-full{text-decoration:none}
@@ -3732,6 +3764,195 @@ const vePessoalOO = () => pode('oo', 'ver');   // "Só resumo" não abre ficha n
 const pillOO = e => `<span class="st-full" style="color:${e.cor};background:${e.fundo}">${esc(e.rot)}</span>`;
 
 // ---- demonstração (dados fictícios)
+
+/* =================== TESTES DE PERFIL (Big Five e Motivadores) =================== */
+// Big Five: Mini-IPIP (Donnellan et al., 2006), itens do IPIP (domínio público), em português simples.
+// A pontuação oficial é feita no servidor; a cópia aqui serve só para o modo demonstração.
+const BIG5_FRASES = [
+  'Sou a pessoa que anima os encontros e as conversas.',
+  'Eu me coloco no lugar dos outros quando estão passando por algo.',
+  'Faço as tarefas logo, sem deixar para depois.',
+  'Meu humor muda bastante ao longo do dia.',
+  'Tenho muita imaginação.',
+  'Não falo muito.',
+  'Não me interesso pelos problemas das outras pessoas.',
+  'Muitas vezes esqueço de guardar as coisas no lugar.',
+  'Na maior parte do tempo, estou tranquilo(a).',
+  'Não me interesso por ideias abstratas (teorias, "e se...", coisas que não dá para pegar na mão).',
+  'Em encontros e festas, converso com muitas pessoas diferentes.',
+  'Percebo quando os outros estão bem ou mal.',
+  'Gosto de ordem e organização.',
+  'Fico chateado(a) com facilidade.',
+  'Tenho dificuldade para entender ideias abstratas (teorias, conceitos).',
+  'Prefiro ficar mais na minha, sem chamar atenção.',
+  'Não tenho muito interesse pelas outras pessoas.',
+  'Costumo deixar as coisas bagunçadas.',
+  'Raramente me sinto para baixo.',
+  'Não me considero uma pessoa criativa.',
+];
+const BIG5_CHAVE = ['E+','A+','C+','N+','O+','E-','A-','C-','N-','O-','E+','A+','C+','N+','O-','E-','A-','C-','N-','O-'];
+const LIKERT = ['Discordo totalmente', 'Discordo', 'Nem concordo nem discordo', 'Concordo', 'Concordo totalmente'];
+// como aparece no portal: "estabilidade" é o inverso de N (neuroticismo), para não rotular ninguém
+const B5 = {
+  E:   { nome:'Extroversão', cor:'#e08a00',
+         alto:'Gosta de gente, fala com facilidade e ganha energia trabalhando em grupo.', baixo:'Mais reservado(a): prefere poucas conversas e se concentra bem sozinho(a).',
+         lider_alto:'Use para integrar novatos, passar avisos e animar o time. Combine prazos por escrito: a conversa pode tirar o foco.',
+         lider_baixo:'Silêncio não é desinteresse. Pergunte em particular, dê tempo para pensar antes de responder e evite expor em público.' },
+  A:   { nome:'Cooperação', cor:'#1a7a3e',
+         alto:'Prestativo(a), pensa no colega e evita conflito.', baixo:'Mais direto(a) e crítico(a): fala o que pensa e defende a própria posição.',
+         lider_alto:'Ótimo para ajudar e treinar colegas. Atenção: tem dificuldade de dizer "não" e de discordar; pergunte o que ele(a) realmente acha.',
+         lider_baixo:'Valorize a franqueza e use para questionar processos. Combine regras de respeito e acompanhe o tom com os colegas.' },
+  C:   { nome:'Organização e disciplina', cor:'#0b4fa8',
+         alto:'Organizado(a), cumpre o combinado e gosta de fazer certo.', baixo:'Mais flexível e bom(boa) de improviso, mas pode deixar coisas pela metade ou fora do lugar.',
+         lider_alto:'Bom para o que exige precisão (conferência, inventário, cadastro). Dê padrão claro e não mude regras sem explicar.',
+         lider_baixo:'Use checklist e prazos curtos com acompanhamento. Aproveite nas situações que pedem jogo de cintura.' },
+  EST: { nome:'Estabilidade sob pressão', cor:'#6b3fa0',
+         alto:'Mantém a calma: não se abala fácil com cobrança ou imprevisto.', baixo:'Sente mais a pressão: o humor pode oscilar nos dias puxados.',
+         lider_alto:'Bom para picos de demanda e imprevistos. Atenção: pode não demonstrar quando algo não vai bem; pergunte.',
+         lider_baixo:'Cobre com calma e em particular, explique o porquê da urgência e dê retorno rápido quando fizer bem. Evite surpresa e bronca em público.' },
+  O:   { nome:'Abertura a novidades', cor:'#0f6e66',
+         alto:'Curioso(a): gosta de ideias novas e de aprender jeitos diferentes de fazer.', baixo:'Prático(a): prefere o que já funciona e o jeito conhecido de fazer.',
+         lider_alto:'Envolva em melhorias, testes de processo e treinamentos. Rotina muito repetitiva pode desmotivar.',
+         lider_baixo:'Na mudança, mostre o passo a passo e o ganho prático. É quem garante que o processo seja seguido do jeito certo.' },
+};
+const ORDEM_B5 = ['E', 'A', 'C', 'EST', 'O'];
+const valorB5 = (r, k) => k === 'EST' ? (r.N === undefined ? null : 100 - r.N) : r[k] ?? null;
+const faixaB5 = v => v === null ? null : v >= 65 ? 'alto' : v <= 35 ? 'baixo' : 'medio';
+const MOTIV = {
+  realizacao:     { ico:'🎯', nome:'Realização',       frase:'Bater metas e ver o resultado do meu trabalho',        lider:'Dê metas claras e mostre os números dele(a). Reconheça o resultado entregue.' },
+  reconhecimento: { ico:'🏅', nome:'Reconhecimento',   frase:'Ser reconhecido(a) quando faço um bom trabalho',       lider:'Elogie de forma específica e na hora; reconheça na frente do time quando fizer sentido.' },
+  relacionamento: { ico:'🤝', nome:'Bom time',         frase:'Trabalhar num time unido, com bom clima',              lider:'Cuide do clima e dos conflitos. Trabalho em dupla ou equipe rende mais que tarefa isolada.' },
+  seguranca:      { ico:'🛡', nome:'Estabilidade',     frase:'Ter estabilidade e saber o que esperar do meu dia',    lider:'Avise mudanças com antecedência e explique o porquê. Escala e rotina previsíveis contam muito.' },
+  crescimento:    { ico:'📈', nome:'Crescimento',      frase:'Aprender coisas novas e crescer na carreira',          lider:'Mostre o caminho de crescimento, dê treinamento e novas responsabilidades. Sem perspectiva, tende a sair.' },
+  autonomia:      { ico:'🧭', nome:'Autonomia',        frase:'Ter liberdade para decidir como fazer o meu trabalho', lider:'Combine o resultado e deixe o "como" com ele(a). Microgerenciar desmotiva.' },
+  financeiro:     { ico:'💰', nome:'Ganho financeiro', frase:'Ganhar mais (salário, bônus, horas extras)',           lider:'Seja transparente sobre remuneração, hora extra e critérios de aumento. Promessa não cumprida pesa muito.' },
+};
+const LISTA_MOTIV = Object.keys(MOTIV);
+const TESTES = {
+  big5:        { nome:'Perfil de personalidade', sub:'Big Five · 20 frases · uns 4 minutos', ico:'🧩' },
+  motivadores: { nome:'O que te motiva',         sub:'21 escolhas rápidas · uns 3 minutos', ico:'🔥' },
+};
+function pontuarDemo(tipo, resp){
+  if (tipo === 'big5') { const soma = { E:0, A:0, C:0, N:0, O:0 };
+    resp.forEach((n, i) => { const [f, sinal] = [BIG5_CHAVE[i][0], BIG5_CHAVE[i][1]]; soma[f] += sinal === '-' ? 6 - n : n; });
+    return Object.fromEntries(Object.entries(soma).map(([f, v]) => [f, Math.round((v - 4) / 16 * 100)])); }
+  const v = Object.fromEntries(LISTA_MOTIV.map(m => [m, 0])); resp.forEach(r => v[r.escolha]++);
+  return { ...v, ordem: [...LISTA_MOTIV].sort((a, b) => v[b] - v[a]) };
+}
+const DEMO_AV = {};
+async function apiTestes(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  if (path === '/avaliacoes/minhas') return { avaliacoes: Object.entries(DEMO_AV).map(([tipo, a]) => ({ tipo, ...a })) };
+  if (path === '/avaliacoes/responder') { const resultado = pontuarDemo(corpo.tipo, corpo.respostas); DEMO_AV[corpo.tipo] = { resultado, feito_em:new Date().toISOString() }; return { ok:true, tipo:corpo.tipo, resultado }; }
+}
+// ---- tela "Meus testes"
+async function telaTestes(){
+  const s = state.testes ||= { rodando:null };
+  if (s.rodando) return rodarTeste();
+  $app.innerHTML = `<div class="barra"><h2>Meus testes de perfil</h2></div><div id="tst"><div class="carregando">Carregando…</div></div>`;
+  try { const { avaliacoes } = await apiTestes('/avaliacoes/minhas'); s.feitos = Object.fromEntries(avaliacoes.map(a => [a.tipo, a])); }
+  catch (e) { if (e instanceof SemSessao) throw e; document.getElementById('tst').innerHTML = `<div class="erro">${esc(e.message)}</div>`; return; }
+  const $t = document.getElementById('tst');
+  $t.innerHTML = `
+    <div class="painel tst-intro">
+      <b>Para que serve?</b> Para a liderança entender como cada um prefere trabalhar e o que motiva cada pessoa, e assim conduzir melhor o dia a dia e o seu desenvolvimento.
+      <ul><li>Não existe resposta certa nem errada, e nenhum perfil é melhor que outro.</li>
+        <li>Responda como você <b>é</b> no dia a dia, não como acha que deveria ser.</li>
+        <li>Você vê o seu resultado logo no fim. Ele fica visível só para você e para a gestão (Gerência de Operações e líderes que conduzem o One-on-One).</li>
+        <li>Não é usado para contratar, promover ou desligar ninguém.</li></ul>
+    </div>
+    <div class="tst-cards">${Object.entries(TESTES).map(([k, t]) => { const f = s.feitos[k];
+      return `<div class="painel tst-card"><div class="tst-ico">${t.ico}</div><div style="flex:1"><b>${t.nome}</b><div class="info">${t.sub}</div>
+        <div class="info" style="margin-top:4px">${f ? `✅ Feito em ${quando(f.feito_em)}` : 'Ainda não feito'}</div></div>
+        <div class="tst-bts">${f ? `<button class="btn" data-ver="${k}">Ver meu resultado</button>` : ''}<button class="btn ${f ? '' : 'pri'}" data-fazer="${k}">${f ? 'Refazer' : 'Começar'}</button></div></div>`; }).join('')}</div>
+    <div id="tst-res"></div>
+    <div class="info" style="margin-top:12px">O perfil de personalidade usa a versão curta do <b>Big Five</b> (modelo dos Cinco Grandes Fatores, itens do IPIP, de domínio público). É um retrato de tendências, não um diagnóstico.</div>`;
+  $t.querySelectorAll('[data-fazer]').forEach(b => b.onclick = () => iniciarTeste(b.dataset.fazer));
+  $t.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => { document.getElementById('tst-res').innerHTML = resultadoHtml(b.dataset.ver, s.feitos[b.dataset.ver].resultado, false); document.getElementById('tst-res').scrollIntoView({ behavior:'smooth' }); });
+}
+function iniciarTeste(tipo){
+  const s = state.testes;
+  if (tipo === 'big5') s.rodando = { tipo, i:0, resp: Array(BIG5_FRASES.length).fill(null) };
+  else { const pares = []; LISTA_MOTIV.forEach((a, i) => LISTA_MOTIV.slice(i + 1).forEach(b => pares.push(Math.random() < 0.5 ? [a, b] : [b, a])));
+    for (let i = pares.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pares[i], pares[j]] = [pares[j], pares[i]]; }
+    s.rodando = { tipo, i:0, pares, resp: Array(pares.length).fill(null) }; }
+  rodarTeste();
+}
+function rodarTeste(){
+  const s = state.testes, r = s.rodando, total = r.resp.length, fim = r.i >= total;
+  const pct = Math.round(r.resp.filter(x => x !== null).length / total * 100);
+  let corpo;
+  if (fim) corpo = `<div class="tst-q">Pronto! Você respondeu tudo.</div><div class="gv-acoes" style="justify-content:center"><button class="btn" id="tst-volta">‹ Revisar</button><button class="btn pri" id="tst-env">Ver meu resultado</button></div>`;
+  else if (r.tipo === 'big5') corpo = `<div class="tst-n">Frase ${r.i + 1} de ${total}</div><div class="tst-q">${esc(BIG5_FRASES[r.i])}</div>
+    <div class="tst-lik">${LIKERT.map((l, k) => `<button class="tst-op ${r.resp[r.i] === k + 1 ? 'on' : ''}" data-v="${k + 1}"><span class="tst-dot" style="--n:${k}"></span>${l}</button>`).join('')}</div>`;
+  else { const [a, b] = r.pares[r.i];
+    corpo = `<div class="tst-n">Escolha ${r.i + 1} de ${total}</div><div class="tst-q">O que pesa mais para você no trabalho?</div>
+    <div class="tst-par">${[a, b].map(k => `<button class="tst-mot ${r.resp[r.i]?.escolha === k ? 'on' : ''}" data-m="${k}"><span>${MOTIV[k].ico}</span>${esc(MOTIV[k].frase)}</button>`).join('<span class="tst-ou">ou</span>')}</div>`; }
+  $app.innerHTML = `<div class="barra"><h2>${TESTES[r.tipo].ico} ${TESTES[r.tipo].nome}</h2><span style="flex:1"></span><button class="btn" id="tst-sair">✕ Cancelar teste</button></div>
+    <div class="painel tst-run"><div class="tst-prog"><i style="width:${pct}%"></i></div>${corpo}
+      ${!fim ? `<div class="tst-nav"><button class="btn" id="tst-volta" ${r.i ? '' : 'disabled'}>‹ Voltar</button><span class="info">${r.tipo === 'big5' ? 'Responda como você é no dia a dia' : 'Não pense muito: vá na primeira impressão'}</span></div>` : ''}</div>`;
+  const ir = d => { r.i = Math.max(0, Math.min(total, r.i + d)); rodarTeste(); };
+  document.getElementById('tst-sair').onclick = e => { if (r.resp.some(x => x !== null) && !confirmaDupla(e.currentTarget, 'Clique de novo: perde as respostas')) return; s.rodando = null; telaTestes(); };
+  const vb = document.getElementById('tst-volta'); if (vb) vb.onclick = () => ir(-1);
+  document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { r.resp[r.i] = Number(b.dataset.v); setTimeout(() => ir(1), 120); });
+  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const [a, c] = r.pares[r.i]; r.resp[r.i] = { a, b:c, escolha:b.dataset.m }; setTimeout(() => ir(1), 120); });
+  const en = document.getElementById('tst-env'); if (en) en.onclick = async () => {
+    if (r.resp.some(x => x === null)) { r.i = r.resp.findIndex(x => x === null); return rodarTeste(); }
+    en.disabled = true;
+    try { const res = await apiTestes('/avaliacoes/responder', { tipo:r.tipo, respostas:r.resp }); s.rodando = null; state.ooDados = null;
+      $app.innerHTML = `<div class="barra"><h2>${TESTES[r.tipo].ico} Seu resultado</h2><span style="flex:1"></span><button class="btn pri" id="tst-ok">Voltar para Meus testes</button></div>${resultadoHtml(r.tipo, res.resultado, false)}`;
+      document.getElementById('tst-ok').onclick = telaTestes; }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); en.disabled = false; }
+  };
+}
+// resultado: para a própria pessoa (lider=false) ou para a liderança (lider=true, com dicas de condução)
+function resultadoHtml(tipo, res, lider){
+  if (!res) return '';
+  if (tipo === 'big5') return `<div class="painel tst-res"><h3>${lider ? '🧩 Perfil de personalidade' : 'Seu perfil de personalidade'}</h3>
+    ${ORDEM_B5.map(k => { const v = valorB5(res, k), f = faixaB5(v), F = B5[k];
+      return `<div class="b5-l"><div class="b5-top"><b>${F.nome}</b><span class="b5-faixa">${f === 'alto' ? 'Alto' : f === 'baixo' ? 'Baixo' : 'Médio'}</span></div>
+        <div class="b5-bar"><i style="width:${v}%;background:${F.cor}"></i><span style="left:35%"></span><span style="left:65%"></span></div>
+        <div class="b5-txt">${f === 'medio' ? 'Equilibrado(a): varia conforme a situação.' : esc(F[f])}</div>
+        ${lider && f !== 'medio' ? `<div class="b5-dica">💡 ${esc(F['lider_' + f])}</div>` : ''}</div>`; }).join('')}
+    <div class="info">Escala de 0 a 100 dentro do próprio questionário (não compara com outras pessoas). Médio = entre 35 e 65.</div></div>`;
+  const ord = res.ordem || LISTA_MOTIV;
+  return `<div class="painel tst-res"><h3>${lider ? '🔥 Motivadores' : 'O que mais te motiva'}</h3>
+    ${ord.map((k, i) => `<div class="mt-l ${i < 3 ? 'top' : ''}"><span class="mt-n">${i + 1}º</span><span class="mt-ico">${MOTIV[k].ico}</span><div style="flex:1"><b>${MOTIV[k].nome}</b><div class="info">${esc(MOTIV[k].frase)}</div>
+      ${lider && i < 3 ? `<div class="b5-dica">💡 ${esc(MOTIV[k].lider)}</div>` : ''}</div><span class="mt-pts" title="vezes que foi escolhido">${'●'.repeat(res[k] || 0)}${'○'.repeat(6 - (res[k] || 0))}</span></div>`).join('')}
+    <div class="info">Cada motivador apareceu 6 vezes contra os outros; as bolinhas mostram quantas vezes foi escolhido.</div></div>`;
+}
+// ---- One-on-One: bloco na ficha e aba "Perfis"
+function perfilFichaOO(p){
+  if (!p.usuario_login) return `<div class="info">Ligue a pessoa ao <b>usuário do portal</b> (campo acima) para ver os testes de perfil dela. Ela faz os testes em Gestão do time › Meus testes.</div>`;
+  const av = p.avaliacoes || {};
+  if (!av.big5 && !av.motivadores) return '<div class="info">Ainda não fez os testes. Ela faz em Gestão do time › Meus testes.</div>';
+  return `<div class="tst-oo">${av.big5 ? resultadoHtml('big5', av.big5, true) : '<div class="painel info">Perfil de personalidade: ainda não fez.</div>'}${av.motivadores ? resultadoHtml('motivadores', av.motivadores, true) : '<div class="painel info">Motivadores: ainda não fez.</div>'}</div>
+    <div class="info" style="margin-top:4px">${[av.big5 ? `Personalidade em ${quando(av.big5.feito_em)}` : '', av.motivadores ? `Motivadores em ${quando(av.motivadores.feito_em)}` : ''].filter(Boolean).join(' · ')}</div>`;
+}
+function renderPerfisOO($o){
+  const r = state.ooDados, pes = r.pessoas.filter(p => p.ativo && filtraPessoaOO(p));
+  const com = pes.filter(p => p.avaliacoes?.big5 || p.avaliacoes?.motivadores), sem = pes.filter(p => !(p.avaliacoes?.big5 || p.avaliacoes?.motivadores));
+  const top3 = {}; com.forEach(p => (p.avaliacoes.motivadores?.ordem || []).slice(0, 3).forEach(k => { top3[k] = (top3[k] || 0) + 1; }));
+  const nMot = com.filter(p => p.avaliacoes.motivadores).length, nB5 = com.filter(p => p.avaliacoes.big5).length;
+  const media = k => { const l = com.map(p => p.avaliacoes.big5 ? valorB5(p.avaliacoes.big5, k) : null).filter(v => v !== null); return l.length ? Math.round(l.reduce((a, b) => a + b, 0) / l.length) : null; };
+  const cel = (p, k) => { const v = p.avaliacoes?.big5 ? valorB5(p.avaliacoes.big5, k) : null, f = faixaB5(v);
+    return v === null ? '<span class="info">–</span>' : `<span class="b5-chip ${f}" title="${v}">${f === 'alto' ? '▲ alto' : f === 'baixo' ? '▼ baixo' : 'médio'}</span>`; };
+  $o.innerHTML = `
+    <div class="rr-res">
+      <div class="rr-tile" style="--c:#02285a"><span>Fizeram os testes</span><b>${com.length}/${pes.length}</b><small>${nB5} personalidade · ${nMot} motivadores</small></div>
+      ${Object.entries(top3).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `<div class="rr-tile" style="--c:#9a5b00"><span>${MOTIV[k].ico} ${MOTIV[k].nome}</span><b>${n} de ${nMot}</b><small>têm no top 3 dos motivadores</small></div>`).join('')}
+    </div>
+    <div class="painel"><h3 style="margin:0 0 8px;font-size:15px">Mapa do time</h3>
+      <div style="overflow-x:auto"><table class="tab-full"><thead><tr><th style="text-align:left">Pessoa</th>${ORDEM_B5.map(k => `<th>${B5[k].nome}</th>`).join('')}<th style="text-align:left">Top 3 motivadores</th></tr></thead><tbody>
+      ${com.map(p => `<tr data-pes="${p.id}"><td style="text-align:left"><span class="nome-av">${avatar(p.nome, p.foto_mini, 28)}<b>${esc(p.nome)}</b></span></td>${ORDEM_B5.map(k => `<td>${cel(p, k)}</td>`).join('')}
+        <td style="text-align:left">${(p.avaliacoes.motivadores?.ordem || []).slice(0, 3).map(k => `<span class="mt-chip" title="${esc(MOTIV[k].frase)}">${MOTIV[k].ico} ${MOTIV[k].nome}</span>`).join('') || '<span class="info">–</span>'}</td></tr>`).join('') || `<tr><td colspan="7" class="vazio">Ninguém fez os testes ainda.</td></tr>`}
+      </tbody>${com.length ? `<tfoot><tr><td style="text-align:left">Média do time</td>${ORDEM_B5.map(k => `<td>${media(k) ?? '–'}</td>`).join('')}<td></td></tr></tfoot>` : ''}</table></div>
+      <div class="info" style="margin-top:6px">Clique na pessoa para ver o resultado completo e as dicas de condução na ficha.</div>
+      ${sem.length ? `<div class="info" style="margin-top:10px"><b>Ainda não fizeram (${sem.length}):</b> ${sem.map(p => `${esc(p.nome)}${p.usuario_login ? '' : ' <i>(sem usuário ligado)</i>'}`).join(', ')}</div>` : ''}
+    </div>`;
+  $o.querySelectorAll('[data-pes]').forEach(tr => tr.onclick = () => abrirPessoaOO(tr.dataset.pes));
+}
+
 const DEMO_OO = (() => {
   const h = hojeBRT();
   const pessoas = ['Roberto|Supervisor', 'Guilherme|Líder de entrada', 'Degmar|Líder de saída', 'Vinicius|Especialista de estoque', 'Arthur|Operacional', 'Davi|Operacional', 'César|Operacional', 'Rafael|Operacional', 'Vitor|Operacional', 'Estevão|Operacional', 'Kelvin|Operacional']
@@ -3766,6 +3987,24 @@ const DEMO_OO = (() => {
   const acomps = [{ id:'1', conversa_id:'1', data:addDias(h, -1), resumo:'PDI combinado. Começa segunda.', proximo:addDias(h, 14) }];
   return { pessoas, rodadas, conversas, pontos, metas, acomps, areas, setores, arquivos, seq:100 };
 })();
+
+// demonstração: algumas pessoas do One-on-One ligadas a usuários e com testes feitos
+const DEMO_USU_EXTRA = ['Roberto', 'Arthur', 'Davi', 'César', 'Rafael', 'Vinicius'].map(n => ({ login:'demo.' + n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') + '@op.valenro.local', nome:n + ' (demo)' }));
+const DEMO_AV_TIME = (() => {
+  const mot = (...v) => { const r = Object.fromEntries(LISTA_MOTIV.map((m, i) => [m, v[i]])); return { ...r, ordem:[...LISTA_MOTIV].sort((a, b) => r[b] - r[a]) }; };
+  const dt = d => addDias(hojeBRT(), -d) + 'T10:00:00-03:00';
+  //               realiz recon relac segur cresc auton finan
+  return {
+    'demo.roberto@op.valenro.local':   { big5:{ E:62, A:56, C:88, N:25, O:50, feito_em:dt(3) }, motivadores:{ ...mot(6, 2, 3, 1, 5, 4, 0), feito_em:dt(3) } },
+    'guilherme.porto@op.valenro.local':{ big5:{ E:81, A:75, C:56, N:44, O:69, feito_em:dt(2) }, motivadores:{ ...mot(3, 5, 6, 0, 4, 2, 1), feito_em:dt(2) } },
+    'degmar.gomes@op.valenro.local':   { big5:{ E:31, A:38, C:75, N:31, O:25, feito_em:dt(2) }, motivadores:{ ...mot(5, 1, 2, 4, 3, 6, 0), feito_em:dt(2) } },
+    'demo.arthur@op.valenro.local':    { big5:{ E:50, A:69, C:38, N:62, O:81, feito_em:dt(1) }, motivadores:{ ...mot(2, 4, 3, 0, 6, 1, 5), feito_em:dt(1) } },
+    'demo.davi@op.valenro.local':      { big5:{ E:19, A:62, C:69, N:69, O:44, feito_em:dt(1) }, motivadores:{ ...mot(1, 3, 4, 6, 2, 0, 5), feito_em:dt(1) } },
+    'demo.cesar@op.valenro.local':     { motivadores:{ ...mot(4, 2, 1, 5, 0, 3, 6), feito_em:dt(0) } },
+  };
+})();
+const demoAvaliacoesDe = login => DEMO_AV_TIME[login] ? JSON.parse(JSON.stringify(DEMO_AV_TIME[login])) : undefined;
+DEMO_OO.pessoas.forEach(p => { p.usuario_login = { Roberto:DEMO_USU_EXTRA[0].login, Arthur:DEMO_USU_EXTRA[1].login, Davi:DEMO_USU_EXTRA[2].login, 'César':DEMO_USU_EXTRA[3].login, Rafael:DEMO_USU_EXTRA[4].login }[p.nome] || null; });
 // envio de arquivo (multipart): não passa pelo api() porque ele manda JSON
 async function enviarArquivoPortal(form, path = '/oo/arquivo'){
   if (DEMO) return apiOO(path, form);
@@ -3806,7 +4045,8 @@ async function apiOO(path, corpo){
   if (path.startsWith('/oo?') || path === '/oo') {
     const rid = q.get('rodada') || D.rodadas.find(r => r.ativa)?.id || D.rodadas[0]?.id;
     D.pessoas.forEach(p => { p.n_arquivos = D.arquivos.filter(a => a.pessoa_id === p.id).length; });
-    return clone({ rodada:rid, rodadas:D.rodadas, areas:D.areas, setores:D.setores, pessoas:D.pessoas, usuarios:DEMO_PESSOAS.usuarios.filter(u => u.ativo).map(u => ({ login:u.login, nome:u.nome })), conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), nivel:'gerir', hoje:h });
+    D.pessoas.forEach(p => { p.avaliacoes = p.usuario_login ? demoAvaliacoesDe(p.usuario_login) : undefined; });
+    return clone({ rodada:rid, rodadas:D.rodadas, areas:D.areas, setores:D.setores, pessoas:D.pessoas, usuarios:[...DEMO_PESSOAS.usuarios.filter(u => u.ativo).map(u => ({ login:u.login, nome:u.nome })), ...DEMO_USU_EXTRA], conversas:D.conversas.filter(c => c.rodada_id === rid).map(resumoConv), nivel:'gerir', hoje:h });
   }
   if (path.startsWith('/oo/arquivo?')) { const a = D.arquivos.find(x => x.id === q.get('id')); return { url: a._url || 'about:blank', nome: a.nome }; }
   if (path === '/oo/foto') { const pp = D.pessoas.find(x => x.id === String(corpo.pessoa_id)); sincronizarFotoDemo(pp.usuario_login, pp.id, corpo.foto, corpo.foto_mini); return { ok:true }; }
@@ -3837,7 +4077,7 @@ function telaOO(){
       <select id="o-rodada"></select>
       <select id="o-area"><option value="todas">Todas as áreas</option></select>
       <select id="o-setor"><option value="todos">Todos os setores</option></select>
-      <div class="abas">${[['time','Time'],['compilado','Compilado'],['agenda','Agenda']].map(([k, r]) => `<button data-oa="${k}" class="${s.aba === k ? 'on' : ''}">${r}</button>`).join('')}</div>
+      <div class="abas">${[['time','Time'],['compilado','Compilado'],['agenda','Agenda'],...(vePessoalOO() ? [['perfis','Perfis']] : [])].map(([k, r]) => `<button data-oa="${k}" class="${s.aba === k ? 'on' : ''}">${r}</button>`).join('')}</div>
       <button class="btn" id="o-branco" title="Folha de preparação sem nome, para imprimir">🖨 Folha em branco</button>
       ${pode('oo', 'gerir') ? `<button class="btn" id="o-areas">Áreas e setores</button><button class="btn" id="o-rod">+ Rodada</button>` : ''}
       ${pode('oo', 'editar') ? `<button class="btn pri" id="o-pes">+ Pessoa</button>` : ''}
@@ -3879,6 +4119,7 @@ function renderOO(){
   if (!$o || !r) return;
   if (s.aba === 'compilado') { if (!state.ooComp || state.ooComp._rodada !== s.rodada) { apiOO(`/oo/compilado?rodada=${s.rodada}`).then(c => { state.ooComp = { ...c, _rodada:s.rodada }; renderCompiladoOO($o); }); $o.innerHTML = '<div class="carregando">Juntando os pontos…</div>'; return; } return renderCompiladoOO($o); }
   if (s.aba === 'agenda') return renderAgendaOO($o);
+  if (s.aba === 'perfis') return renderPerfisOO($o);
   const hoje = r.hoje || hojeBRT();
   const linhas = r.pessoas.filter(p => p.ativo && filtraPessoaOO(p)).map(p => { const c = r.conversas.find(x => String(x.pessoa_id) === String(p.id)); return { p, c, et: etapaOO(c, hoje) }; });
   const cont = n => linhas.filter(l => l.et.n >= n).length;
@@ -4096,6 +4337,8 @@ async function abrirPessoaOO(pessoaId){
         </div>
         <label class="gv-lab">Questões pessoais que a pessoa quis compartilhar<textarea id="fi-notas" rows="3" ${ro} placeholder="Ex.: estuda à noite, filho pequeno, mudança de casa. Registre só o que a pessoa contou e concordou que fosse anotado.">${esc(p.notas_pessoais || '')}</textarea></label>
         ${edita ? '<div class="gv-acoes"><button class="btn pri" id="fi-salvar">Salvar ficha</button></div>' : ''}
+        <div class="gv-lab" style="margin-top:14px"><b style="color:var(--ink)">Perfil (testes)</b><span class="info">Resultado do Big Five e dos motivadores que a própria pessoa respondeu no portal, com dicas de condução. Indicativo: use para conversar, nunca para decidir contratação, promoção ou desligamento.</span></div>
+        ${perfilFichaOO(p)}
         <div class="gv-lab" style="margin-top:14px"><b style="color:var(--ink)">Arquivos</b><span class="info">PDF, imagem, Word ou Excel, até 10 MB. Ficam num armazenamento privado: o link para abrir vale 1 minuto.</span></div>
         <div class="lista-col" style="margin-top:6px">${d.arquivos.map(a => `<div class="col-it"><span style="font-size:18px">${a.tipo === 'application/pdf' ? '📄' : String(a.tipo || '').startsWith('image/') ? '🖼' : '📎'}</span>
           <div style="flex:1;min-width:0"><b>${esc(a.descricao || a.nome)}</b><br><span class="info">${esc(a.nome)} · ${a.tamanho ? (a.tamanho / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB · ' : ''}${quando(a.enviado_em)}</span></div>
@@ -4334,6 +4577,7 @@ const MENU = [
   { id:'gestao', titulo:'Gestão do time', filhos:[
     { view:'oo', titulo:'One-on-One', tela:'oo' },
     { view:'ponto', titulo:'Apontamentos de ponto', tela:'ponto' },
+    { view:'testes', titulo:'Meus testes de perfil' },
   ]},
   { id:'admin', titulo:'Administração', filhos:[
     { view:'pessoas', titulo:'Pessoas e acessos', tela:'pessoas' },
@@ -4387,7 +4631,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -4402,6 +4646,7 @@ function irPara(view){
   if (view === 'marketplaces') return telaMarketplaces();
   if (view === 'abandono') return telaAbandono();
   if (view === 'ponto') return telaPonto();
+  if (view === 'testes') return telaTestes();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
