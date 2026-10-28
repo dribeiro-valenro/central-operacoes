@@ -688,7 +688,7 @@ const ehExcluido = u => USUARIOS_EXCLUIDOS.some(g => g.toLowerCase() === String(
 /* =================== PESSOAS E ACESSOS =================== */
 // Permissões chegam prontas do servidor (perfil + exceções). Esconder o menu é só conveniência:
 // a Edge Function confere de novo em toda chamada.
-const ROT_PERFIL = { admin:'Admin', lider:'Líder', operacional:'Operacional', rh:'RH' };
+const ROT_PERFIL = { admin:'Admin', lider:'Líder', analista:'Analista', operacional:'Operacional', rh:'RH' };
 const ROT_NIVEL = { nenhum:'Sem acesso', resumo:'Só resumo', ver:'Ver', editar:'Editar', gerir:'Gerenciar' };
 const ROT_FUNCAO_WMS = { operacional:'Operacional', lider:'Líder', apoio:'Apoio', gestao:'Gestão' };
 function pode(tela, nivel = 'ver'){
@@ -715,7 +715,7 @@ const DEMO_PESSOAS = {
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
   telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'editar', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', cross:'nenhum', abandono:'nenhum', motoristas:'nenhum', ponto:'gerir', pessoas:'nenhum' } },
+  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', cross:'nenhum', abandono:'nenhum', motoristas:'nenhum', ponto:'gerir', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -3898,11 +3898,11 @@ async function apiTestes(path, corpo){
   if (path === '/avaliacoes/minhas') return { avaliacoes: Object.entries(DEMO_AV).map(([tipo, a]) => ({ tipo, ...a })) };
   if (path === '/avaliacoes/responder') { const resultado = pontuarDemo(corpo.tipo, corpo.respostas); DEMO_AV[corpo.tipo] = { resultado, feito_em:new Date().toISOString() }; return { ok:true, tipo:corpo.tipo, resultado }; }
 }
-// ---- tela "Meus testes"
+// ---- tela "Testes de perfil"
 async function telaTestes(){
   const s = state.testes ||= { rodando:null };
   if (s.rodando) return rodarTeste();
-  $app.innerHTML = `<div class="barra"><h2>Meus testes de perfil</h2></div><div id="tst"><div class="carregando">Carregando…</div></div>`;
+  $app.innerHTML = `<div class="barra"><h2>Testes de perfil</h2></div><div id="tst"><div class="carregando">Carregando…</div></div>`;
   try { const { avaliacoes } = await apiTestes('/avaliacoes/minhas'); s.feitos = Object.fromEntries(avaliacoes.map(a => [a.tipo, a])); }
   catch (e) { if (e instanceof SemSessao) throw e; document.getElementById('tst').innerHTML = `<div class="erro">${esc(e.message)}</div>`; return; }
   const $t = document.getElementById('tst');
@@ -3953,7 +3953,7 @@ function rodarTeste(){
     if (r.resp.some(x => x === null)) { r.i = r.resp.findIndex(x => x === null); return rodarTeste(); }
     en.disabled = true;
     try { const res = await apiTestes('/avaliacoes/responder', { tipo:r.tipo, respostas:r.resp }); s.rodando = null; state.ooDados = null;
-      $app.innerHTML = `<div class="barra"><h2>${TESTES[r.tipo].ico} Seu resultado</h2><span style="flex:1"></span><button class="btn pri" id="tst-ok">Voltar para Meus testes</button></div>${resultadoHtml(r.tipo, res.resultado, false)}`;
+      $app.innerHTML = `<div class="barra"><h2>${TESTES[r.tipo].ico} Seu resultado</h2><span style="flex:1"></span><button class="btn pri" id="tst-ok">Voltar para Testes de perfil</button></div>${resultadoHtml(r.tipo, res.resultado, false)}`;
       document.getElementById('tst-ok').onclick = telaTestes; }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); en.disabled = false; }
   };
@@ -3976,9 +3976,9 @@ function resultadoHtml(tipo, res, lider){
 }
 // ---- One-on-One: bloco na ficha e aba "Perfis"
 function perfilFichaOO(p){
-  if (!p.usuario_login) return `<div class="info">Ligue a pessoa ao <b>usuário do portal</b> (campo acima) para ver os testes de perfil dela. Ela faz os testes em Gestão do time › Meus testes.</div>`;
+  if (!p.usuario_login) return `<div class="info">Ligue a pessoa ao <b>usuário do portal</b> (campo acima) para ver os testes de perfil dela. Ela faz os testes em Gestão do time › Testes de perfil.</div>`;
   const av = p.avaliacoes || {};
-  if (!av.big5 && !av.motivadores) return '<div class="info">Ainda não fez os testes. Ela faz em Gestão do time › Meus testes.</div>';
+  if (!av.big5 && !av.motivadores) return '<div class="info">Ainda não fez os testes. Ela faz em Gestão do time › Testes de perfil.</div>';
   return `<div class="tst-oo">${av.big5 ? resultadoHtml('big5', av.big5, true) : '<div class="painel info">Perfil de personalidade: ainda não fez.</div>'}${av.motivadores ? resultadoHtml('motivadores', av.motivadores, true) : '<div class="painel info">Motivadores: ainda não fez.</div>'}</div>
     <div class="info" style="margin-top:4px">${[av.big5 ? `Personalidade em ${quando(av.big5.feito_em)}` : '', av.motivadores ? `Motivadores em ${quando(av.motivadores.feito_em)}` : ''].filter(Boolean).join(' · ')}</div>`;
 }
@@ -4630,7 +4630,7 @@ const MENU = [
   { id:'gestao', titulo:'Gestão do time', filhos:[
     { view:'oo', titulo:'One-on-One', tela:'oo' },
     { view:'ponto', titulo:'Apontamentos de ponto', tela:'ponto' },
-    { view:'testes', titulo:'Meus testes de perfil' },
+    { view:'testes', titulo:'Testes de perfil' },
   ]},
   { id:'admin', titulo:'Administração', filhos:[
     { view:'pessoas', titulo:'Pessoas e acessos', tela:'pessoas' },
