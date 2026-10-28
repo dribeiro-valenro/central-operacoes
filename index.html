@@ -248,7 +248,7 @@
   .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
   .foto{position:relative;margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
   .foto img{display:block;width:100%;height:96px;object-fit:cover;cursor:zoom-in;background:#eef0f4}
-  .foto figcaption{font-size:11px;padding:4px 6px;line-height:1.25} .foto figcaption small{display:block;color:var(--mute)}
+  .foto figcaption{font-size:11px;padding:4px 6px;line-height:1.25} .foto figcaption small{display:block;color:var(--mute)} .foto figcaption small.foto-alerta{color:#a33d00;font-weight:700} .foto figcaption a{text-decoration:none}
   .foto.na-fila{outline:2px dashed var(--amarelo)}
   .foto-x{position:absolute;top:4px;right:4px;border:0;border-radius:12px;background:rgba(0,0,0,.6);color:#fff;font:inherit;font-size:13px;line-height:1;padding:4px 7px;cursor:pointer}
   .foto-x.conf{background:var(--bad)}
@@ -1806,7 +1806,7 @@ async function montarRomaneio(){
     </div></aside>`;
   const $ = k => document.getElementById(k);
   ligarCamposEmbarque(mots);
-  const fotosRm = $('rm-fotos') ? blocoFotos($('rm-fotos'), { alvo:'full_romaneio', id:null, tela:'full', editar:true, tipos:['comprovante', 'veiculo', 'lacre', 'outra'] }) : null;
+  const fotosRm = $('rm-fotos') ? blocoFotos($('rm-fotos'), { alvo:'full_romaneio', id:null, tela:'full', editar:true, tipos:['comprovante', 'veiculo', 'lacre', 'outra'], contexto: () => `FULL · Novo romaneio · ${L.length} coleta(s) ${L.map(e => '#' + e.pedido.slice(-3)).join(' ')}` }) : null;
   const fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
   $('rm-so-imp').onclick = () => { imprimirHtml(romaneioHtml(L, embParaImpresso(lerCamposEmbarque(mots)))); fechar(); };
@@ -1940,7 +1940,7 @@ function abrirRomaneio(id, recarregando){
       dica: 'O carregamento é do veículo inteiro: pares e caixas em branco contam o romaneio todo. Aponte só o tempo carregando (a espera na doca já aparece em chegada → saída).',
       aoSalvar: () => recarregar(), aoFechar: () => { if (btn) btn.hidden = false; } });
   };
-  blocoFotos($('rd-fotos'), { alvo:'full_romaneio', id:r.id, tela:'full', editar: editar && r.status !== 'cancelado', tipos:['comprovante', 'veiculo', 'lacre', 'outra'] });
+  blocoFotos($('rd-fotos'), { alvo:'full_romaneio', id:r.id, tela:'full', editar: editar && r.status !== 'cancelado', tipos:['comprovante', 'veiculo', 'lacre', 'outra'], contexto: () => `FULL · Romaneio ${nRom(r.id)}${r.lacre ? ' · Lacre ' + r.lacre : ''}${r.placa ? ' · Placa ' + r.placa : ''}` });
   // assinatura do motorista (igual ao CROSS)
   const desenhaAssinRom = async refazer => {
     const $a = $('rd-assin'); if (!$a) return;
@@ -2358,7 +2358,7 @@ function abrirEnvio(id, recarregando){
       aoSalvar: async () => { g.dataset.sujo = ''; await carregarFull(); }, aoFechar: () => { if (btn) btn.hidden = false; } });
   };
   g.querySelectorAll('[data-nova]').forEach(b => b.onclick = () => abrirForm(b.dataset.nova, null));
-  if ($('gv-fotos')) blocoFotos($('gv-fotos'), { alvo:'full_envio', id:e.id, tela:'full', editar: mexeColeta, tipos:['carga', 'outra'] });
+  if ($('gv-fotos')) blocoFotos($('gv-fotos'), { alvo:'full_envio', id:e.id, tela:'full', editar: mexeColeta, tipos:['carga', 'outra'], contexto: () => `FULL · Envio ${e.pedido}` });
   g.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => abrirForm(b.dataset.ecEtapa, (r.coletas || []).find(c => c.id === b.dataset.ec)));
 
   const hb = $('gv-hist-btn');
@@ -3111,7 +3111,7 @@ async function abrirCross(id){
   g.querySelectorAll('[data-agora]').forEach(b => b.onclick = () => { $(b.dataset.agora).value = agoraHM(); sujo = true; });
   const somar = () => { $('cx-total').textContent = fmtN([...g.querySelectorAll('[data-loja]')].reduce((t, i) => t + (parseInt(i.value) || 0), 0)); };
   desenhaLojas(); desenhaCods();
-  const fotos = blocoFotos($('cx-fotos'), { alvo:'cross_coleta', id: c.id || null, tela:'cross', editar: editar, tipos:['comprovante', 'veiculo', 'outra'] });
+  const fotos = blocoFotos($('cx-fotos'), { alvo:'cross_coleta', id: c.id || null, tela:'cross', editar: editar, tipos:['comprovante', 'veiculo', 'outra'], contexto: () => { const cn = r.canais.find(x => x.id === canal), pl = $('cx-placa')?.value?.trim(); const sq = $('cx-seq')?.value; return `CROSS · ${cn ? cn.nome + ' · ' : ''}${sq ? sq + 'ª coleta' : 'Coleta'}${c.id ? ' (ID ' + c.id + ')' : ' (nova)'}${pl ? ' · Placa ' + pl.toUpperCase() : ''}`; } });
   const chips = () => { $('cx-chips').innerHTML = man.map((m, i) => `<span class="chip">${esc(m)}${pode_ ? `<button type="button" data-rmm="${i}" aria-label="Remover">×</button>` : ''}</span>`).join('') || '<span class="info">nenhum</span>';
     $('cx-chips').querySelectorAll('[data-rmm]').forEach(b => b.onclick = () => { man.splice(+b.dataset.rmm, 1); sujo = true; chips(); }); };
   const addMan = () => { const v = $('cx-man').value.trim().toUpperCase(); if (v && !man.includes(v)) { man.push(v); sujo = true; } $('cx-man').value = ''; chips(); };
@@ -3206,12 +3206,43 @@ const FOTO_TIPOS = {
 };
 const DEMO_FOTOS = {};   // demonstração: fotos só na memória do navegador
 // reduz a foto do celular (12 MP, 4 MB) para ~1600 px em JPEG: sobe rápido no 4G e ocupa pouco espaço
-async function comprimirFoto(arq){
+// Carimbo: faixa no rodapé, abaixo da imagem (não cobre nada da foto), com hora, coleta, quem tirou e GPS
+const horaCarimbo = ms => new Date(ms).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }).replace(',', '');
+function linhasCarimbo(m){
+  const gps = m.lat !== undefined && m.lat !== null ? `GPS ${m.lat.toFixed(5)}, ${m.lng.toFixed(5)} (±${m.precisao} m)` : 'GPS indisponível';
+  return m.origem === 'galeria'
+    ? [`GALERIA · arquivo de ${horaCarimbo(Date.parse(m.tirada_em))} · ${m.contexto}`, `Enviada em ${horaCarimbo(m.agora)} · ${gps} no envio · ${m.quem} · Valenro`]
+    : [`${horaCarimbo(Date.parse(m.tirada_em))} · ${m.contexto}`, `${gps} · ${m.quem} · Valenro`];
+}
+let _geo = { pos:null, em:0, prom:null };
+function pedirGeo(){   // pede a localização uma vez e guarda por 2 minutos; nunca trava a foto
+  if (!navigator.geolocation) return Promise.resolve(null);
+  if (_geo.pos && Date.now() - _geo.em < 120e3) return Promise.resolve(_geo.pos);
+  return _geo.prom ||= new Promise(res => navigator.geolocation.getCurrentPosition(
+    p => { _geo = { pos:{ lat:p.coords.latitude, lng:p.coords.longitude, precisao:Math.round(p.coords.accuracy) }, em:Date.now(), prom:null }; res(_geo.pos); },
+    () => { _geo.prom = null; res(null); }, { enableHighAccuracy:true, timeout:12000, maximumAge:60000 }));
+}
+const comPrazo = (p, ms) => Promise.race([p, new Promise(r => setTimeout(() => r(null), ms))]);
+async function comprimirFoto(arq, carimbo){
   try {
     const img = await createImageBitmap(arq);
     const k = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
-    cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const w = Math.round(img.width * k), h = Math.round(img.height * k), linhas = carimbo ? linhasCarimbo(carimbo) : [];
+    const fs = Math.max(13, Math.round(w * 0.024)), lh = Math.round(fs * 1.4), faixa = linhas.length ? linhas.length * lh + Math.round(fs * 0.8) : 0;
+    cv.width = w; cv.height = h + faixa;
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    if (faixa) {
+      ctx.fillStyle = '#02285a'; ctx.fillRect(0, h, w, faixa);
+      ctx.fillStyle = '#ffd200'; ctx.fillRect(0, h, w, Math.max(2, Math.round(fs * 0.15)));
+      linhas.forEach((t, i) => {
+        let tam = i ? Math.round(fs * 0.9) : fs;
+        const fonte = () => `${i ? '' : 'bold '}${tam}px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif`;
+        ctx.font = fonte(); while (tam > 9 && ctx.measureText(t).width > w - fs) { tam--; ctx.font = fonte(); }
+        ctx.fillStyle = i ? '#ffffff' : (carimbo.origem === 'galeria' ? '#ff9b6b' : '#ffd200');
+        ctx.textBaseline = 'middle'; ctx.fillText(t, Math.round(fs * 0.5), h + Math.round(fs * 0.4) + lh * i + lh / 2);
+      });
+    }
     const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
     if (blob) return new File([blob], 'foto.jpg', { type:'image/jpeg' });
   } catch (_) {}
@@ -3223,12 +3254,14 @@ async function apiFotos(path, corpo){
   const q = new URLSearchParams(path.split('?')[1] || '');
   if (path.startsWith('/fotos?')) return { fotos: JSON.parse(JSON.stringify(DEMO_FOTOS[q.get('alvo') + '|' + q.get('id')] || [])) };
   if (path === '/foto') { const k = corpo.get('alvo') + '|' + corpo.get('alvo_id'), L = DEMO_FOTOS[k] ||= [];
-    L.push({ id:String(Date.now() + Math.random()), tipo:corpo.get('tipo'), legenda:corpo.get('legenda') || null, url:URL.createObjectURL(corpo.get('arquivo')), criado_em:new Date().toISOString(), criado_por:'demonstracao', tamanho:corpo.get('arquivo').size }); return { ok:true }; }
+    const n = k => corpo.get(k) === null ? null : Number(corpo.get(k));
+    L.push({ id:String(Date.now() + Math.random()), tipo:corpo.get('tipo'), legenda:corpo.get('legenda') || null, url:URL.createObjectURL(corpo.get('arquivo')), criado_em:new Date().toISOString(), criado_por:'demonstracao', tamanho:corpo.get('arquivo').size,
+      origem:corpo.get('origem'), tirada_em:corpo.get('tirada_em'), relogio_desvio_s: corpo.get('relogio') ? Math.round((Date.now() - n('relogio')) / 1000) : null, lat:n('lat'), lng:n('lng'), precisao_m:n('precisao') }); return { ok:true }; }
   if (path === '/foto/excluir') { Object.values(DEMO_FOTOS).forEach(L => { const i = L.findIndex(f => f.id === corpo.id); if (i >= 0) L.splice(i, 1); }); return { ok:true }; }
 }
 // Bloco de fotos dentro de uma gaveta. Coleta ainda não salva (id null): as fotos ficam na fila e sobem ao salvar.
 // Retorna { pendentes(), enviarPendentes(id) }.
-function blocoFotos(el, { alvo, id, tela, tipos = ['comprovante', 'veiculo', 'outra'], editar }){
+function blocoFotos(el, { alvo, id, tela, tipos = ['comprovante', 'veiculo', 'outra'], editar, contexto = () => '' }){
   const fila = [];   // { arquivo, tipo, url }
   let fotos = [];
   const eu = state.usuario?.login || 'demonstracao', gerir = pode(tela, 'gerir');
@@ -3236,21 +3269,28 @@ function blocoFotos(el, { alvo, id, tela, tipos = ['comprovante', 'veiculo', 'ou
   const desenha = () => {
     const todas = fotos.map(f => ({ ...f, salva:true })).concat(fila.map((f, i) => ({ ...f, fila:i })));
     el.innerHTML = `
-      ${editar ? `<div class="foto-bts">${tipos.map(t => `<span class="foto-par"><label class="btn foto-bt" title="Abrir a câmera"><input type="file" accept="image/*" capture="environment" hidden data-ft="${t}">${FOTO_TIPOS[t].ico} ${esc(FOTO_TIPOS[t].rot)}</label><label class="btn foto-gal" title="Escolher da galeria (várias)"><input type="file" accept="image/*" multiple hidden data-ft="${t}">🖼</label></span>`).join('')}</div>
-        <div class="info" style="margin:4px 0 8px">${tipos.filter(t => FOTO_TIPOS[t].dica).map(t => `${FOTO_TIPOS[t].ico} ${FOTO_TIPOS[t].dica}`).join(' · ')}. Toque no botão para abrir a câmera; 🖼 escolhe da galeria (várias de uma vez).</div>` : ''}
+      ${editar ? `<div class="foto-bts">${tipos.map(t => `<span class="foto-par"><label class="btn foto-bt" title="Abrir a câmera"><input type="file" accept="image/*" capture="environment" hidden data-ft="${t}" data-orig="camera">${FOTO_TIPOS[t].ico} ${esc(FOTO_TIPOS[t].rot)}</label><label class="btn foto-gal" title="Escolher da galeria (várias)"><input type="file" accept="image/*" multiple hidden data-ft="${t}" data-orig="galeria">🖼</label></span>`).join('')}</div>
+        <div class="info" style="margin:4px 0 8px">${tipos.filter(t => FOTO_TIPOS[t].dica).map(t => `${FOTO_TIPOS[t].ico} ${FOTO_TIPOS[t].dica}`).join(' · ')}. Toque no botão para abrir a câmera; 🖼 escolhe da galeria (várias de uma vez, mas a foto fica marcada como ⚠ galeria). A foto sai com rodapé de data, hora e localização.</div>` : ''}
       ${todas.length ? `<div class="fotos">${todas.map(f => `<figure class="foto ${f.salva ? '' : 'na-fila'}">
           <img src="${esc(f.url || '')}" alt="${esc(FOTO_TIPOS[f.tipo]?.rot || 'foto')}" data-ver="${f.salva ? f.id : 'f' + f.fila}" loading="lazy">
-          <figcaption>${FOTO_TIPOS[f.tipo]?.ico || ''} ${esc(FOTO_TIPOS[f.tipo]?.rot || '')}${f.salva ? `<small>${diaHora(f.criado_em)}</small>` : '<small>sobe ao salvar</small>'}</figcaption>
+          <figcaption>${FOTO_TIPOS[f.tipo]?.ico || ''} ${esc(FOTO_TIPOS[f.tipo]?.rot || '')}${f.salva ? `<small>${diaHora(f.criado_em)}${f.lat != null ? ` <a href="https://www.google.com/maps?q=${f.lat},${f.lng}" target="_blank" rel="noopener" title="Onde a foto foi tirada (±${f.precisao_m} m)">📍</a>` : ''}</small>` : '<small>sobe ao salvar</small>'}
+            ${alertasFoto(f).map(a => `<small class="foto-alerta">⚠ ${esc(a)}</small>`).join('')}</figcaption>
           ${(f.salva ? podeTirar(f) : true) && editar ? `<button type="button" class="foto-x" data-fx="${f.salva ? f.id : 'f' + f.fila}" aria-label="Excluir foto">×</button>` : ''}</figure>`).join('')}</div>`
         : `<div class="info">${editar ? 'Nenhuma foto ainda.' : 'Sem fotos.'}</div>`}`;
+    el.querySelectorAll('.foto-bt, .foto-gal').forEach(l => l.addEventListener('click', () => { pedirGeo(); }));   // já vai buscando o GPS enquanto a câmera abre
     el.querySelectorAll('[data-ft]').forEach(inp => inp.onchange = async () => {
       const arqs = [...inp.files]; inp.value = ''; if (!arqs.length) return;
+      const geo = await comPrazo(pedirGeo(), 4000);
       for (const a of arqs) {
         try {
-          const arq = await comprimirFoto(a);
-          if (!id) { fila.push({ arquivo:arq, tipo:inp.dataset.ft, url:URL.createObjectURL(arq) }); continue; }
-          const fd = new FormData(); fd.append('alvo', alvo); fd.append('alvo_id', id); fd.append('tipo', inp.dataset.ft); fd.append('arquivo', arq, 'foto.jpg');
-          await apiFotos('/foto', fd);
+          const agora = Date.now();
+          // no computador o botão da câmera abre o explorador de arquivos: arquivo antigo conta como galeria
+          const origem = inp.dataset.orig === 'camera' && (!a.lastModified || Math.abs(agora - a.lastModified) < 5 * 60e3) ? 'camera' : 'galeria';
+          const meta = { origem, tirada_em: new Date(origem === 'galeria' && a.lastModified ? a.lastModified : agora).toISOString(), agora,
+            contexto: contexto() || '', quem: state.usuario?.nome || 'Demonstração', ...(geo || {}) };
+          const arq = await comprimirFoto(a, meta);
+          if (!id) { fila.push({ arquivo:arq, tipo:inp.dataset.ft, url:URL.createObjectURL(arq), meta, origem }); continue; }
+          await apiFotos('/foto', dadosFoto(alvo, id, inp.dataset.ft, arq, meta));
         } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
       }
       if (id) { avisar(arqs.length > 1 ? `${arqs.length} fotos enviadas` : 'Foto enviada'); await carregar(); } else desenha();
@@ -3275,12 +3315,25 @@ function blocoFotos(el, { alvo, id, tela, tipos = ['comprovante', 'veiculo', 'ou
     async enviarPendentes(novoId){
       let ok = 0;
       for (const f of fila) {
-        const fd = new FormData(); fd.append('alvo', alvo); fd.append('alvo_id', novoId); fd.append('tipo', f.tipo); fd.append('arquivo', f.arquivo, 'foto.jpg');
-        try { await apiFotos('/foto', fd); ok++; } catch (e) { if (e instanceof SemSessao) throw e; avisar(`Foto não enviada: ${e.message}`, true); }
+        try { await apiFotos('/foto', dadosFoto(alvo, novoId, f.tipo, f.arquivo, f.meta)); ok++; } catch (e) { if (e instanceof SemSessao) throw e; avisar(`Foto não enviada: ${e.message}`, true); }
       }
       fila.length = 0; return ok;
     },
   };
+}
+function dadosFoto(alvo, alvoId, tipo, arq, m){
+  const fd = new FormData(); fd.append('alvo', alvo); fd.append('alvo_id', alvoId); fd.append('tipo', tipo); fd.append('arquivo', arq, 'foto.jpg');
+  if (m) { fd.append('origem', m.origem); fd.append('tirada_em', m.tirada_em); fd.append('relogio', String(Date.now()));
+    if (m.lat != null) { fd.append('lat', String(m.lat)); fd.append('lng', String(m.lng)); fd.append('precisao', String(m.precisao)); } }
+  return fd;
+}
+// alertas para o líder: foto da galeria ou relógio do celular errado (a hora do carimbo vem do celular)
+function alertasFoto(f){
+  const L = [];
+  if (f.origem === 'galeria') L.push(`da galeria${f.tirada_em ? ` (arquivo de ${diaHora(f.tirada_em)})` : ''}`);
+  const d = f.relogio_desvio_s;
+  if (d != null && Math.abs(d) > 600) L.push(`relógio do celular ${Math.round(Math.abs(d) / 60)} min ${d > 0 ? 'atrasado' : 'adiantado'}`);
+  return L;
 }
 function verFoto(url, titulo){
   const d = document.createElement('div'); d.className = 'foto-zoom';
