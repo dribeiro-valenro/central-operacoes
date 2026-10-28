@@ -268,6 +268,43 @@
   .rr-tile span{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px}
   .rr-tile b{font-size:24px;font-variant-numeric:tabular-nums} .rr-tile small{font-size:11px;color:var(--mute)}
 
+  /* FULL · planejamento */
+  .pl-tile{cursor:pointer;text-align:left;font:inherit;color:inherit} .pl-tile.on{outline:2px solid var(--c)}
+  .tab-plan tbody tr{cursor:pointer} .tab-plan tbody tr:hover td{background:#f5f8fd}
+  .tab-plan tr.pl-meu td{background:#fffaf0} .tab-plan tr.canc td{color:var(--mute)}
+  .pl-vez{font-size:11px;font-weight:700;color:#fff;background:#9a5b00;border-radius:8px;padding:1px 6px}
+  .pl-atraso{color:#a33d00;font-weight:700}
+  .tag-loja{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;border-left:4px solid var(--c);background:#f3f5f9}
+  .pl-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px} .pl-topo h3{margin:0;font-size:18px;display:flex;gap:8px;align-items:center}
+  .pl-aviso{margin-bottom:10px} .pl-aviso.val{background:#fff4e0} .pl-aviso.ok{background:#e9f7ee;border-color:#b7e1c4;color:#1a5e30} .pl-aviso.canc{background:#fbe9e9;border-color:#efc4c4;color:#8a1f1f}
+  .pl-cab{grid-template-columns:repeat(4,minmax(0,1fr))} .pl-cab input,.pl-cab select{width:100%;min-width:0} .pl-cab .pl-obs{grid-column:1/-1}
+  .pl-sec{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px;box-shadow:var(--sombra)}
+  .pl-sec-cab{display:flex;gap:10px;align-items:baseline;margin-bottom:6px}
+  .pl-wrap{overflow-x:auto}
+  .pl-tab{border-collapse:collapse;width:100%;font-size:13px}
+  .pl-tab th{font-size:11px;color:var(--mute);text-transform:uppercase;padding:4px 3px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  .pl-tab th.pl-n,.pl-tab td.pl-n{text-align:center;width:46px;min-width:42px}
+  .pl-tab td{padding:2px 3px;border-bottom:1px solid #eef0f4;white-space:nowrap}
+  .pl-tab tfoot td{font-weight:700;color:var(--mute);border-top:2px solid var(--line);padding:5px 3px}
+  .pl-in{width:100%;border:1px solid transparent;background:#f6f8fb;border-radius:5px;padding:5px 6px;font:inherit;font-size:13px;color:var(--ink)}
+  .pl-in:focus{outline:none;border-color:#0b4fa8;background:#fff} .pl-in:disabled{background:transparent;color:var(--ink);opacity:1}
+  .pl-mlb{width:150px;font-variant-numeric:tabular-nums;font-size:12px} .pl-prod{width:150px} .pl-cor{width:170px}
+  .pl-q{text-align:center;padding:5px 2px;font-variant-numeric:tabular-nums} select.pl-loja{width:92px;padding:4px}
+  .pl-tot,.pl-cx{text-align:center;min-width:44px;font-variant-numeric:tabular-nums} .pl-cx{color:var(--mute)}
+  .pl-x{border:0;background:none;color:#8a1f1f;font-size:18px;cursor:pointer;padding:0 6px}
+  .pl-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .pl-rodape{position:sticky;bottom:0;z-index:5;margin-top:14px;background:var(--card);border:1px solid var(--line);border-top:3px solid var(--amarelo);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 -4px 14px rgba(0,0,0,.08)}
+  .pl-tots{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;flex:1} .pl-tots b{font-size:18px;color:var(--pri)}
+  .pl-bts{display:flex;gap:8px;flex-wrap:wrap}
+  .btn.btn-ok{background:#1a7a3e;border-color:#1a7a3e} .btn.btn-dev{color:#a33d00;border-color:#e9b9a0}
+  .btn.pulsa{border-color:#0b4fa8;box-shadow:0 0 0 2px #cfe0f7}
+  #pl-hist-box{margin-top:12px} .pl-ev{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px} .pl-ev ul{margin:4px 0 0;padding-left:18px;color:#3c4558}
+  .pl-modal{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.45);display:flex;align-items:center;justify-content:center;padding:16px} .pl-modal .painel{width:min(460px,100%)}
+  .erro-campo{border-color:#c0392b !important}
+  .pl-det summary{cursor:pointer;color:#0b4fa8;font-size:13px;margin-top:6px} .pl-tab.ro td{padding:4px 3px}
+  .pl-limite.atraso{color:#a33d00}
+  @media (max-width:700px){ .pl-cab{grid-template-columns:repeat(2,minmax(0,1fr))} .pl-rodape{position:static} }
+
   /* testes de perfil */
   .tst-intro ul{margin:6px 0 0;padding-left:20px;line-height:1.55}
   .tst-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin:12px 0}
@@ -714,8 +751,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', cross:'nenhum', abandono:'nenhum', motoristas:'nenhum', ponto:'gerir', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'gerir', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', cross:'nenhum', abandono:'nenhum', motoristas:'nenhum', ponto:'gerir', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -1013,7 +1050,7 @@ async function apiFull(path, corpo){
   const D = DEMO_FULL, ag = new Date().toISOString(), ev = (envio_id, acao, antes, depois) => D.eventos.unshift({ envio_id, em:ag, por:'demonstracao', acao, antes, depois });
   const num = v => v === '' || v === null || v === undefined ? null : Number(v);
   if (path.startsWith('/full/romaneio')) return apiRomDemo(path, corpo);
-  demoRomIni();
+  demoRomIni(); demoPlanIni();
   if (path.startsWith('/full/eventos')) { const id = new URLSearchParams(path.split('?')[1]).get('id'); return { eventos: D.eventos.filter(e => e.envio_id === id) }; }
   if (path.startsWith('/full')) {
     if (path.startsWith('/full?') || path === '/full') {
@@ -1068,6 +1105,8 @@ function telaFull(){
   if (params.get('romaneio') && !s.linkRomUsado) { s.vista = 'romaneios'; s.romIr = params.get('romaneio').replace(/\D/g, ''); s.linkRomUsado = true; }
   if (s.vista === 'romaneios') return telaRomaneios();
   if (s.vista === 'resumo') return telaResumoFull();
+  if (s.vista === 'plan' && pode('full_plan', 'ver')) return telaPlanejamento();
+  if (s.vista === 'plan') s.vista = 'envios';
   if (s.vista === 'tempos' && pode('full', 'gerir')) return telaTempos();
   if (s.vista === 'tempos') s.vista = 'envios';
   // veio do QR da folha de rosto: abre o pedido direto
@@ -1668,10 +1707,441 @@ function barraRomaneios(s){
     <div id="rom"><div class="carregando">Carregando romaneios…</div></div>
     <div id="gaveta" hidden></div>`;
 }
-const abasVistaFull = s => `<div class="abas vista-full">${[['envios','Envios'],['romaneios','🚚 Romaneios'],['resumo','📊 Resumo'], ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+const abasVistaFull = s => `<div class="abas vista-full">${[...(pode('full_plan', 'ver') ? [['plan','🗂 Planejamento']] : []), ['envios','Envios'],['romaneios','🚚 Romaneios'],['resumo','📊 Resumo'], ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 function ligarAbasVista(){
-  document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { if (state.full.vista === b.dataset.vista) return; state.full.vista = b.dataset.vista; state.full.aberto = null; state.full.romAberto = null; telaFull(); });
+  document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { if (state.full.vista === b.dataset.vista) return;
+    if (state.planSujo && !confirmaDupla(b, 'Coleta sem salvar: clique de novo para sair')) return; state.planSujo = false; if (state.full.plan) state.full.plan.aberto = null; state.full.vista = b.dataset.vista; state.full.aberto = null; state.full.romAberto = null; telaFull(); });
 }
+
+/* =================== FULL · PLANEJAMENTO DAS COLETAS (substitui as planilhas COLETAS_FULL) =================== */
+// rascunho -> validação (gestor) -> aprovado (vira envio "Programado" na aba Envios) | devolvido | cancelado
+const FAIXAS_PLAN = { '33': [33,34,35,36,37,38,39,40,41,42,43,44], '25': [25,26,27,28,29,30,31,32,33,34,35,36], '19': [19,20,21,22,23,24,25,26,27,28,29,30] };
+const ROT_FAIXA = { '33':'Grade 33 a 44', '25':'Grade 25 a 36', '19':'Grade 19 a 30' };
+const ST_PLAN = {
+  rascunho:  { rot:'Rascunho',     cor:'#566074', fundo:'#eef0f4' },
+  validacao: { rot:'Com o gestor', cor:'#9a5b00', fundo:'#fff1d6' },
+  devolvido: { rot:'Devolvida',    cor:'#a33d00', fundo:'#fde8e0' },
+  aprovado:  { rot:'Aprovada',     cor:'#1a7a3e', fundo:'#e2f5e8' },
+  cancelado: { rot:'Cancelada',    cor:'#8a1f1f', fundo:'#fbe9e9' },
+};
+const ROT_ACAO_PLAN = { criar:'criou', alterar:'alterou', enviar:'enviou para validação', puxar:'puxou de volta para rascunho', devolver:'devolveu para ajuste', aprovar:'aprovou e liberou para separação', cancelar:'cancelou', duplicar:'criou a partir de outra coleta' };
+const pillPlan = st => `<span class="st-full" style="color:${ST_PLAN[st]?.cor};background:${ST_PLAN[st]?.fundo}">${esc(ST_PLAN[st]?.rot || st)}</span>`;
+const nPlan = id => '#' + String(id).padStart(4, '0');
+const paresIt = i => Object.values(i.q || {}).reduce((t, n) => t + (Number(n) || 0), 0);
+const cxTxt = p => (p / 12).toLocaleString('pt-BR', { maximumFractionDigits:1 });
+const quemTxt = l => l ? String(l).split('@')[0] : '–';
+
+// ---- demonstração (em memória)
+const DEMO_PLAN = { planos:[], eventos:[], seq:0, cat:[] };
+function demoPlanIni(){
+  if (DEMO_PLAN.pronto) return; DEMO_PLAN.pronto = true;
+  DEMO_PLAN.cat = [['3871634937','6371-367-7286','PRETO','33','CACAL',12],['1796424579928341','1478-100-31404','BEGE','33','CACAL',9],['1796424579928341','1478-100-31404','BRANCO OFF PRETO','33','CACAL',9],
+    ['8633196769747598','5563-101-30598','BRANCO OFF','33','CACAL',7],['8633196769747598','5563-101-30598','PRETO','33','CACAL',7],['1781548595881936','158-023-21','BEGE CINNAMON','33','CACAL',4],['1781548595881936','158-023-22','VERDE MILITAR','33','CACAL',4],
+    ['6193556213577297','2615-101-14611','PRETO','25','DIGOS',15],['5331533918','2135-137-13958','AZUL','25','DIGOS',11],['8840542156567441','6531-100-29623','BRANCO OFF','33','DROSA',8],['8840542156567441','6531-100-29623','BRANCO OFF/CAMEL','33','DROSA',8],
+    ['8840542156567441','6531-100-29623','PRETO','33','DROSA',8],['8771960266246928','8246-1212-22181','BRANCO OFF','33','DROSA',6],['8771960266246928','8246-1212-22181','PRETO','33','DROSA',6],['5675129826500433','5565-102-31428','NUDE','33','DROSA',5],
+    ['5675129826500433','5565-102-31428','PRETO','33','DROSA',5],['5991676044','T5277-497','PECAN','33','DIGOS',22],['4922960746700368','T1382-687','BRANCO DOURADO','33','DIGOS',14],['6095992847360464','5577-100-23891','CHOCOLATE','33','DIGOS',10],
+    ['6095992847360464','5577-100-23891','PRETO','33','DIGOS',10],['4973695340','2347-100-13573','OURO ROSADO','25','DIGOS',6],['2565969308303827','8576-101','OSTRA','33','CACAL',3],['2565969308303827','8576-101','PRETO','33','CACAL',3],
+    ['5276762184','2106-1052-13063','ROSA/PRATA','19','DROSA',2],['3739255031','6291-900-8389','PRETO','33','DIGOS',63]];
+  const it = (mlb, produto, cor, faixa, q, loja = null) => ({ mlb, produto, cor, faixa, q:Object.fromEntries(Object.entries(q).filter(([, v]) => v)), loja });
+  const g = (...v) => Object.fromEntries(v.map((n, k) => [String(33 + k), n]));
+  const h = hojeBRT(), ag = new Date().toISOString(), ontem = new Date(Date.now() - 86400e3).toISOString();
+  const novo = (cnpj, pedido, dl, de, status, itens, extra = {}) => { const id = String(++DEMO_PLAN.seq), pares = itens.reduce((t, i) => t + paresIt(i), 0);
+    DEMO_PLAN.planos.push({ id, cnpj_id:cnpj, pedido, data_limite:dl, data_expedicao:de, status, itens, pares, linhas:itens.length, observacao:null, comentario:null, envio_id:null,
+      enviado_em:null, enviado_por:null, aprovado_em:null, aprovado_por:null, criado_em:ontem, criado_por:'analista.full@op.valenro.local', atualizado_em:ag, atualizado_por:'analista.full@op.valenro.local', ...extra });
+    DEMO_PLAN.eventos.push({ plano_id:id, em:ontem, por:'analista.full@op.valenro.local', acao:'criar', detalhe:{ pares, linhas:itens.length } }); return id; };
+  novo('DIGOS', null, addDias(h, 2), addDias(h, 3), 'rascunho', [it('5991676044','T5277-497','PECAN','33', g(0,6,14,12,12,6,4)), it('4922960746700368','T1382-687','BRANCO DOURADO','33', g(0,0,24,36)),
+    it('6095992847360464','5577-100-23891','CHOCOLATE','33', g(5,4,7,19,15,6,12,3)), it('6095992847360464','5577-100-23891','PRETO','33', g(8,0,5,12,0,11)),
+    it('4973695340','2347-100-13573','OURO ROSADO','25', { '31':7, '32':6 })]);
+  const v = novo('DROSA', '80818066', addDias(h, 1), addDias(h, 2), 'validacao', [it('8840542156567441','6531-100-29623','BRANCO OFF','33', g(3,6,12,18,12,12,6,3)), it('8840542156567441','6531-100-29623','PRETO','33', g(3,6,12,18,12,12,3,6)),
+    it('8771960266246928','8246-1212-22181','BRANCO OFF','33', g(3,6,12,18,12,6,12,3)), it('5675129826500433','5565-102-31428','NUDE','33', g(3,6,12,18,12,12,6,3), 'DIGOS')],
+    { enviado_em:ag, enviado_por:'analista.full@op.valenro.local' });
+  DEMO_PLAN.eventos.push({ plano_id:v, em:ag, por:'analista.full@op.valenro.local', acao:'enviar', detalhe:{ de:'rascunho', para:'validacao' } });
+  const d = novo('CACAL', '80812032', addDias(h, 1), addDias(h, 2), 'devolvido', [it('2565969308303827','8576-101','OSTRA','33', g(6,12,12,0,12,12,12,6)), it('2565969308303827','8576-101','PRETO','33', g(3,6,6,12,12,12,6,3)),
+    it('6193556213577297','2615-101-14611','PRETO','25', { '25':6, '26':6, '27':6, '28':6, '29':6, '30':6 }, 'DIGOS')], { comentario:'O 2615 PRETO da Digos está sem estoque no 25 e 26: trocar por outra grade ou tirar.', enviado_por:'analista.full@op.valenro.local' });
+  DEMO_PLAN.eventos.push({ plano_id:d, em:ag, por:'douglas.ribeiro@op.valenro.local', acao:'devolver', detalhe:{ de:'validacao', para:'devolvido', comentario:'O 2615 PRETO da Digos está sem estoque no 25 e 26: trocar por outra grade ou tirar.' } });
+  const env = DEMO_FULL.envios.find(e => e.pedido === '80279586');
+  if (env) { const a = novo('DIGOS', '80279586', addDias(env.data_expedicao, -1), env.data_expedicao, 'aprovado', [it('3739255031','6291-900-8389','PRETO','33', g(30,60,120,180,180,150,90,60,30,0,0,0)), it('5331533918','2135-137-13958','AZUL','25', { '26':12, '27':12, '28':6, '29':12, '30':6, '31':12, '32':24 })],
+    { envio_id:env.id, enviado_por:'analista.full@op.valenro.local', enviado_em:ontem, aprovado_por:'douglas.ribeiro@op.valenro.local', aprovado_em:ontem });
+    env.plano_id = a; env.data_limite = addDias(env.data_expedicao, -1);
+    DEMO_PLAN.eventos.push({ plano_id:a, em:ontem, por:'douglas.ribeiro@op.valenro.local', acao:'aprovar', detalhe:{ de:'validacao', para:'aprovado', envio_id:env.id } }); }
+}
+function diffItensDemo(a, b){
+  const k = i => `${i.produto}|${i.cor}|${i.faixa}|${i.loja || ''}`, r = i => `${i.produto}${i.cor ? ' ' + i.cor : ''}`, L = [];
+  const ma = new Map(a.map(i => [k(i), i])), mb = new Map(b.map(i => [k(i), i]));
+  mb.forEach((i, c) => { if (!ma.has(c)) L.push(`+ ${r(i)}${i.loja ? ` (estoque ${i.loja})` : ''}: ${paresIt(i)} pares`); });
+  ma.forEach((i, c) => { if (!mb.has(c)) L.push(`− ${r(i)}: ${paresIt(i)} pares`); });
+  mb.forEach((n, c) => { const o = ma.get(c); if (!o) return; const nums = [...new Set([...Object.keys(o.q), ...Object.keys(n.q)])].sort((x, y) => x - y);
+    const m = nums.filter(s => (o.q[s] || 0) !== (n.q[s] || 0)).map(s => `${s}: ${o.q[s] || 0}→${n.q[s] || 0}`); if (m.length) L.push(`${r(n)}: ${m.join(', ')} (${paresIt(o)}→${paresIt(n)} pares)`); });
+  return L;
+}
+async function apiPlan(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  demoRomIni(); demoPlanIni();
+  const D = DEMO_PLAN, ag = new Date().toISOString(), eu = state.usuario?.login || 'demonstracao', cp = x => JSON.parse(JSON.stringify(x));
+  const q = new URLSearchParams(path.split('?')[1] || '');
+  const ev = (id, acao, detalhe) => D.eventos.push({ plano_id:String(id), em:ag, por:eu, acao, detalhe });
+  if (path.startsWith('/full/planos')) return { planos: cp(D.planos.map(({ itens, ...p }) => ({ ...p, linhas_outra_loja: itens.filter(i => i.loja).length }))), faixas:FAIXAS_PLAN, hoje:hojeBRT() };
+  if (path.startsWith('/full/plano?')) { const p = D.planos.find(x => x.id === q.get('id')); if (!p) throw new Error('Coleta planejada não encontrada');
+    const env = p.envio_id ? DEMO_FULL.envios.find(e => e.id === p.envio_id) : null;
+    return cp({ plano:p, eventos: D.eventos.filter(e => e.plano_id === p.id).sort((a, b) => b.em.localeCompare(a.em)), envio: env ? { id:env.id, status:env.status, pares_envio:env.pares_envio } : null, faixas:FAIXAS_PLAN }); }
+  if (path.startsWith('/full/catalogo')) return { itens: cp(D.cat) };
+  if (path.startsWith('/full/plano/itens')) { const p = D.planos.find(x => x.envio_id === q.get('envio_id')); return { plano: p ? cp(p) : null, faixas:FAIXAS_PLAN }; }
+  if (path === '/full/plano/salvar') {
+    const itens = (corpo.itens || []).filter(i => i.produto || i.mlb || paresIt(i)).map(i => ({ mlb:String(i.mlb || '').replace(/\D/g, ''), produto:String(i.produto || '').trim().toUpperCase(), cor:String(i.cor || '').trim().toUpperCase(), faixa:i.faixa,
+      q:Object.fromEntries(Object.entries(i.q || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)])), loja: i.loja && i.loja !== corpo.cnpj_id ? i.loja : null }));
+    itens.forEach((i, n) => { if (!i.produto) throw new Error(`Linha ${n + 1}: informe o produto`); });
+    const pedido = String(corpo.pedido || '').replace(/\D/g, '') || null, pares = itens.reduce((t, i) => t + paresIt(i), 0);
+    if (corpo.data_limite && corpo.data_expedicao && corpo.data_limite > corpo.data_expedicao) throw new Error('"Finalizar até" não pode ser depois do dia da coleta');
+    if (pedido) { const dup = D.planos.find(x => x.cnpj_id === corpo.cnpj_id && x.pedido === pedido && x.status !== 'cancelado' && x.id !== corpo.id); if (dup) throw new Error(`O envio ${pedido} já está na coleta planejada ${nPlan(dup.id)}`); }
+    const cab = { cnpj_id:corpo.cnpj_id, pedido, data_limite:corpo.data_limite || null, data_expedicao:corpo.data_expedicao || null, observacao:corpo.observacao || null };
+    if (!corpo.id) { const id = String(++D.seq); D.planos.push({ id, ...cab, status:'rascunho', itens, pares, linhas:itens.length, comentario:null, envio_id:null, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu }); ev(id, 'criar', { pares, linhas:itens.length }); return { ok:true, id, versao:ag }; }
+    const p = D.planos.find(x => x.id === corpo.id);
+    if (corpo.versao && corpo.versao !== p.atualizado_em) throw new Error(`${quemTxt(p.atualizado_por)} alterou esta coleta enquanto você editava. Feche e abra de novo para ver a versão atual.`);
+    if (['aprovado', 'cancelado'].includes(p.status)) throw new Error('Esta coleta não pode mais ser editada');
+    const antes = {}, depois = {}; Object.keys(cab).forEach(k => { if (String(p[k] ?? '') !== String(cab[k] ?? '')) { antes[k] = p[k] ?? null; depois[k] = cab[k]; } });
+    const linhas = diffItensDemo(p.itens, itens);
+    if (Object.keys(depois).length || linhas.length) ev(p.id, 'alterar', { ...(Object.keys(depois).length ? { antes, depois } : {}), linhas, pares:[p.pares, pares] });
+    Object.assign(p, cab, { itens, pares, linhas:itens.length, atualizado_em:ag, atualizado_por:eu }); return { ok:true, id:p.id, versao:ag };
+  }
+  if (path === '/full/plano/acao') {
+    const p = D.planos.find(x => x.id === corpo.id), c = (corpo.comentario || '').trim();
+    if (corpo.versao && corpo.versao !== p.atualizado_em) throw new Error(`${quemTxt(p.atualizado_por)} alterou esta coleta enquanto você editava. Feche e abra de novo.`);
+    const muda = (st, extra = {}, det = {}) => { ev(p.id, corpo.acao, { de:p.status, para:st, ...(c ? { comentario:c } : {}), ...det }); Object.assign(p, { status:st, ...extra, atualizado_em:ag, atualizado_por:eu }); return { ok:true, versao:ag }; };
+    if (corpo.acao === 'enviar') { if (!p.pares) throw new Error('A coleta está sem pares: preencha a grade antes de enviar'); if (!p.data_expedicao) throw new Error('Informe o dia da coleta antes de enviar'); return muda('validacao', { enviado_em:ag, enviado_por:eu, comentario:null }); }
+    if (corpo.acao === 'puxar') return muda('rascunho');
+    if (corpo.acao === 'devolver') { if (!c) throw new Error('Escreva o que precisa ser ajustado'); return muda('devolvido', { comentario:c }); }
+    if (corpo.acao === 'cancelar') return muda('cancelado', c ? { comentario:c } : {});
+    if (corpo.acao === 'aprovar') {
+      if (!p.pedido) throw new Error('Informe o nº do envio do ML antes de aprovar');
+      if (DEMO_FULL.envios.some(e => e.cnpj_id === p.cnpj_id && e.pedido === p.pedido)) throw new Error(`O envio ${p.pedido} já existe na aba Envios. Confira se não é duplicado ou corrija o nº.`);
+      const id = String(++DEMO_FULL.seq);
+      DEMO_FULL.envios.push({ id, cnpj_id:p.cnpj_id, pedido:p.pedido, data_expedicao:p.data_expedicao, data_limite:p.data_limite, hora_expedicao:null, pares_plan:p.pares, pares_envio:null, status:'programado', pct_coleta:0, caixas:Math.ceil(p.pares / 12), m3:null,
+        motivo_diferenca:null, observacao:[`Planejamento ${nPlan(p.id)}`, p.observacao].filter(Boolean).join(' · '), status_em:ag, atualizado_em:ag, atualizado_por:eu, plano_id:p.id });
+      DEMO_FULL.eventos.unshift({ envio_id:id, em:ag, por:eu, acao:'envio.criar', antes:null, depois:{ origem:'planejamento', plano_id:p.id, pares_plan:p.pares } });
+      return { ...muda('aprovado', { aprovado_em:ag, aprovado_por:eu, envio_id:id, comentario:null }, { envio_id:id }), envio_id:id };
+    }
+    if (corpo.acao === 'duplicar') { const id = String(++D.seq); D.planos.push({ ...cp(p), id, pedido:null, data_limite:null, data_expedicao:null, status:'rascunho', comentario:null, envio_id:null, enviado_em:null, enviado_por:null, aprovado_em:null, aprovado_por:null, observacao:null, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu });
+      ev(id, 'duplicar', { origem:p.id, pares:p.pares, linhas:p.linhas }); return { ok:true, id }; }
+  }
+  throw new Error('Rota de demonstração não encontrada: ' + path);
+}
+
+// ---- catálogo (MLB + produto + cor já usados): autocompletar
+async function catalogoPlan(){
+  if (state.planCat) return state.planCat;
+  const { itens } = await apiPlan('/full/catalogo');
+  const porMlb = new Map(), porProd = new Map();
+  itens.forEach(([mlb, produto, cor, faixa, loja, vezes]) => { const e = { mlb, produto, cor, faixa, loja, vezes };
+    if (mlb) { if (!porMlb.has(mlb)) porMlb.set(mlb, []); porMlb.get(mlb).push(e); }
+    if (!porProd.has(produto)) porProd.set(produto, []); porProd.get(produto).push(e); });
+  return state.planCat = { porMlb, porProd, produtos: [...porProd.keys()] };
+}
+
+// ---- lista
+function telaPlanejamento(){
+  const s = state.full; s.plan ||= { loja:'todos', aba:'andamento', busca:'', aberto:null };
+  const p = s.plan;
+  $app.innerHTML = `
+    <div class="barra">
+      <h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <input id="pl-busca" class="campo" placeholder="Nº do envio ou #coleta" value="${esc(p.busca)}" style="width:170px">
+      <select id="pl-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${p.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <div class="abas">${[['andamento','Em andamento'],['aprovado','Aprovadas'],['cancelado','Canceladas'],['todas','Todas']].map(([k, t]) => `<button data-pla="${k}" class="${p.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <button class="btn" id="pl-atualizar">Atualizar</button>
+      ${pode('full_plan', 'editar') ? '<button class="btn pri" id="pl-novo">+ Nova coleta</button>' : ''}
+    </div>
+    <div id="plan"><div class="carregando">Carregando coletas planejadas…</div></div>`;
+  ligarAbasVista();
+  const $ = k => document.getElementById(k);
+  $('pl-loja').onchange = () => { p.loja = $('pl-loja').value; renderPlanos(); };
+  $('pl-busca').oninput = () => { p.busca = $('pl-busca').value; renderPlanos(); };
+  document.querySelectorAll('[data-pla]').forEach(b => b.onclick = () => { p.aba = b.dataset.pla; document.querySelectorAll('[data-pla]').forEach(x => x.classList.toggle('on', x === b)); renderPlanos(); });
+  $('pl-atualizar').onclick = () => carregarPlanos();
+  const nv = $('pl-novo'); if (nv) nv.onclick = () => abrirPlano(null);
+  if (p.aberto) return abrirPlano(p.aberto === 'novo' ? null : p.aberto);
+  carregarPlanos();
+}
+async function carregarPlanos(){
+  try { state.planDados = await apiPlan('/full/planos'); renderPlanos(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('plan'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function renderPlanos(){
+  const s = state.full.plan, r = state.planDados, $c = document.getElementById('plan');
+  if (!$c || !r || s.aberto) return;
+  const termo = s.busca.trim().replace(/^#/, ''), soDig = termo.replace(/\D/g, '');
+  const base = r.planos.filter(p => (s.loja === 'todos' || p.cnpj_id === s.loja) && (!termo || (soDig && ((p.pedido || '').includes(soDig) || String(p.id) === String(+soDig)))));
+  const lista = base.filter(p => s.aba === 'todas' || (s.aba === 'andamento' ? ['rascunho', 'validacao', 'devolvido'].includes(p.status) : p.status === s.aba));
+  const soma = st => { const l = base.filter(p => p.status === st); return { n:l.length, pares:l.reduce((t, p) => t + p.pares, 0), porLoja: ORDEM_LOJAS.map(id => [id, l.filter(p => p.cnpj_id === id).length]).filter(x => x[1]) }; };
+  const gestor = pode('full_plan', 'gerir'), eu = state.usuario?.login;
+  const tile = (st, titulo, sub) => { const t = soma(st); return `<button class="rr-tile pl-tile ${s.aba === st ? 'on' : ''}" data-tile="${st}" style="--c:${ST_PLAN[st].cor}"><span>${titulo}</span><b>${t.n}</b><small>${fmtN(t.pares)} pares${t.porLoja.length ? ' · ' + t.porLoja.map(([id, n]) => `${esc(nomeLoja(id))} ${n}`).join(' · ') : ''}${sub ? `<br>${sub}` : ''}</small></button>`; };
+  const ord = { validacao:0, devolvido:1, rascunho:2, aprovado:3, cancelado:4 };
+  lista.sort((a, b) => (ord[a.status] - ord[b.status]) || String(a.data_expedicao || '9').localeCompare(String(b.data_expedicao || '9')) || b.id - a.id);
+  const hoje = r.hoje || hojeBRT();
+  $c.innerHTML = `
+    <div class="rr-res">
+      ${tile('rascunho', 'Em montagem')}
+      ${tile('validacao', 'Com o gestor', gestor ? 'aguardando a sua validação' : '')}
+      ${tile('devolvido', 'Devolvidas', 'voltaram para ajuste')}
+      ${tile('aprovado', 'Aprovadas', 'últimos 60 dias · viraram envio')}
+    </div>
+    <div class="painel" style="padding:0;overflow-x:auto">
+      <table class="tab-full tab-plan"><thead><tr><th>Coleta</th><th>Loja</th><th>Nº envio ML</th><th>Finalizar até</th><th>Dia da coleta</th><th>Linhas</th><th>Pares</th><th>Caixas</th><th>Status</th><th style="text-align:left">Última alteração</th></tr></thead><tbody>
+      ${lista.map(p => { const atrasado = p.data_limite && p.data_limite < hoje && ['rascunho', 'validacao', 'devolvido'].includes(p.status), meu = gestor && p.status === 'validacao' && p.enviado_por !== eu;
+        return `<tr data-plano="${p.id}" class="${meu ? 'pl-meu' : ''} ${p.status === 'cancelado' ? 'canc' : ''}"><td><b>${nPlan(p.id)}</b></td><td>${tagLoja(p.cnpj_id)}</td><td>${p.pedido ? esc(p.pedido) : '<span class="info">a definir</span>'}</td>
+          <td class="${atrasado ? 'pl-atraso' : ''}">${p.data_limite ? dataBR(p.data_limite) : '–'}${atrasado ? ' ⚠' : ''}</td><td>${p.data_expedicao ? dataBR(p.data_expedicao) : '–'}</td>
+          <td>${p.linhas}${p.linhas_outra_loja ? ` <span class="info" title="linhas com estoque de outra loja">(${p.linhas_outra_loja} outra loja)</span>` : ''}</td><td><b>${fmtN(p.pares)}</b></td><td>${cxTxt(p.pares)}</td><td>${pillPlan(p.status)}${meu ? ' <span class="pl-vez">sua vez</span>' : ''}</td>
+          <td style="text-align:left"><span class="info">${quemTxt(p.atualizado_por)} · ${quando(p.atualizado_em)}</span></td></tr>`; }).join('') || `<tr><td colspan="10" class="vazio">Nenhuma coleta ${s.aba === 'andamento' ? 'em andamento' : 'nesta lista'}.${pode('full_plan', 'editar') && s.aba === 'andamento' ? ' Clique em <b>+ Nova coleta</b> para montar.' : ''}</td></tr>`}
+      </tbody>${lista.length ? `<tfoot><tr><td colspan="5" style="text-align:left">${lista.length} coleta(s)</td><td>${fmtN(lista.reduce((t, p) => t + p.linhas, 0))}</td><td>${fmtN(lista.reduce((t, p) => t + p.pares, 0))}</td><td>${cxTxt(lista.reduce((t, p) => t + p.pares, 0))}</td><td colspan="2"></td></tr></tfoot>` : ''}</table>
+    </div>
+    <div class="info" style="margin-top:8px">Fluxo: o analista monta e envia para validação → o gestor aprova (a coleta vira envio <b>Programado</b> na aba Envios, pronta para separar) ou devolve com o que ajustar.</div>`;
+  $c.querySelectorAll('[data-plano]').forEach(tr => tr.onclick = () => abrirPlano(tr.dataset.plano));
+  $c.querySelectorAll('[data-tile]').forEach(b => b.onclick = () => { s.aba = b.dataset.tile; document.querySelectorAll('[data-pla]').forEach(x => x.classList.toggle('on', x.dataset.pla === s.aba)); renderPlanos(); });
+}
+const tagLoja = id => `<span class="tag-loja" style="--c:${LOJAS[id]?.borda || LOJAS[id]?.cor || '#02285a'}">${esc(nomeLoja(id))}</span>`;
+
+// ---- editor (uma coleta = uma aba da planilha antiga)
+async function abrirPlano(id){
+  const s = state.full.plan, $c = document.getElementById('plan'); if (!$c) return;
+  s.aberto = id || 'novo';
+  $c.innerHTML = '<div class="carregando">Abrindo…</div>';
+  let d;
+  try {
+    d = id ? await apiPlan(`/full/plano?id=${id}`) : { plano: { id:null, cnpj_id: s.loja !== 'todos' ? s.loja : 'DIGOS', pedido:'', data_limite:'', data_expedicao:'', status:'rascunho', itens:[], observacao:'' }, eventos:[] };
+    catalogoPlan().then(() => { const dl = document.getElementById('pl-dl-prod'); if (dl && !dl.childElementCount) dl.innerHTML = state.planCat.produtos.slice(0, 4000).map(p => `<option value="${esc(p)}">`).join(''); }).catch(() => {});
+  } catch (e) { if (e instanceof SemSessao) throw e; $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; return; }
+  editorPlano(d);
+}
+function fecharPlano(){ const s = state.full.plan; s.aberto = null; state.planSujo = false; carregarPlanos(); }
+function editorPlano(d){
+  const $c = document.getElementById('plan'), P = d.plano, eu = state.usuario?.login || 'demonstracao';
+  const gestor = pode('full_plan', 'gerir'), editar = pode('full_plan', 'editar');
+  const podeEditar = editar && (['rascunho', 'devolvido'].includes(P.status) || (P.status === 'validacao' && gestor));
+  const ed = { ...P, itens: JSON.parse(JSON.stringify(P.itens || [])) };
+  let versao = P.atualizado_em, sujo = false, histAberto = false;
+  const lojasOutras = () => state.cnpjs.map(c => c.id).filter(id => id !== ed.cnpj_id);
+  const marcarSujo = () => { sujo = true; state.planSujo = true; const b = document.getElementById('pl-salvar'); if (b) b.classList.add('pulsa'); const st = document.getElementById('pl-salvo'); if (st) st.textContent = 'alterações não salvas'; };
+  const faixasUsadas = () => ['33', '25', '19'].filter(f => ed.itens.some(i => i.faixa === f));
+  const totais = () => { const pares = ed.itens.reduce((t, i) => t + paresIt(i), 0); return { pares, linhas: ed.itens.filter(i => i.produto || paresIt(i)).length, porFaixa: Object.fromEntries(['33', '25', '19'].map(f => [f, ed.itens.filter(i => i.faixa === f).reduce((t, i) => t + paresIt(i), 0)])), outra: ed.itens.filter(i => i.loja).length }; };
+  const ro = podeEditar ? '' : 'disabled';
+  const linhaHtml = (i, idx) => { const tot = paresIt(i);
+    return `<tr data-li="${idx}">
+      <td><input class="pl-in pl-mlb" data-c="mlb" value="${esc(i.mlb || '')}" inputmode="numeric" placeholder="MLB" ${ro}></td>
+      <td><input class="pl-in pl-prod" data-c="produto" value="${esc(i.produto || '')}" list="pl-dl-prod" placeholder="Produto" ${ro}></td>
+      <td><input class="pl-in pl-cor" data-c="cor" value="${esc(i.cor || '')}" list="pl-dl-cor" placeholder="Cor" ${ro}></td>
+      ${FAIXAS_PLAN[i.faixa].map(n => `<td class="pl-n"><input class="pl-in pl-q" data-n="${n}" value="${i.q?.[n] || ''}" inputmode="numeric" ${ro}></td>`).join('')}
+      <td class="pl-tot"><b>${tot || ''}</b></td><td class="pl-cx">${tot ? cxTxt(tot) : ''}</td>
+      <td><select class="pl-in pl-loja" data-c="loja" ${ro} title="De qual loja sai o estoque"><option value="">Própria</option>${lojasOutras().map(l => `<option value="${l}" ${i.loja === l ? 'selected' : ''}>${esc(nomeLoja(l))}</option>`).join('')}</select></td>
+      <td>${podeEditar ? `<button class="pl-x" data-rm="${idx}" title="Tirar a linha" aria-label="Tirar a linha">×</button>` : ''}</td></tr>`; };
+  const secaoHtml = f => { const idxs = ed.itens.map((i, k) => [i, k]).filter(([i]) => i.faixa === f), t = idxs.reduce((s, [i]) => s + paresIt(i), 0);
+    const somaN = n => idxs.reduce((s, [i]) => s + (Number(i.q?.[n]) || 0), 0);
+    return `<div class="pl-sec"><div class="pl-sec-cab"><b>${ROT_FAIXA[f]}</b><span class="info">${idxs.length} linha(s) · ${fmtN(t)} pares · ${cxTxt(t)} cx</span></div>
+      <div class="pl-wrap"><table class="pl-tab"><thead><tr><th>MLB</th><th>Produto</th><th>Cor</th>${FAIXAS_PLAN[f].map(n => `<th class="pl-n">${n}</th>`).join('')}<th>Total</th><th>Cx</th><th>Estoque</th><th></th></tr></thead>
+      <tbody>${idxs.map(([i, k]) => linhaHtml(i, k)).join('')}</tbody>
+      <tfoot><tr><td colspan="3" style="text-align:right">Total da grade</td>${FAIXAS_PLAN[f].map(n => `<td class="pl-n" data-sn="${f}|${n}">${somaN(n) || ''}</td>`).join('')}<td class="pl-tot"><b data-st="${f}">${fmtN(t)}</b></td><td class="pl-cx" data-sc="${f}">${cxTxt(t)}</td><td colspan="2"></td></tr></tfoot></table></div>
+      ${podeEditar ? `<button class="btn mini" data-add="${f}">+ linha</button>` : ''}</div>`; };
+  const acoes = () => {
+    const b = [];
+    if (podeEditar) b.push('<button class="btn" id="pl-salvar">💾 Salvar</button>');
+    if (editar && ['rascunho', 'devolvido'].includes(P.status)) b.push('<button class="btn pri" id="pl-enviar">Enviar para validação ›</button>');
+    if (P.status === 'validacao' && (gestor || P.enviado_por === eu)) b.push('<button class="btn" id="pl-puxar">‹ Puxar de volta</button>');
+    if (P.status === 'validacao' && gestor) b.push('<button class="btn btn-dev" id="pl-devolver">↩ Devolver</button><button class="btn pri btn-ok" id="pl-aprovar">✔ Aprovar e liberar para separação</button>');
+    return b.join('');
+  };
+  const desenha = () => {
+    const t = totais(), usadas = faixasUsadas();
+    $c.innerHTML = `
+      <div class="pl-topo">
+        <button class="btn" id="pl-voltar">‹ Lista</button>
+        <h3>${P.id ? `Coleta ${nPlan(P.id)}` : 'Nova coleta'} ${pillPlan(P.status)}</h3>
+        <span style="flex:1"></span>
+        ${P.id ? `<button class="btn" id="pl-hist">🕘 Histórico (${d.eventos.length})</button><button class="btn" id="pl-imp">🖨 Imprimir</button>${editar ? '<button class="btn" id="pl-dup" title="Cria um rascunho novo com as mesmas linhas">⧉ Duplicar</button>' : ''}` : ''}
+        ${P.id && !['aprovado', 'cancelado'].includes(P.status) && (gestor || (P.status === 'rascunho' && P.criado_por === eu)) ? '<button class="btn" id="pl-cancelar">Cancelar coleta</button>' : ''}
+      </div>
+      ${P.status === 'devolvido' && P.comentario ? `<div class="aviso pl-aviso">↩ <b>Devolvida para ajuste:</b> ${esc(P.comentario)}</div>` : ''}
+      ${P.status === 'validacao' ? `<div class="aviso pl-aviso val">⏳ Enviada para validação por <b>${esc(quemTxt(P.enviado_por))}</b> em ${quando(P.enviado_em)}. ${gestor ? 'Confira e aprove ou devolva.' : 'Aguardando o gestor.'}</div>` : ''}
+      ${P.status === 'aprovado' ? `<div class="aviso pl-aviso ok">✔ Aprovada por <b>${esc(quemTxt(P.aprovado_por))}</b> em ${quando(P.aprovado_em)}. Virou o envio <b>#${esc(P.pedido)}</b> na aba Envios${d.envio ? ` (${esc(ST_FULL[d.envio.status]?.rot || d.envio.status)})` : ''}. ${d.envio ? '<button class="btn mini" id="pl-ir-envio">Abrir envio</button>' : ''}</div>` : ''}
+      ${P.status === 'cancelado' ? `<div class="aviso pl-aviso canc">Cancelada${P.comentario ? `: ${esc(P.comentario)}` : ''}.</div>` : ''}
+      <div class="erro" id="pl-erro" hidden></div>
+      <div class="painel">
+        <div class="grade-form pl-cab">
+          <label>Loja<select id="pl-cnpj" ${ro}>${state.cnpjs.map(c => `<option value="${c.id}" ${ed.cnpj_id === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select></label>
+          <label>Nº do envio no ML <span class="info">(obrigatório para aprovar)</span><input id="pl-pedido" inputmode="numeric" value="${esc(ed.pedido || '')}" placeholder="só números" ${ro}></label>
+          <label>Finalizar separação até<input type="date" id="pl-dl" value="${esc(ed.data_limite || '')}" ${ro}></label>
+          <label>Dia da coleta<input type="date" id="pl-de" value="${esc(ed.data_expedicao || '')}" ${ro}></label>
+          <label class="pl-obs">Observação<input id="pl-obs" value="${esc(ed.observacao || '')}" maxlength="500" placeholder="opcional" ${ro}></label>
+        </div>
+      </div>
+      ${usadas.map(secaoHtml).join('') || `<div class="painel info">Nenhuma linha ainda. ${podeEditar ? 'Escolha a grade abaixo para começar. Dica: dá para colar as linhas direto do Excel (MLB, produto, cor e a grade) no campo MLB.' : ''}</div>`}
+      ${podeEditar ? `<div class="pl-add">${['33', '25', '19'].map(f => `<button class="btn" data-addsec="${f}">+ ${ROT_FAIXA[f]}</button>`).join('')}</div>` : ''}
+      <div class="pl-rodape">
+        <div class="pl-tots"><span><b>${fmtN(t.pares)}</b> pares</span><span><b>${cxTxt(t.pares)}</b> caixas</span><span><b>${t.linhas}</b> linhas</span>${usadas.length > 1 ? usadas.map(f => `<span class="info">${f}: ${fmtN(t.porFaixa[f])}</span>`).join('') : ''}${t.outra ? `<span class="info">${t.outra} com estoque de outra loja</span>` : ''}<span class="info" id="pl-salvo">${sujo ? 'alterações não salvas' : ''}</span></div>
+        <div class="pl-bts">${acoes()}</div>
+      </div>
+      <div id="pl-hist-box" ${histAberto ? '' : 'hidden'}>${historicoPlanHtml(d.eventos)}</div>
+      <datalist id="pl-dl-prod">${state.planCat ? state.planCat.produtos.slice(0, 4000).map(p => `<option value="${esc(p)}">`).join('') : ''}</datalist><datalist id="pl-dl-cor"></datalist>`;
+    ligar();
+  };
+  const erro = m => { const e = document.getElementById('pl-erro'); if (!e) return avisar(m, true); e.hidden = !m; e.textContent = m || ''; if (m) e.scrollIntoView({ behavior:'smooth', block:'center' }); };
+  const cabDoForm = () => { const v = k => document.getElementById(k)?.value ?? '';
+    ed.cnpj_id = v('pl-cnpj') || ed.cnpj_id; ed.pedido = v('pl-pedido').replace(/\D/g, ''); ed.data_limite = v('pl-dl'); ed.data_expedicao = v('pl-de'); ed.observacao = v('pl-obs'); };
+  const atualizaLinha = tr => { const i = ed.itens[+tr.dataset.li], tot = paresIt(i);
+    tr.querySelector('.pl-tot b').textContent = tot || ''; tr.querySelector('.pl-cx').textContent = tot ? cxTxt(tot) : '';
+    const t = totais(), r = $c.querySelector('.pl-tots'); if (r) { r.children[0].innerHTML = `<b>${fmtN(t.pares)}</b> pares`; r.children[1].innerHTML = `<b>${cxTxt(t.pares)}</b> caixas`; r.children[2].innerHTML = `<b>${t.linhas}</b> linhas`; }
+    const f = i.faixa, L = ed.itens.filter(x => x.faixa === f), tf = L.reduce((s, x) => s + paresIt(x), 0);
+    $c.querySelectorAll(`[data-sn^="${f}|"]`).forEach(td => { const n = td.dataset.sn.split('|')[1]; td.textContent = L.reduce((s, x) => s + (Number(x.q?.[n]) || 0), 0) || ''; });
+    const st = $c.querySelector(`[data-st="${f}"]`); if (st) st.textContent = fmtN(tf); const sc = $c.querySelector(`[data-sc="${f}"]`); if (sc) sc.textContent = cxTxt(tf);
+    const cab = st?.closest('.pl-sec')?.querySelector('.pl-sec-cab .info'); if (cab) cab.textContent = `${L.length} linha(s) · ${fmtN(tf)} pares · ${cxTxt(tf)} cx`; };
+  // MLB conhecido: completa produto e cor; se o anúncio tem outras cores, já cria as linhas delas
+  const completarMlb = (idx) => {
+    const cat = state.planCat, i = ed.itens[idx]; if (!cat || !i.mlb) return false;
+    const L = (cat.porMlb.get(i.mlb) || []).filter(e => e.faixa === i.faixa || !ed.itens.some(x => x !== i && x.mlb === i.mlb)); if (!L.length) return false;
+    if (!i.produto) i.produto = L[0].produto;
+    if (L[0].faixa !== i.faixa && !paresIt(i)) i.faixa = L[0].faixa;
+    const cores = [...new Set(L.filter(e => e.produto === i.produto).map(e => e.cor))].filter(c => c);
+    if (!i.cor && cores.length) i.cor = cores[0];
+    const ja = new Set(ed.itens.filter(x => x.mlb === i.mlb).map(x => x.cor)), novas = cores.filter(c => !ja.has(c));
+    if (novas.length) { ed.itens.splice(idx + 1, 0, ...novas.map(c => ({ mlb:i.mlb, produto:i.produto, cor:c, faixa:i.faixa, q:{}, loja:i.loja || null }))); avisar(`${novas.length} outra(s) cor(es) deste anúncio adicionada(s): ${novas.join(', ')}`); }
+    return true;
+  };
+  const completarProd = (idx) => { const cat = state.planCat, i = ed.itens[idx]; if (!cat || !i.produto || i.mlb) return false;
+    const L = cat.porProd.get(i.produto) || [], mlbs = [...new Set(L.map(e => e.mlb).filter(Boolean))];
+    if (mlbs.length === 1) { i.mlb = mlbs[0]; return true; } return false; };
+  const coresDe = i => { const cat = state.planCat; if (!cat) return []; const L = (i.mlb && cat.porMlb.get(i.mlb)) || cat.porProd.get(i.produto) || []; return [...new Set(L.map(e => e.cor).filter(Boolean))]; };
+  // colar do Excel: linhas separadas por Enter, colunas por Tab (MLB, produto, cor, numeração...)
+  const colar = (ev, idx, col) => {
+    const txt = ev.clipboardData?.getData('text') || ''; if (!/[\t\n]/.test(txt.trim())) return;
+    ev.preventDefault();
+    const linhas = txt.replace(/\r/g, '').split('\n').filter(l => l.trim()).map(l => l.split('\t'));
+    const faixa = ed.itens[idx].faixa, nums = FAIXAS_PLAN[faixa], ordem = ['mlb', 'produto', 'cor', ...nums.map(String)];
+    let k = idx, n = 0;
+    for (const cel of linhas) {
+      if (cel.some(c => /^\s*(MLB|PRODUTO|COR)\s*$/i.test(c))) continue;
+      if (!ed.itens[k] || ed.itens[k].faixa !== faixa) { ed.itens.splice(k, 0, { mlb:'', produto:'', cor:'', faixa, q:{}, loja:null }); }
+      const it = ed.itens[k]; let c = ordem.indexOf(col);
+      for (const v of cel) { const campo = ordem[c++]; if (!campo) break; const t = v.trim();
+        if (['mlb', 'produto', 'cor'].includes(campo)) it[campo] = campo === 'mlb' ? t.replace(/\D/g, '') : t.toUpperCase();
+        else { const q = parseInt(t.replace(/\D/g, ''), 10); if (q > 0) it.q[campo] = q; else delete it.q[campo]; } }
+      k++; n++;
+    }
+    if (n) { marcarSujo(); avisar(`${n} linha(s) coladas`); desenha(); }
+  };
+  const ligar = () => {
+    const $ = k => document.getElementById(k);
+    $('pl-voltar').onclick = () => { if (sujo && !confirmaDupla($('pl-voltar'), 'Sair sem salvar? Clique de novo')) return; fecharPlano(); };
+    ['pl-cnpj', 'pl-pedido', 'pl-dl', 'pl-de', 'pl-obs'].forEach(k => { const el = $(k); if (el) el.addEventListener('input', () => { cabDoForm(); marcarSujo(); }); });
+    const lj = $('pl-cnpj'); if (lj) lj.onchange = () => { cabDoForm(); ed.itens.forEach(i => { if (i.loja === ed.cnpj_id) i.loja = null; }); marcarSujo(); desenha(); };
+    $c.querySelectorAll('tr[data-li]').forEach(tr => {
+      const idx = +tr.dataset.li, it = ed.itens[idx];
+      tr.querySelectorAll('[data-n]').forEach(inp => {
+        inp.oninput = () => { const v = parseInt(inp.value.replace(/\D/g, ''), 10); if (v > 0) it.q[inp.dataset.n] = v; else delete it.q[inp.dataset.n]; if (inp.value && !(v > 0)) inp.value = ''; marcarSujo(); atualizaLinha(tr); };
+        inp.onpaste = ev => colar(ev, idx, inp.dataset.n);
+      });
+      tr.querySelectorAll('[data-c]').forEach(inp => {
+        inp.addEventListener('input', () => { it[inp.dataset.c] = inp.dataset.c === 'loja' ? (inp.value || null) : inp.value; marcarSujo(); });
+        if (inp.tagName === 'INPUT') inp.onpaste = ev => colar(ev, idx, inp.dataset.c);
+      });
+      const mlb = tr.querySelector('.pl-mlb'); if (mlb) mlb.onchange = () => { it.mlb = mlb.value.replace(/\D/g, ''); mlb.value = it.mlb; if (completarMlb(idx)) desenha(); };
+      const pr = tr.querySelector('.pl-prod'); if (pr) pr.onchange = () => { it.produto = pr.value.trim().toUpperCase(); pr.value = it.produto; if (completarProd(idx)) { completarMlb(idx); desenha(); } };
+      const cr = tr.querySelector('.pl-cor'); if (cr) { cr.onfocus = () => { const dl = $('pl-dl-cor'); if (dl) dl.innerHTML = coresDe(it).map(c => `<option value="${esc(c)}">`).join(''); }; cr.onchange = () => { it.cor = cr.value.trim().toUpperCase(); cr.value = it.cor; }; }
+    });
+    $c.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { ed.itens.splice(+b.dataset.rm, 1); marcarSujo(); desenha(); });
+    $c.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { const f = b.dataset.add, ult = ed.itens.map((i, k) => i.faixa === f ? k : -1).filter(k => k >= 0).pop();
+      ed.itens.splice(ult + 1, 0, { mlb:'', produto:'', cor:'', faixa:f, q:{}, loja:null }); marcarSujo(); desenha(); const tr = $c.querySelector(`tr[data-li="${ult + 1}"] .pl-mlb`); if (tr) tr.focus(); });
+    $c.querySelectorAll('[data-addsec]').forEach(b => b.onclick = () => { const f = b.dataset.addsec; ed.itens.push({ mlb:'', produto:'', cor:'', faixa:f, q:{}, loja:null }); marcarSujo(); desenha();
+      const alvo = [...$c.querySelectorAll('tr[data-li]')].find(tr => +tr.dataset.li === ed.itens.length - 1); alvo?.querySelector('.pl-mlb')?.focus(); });
+    const h = $('pl-hist'); if (h) h.onclick = () => { histAberto = !histAberto; $('pl-hist-box').hidden = !histAberto; if (histAberto) $('pl-hist-box').scrollIntoView({ behavior:'smooth' }); };
+    const im = $('pl-imp'); if (im) im.onclick = () => imprimirHtml(folhaPlanoHtml({ ...ed, id:P.id, status:P.status }));
+    const ie = $('pl-ir-envio'); if (ie) ie.onclick = () => { const s = state.full; s.vista = 'envios'; s.plan.aberto = null; s.aberto = d.envio.id; s.aba = 'todos'; s.st = null; telaFull(); };
+    const salvar = async (silencioso) => {
+      cabDoForm(); erro('');
+      const corpo = { id:P.id, cnpj_id:ed.cnpj_id, pedido:ed.pedido, data_limite:ed.data_limite || null, data_expedicao:ed.data_expedicao || null, observacao:ed.observacao, itens:ed.itens, versao };
+      const r = await apiPlan('/full/plano/salvar', corpo);
+      versao = r.versao || versao; sujo = false; state.planSujo = false;
+      if (!P.id) { state.full.plan.aberto = r.id; }
+      if (!silencioso) avisar(r.semMudanca ? 'Nada mudou' : 'Coleta salva');
+      return r.id || P.id;
+    };
+    const recarregar = async id => { const n = await apiPlan(`/full/plano?id=${id}`); state.full.plan.aberto = id; editorPlano(n); };
+    const tentar = async (btn, fn) => { if (btn) btn.disabled = true; try { await fn(); } catch (e) { if (e instanceof SemSessao) throw e; erro(e.message); if (btn) btn.disabled = false; } };
+    const sv = $('pl-salvar'); if (sv) sv.onclick = () => tentar(sv, async () => { const id = await salvar(); await recarregar(id); });
+    const acao = (btn, a, extra = {}, msg) => tentar(btn, async () => { let id = P.id; if (podeEditar && (sujo || !id)) id = await salvar(true);
+      const r = await apiPlan('/full/plano/acao', { id, acao:a, versao, ...extra }); avisar(msg);
+      if (a === 'duplicar') return recarregar(r.id);
+      await recarregar(id); });
+    const en = $('pl-enviar'); if (en) en.onclick = () => { const vazias = ed.itens.filter(i => !paresIt(i)).length;
+      if (vazias) { ed.itens = ed.itens.filter(i => paresIt(i) > 0); marcarSujo(); }
+      acao(en, 'enviar', {}, vazias ? `Enviada para o gestor validar (${vazias} linha(s) sem quantidade foram tiradas)` : 'Enviada para o gestor validar'); };
+    const pu = $('pl-puxar'); if (pu) pu.onclick = () => acao(pu, 'puxar', {}, 'Voltou para rascunho');
+    const ap = $('pl-aprovar'); if (ap) ap.onclick = () => { if (!confirmaDupla(ap, `Confirmar: vira envio de ${fmtN(totais().pares)} pares`)) return; acao(ap, 'aprovar', {}, 'Aprovada: a coleta já está na aba Envios como Programado'); };
+    const dv = $('pl-devolver'); if (dv) dv.onclick = () => pedirComentario('Devolver para ajuste', 'O que precisa ser ajustado? (o analista vê esta mensagem)', true, c => acao(dv, 'devolver', { comentario:c }, 'Devolvida para o analista'));
+    const cn = $('pl-cancelar'); if (cn) cn.onclick = () => pedirComentario('Cancelar coleta', 'Motivo do cancelamento (opcional)', false, c => acao(cn, 'cancelar', { comentario:c }, 'Coleta cancelada'));
+    const du = $('pl-dup'); if (du) du.onclick = () => { if (sujo && !confirmaDupla(du, 'Há alterações não salvas: clique de novo')) return; acao(du, 'duplicar', {}, 'Rascunho novo criado com as mesmas linhas (sem nº e sem datas)'); };
+  };
+  desenha();
+}
+function pedirComentario(titulo, rotulo, obrigatorio, ok){
+  const d = document.createElement('div'); d.className = 'pl-modal';
+  d.innerHTML = `<div class="painel"><h3>${esc(titulo)}</h3><label class="gv-lab">${esc(rotulo)}<textarea rows="3" maxlength="500" id="pl-com"></textarea></label>
+    <div class="gv-acoes"><button class="btn" data-x>Voltar</button><button class="btn pri" data-ok>${esc(titulo)}</button></div></div>`;
+  document.body.appendChild(d); const t = d.querySelector('textarea'); t.focus();
+  d.querySelector('[data-x]').onclick = () => d.remove();
+  d.querySelector('[data-ok]').onclick = () => { const c = t.value.trim(); if (obrigatorio && !c) { t.focus(); t.classList.add('erro-campo'); return; } d.remove(); ok(c); };
+}
+function historicoPlanHtml(evs){
+  const rotCampo = { cnpj_id:'Loja', pedido:'Nº envio', data_limite:'Finalizar até', data_expedicao:'Dia da coleta', observacao:'Observação' };
+  const fmt = (k, v) => v === null || v === '' || v === undefined ? '–' : /data/.test(k) ? dataBR(String(v)) : k === 'cnpj_id' ? nomeLoja(v) : String(v);
+  return `<div class="painel"><h3 style="margin:0 0 8px;font-size:15px">Histórico de edições</h3>${evs.map(e => { const d = e.detalhe || {};
+    const linhas = [];
+    if (d.depois) Object.keys(d.depois).forEach(k => linhas.push(`${rotCampo[k] || k}: ${esc(fmt(k, d.antes?.[k]))} → ${esc(fmt(k, d.depois[k]))}`));
+    if (Array.isArray(d.linhas)) d.linhas.forEach(l => linhas.push(esc(l)));
+    if (Array.isArray(d.pares) && d.pares[0] !== d.pares[1]) linhas.push(`Total: ${fmtN(d.pares[0])} → ${fmtN(d.pares[1])} pares`);
+    if (e.acao === 'criar') linhas.push(`${fmtN(d.pares || 0)} pares em ${Number(d.linhas) || 0} linha(s)`);
+    if (e.acao === 'duplicar') linhas.push(`Cópia da coleta ${nPlan(d.origem)}`);
+    if (d.comentario) linhas.push(`<i>“${esc(d.comentario)}”</i>`);
+    return `<div class="pl-ev"><div><b>${esc(quemTxt(e.por))}</b> ${esc(ROT_ACAO_PLAN[e.acao] || e.acao)} <span class="info">· ${quando(e.em)}</span></div>${linhas.length ? `<ul>${linhas.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}</div>`; }).join('') || '<div class="info">Sem registros.</div>'}</div>`;
+}
+// folha para a separação (o mesmo formato da aba "Impressão" da planilha)
+function folhaPlanoHtml(p){
+  const quem = quemImprime(), aprov = p.status === 'aprovado';
+  const secoes = ['33', '25', '19'].filter(f => p.itens.some(i => i.faixa === f)).map(f => { const L = p.itens.filter(i => i.faixa === f), nums = FAIXAS_PLAN[f], t = L.reduce((s, i) => s + paresIt(i), 0);
+    return `<table><thead><tr><th class="l">MLB</th><th class="l">Produto</th><th class="l">Cor</th>${nums.map(n => `<th>${n}</th>`).join('')}<th>Total</th><th>Cx</th><th>Estoque</th><th>✓</th></tr></thead><tbody>
+      ${L.map(i => `<tr><td class="l mlb">${esc(i.mlb || '')}</td><td class="l"><b>${esc(i.produto)}</b></td><td class="l">${esc(i.cor || '')}</td>${nums.map(n => `<td>${i.q[n] || ''}</td>`).join('')}<td><b>${paresIt(i)}</b></td><td>${cxTxt(paresIt(i))}</td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td><td class="ck"></td></tr>`).join('')}
+      </tbody><tfoot><tr><td class="l" colspan="3">${ROT_FAIXA[f]}</td>${nums.map(n => `<td>${L.reduce((s, i) => s + (Number(i.q[n]) || 0), 0) || ''}</td>`).join('')}<td><b>${t}</b></td><td>${cxTxt(t)}</td><td colspan="2"></td></tr></tfoot></table>`; }).join('');
+  const total = p.itens.reduce((s, i) => s + paresIt(i), 0);
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Coleta ${esc(p.pedido || nPlan(p.id))}</title><style>${CSS_IMPRESSO}
+  @page{size:A4 landscape;margin:0}
+  .folha{padding:6mm 8mm}
+  .cab{display:flex;gap:8mm;margin:4mm 0 3mm;font-size:11pt;flex-wrap:wrap} .cab b{font-size:13pt;color:#02285a}
+  table{width:100%;border-collapse:collapse;margin-top:3mm;font-size:9.5pt}
+  th{background:#02285a;color:#fff;padding:1.4mm 1mm;font-size:8.5pt} th.l,td.l{text-align:left}
+  td{border-bottom:0.3mm solid #c9cfda;padding:1.3mm 1mm;text-align:center} td.mlb{font-size:8pt;color:#566074}
+  tfoot td{font-weight:700;background:#eef0f4;border-top:0.5mm solid #1b2333}
+  td.ck{width:8mm} .ck::after{content:'';display:inline-block;width:4mm;height:4mm;border:0.4mm solid #1b2333;border-radius:0.6mm}
+  .marca{margin-top:3mm;padding:2mm;text-align:center;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm}
+  </style></head><body><div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">SEPARAÇÃO · ENVIO FULL</div><div class="t2">${esc(nomeLoja(p.cnpj_id)).toUpperCase()} · MERCADO LIVRE</div></div><span class="esp"></span>
+    <span class="st"><small>ENVIO</small><b>${esc(p.pedido || 'SEM Nº')}</b></span></div>
+  <div class="folha">
+    <div class="cab"><span>Coleta planejada <b>${p.id ? nPlan(p.id) : '–'}</b></span><span>Finalizar até <b>${p.data_limite ? dataBR(p.data_limite) : '–'}</b></span><span>Coleta <b>${p.data_expedicao ? dataBR(p.data_expedicao) : '–'}</b></span><span>Total <b>${fmtN(total)} pares · ${cxTxt(total)} cx</b></span></div>
+    ${aprov ? '' : `<div class="marca">${esc((ST_PLAN[p.status]?.rot || '').toUpperCase())}: ainda não aprovada para separação</div>`}
+    ${secoes}
+  </div>
+  <div class="rodape"><span>Central de Operações Valenro · ${esc(quem)}</span><span>${p.observacao ? 'Obs.: ' + esc(p.observacao) : ''}</span></div></body></html>`;
+}
+// no envio: o que foi planejado (para a separação ver as linhas e imprimir)
+async function itensPlanejadosEnvio(el, e){
+  try {
+    const { plano } = await apiPlan(`/full/plano/itens?envio_id=${e.id}`);
+    if (!plano) { el.innerHTML = ''; return; }
+    const porFaixa = ['33', '25', '19'].filter(f => plano.itens.some(i => i.faixa === f));
+    el.innerHTML = `<div class="gv-sec">Planejamento <span class="info">coleta ${nPlan(plano.id)} · aprovada por ${esc(quemTxt(plano.aprovado_por))}</span></div>
+      <div class="info">${plano.linhas} linha(s) · ${fmtN(plano.pares)} pares${plano.data_limite ? ` · finalizar até <b>${dataBR(plano.data_limite)}</b>` : ''}</div>
+      <details class="pl-det"><summary>Ver as linhas</summary>${porFaixa.map(f => `<div class="pl-wrap"><table class="pl-tab ro"><thead><tr><th>Produto</th><th>Cor</th>${FAIXAS_PLAN[f].map(n => `<th class="pl-n">${n}</th>`).join('')}<th>Total</th><th>Estoque</th></tr></thead><tbody>
+        ${plano.itens.filter(i => i.faixa === f).map(i => `<tr><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td>${FAIXAS_PLAN[f].map(n => `<td class="pl-n">${i.q[n] || ''}</td>`).join('')}<td class="pl-tot"><b>${paresIt(i)}</b></td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>
+      <div class="gv-acoes" style="justify-content:flex-start;margin-top:6px"><button class="btn" id="gv-imp-plan">🖨 Folha de separação</button></div>`;
+    el.querySelector('#gv-imp-plan').onclick = () => imprimirHtml(folhaPlanoHtml({ ...plano, status:'aprovado' }));
+  } catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = `<div class="info">Não consegui carregar o planejamento: ${esc(x.message)}</div>`; }
+}
+
 function telaRomaneios(){
   const s = state.full;
   $app.innerHTML = barraRomaneios(s);
@@ -2282,6 +2752,8 @@ function abrirEnvio(id, recarregando){
         <div class="gv-sec">Etapa</div>
         <div class="etapas">${ORDEM_FULL.map(st => `<button type="button" class="etapa ${e.status === st ? 'on' : ''}" data-st="${st}" ${ro(editar)} style="--c:${ST_FULL[st].cor};--f:${ST_FULL[st].fundo}">${esc(ST_FULL[st].rot)}</button>`).join('')}</div>
         ${!novo && e.status_em ? `<div class="info" style="margin-top:4px">Neste status desde ${quando(e.status_em)}</div>` : ''}
+        ${!novo && e.data_limite && !['expedido', 'cancelado'].includes(e.status) ? `<div class="info pl-limite ${e.data_limite < hojeBRT() ? 'atraso' : ''}" style="margin-top:4px">⏱ Finalizar a separação até <b>${dataBR(e.data_limite)}</b></div>` : ''}
+        ${!novo && e.plano_id ? '<div id="gv-plan"></div>' : ''}
         ${!novo && e.romaneio_id ? `<div class="info" style="margin-top:4px">No romaneio de embarque <button class="chip-rom" id="gv-ir-rom">🚚 ${nRom(e.romaneio_id)}</button></div>` : ''}
         <div class="gv-sec">Pedido ${gerir ? '' : '<span class="info">(só líder altera)</span>'}</div>
         <div class="grade-form g2">
@@ -2331,6 +2803,7 @@ function abrirEnvio(id, recarregando){
   $('gv-fechar').onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; fecharEnvio(); };
   $('gv-fundo').onclick = $('gv-fechar').onclick;
   const ib = $('gv-imp'); if (ib) ib.onclick = () => imprimirFolha(e);
+  if ($('gv-plan')) itensPlanejadosEnvio($('gv-plan'), e);
   const ir = $('gv-ir-rom'); if (ir) ir.onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; s.vista = 'romaneios'; s.romAba = 'todos'; s.romIr = e.romaneio_id; s.aberto = null; telaFull(); };
   const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
 
