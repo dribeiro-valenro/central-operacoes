@@ -268,6 +268,16 @@
   .rr-tile span{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px}
   .rr-tile b{font-size:24px;font-variant-numeric:tabular-nums} .rr-tile small{font-size:11px;color:var(--mute)}
 
+  /* impressão: placas e folhas */
+  .imp-grade{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
+  .imp-lista{display:flex;flex-direction:column;gap:8px}
+  .imp-it{display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;box-shadow:var(--sombra)}
+  .imp-it.on{border-color:var(--pri);box-shadow:0 0 0 2px var(--amarelo)} .imp-it small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+  .imp-ico{font-size:24px;line-height:1}
+  .imp-prev{margin:0} .imp-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .imp-papel{background:#e9edf3;border-radius:8px;padding:14px;display:flex;justify-content:center}
+  .imp-papel iframe{width:794px;height:1123px;border:0;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.15);transform:scale(.6);transform-origin:top center;margin-bottom:-449px}
+  @media (max-width:900px){ .imp-grade{grid-template-columns:1fr} .imp-papel iframe{transform:scale(.42);margin-bottom:-651px;margin-left:-230px;margin-right:-230px} }
   /* FULL · planejamento */
   .fx-tot{display:inline-flex;align-items:center;gap:3px} .fx-tot .fx-ico{width:22px;height:16px}
   .fxg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap} .fx-ico{display:inline-flex;width:30px;height:22px;flex:none} .fx-ico svg{width:100%;height:100%}
@@ -2189,6 +2199,66 @@ async function itensPlanejadosEnvio(el, e){
       <div class="gv-acoes" style="justify-content:flex-start;margin-top:6px"><button class="btn" id="gv-imp-plan">🖨 Folha de separação</button></div>`;
     el.querySelector('#gv-imp-plan').onclick = () => imprimirHtml(folhaPlanoHtml({ ...plano, status:'aprovado' }));
   } catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = `<div class="info">Não consegui carregar o planejamento: ${esc(x.message)}</div>`; }
+}
+
+
+/* =================== IMPRESSÃO: placas e folhas padrão Valenro (A4) =================== */
+// Cada modelo: campos editáveis + função que monta a folha. A folha sai pelo imprimirHtml (imprimir ou salvar PDF).
+function folhaPadraoHtml({ titulo, cab1, cab2, corpo, css = '', rodapeEsq = 'Uso interno · Grupo Valenro', rodapeDir = 'Dúvidas: Gerência de Operações' }){
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>${CSS_IMPRESSO}
+  .folha{width:210mm;height:297mm;padding:7mm;display:flex}
+  .moldura{flex:1;border:5mm solid #02285a;outline:0.8mm solid #f1c300;outline-offset:-5.8mm;display:flex;flex-direction:column;overflow:hidden}
+  .corpo{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6mm 14mm}
+  ${css}</style></head><body><div class="folha"><div class="moldura">
+  <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">${esc(cab1)}</div><div class="t2">${esc(cab2)}</div></div><span class="esp"></span></div>
+  <div class="corpo">${corpo}</div>
+  <div class="rodape"><span>${esc(rodapeEsq)}</span><span>${esc(rodapeDir)}</span></div>
+  </div></div></body></html>`;
+}
+const CSS_PLACA_QR = `
+  .k{font-size:13pt;font-weight:700;letter-spacing:3pt;color:#566074;text-transform:uppercase}
+  h1{font-size:34pt;color:#02285a;margin:2mm 0 0;letter-spacing:1pt;line-height:1.1}
+  .sub{font-size:13pt;color:#1b2333;margin-top:3mm}
+  .qr{margin-top:10mm;padding:6mm;border:1.2mm solid #02285a;border-radius:5mm;background:#fff;position:relative}
+  .qr svg{width:120mm;height:120mm;display:block}
+  .tag{position:absolute;left:50%;transform:translateX(-50%);bottom:-5mm;background:#f1c300;color:#02285a;font-weight:800;letter-spacing:2pt;font-size:12pt;padding:1.5mm 6mm;border-radius:2mm;white-space:nowrap}
+  .url{margin-top:12mm;font-size:12.5pt;font-weight:700;color:#02285a;background:#eef2f8;border-radius:2mm;padding:2.5mm 5mm;word-break:break-all}
+  .passos{display:flex;gap:5mm;margin-top:9mm}
+  .passo{width:52mm;border:0.5mm solid #c9cfda;border-radius:3mm;padding:3mm;font-size:10.5pt;line-height:1.3;color:#1b2333}
+  .passo b{display:block;width:8mm;height:8mm;line-height:8mm;margin:0 auto 1.5mm;border-radius:50%;background:#02285a;color:#f1c300;font-size:12pt}`;
+function placaQrHtml(v){
+  const passos = [v.passo1, v.passo2, v.passo3].filter(p => (p || '').trim());
+  return folhaPadraoHtml({ titulo: v.titulo || 'QR code', cab1: v.cab1 || 'CENTRAL DE OPERAÇÕES', cab2: 'GRUPO VALENRO · LOGÍSTICA E COMERCIAL', css: CSS_PLACA_QR,
+    corpo: `${v.chamada ? `<div class="k">${esc(v.chamada)}</div>` : ''}<h1>${esc(v.titulo || '')}</h1>${v.sub ? `<div class="sub">${esc(v.sub)}</div>` : ''}
+      <div class="qr">${QR.svg(v.url)}<span class="tag">ESCANEIE AQUI</span></div>
+      ${v.mostrarUrl === false ? '' : `<div class="url">${esc(String(v.url).replace(/^https?:\/\//, ''))}</div>`}
+      ${passos.length ? `<div class="passos">${passos.map((p, i) => `<div class="passo"><b>${i + 1}</b>${esc(p)}</div>`).join('')}</div>` : ''}` });
+}
+const MODELOS_IMPRESSO = [
+  { id:'qr_portal', nome:'QR code do portal', desc:'Para colar na parede: o time escaneia e abre a Central de Operações no celular.', ico:'📱',
+    html: () => placaQrHtml({ titulo:'Central de Operações', chamada:'Acesse pelo celular', sub:'Aponte a câmera do celular para o código e entre com o seu usuário.', url:PORTAL_URL_PUBLICADO,
+      passo1:'Abra a câmera e aponte para o código', passo2:'Toque no link que aparecer', passo3:'Entre com o seu usuário e senha. Não compartilhe o seu acesso.' }) },
+];
+
+function telaImpressos(){
+  const s = state.impressos ||= { sel:'qr_portal' };
+  $app.innerHTML = `
+    <div class="barra"><h2>Impressão</h2><span class="info">Placas e folhas no padrão Valenro (A4). Imprima ou salve em PDF.</span></div>
+    <div class="imp-grade">
+      <div class="imp-lista">${MODELOS_IMPRESSO.map(m => `<button class="imp-it ${s.sel === m.id ? 'on' : ''}" data-mod="${m.id}"><span class="imp-ico">${m.ico}</span><span><b>${esc(m.nome)}</b><small>${esc(m.desc)}</small></span></button>`).join('')}
+        <div class="info" style="padding:8px 4px">Novos modelos de placa entram aqui.</div></div>
+      <div class="painel imp-prev"><div class="imp-bar"><b id="imp-nome"></b><span style="flex:1"></span><button class="btn pri" id="imp-imprimir">🖨 Imprimir / salvar PDF</button></div>
+        <div class="imp-papel"><iframe id="imp-frame" title="Prévia da folha"></iframe></div></div>
+    </div>`;
+  const desenha = () => {
+    const m = MODELOS_IMPRESSO.find(x => x.id === s.sel) || MODELOS_IMPRESSO[0];
+    document.getElementById('imp-nome').textContent = m.nome;
+    document.getElementById('imp-frame').srcdoc = m.html();
+    document.querySelectorAll('[data-mod]').forEach(b => b.classList.toggle('on', b.dataset.mod === m.id));
+    document.getElementById('imp-imprimir').onclick = () => imprimirHtml(m.html());
+  };
+  document.querySelectorAll('[data-mod]').forEach(b => b.onclick = () => { s.sel = b.dataset.mod; desenha(); });
+  desenha();
 }
 
 function telaRomaneios(){
@@ -5154,6 +5224,9 @@ const MENU = [
     { view:'ponto', titulo:'Apontamentos de ponto', tela:'ponto' },
     { view:'testes', titulo:'Testes de perfil' },
   ]},
+  { id:'impressao', titulo:'Impressão', filhos:[
+    { view:'impressos', titulo:'Placas e folhas padrão' },
+  ]},
   { id:'admin', titulo:'Administração', filhos:[
     { view:'pessoas', titulo:'Pessoas e acessos', tela:'pessoas' },
   ]},
@@ -5206,7 +5279,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -5222,6 +5295,7 @@ function irPara(view){
   if (view === 'abandono') return telaAbandono();
   if (view === 'ponto') return telaPonto();
   if (view === 'testes') return telaTestes();
+  if (view === 'impressos') return telaImpressos();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
