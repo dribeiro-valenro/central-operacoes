@@ -268,6 +268,15 @@
   .rr-tile span{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px}
   .rr-tile b{font-size:24px;font-variant-numeric:tabular-nums} .rr-tile small{font-size:11px;color:var(--mute)}
 
+  /* produção do time (consolidado) */
+  .cs-bloco{margin-bottom:18px} .cs-cab{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:4px 0 10px} .cs-cab h3{margin:0;font-size:18px;color:var(--pri)}
+  .cs-tab td,.cs-tab th{padding:8px 10px} .cs-sub{margin:0 0 8px;font-size:15px}
+  .cs-gr{border-bottom:3px solid var(--c) !important;color:var(--c) !important}
+  .cs-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px;align-items:center} .cs-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .cs-nota{line-height:1.55;margin-top:8px}
+  .cs-prox{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .cs-em{display:flex;gap:10px;align-items:center;border:1px dashed #b9c3d3;border-radius:10px;padding:12px;background:#fafbfd;color:var(--mute)} .cs-em span{font-size:24px} .cs-em div{flex:1} .cs-em b{color:var(--ink)} .cs-em small{display:block;font-size:12px}
+  .cs-em em{font-style:normal;font-size:11px;font-weight:700;background:#eef0f4;border-radius:8px;padding:2px 8px}
   /* impressão: placas e folhas */
   .imp-grade{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
   .imp-lista{display:flex;flex-direction:column;gap:8px}
@@ -2259,6 +2268,177 @@ function telaImpressos(){
   };
   document.querySelectorAll('[data-mod]').forEach(b => b.onclick = () => { s.sel = b.dataset.mod; desenha(); });
   desenha();
+}
+
+
+/* =================== PRODUÇÃO DO TIME (consolidado do dia ou do período) =================== */
+// FULL: pares por etapa (separação, conferência...), tempo de operação (relógio), horas-pessoa, pares/h e pares/h-pessoa.
+// CROSS, inventários e movimentações entram como novos blocos nesta mesma página.
+const ROT_PER_CONS = { hoje:'Hoje', ontem:'Ontem', semana:'Esta semana', sem_ant:'Semana passada', d7:'Últimos 7 dias', mes:'Este mês', mes_ant:'Mês passado', outro:'Escolher datas…' };
+function periodoCons(op){
+  const h = hojeBRT(), dow = new Date(h + 'T12:00:00Z').getUTCDay(), seg = addDias(h, -((dow + 6) % 7)), m1 = h.slice(0, 8) + '01';
+  return { hoje:[h, h], ontem:[addDias(h, -1), addDias(h, -1)], semana:[seg, h], sem_ant:[addDias(seg, -7), addDias(seg, -1)], d7:[addDias(h, -6), h],
+    mes:[m1, h], mes_ant:[addDias(m1, -1).slice(0, 8) + '01', addDias(m1, -1)] }[op] || null;
+}
+// demonstração: apontamentos de hoje e de ontem (separação, conferência, carregamento)
+function demoConsolidado(ini, fim){
+  const aps = [], dias = [];
+  for (let d = ini; d <= fim; d = addDias(d, 1)) dias.push(d);
+  const iso = (dia, h, m) => new Date(`${dia}T${String(h + Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}:00-03:00`).toISOString();
+  const ped = ['80901234', '80903377', '80911108', '80915541', '80920012', '80924480'];
+  dias.forEach((dia, di) => {
+    const dow = new Date(dia + 'T12:00:00Z').getUTCDay(); if (dow === 0) return;
+    const fator = dow === 6 ? 0.4 : 1 - (di % 3) * 0.12, agoraMin = dia === hojeBRT() ? Math.min(17 * 60, new Date().getUTCHours() * 60 - 180 + new Date().getUTCMinutes()) : 24 * 60;
+    const sep = [['arthur magdaleno', 7, 10, 160, 520], ['davi duarte', 7, 30, 200, 610], ['vinicius correa', 8, 0, 150, 430], ['arthur magdaleno', 10, 45, 140, 380], ['davi duarte', 11, 20, 170, 520], ['vinicius correa', 13, 15, 180, 470], ['arthur magdaleno', 14, 0, 120, 330]];
+    sep.forEach(([p, h, m, dur, pares], k) => { const ini0 = h * 60 + m, dd = Math.round(dur / fator); if (ini0 > agoraMin) return; const fimMin = ini0 + dd;
+      aps.push({ id:`d${di}s${k}`, etapa:'separacao', envio_id:`${di}-${k % 6}`, coletadores:[p], pares:Math.round(pares * fator), pedido:ped[k % 6], cnpj_id:['DIGOS', 'DROSA', 'CACAL'][k % 3], pares_plan:Math.round(pares * fator) + 20, pares_envio:null,
+        periodos:[{ inicio:iso(dia, 0, ini0), fim: fimMin <= agoraMin ? iso(dia, 0, fimMin) : null }] }); });
+    const conf = [[['nathan marques', 'tiago santos'], 10, 30, 70, 1130], [['nathan marques', 'tiago santos', 'davi duarte'], 14, 10, 60, 1290], [['tiago santos', 'vitor'], 16, 0, 55, 800]];
+    conf.forEach(([eq, h, m, dur, pares], k) => { const ini0 = h * 60 + m, fimMin = ini0 + Math.round(dur / fator); if (ini0 > agoraMin) return;
+      aps.push({ id:`d${di}c${k}`, etapa:'conferencia', envio_id:`${di}-${k}`, coletadores:eq, pares:null, pedido:ped[k], cnpj_id:['DIGOS', 'DROSA', 'CACAL'][k], pares_plan:Math.round(pares * fator), pares_envio:Math.round(pares * fator) - 8,
+        periodos:[{ inicio:iso(dia, 0, ini0), fim: fimMin <= agoraMin ? iso(dia, 0, fimMin) : null }] }); });
+    if (agoraMin > 16 * 60 + 40) aps.push({ id:`d${di}r`, etapa:'carregamento', romaneio_id:'r' + di, coletadores:['vitor', 'guilherme'], pares:null, rom_pares:Math.round(2900 * fator), periodos:[{ inicio:iso(dia, 16, 40), fim:iso(dia, 17, 5) }] });
+  });
+  const expedidos = dias.filter(d => d < hojeBRT() && new Date(d + 'T12:00:00Z').getUTCDay() !== 0).flatMap((d, i) => [{ data:d, cnpj_id:'DIGOS', pedidos:2, pares:1480 - i * 40 }, { data:d, cnpj_id:'DROSA', pedidos:1, pares:610 }, { data:d, cnpj_id:'CACAL', pedidos:1, pares:520 }]);
+  return { ini, fim, agora:new Date().toISOString(), full:{ apontamentos:aps, expedidos } };
+}
+async function apiCons(ini, fim){ return DEMO ? demoConsolidado(ini, fim) : api(`/consolidado?ini=${ini}&fim=${fim}`); }
+
+function telaConsolidado(){
+  const s = state.cons ||= { per:'hoje', ini:'', fim:'', loja:'todos' };
+  if (s.per !== 'outro') [s.ini, s.fim] = periodoCons(s.per);
+  $app.innerHTML = `
+    <div class="barra"><h2>Produção do time</h2><span style="flex:1"></span>
+      <select id="cs-per">${Object.entries(ROT_PER_CONS).map(([k, t]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <span class="datas"><input type="date" id="cs-ini" value="${s.ini}"> até <input type="date" id="cs-fim" value="${s.fim}"></span>
+      <select id="cs-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <button class="btn" id="cs-atualizar">Atualizar</button>
+    </div>
+    <div id="cons"><div class="carregando">Juntando a produção…</div></div>`;
+  const $ = k => document.getElementById(k);
+  $('cs-per').onchange = () => { s.per = $('cs-per').value; if (s.per !== 'outro') [s.ini, s.fim] = periodoCons(s.per); $('cs-ini').value = s.ini; $('cs-fim').value = s.fim; if (s.per !== 'outro') carregarCons(); };
+  const datas = () => { let a = $('cs-ini').value, b = $('cs-fim').value; if (!a || !b) return; if (b < a) [a, b] = [b, a];
+    s.ini = a; s.fim = b; s.per = Object.keys(ROT_PER_CONS).find(k => { const r = periodoCons(k); return r && r[0] === a && r[1] === b; }) || 'outro'; $('cs-per').value = s.per; carregarCons(); };
+  $('cs-ini').onchange = datas; $('cs-fim').onchange = datas;
+  $('cs-loja').onchange = () => { s.loja = $('cs-loja').value; renderCons(); };
+  $('cs-atualizar').onclick = carregarCons;
+  carregarCons();
+}
+async function carregarCons(){
+  const s = state.cons;
+  try { state.consDados = await apiCons(s.ini, s.fim); renderCons(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('cons'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+// une intervalos [ini, fim] em ms e devolve os minutos cobertos (tempo de relógio da operação)
+function minutosUnidos(iv){
+  const L = iv.filter(([a, b]) => b > a).sort((x, y) => x[0] - y[0]); let tot = 0, ca = null, cb = null;
+  L.forEach(([a, b]) => { if (ca === null || a > cb) { if (ca !== null) tot += cb - ca; ca = a; cb = b; } else cb = Math.max(cb, b); });
+  if (ca !== null) tot += cb - ca; return tot / 60e3;
+}
+const horaBRT = ms => new Date(ms - 3 * 3600e3).getUTCHours();
+const diaBRT = ms => new Date(ms - 3 * 3600e3).toISOString().slice(0, 10);
+function calcConsFull(d, loja){
+  const et = {}, porHora = {}, porDia = {}, abertos = [], semPares = [];
+  const dentroLoja = a => loja === 'todos' || a.cnpj_id === loja || (a.etapa === 'carregamento' && loja === 'todos');
+  // conferência/carregamento sem quantidade valem o pedido (ou romaneio) inteiro: se o mesmo pedido teve vários
+  // apontamentos assim, o pedido é dividido entre eles pelo tempo (para não contar duas vezes)
+  const minFech = a => (a.periodos || []).filter(p => p.fim).reduce((t, p) => t + (new Date(p.fim) - new Date(p.inicio)) / 60e3, 0);
+  const alvoK = a => (a.etapa || 'separacao') + '|' + (a.envio_id || 'r' + a.romaneio_id), minSemPares = {};
+  (d.full.apontamentos || []).forEach(a => { if (a.pares == null && (a.etapa || 'separacao') !== 'separacao') minSemPares[alvoK(a)] = (minSemPares[alvoK(a)] || 0) + minFech(a); });
+  (d.full.apontamentos || []).filter(dentroLoja).forEach(a => {
+    const etapa = a.etapa || 'separacao', n = (a.coletadores || []).length || 1;
+    const fechados = (a.periodos || []).filter(p => p.fim), aberto = (a.periodos || []).some(p => !p.fim);
+    if (aberto) abertos.push(a);
+    const iv = fechados.map(p => [new Date(p.inicio).getTime(), new Date(p.fim).getTime()]), min = iv.reduce((t, [x, y]) => t + (y - x) / 60e3, 0);
+    if (!min) return;
+    const padrao = etapa === 'carregamento' ? a.rom_pares : (a.pares_envio ?? a.pares_plan);
+    let pares = Number(paresAp(a, padrao)) || 0;
+    if (a.pares == null && etapa !== 'separacao' && minSemPares[alvoK(a)] > min) pares = pares * min / minSemPares[alvoK(a)];
+    if (!pares) semPares.push(a);
+    const x = et[etapa] ||= { pares:0, pmin:0, iv:[], pessoas:new Set(), alvos:new Set(), aps:0, primeiro:Infinity, ultimo:0 };
+    x.pares += pares; x.pmin += min * n; x.iv.push(...iv); a.coletadores.forEach(p => x.pessoas.add(p)); x.alvos.add(a.envio_id || 'r' + a.romaneio_id); x.aps++;
+    iv.forEach(([i0, i1]) => { x.primeiro = Math.min(x.primeiro, i0); x.ultimo = Math.max(x.ultimo, i1); });
+    // pares e pessoas por hora do dia: o apontamento é dividido pelo tempo que caiu em cada hora
+    iv.forEach(([i0, i1]) => {
+      for (let t = i0; t < i1;) { const fimHora = t - ((t - 3 * 3600e3) % 3600e3) + 3600e3, ate = Math.min(i1, fimHora), frac = (ate - t) / 60e3 / min;
+        const h = horaBRT(t), dia = diaBRT(t), ph = porHora[h] ||= { pares:{}, pmin:0 }, pd = (porDia[dia] ||= {})[etapa] ||= { pares:0, pmin:0, iv:[] };
+        ph.pares[etapa] = (ph.pares[etapa] || 0) + pares * frac; ph.pmin += (ate - t) / 60e3 * n;
+        pd.pares += pares * frac; pd.pmin += (ate - t) / 60e3 * n; pd.iv.push([t, ate]);
+        t = ate; }
+    });
+  });
+  Object.values(et).forEach(x => { x.relogio = minutosUnidos(x.iv); x.ph = x.relogio ? x.pares / (x.relogio / 60) : null; x.php = x.pmin ? x.pares / (x.pmin / 60) : null; x.equipe = x.relogio ? x.pmin / x.relogio : null; });
+  Object.values(porDia).forEach(o => Object.values(o).forEach(x => { x.relogio = minutosUnidos(x.iv); }));
+  const exp = (d.full.expedidos || []).filter(e => loja === 'todos' || e.cnpj_id === loja);
+  return { et, porHora, porDia, abertos, semPares, exp:{ pares:exp.reduce((t, e) => t + e.pares, 0), pedidos:exp.reduce((t, e) => t + e.pedidos, 0) } };
+}
+const csH = min => min ? (min / 60).toLocaleString('pt-BR', { maximumFractionDigits:1, minimumFractionDigits:1 }) + ' h' : '–';
+const csR = v => v == null ? '–' : fmtN(Math.round(v));
+function graficoHoras(porHora, etapas){
+  const horas = Object.keys(porHora).map(Number); if (!horas.length) return '<div class="vazio">Sem apontamentos com horário no período.</div>';
+  const h0 = Math.min(6, ...horas), h1 = Math.max(18, ...horas), L = []; for (let h = h0; h <= h1; h++) L.push(h);
+  const tot = h => etapas.reduce((t, e) => t + (porHora[h]?.pares[e] || 0), 0), pes = h => (porHora[h]?.pmin || 0) / 60;
+  const max = Math.max(1, ...L.map(tot)), maxP = Math.max(1, ...L.map(pes)), P = 46, W = L.length * P, H = 190, base = 158, alt = 135, y = v => base - v / max * alt;
+  const bw = 30;
+  const barras = L.map((h, i) => { let topo = base; const x0 = i * P + (P - bw) / 2;
+    const seg = etapas.map(e => { const v = porHora[h]?.pares[e] || 0; if (!v) return ''; const hgt = v / max * alt; topo -= hgt; return `<rect x="${x0}" y="${topo}" width="${bw}" height="${hgt}" fill="${ETAPAS_TRAB[e].cor}"><title>${String(h).padStart(2, '0')}h · ${ETAPAS_TRAB[e].rot}: ${fmtN(Math.round(v))} pares</title></rect>`; }).join('');
+    const t = tot(h); return seg + (t ? `<text x="${i * P + P / 2}" y="${y(t) - 4}" text-anchor="middle" font-size="10" fill="#1b2333" font-weight="700">${fmtN(Math.round(t))}</text>` : '')
+      + `<text x="${i * P + P / 2}" y="${H - 16}" text-anchor="middle" font-size="10" fill="#8a93a5">${String(h).padStart(2, '0')}h</text>`
+      + (pes(h) ? `<text x="${i * P + P / 2}" y="${H - 3}" text-anchor="middle" font-size="9" fill="#9a5b00" title="pessoas trabalhando">${pes(h).toLocaleString('pt-BR', { maximumFractionDigits:1 })}👤</text>` : ''); }).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="rc-graf" role="img" aria-label="Pares por hora">${barras}<line x1="0" y1="${base + 0.5}" x2="${W}" y2="${base + 0.5}" stroke="#d5dae3"/></svg></div>
+    <div class="cs-leg">${etapas.map(e => `<span><i style="background:${ETAPAS_TRAB[e].cor}"></i>${ETAPAS_TRAB[e].rot}</span>`).join('')}<span class="info">👤 = pessoas trabalhando em média naquela hora (horas-pessoa ÷ 1 h)</span></div>`;
+}
+function renderCons(){
+  const s = state.cons, d = state.consDados, $c = document.getElementById('cons');
+  if (!$c || !d) return;
+  const F = calcConsFull(d, s.loja), umDia = s.ini === s.fim;
+  const ordem = ['separacao', 'conferencia', 'etiquetagem', 'carregamento'].filter(k => F.et[k]);
+  const principais = ['separacao', 'conferencia'];
+  const totPmin = ordem.reduce((t, k) => t + F.et[k].pmin, 0);
+  const hm = ms => isFinite(ms) && ms ? soHora(new Date(ms).toISOString()) : '–';
+  const tile = (rot, v, sub, cor) => `<div class="rr-tile" style="--c:${cor}"><span>${rot}</span><b>${v}</b><small>${sub}</small></div>`;
+  const sep = F.et.separacao, conf = F.et.conferencia;
+  const dias = Object.keys(F.porDia).sort();
+  $c.innerHTML = `
+    <div class="cs-bloco">
+      <div class="cs-cab"><h3>📦 FULL</h3><span class="info">${umDia ? dataBR(s.ini) : `${dataBR(s.ini)} a ${dataBR(s.fim)}`}${s.loja !== 'todos' ? ' · ' + esc(nomeLoja(s.loja)) : ''} · pelos apontamentos lançados nos envios e romaneios</span></div>
+      <div class="rr-res">
+        ${tile('Pares separados', sep ? fmtN(Math.round(sep.pares)) : '–', sep ? `${sep.alvos.size} pedido(s) · ${csR(sep.php)} pares/h por pessoa` : 'sem apontamento fechado', ETAPAS_TRAB.separacao.cor)}
+        ${tile('Pares conferidos', conf ? fmtN(Math.round(conf.pares)) : '–', conf ? `${conf.alvos.size} pedido(s) · ${csR(conf.php)} pares/h por pessoa` : 'sem apontamento fechado', ETAPAS_TRAB.conferencia.cor)}
+        ${tile('Pares expedidos', fmtN(F.exp.pares), `${F.exp.pedidos} pedido(s) com status Expedido no período`, '#1a7a3e')}
+        ${tile('Horas-pessoa no FULL', csH(totPmin), `${new Set(ordem.flatMap(k => [...F.et[k].pessoas])).size} pessoa(s) apontada(s)`, '#9a5b00')}
+      </div>
+      <div class="painel" style="padding:0;overflow-x:auto">
+        <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Etapa</th><th>Pares</th><th>Pedidos</th>${umDia ? '<th>Início</th><th>Fim</th>' : ''}<th title="Tempo em que havia alguém trabalhando na etapa (horários sobrepostos contam uma vez)">Tempo de operação</th><th>Pessoas</th><th title="Soma do tempo de cada pessoa">Horas-pessoa</th><th title="Pessoas trabalhando ao mesmo tempo, em média">Equipe média</th><th title="Pares ÷ tempo de operação">Pares/hora</th><th title="Pares ÷ horas-pessoa">Pares/hora-pessoa</th></tr></thead><tbody>
+        ${ordem.map(k => { const x = F.et[k], E = ETAPAS_TRAB[k];
+          return `<tr><td style="text-align:left"><span class="st-full" style="color:${E.cor};background:#f3f5f8">${esc(E.rot)}</span>${k === 'carregamento' ? ' <span class="info">romaneio inteiro</span>' : ''}</td>
+            <td><b>${fmtN(Math.round(x.pares))}</b></td><td>${k === 'carregamento' ? `${x.alvos.size} veíc.` : x.alvos.size}</td>${umDia ? `<td>${hm(x.primeiro)}</td><td>${hm(x.ultimo)}</td>` : ''}
+            <td>${fmtDur(x.relogio)}</td><td>${x.pessoas.size}</td><td>${csH(x.pmin)}</td><td>${x.equipe ? x.equipe.toLocaleString('pt-BR', { maximumFractionDigits:1 }) : '–'}</td>
+            <td><b>${csR(x.ph)}</b></td><td><b>${csR(x.php)}</b></td></tr>`; }).join('') || `<tr><td colspan="10" class="vazio">Nenhum apontamento fechado ${umDia ? 'neste dia' : 'no período'}.</td></tr>`}
+        </tbody></table>
+      </div>
+      <div class="painel">
+        <h3 class="cs-sub">Pares por hora ${umDia ? 'do dia' : '(soma do período, por faixa de horário)'}</h3>
+        ${graficoHoras(F.porHora, ordem.filter(k => principais.includes(k) || k === 'etiquetagem'))}
+      </div>
+      ${!umDia && dias.length ? `<div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Dia</th>
+          ${principais.map(k => `<th colspan="3" class="cs-gr" style="--c:${ETAPAS_TRAB[k].cor}">${ETAPAS_TRAB[k].rot}</th>`).join('')}</tr>
+          <tr><th></th>${principais.map(() => '<th>Pares</th><th>Pares/h</th><th>Pares/h-pessoa</th>').join('')}</tr></thead><tbody>
+          ${dias.map(dia => `<tr><td style="text-align:left"><b>${dataBR(dia).slice(0, 5)}</b> <span class="info">${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(dia + 'T12:00:00Z').getUTCDay()]}</span></td>
+            ${principais.map(k => { const x = F.porDia[dia][k]; return x ? `<td>${fmtN(Math.round(x.pares))}</td><td>${csR(x.relogio ? x.pares / (x.relogio / 60) : null)}</td><td>${csR(x.pmin ? x.pares / (x.pmin / 60) : null)}</td>` : '<td>–</td><td>–</td><td>–</td>'; }).join('')}</tr>`).join('')}
+          </tbody></table></div>` : ''}
+      <div class="info cs-nota">
+        <b>Como ler:</b> <b>pares/hora</b> = pares ÷ tempo de operação (quanto a etapa entrega por hora de relógio, com a equipe que estava lá).
+        <b>Pares/hora-pessoa</b> = pares ÷ horas-pessoa (quanto cada pessoa entrega por hora: serve para dimensionar equipe).
+        Conferência e carregamento sem quantidade digitada contam o pedido (ou o romaneio) inteiro; se o mesmo pedido teve mais de um apontamento assim, ele é dividido entre eles pelo tempo.
+        ${F.abertos.length ? `<br>⏳ ${F.abertos.length} apontamento(s) ainda em andamento: entram quando forem fechados.` : ''}
+        ${F.semPares.length ? `<br>⚠ ${F.semPares.length} apontamento(s) de separação sem pares informados: o tempo conta, os pares não (puxam o pares/hora para baixo).` : ''}
+        ${s.loja !== 'todos' ? '<br>Filtrando por loja, o carregamento (que é do romaneio inteiro) fica de fora.' : ''}
+      </div>
+    </div>
+    <div class="cs-prox">
+      ${[['🚚', 'CROSS', 'coletas e pacotes do dia por marketplace'], ['📋', 'Inventários', 'endereços e pares contados'], ['🔁', 'Movimentações', 'transferências e reabastecimento']].map(([i, t, d]) => `<div class="cs-em"><span>${i}</span><div><b>${t}</b><small>${d}</small></div><em>em construção</em></div>`).join('')}
+    </div>`;
 }
 
 function telaRomaneios(){
@@ -5214,6 +5394,7 @@ const MENU = [
       { view:'marketplaces', titulo:'Marketplaces', tela:'cross' },
     ]},
     { id:'indicadores', titulo:'Indicadores', filhos:[
+      { view:'consolidado', titulo:'Produção do time', tela:'produtividade' },
       { view:'separados', titulo:'Produtividade', tela:'produtividade' },
       { view:'volume',    titulo:'Volume de Pedidos', soDemo:true },
     ]},
@@ -5232,7 +5413,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -5279,7 +5460,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -5296,6 +5477,7 @@ function irPara(view){
   if (view === 'ponto') return telaPonto();
   if (view === 'testes') return telaTestes();
   if (view === 'impressos') return telaImpressos();
+  if (view === 'consolidado') return telaConsolidado();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
