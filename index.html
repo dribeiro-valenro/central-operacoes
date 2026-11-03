@@ -268,6 +268,7 @@
   .rr-tile span{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px}
   .rr-tile b{font-size:24px;font-variant-numeric:tabular-nums} .rr-tile small{font-size:11px;color:var(--mute)}
 
+  .m3-chip b{font-variant-numeric:tabular-nums} td sup{font-size:9px;color:var(--mute);margin-left:1px} .m3-src-pares{color:#b07a00}
   /* produção do time (consolidado) */
   .cs-bloco{margin-bottom:18px} .cs-cab{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:4px 0 10px} .cs-cab h3{margin:0;font-size:18px;color:var(--pri)}
   .cs-tab td,.cs-tab th{padding:8px 10px} .cs-sub{margin:0 0 8px;font-size:15px}
@@ -1049,7 +1050,7 @@ const DEMO_FULL = (() => {
     ['DROSA','80065106','2026-10-23','057','vitor',472,472,'aguardando_envio',100,40,3.304], ['DIGOS','80055010','2026-10-23','155',null,1127,902,'separacao',53,76,6.314],
     ['DROSA','79762770','2026-10-23','057','davi',533,313,'aguardando_envio',100,26,2.191], ['DROSA','79541319','2026-10-23','056','vini',497,347,'aguardando_envio',100,29,2.429],
     ['DIGOS','79981921','2026-10-26','154','arthur',1045,900,'aguardando_envio',100,73,6.3], ['DIGOS','80084449','2026-10-26','154',null,824,660,'separacao',17,55,4.62],
-    ['DIGOS','80279586','2026-10-26',null,null,1122,898,'programado',0,75,6.286],
+    ['DIGOS','80279586','2026-10-26',null,null,1122,null,'programado',0,75,6.286],
   ];
   const agora = new Date().toISOString(), envios = [], coletas = [];
   L.forEach((l, i) => {
@@ -1070,8 +1071,20 @@ const DEMO_FULL = (() => {
   });
   return { envios, coletas, eventos:[], seq:1000 };
 })();
+// m³ automático (mesma regra do servidor): digitado > Qtd. pares × fator > plano × fator
+function demoM3(){
+  const D = DEMO_FULL; D.m3_por_par ??= 0.007;
+  D.envios.forEach(e => {
+    if (!('m3_digitado' in e)) { e.m3_digitado = e.status === 'expedido' ? e.m3 : null; e.m3_fator = 0.007; }
+    const p = e.pares_envio ?? e.pares_plan, f = e.m3_fator ?? D.m3_por_par;
+    e.m3 = e.m3_digitado ?? (p == null || p === '' ? null : Math.round(Number(p) * f * 1000) / 1000);
+    e.m3_fonte = e.m3_digitado != null ? 'digitado' : e.pares_envio != null && e.pares_envio !== '' ? 'pares' : 'plano';
+  });
+}
 async function apiFull(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  demoM3();
+  if (path === '/full/config') { const f = Number(String(corpo.m3_por_par).replace(',', '.')); if (!(f > 0 && f <= 1)) throw new Error('m³ por par inválido (ex.: 0,007)'); DEMO_FULL.m3_por_par = f; return { ok:true, m3_por_par:f }; }
   const D = DEMO_FULL, ag = new Date().toISOString(), ev = (envio_id, acao, antes, depois) => D.eventos.unshift({ envio_id, em:ag, por:'demonstracao', acao, antes, depois });
   const num = v => v === '' || v === null || v === undefined ? null : Number(v);
   if (path.startsWith('/full/romaneio')) return apiRomDemo(path, corpo);
@@ -1081,7 +1094,7 @@ async function apiFull(path, corpo){
     if (path.startsWith('/full?') || path === '/full') {
       const q = new URLSearchParams(path.split('?')[1] || ''), ini = q.get('ini'), fim = q.get('fim'), desde = addDias(hojeBRT(), -45);
       const envios = D.envios.filter(e => ini ? e.data_expedicao >= ini && e.data_expedicao <= fim : (ABERTOS_FULL.includes(e.status) || e.data_expedicao >= desde));
-      return { ini, fim, envios: JSON.parse(JSON.stringify(envios)), coletas: JSON.parse(JSON.stringify(D.coletas)),
+      return { ini, fim, m3_por_par: DEMO_FULL.m3_por_par, envios: JSON.parse(JSON.stringify(envios)), coletas: JSON.parse(JSON.stringify(D.coletas)),
         coletadores: [...new Set(D.coletas.flatMap(c => c.coletadores).concat(['arthur magdaleno','davi duarte','nathan marques','tiago santos','vinicius correa']))].sort(),
         lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }], status: ORDEM_FULL,
         motivos: ['Sem estoque físico','Divergência de estoque (WMS x físico)','Avaria / qualidade','Ajuste do ML no agendamento','Erro no plano','Outro'], hoje: hojeBRT() };
@@ -1090,10 +1103,10 @@ async function apiFull(path, corpo){
   if (path === '/full/envio') {
     corpo = { ...corpo, ...Object.fromEntries(['pares_plan','pares_envio','pct_coleta','caixas','m3'].map(k => [k, num(corpo[k])])) };
     if (corpo.status === 'expedido' && corpo.pares_envio < corpo.pares_plan && !corpo.motivo_diferenca) throw new Error(`Saíram ${corpo.pares_envio} de ${corpo.pares_plan} pares do plano: informe o motivo da diferença`);
-    if (!corpo.id) { const id = String(++D.seq); D.envios.push({ ...corpo, id, status_em:ag, atualizado_em:ag, atualizado_por:'demonstracao' }); ev(id, 'envio.criar', null, corpo); return { ok:true, id }; }
+    if (!corpo.id) { const id = String(++D.seq); D.envios.push({ ...corpo, id, m3_digitado:corpo.m3, m3_fator:D.m3_por_par, status_em:ag, atualizado_em:ag, atualizado_por:'demonstracao' }); ev(id, 'envio.criar', null, corpo); demoM3(); return { ok:true, id }; }
     const e = D.envios.find(x => x.id === corpo.id);
     if (e.status !== corpo.status) { ev(e.id, 'envio.status', { status:e.status }, { status:corpo.status }); e.status_em = ag; }
-    Object.assign(e, corpo, { atualizado_em:ag, atualizado_por:'demonstracao' }); return { ok:true, id:e.id };
+    Object.assign(e, corpo, { m3_digitado:corpo.m3, atualizado_em:ag, atualizado_por:'demonstracao' }); demoM3(); return { ok:true, id:e.id };
   }
   if (path === '/full/envio/excluir') { D.envios = D.envios.filter(e => e.id !== corpo.id); return { ok:true }; }
   if (path === '/full/coleta') {
@@ -1147,6 +1160,7 @@ function telaFull(){
       </select>
       <span id="f-datas" class="datas"><input type="date" id="f-ini" value="${s.per === 'padrao' ? '' : s.ini}" title="Expedição a partir de"> até <input type="date" id="f-fim" value="${s.per === 'padrao' ? '' : s.fim}" title="Expedição até"></span>
       <div class="abas">${[['abertos','Em aberto'],['expedidos','Expedidos'],['todos','Todos']].map(([k, r]) => `<button data-fa="${k}" class="${s.aba === k && !s.st ? 'on' : ''}">${r}</button>`).join('')}</div>
+      <button class="btn m3-chip" id="f-m3" title="m³ por par usado no cálculo automático dos próximos envios">m³/par <b id="f-m3-v">…</b>${pode('full', 'gerir') ? ' ✎' : ''}</button>
       <button class="btn" id="f-atualizar">Atualizar</button>
       ${pode('full', 'gerir') ? `<button class="btn pri" id="f-novo">+ Novo envio</button>` : ''}
     </div>
@@ -1182,6 +1196,7 @@ function telaFull(){
   $ini.onchange = mudouData; $fim.onchange = mudouData;
   document.getElementById('f-atualizar').onclick = () => carregarFull();
   const nv = document.getElementById('f-novo'); if (nv) nv.onclick = () => abrirEnvio(null);
+  document.getElementById('f-m3').onclick = () => editarM3PorPar();
   carregarFull();
 }
 function sincronizarPeriodo(){
@@ -1209,11 +1224,39 @@ async function carregarFull(){
       s.irPara = null;
       try { history.replaceState(null, '', location.pathname + '?tela=full'); } catch (_) {}
     }
+    const m3v = document.getElementById('f-m3-v'); if (m3v) m3v.textContent = fmtFatorM3(state.fullDados.m3_por_par);
     renderFull(); if (s.aberto) abrirEnvio(s.aberto, true);
   }
   catch (e) { if (e instanceof SemSessao) throw e; const $f = document.getElementById('full'); if ($f) $f.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 function coletasDe(id, etapa = 'separacao'){ return (state.fullDados?.coletas || []).filter(c => c.envio_id === id && etapaDe(c) === etapa); }
+// m³ na cor do número que entrou na conta (Qtd. pares, plano ou digitado)
+function celM3(e, prev, dif){
+  const fat = (e.m3_fator ?? state.fullDados?.m3_por_par ?? 0.007).toLocaleString('pt-BR', { maximumFractionDigits:4 });
+  const cls = e.m3_fonte === 'pares' ? (prev ? 'prev' : dif ? 'dif' : '') : '';
+  const tit = e.m3_fonte === 'digitado' ? 'm³ digitado no envio' : e.m3_fonte === 'pares' ? `Qtd. pares × ${fat}` : `Pares do plano × ${fat} (ainda sem a Qtd. pares)`;
+  return `<td class="${cls} m3-${e.m3_fonte || 'x'}" title="${tit}">${fmtM3(e.m3)}${e.m3_fonte === 'digitado' ? '<sup>✎</sup>' : ''}</td>`;
+}
+const fmtFatorM3 = f => f == null ? '–' : Number(f).toLocaleString('pt-BR', { minimumFractionDigits:3, maximumFractionDigits:6 });
+// "m³ por par": referência do cálculo automático (líder edita; vale para os envios cadastrados daqui em diante)
+function editarM3PorPar(){
+  const atual = state.fullDados?.m3_por_par ?? 0.007, gerir = pode('full', 'gerir');
+  const d = document.createElement('div'); d.className = 'pl-modal';
+  d.innerHTML = `<div class="painel" style="width:min(440px,100%)"><h3 style="margin:0 0 6px">m³ por par</h3>
+    <div class="info" style="line-height:1.5">O m³ de cada envio é calculado sozinho: <b>pares × m³ por par</b>. Usa a <b>Qtd. pares</b> quando preenchida; senão, os <b>pares do plano</b>. Se alguém digitar o m³ no envio, vale o digitado.</div>
+    <label class="gv-lab" style="margin-top:10px">m³ por par<input id="m3f-v" inputmode="decimal" value="${fmtFatorM3(atual)}" ${gerir ? '' : 'disabled'}></label>
+    <div class="info" id="m3f-ex"></div>
+    <div class="info" style="margin-top:6px">${gerir ? 'Mudar este número vale para os <b>próximos envios cadastrados</b>. Os envios que já existem continuam com o número da época.' : 'Só líder altera este número.'}</div>
+    <div class="erro" id="m3f-erro" hidden></div>
+    <div class="gv-acoes"><button class="btn" data-x>Fechar</button>${gerir ? '<button class="btn pri" data-ok>Salvar</button>' : ''}</div></div>`;
+  document.body.appendChild(d);
+  const inp = d.querySelector('#m3f-v'), ex = () => { const f = Number(inp.value.replace(',', '.')); d.querySelector('#m3f-ex').textContent = f > 0 ? `Exemplo: 1.000 pares = ${fmtM3(1000 * f)} m³` : ''; };
+  inp.oninput = ex; ex();
+  d.querySelector('[data-x]').onclick = () => d.remove();
+  const ok = d.querySelector('[data-ok]'); if (ok) ok.onclick = async () => { ok.disabled = true;
+    try { const r = await apiFull('/full/config', { m3_por_par: inp.value.replace(',', '.') }); d.remove(); avisar(`m³ por par: ${fmtFatorM3(r.m3_por_par)} (vale para os próximos envios)`); carregarFull(); }
+    catch (e) { if (e instanceof SemSessao) throw e; ok.disabled = false; const er = d.querySelector('#m3f-erro'); er.hidden = false; er.textContent = e.message; } };
+}
 function renderFull(){
   const s = state.full, r = state.fullDados, $f = document.getElementById('full');
   if (!$f || !r) return;
@@ -1272,12 +1315,12 @@ function renderFull(){
         <td>${esc(cestos) || '<span class="info">–</span>'}</td><td>${esc(quem) || '<span class="info">–</span>'}</td>
         <td>${fmtN(e.pares_plan)}</td><td class="${prev ? 'prev' : dif ? 'dif' : ''}" title="${prev ? 'Previsto: ainda pode mudar' : dif ? 'Abaixo do plano' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</td>
         <td>${pillFull(e.status)}</td><td class="pct">${pct(e)}</td>
-        <td class="${prev ? 'prev' : ''}">${e.caixas ?? '–'}</td><td class="${prev ? 'prev' : ''}">${fmtM3(e.m3)}</td>
+        <td class="${prev ? 'prev' : ''}">${e.caixas ?? '–'}</td>${celM3(e, prev, dif)}
         <td>${e.observacao || e.motivo_diferenca ? `<span title="${esc([e.motivo_diferenca, e.observacao].filter(Boolean).join(' · '))}">💬</span>` : ''}</td>
         <td><button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto do palete">🖨</button></td></tr>`).join('')}
       </tbody>
     </table></div>
-    <div class="legenda leg-full"><b>Legenda:</b><span><span class="prev">número em itálico amarelo</span> = previsto (pode mudar até a conferência)</span><span><span class="dif">número em vermelho</span> = abaixo do plano</span><span class="atraso">⚠ = data de expedição já passou</span><span>🖨 folha de rosto do palete</span><span>☑ marcar para o romaneio</span><span><span class="chip-rom" style="margin:0">🚚 R-…</span> já está num romaneio</span></div></div>
+    <div class="legenda leg-full"><b>Legenda:</b><span>m³ = pares × m³ por par, na cor do número usado (Qtd. pares ou plano); ✎ = digitado</span><span><span class="prev">número em itálico amarelo</span> = previsto (pode mudar até a conferência)</span><span><span class="dif">número em vermelho</span> = abaixo do plano</span><span class="atraso">⚠ = data de expedição já passou</span><span>🖨 folha de rosto do palete</span><span>☑ marcar para o romaneio</span><span><span class="chip-rom" style="margin:0">🚚 R-…</span> já está num romaneio</span></div></div>
     <div class="so-estreito">
       <div class="subtot-cel">Subtotal · ${fmtN(lista.length)} pedidos · plano ${fmtN(plano)} · pares ${fmtN(pares)} (${fmtP(pares, plano)}) · ${fmtN(soma(validos, e => e.caixas))} cx · ${fmtM3(soma(validos, e => e.m3))} m³</div>
       ${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
@@ -1651,7 +1694,7 @@ function demoRomIni(){
     { id:'902', romaneio_id:'2', etapa:'carregamento', coletadores:['davi duarte', 'vitor'], pares:null, caixas:null, periodos:[{ inicio:mais('2026-10-21T15:10:00.000Z', 5), fim:mais('2026-10-21T15:58:00.000Z', -6) }] });
 }
 function apiRomDemo(path, corpo){
-  demoRomIni();
+  demoRomIni(); demoM3();
   const D = DEMO_FULL, R = DEMO_ROM, ag = new Date().toISOString(), q = new URLSearchParams(path.split('?')[1] || '');
   const ev = (id, acao, antes, depois) => R.eventos.unshift({ romaneio_id:id, em:ag, por:'demonstracao', acao, antes, depois });
   const copia = x => JSON.parse(JSON.stringify(x));
@@ -3067,7 +3110,7 @@ function abrirEnvio(id, recarregando){
           <label>Qtd. pares (a enviar)<input id="gv-pares" inputmode="numeric" value="${e.pares_envio ?? ''}" ${ro(editar)}></label>
           <label>% coleta<input id="gv-pct" inputmode="decimal" value="${e.pct_coleta ?? ''}" ${ro(editar)}></label>
           <label>Qtd. caixas<input id="gv-caixas" inputmode="numeric" value="${e.caixas ?? ''}" ${ro(editar)}></label>
-          <label>m³<input id="gv-m3" inputmode="decimal" value="${e.m3 === null || e.m3 === '' ? '' : String(e.m3).replace('.', ',')}" ${ro(editar)}></label>
+          <label>m³ <span class="info" id="gv-m3-fonte"></span><input id="gv-m3" inputmode="decimal" value="${e.m3_digitado == null || e.m3_digitado === '' ? '' : String(e.m3_digitado).replace('.', ',')}" ${ro(editar)}></label>
         </div>
         <div id="gv-dif"></div>
         <label class="gv-lab">Motivo da diferença
@@ -3098,6 +3141,13 @@ function abrirEnvio(id, recarregando){
     $('gv-dif').innerHTML = pares !== null && plano && pares < plano ? `<div class="aviso" style="margin:10px 0 0">${fmtN(plano - pares)} pares abaixo do plano (${fmtP(pares, plano)} atendido).${precisa ? ' <b>Informe o motivo para expedir.</b>' : ' Informe o motivo quando souber.'}</div>` : '';
   };
   ['gv-plano', 'gv-pares', 'gv-motivo'].forEach(k => $(k).addEventListener('input', avaliarDif)); avaliarDif();
+  // m³ automático: mostra a conta no campo vazio (digitar fixa o valor)
+  const fatorM3 = novo ? (r.m3_por_par ?? 0.007) : (e.m3_fator ?? r.m3_por_par ?? 0.007);
+  const contaM3 = () => { const pe = $('gv-pares').value.trim(), pl = $('gv-plano').value.trim(), usa = pe !== '' ? 'pares' : 'plano', p = Number(usa === 'pares' ? pe : pl);
+    const v = p ? fmtM3(p * fatorM3) : '';
+    $('gv-m3').placeholder = v ? `automático: ${v}` : 'automático';
+    const fx = $('gv-m3-fonte'); if (fx) { const dig = $('gv-m3').value.trim() !== ''; fx.textContent = dig ? '(digitado: apague para voltar ao automático)' : p ? `= ${usa === 'pares' ? 'Qtd. pares' : 'plano'} × ${fmtFatorM3(fatorM3)}` : ''; fx.className = 'info ' + (dig ? '' : usa === 'pares' ? 'm3-src-pares' : ''); } };
+  ['gv-plano', 'gv-pares', 'gv-m3'].forEach(k => $(k).addEventListener('input', contaM3)); contaM3();
   g.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { status = b.dataset.st; g.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); marcaSujo(); avaliarDif(); });
   $('gv-fechar').onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; fecharEnvio(); };
   $('gv-fundo').onclick = $('gv-fechar').onclick;
