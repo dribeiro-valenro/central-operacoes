@@ -279,11 +279,20 @@
   .cm-tab td,.cm-tab th{padding:6px 8px} .cm-in{width:130px;text-align:right;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font:inherit;font-variant-numeric:tabular-nums} .cm-tk{width:90px} .cm-n{width:80px}
   .cm-jinfo{margin:8px 0 4px;font-size:13px} .cm-alt{color:#9a5b00 !important;font-weight:700}
   .cm-tiles{margin-top:12px}
+  .aviso-rom{background:#fff1d6;color:#7a4a00;border-radius:8px;padding:6px 10px;font-size:12.5px;margin:4px 0 8px} .rd-ocup{margin:2px 0 8px}
+  .cm-fr{width:100%;border-collapse:collapse;font-size:13px} .cm-fr th,.cm-fr td{padding:6px 8px;border-bottom:1px solid #eef0f4;text-align:right} .cm-fr th:first-child,.cm-fr td:first-child{text-align:left}
+  .cm-fr thead th{font-size:11px;color:#566074;font-weight:600} .cm-fr small{display:block;color:#8a93a5;font-size:10.5px} .cm-fr .r td{background:#f6faf7}
   .cm-dias td,.cm-dias th{padding:5px 8px} .cm-dias th small,.cm-dias td small{display:block;font-size:10.5px;color:var(--mute);font-weight:400}
   .cm-dias tr.cm-off td{background:#f7f8fa;color:#9aa3b2} .cm-dias tr.cm-hoje td{background:#fffaf0}
   .cm-tot.ok small{color:#1a7a3e;font-weight:700} .cm-tot.baixo small{color:#c27c0e;font-weight:700} .cm-v{font-size:12px;white-space:nowrap}
   .cm-bloq{max-height:40vh;overflow:auto;display:flex;flex-direction:column;gap:3px;font-size:13px}
   @media (max-width:1000px){ .cm-grid,.cm-grid2{grid-template-columns:1fr} }
+  .cm-t5{grid-template-columns:repeat(5,minmax(150px,1fr))} .cm-sm{display:block;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0}
+  .cm-sem td,.cm-sem th{padding:7px 9px;vertical-align:top} .cm-sem td small{display:block;font-size:11px;color:var(--mute)} .cm-sem tr.cm-pass td{color:#8a93a5}
+  .cm-sem b.ok{color:#1a7a3e} .cm-neg{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px} .cm-neg label{display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--mute)}
+  .cm-neg span{max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .cm-neg input{width:46px;text-align:center;padding:3px;border:1px solid var(--line);border-radius:5px;font:inherit;font-size:13px}
+  .pl-modal .painel.cm-vmod{width:min(1080px,96vw);max-height:92vh;overflow:auto} .cm-vtab td,.cm-vtab th{padding:6px 7px} .cm-vtab td small{display:block;font-size:10.5px} .cm-nome{width:150px;text-align:left}
+  @media (max-width:1000px){ .cm-t5{grid-template-columns:1fr 1fr} }
   /* alocação do dia */
   .al-dia{display:flex;gap:4px;align-items:center} .al-dia input{padding:6px 8px}
   .al-topo{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;margin-bottom:10px} .al-ruim{color:#c62828}
@@ -1716,7 +1725,7 @@ function demoRomIni(){
     DEMO_ROM.romaneios.push({ id, data, status:'aberto', motorista_id:mot?.id || null, motorista:mot?.nome || null, motorista_tel:mot?.telefone || null, transportadora:mot?.transportadora || null,
       placa:mot?.placa || null, veiculo:mot?.veiculo || null, responsavel:'DOUGLAS RIBEIRO', observacao:null, chegada_em:null, saida_em:null, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao', envio_ids:ids, ...extra });
     ids.forEach(e => { const x = D.envios.find(y => y.id === e); if (x) x.romaneio_id = id; }); };
-  novo('2026-10-19', m[0], ['1', '2', '3'], { janela_ini:'13:00', janela_fim:'15:00', status:'expedido', chegada_em:'2026-10-19T16:40:00.000Z', saida_em:'2026-10-19T17:55:00.000Z' });
+  novo('2026-10-19', m[0], ['1', '2', '3'], { veiculo_perfil_id:'4', custo_frete:1300, janela_ini:'13:00', janela_fim:'15:00', status:'expedido', chegada_em:'2026-10-19T16:40:00.000Z', saida_em:'2026-10-19T17:55:00.000Z' });
   novo('2026-10-21', m[1] || m[0], ['4', '5', '6'], { janela_ini:'10:00', janela_fim:'12:00', status:'expedido', chegada_em:'2026-10-21T15:10:00.000Z', saida_em:'2026-10-21T15:58:00.000Z' });
   novo(hojeBRT(), m[0], ['11', '13', '14'], { janela_ini:'09:00', janela_fim:'11:00' });
   const mais = (iso, min) => new Date(new Date(iso).getTime() + min * 60e3).toISOString();
@@ -1733,7 +1742,9 @@ function apiRomDemo(path, corpo){
     const de = q.get('ini') || addDias(hojeBRT(), -30), ate = q.get('fim') || addDias(hojeBRT(), 30);
     const rs = R.romaneios.filter(r => (r.data >= de && r.data <= ate) || ['aberto', 'carregando'].includes(r.status)).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id);
     const ids = new Set(rs.flatMap(r => r.envio_ids));
-    return { ini:de, fim:ate, hoje:hojeBRT(), romaneios:copia(rs).map(r => ({ ...r, doca_min:docaMin(r) })), envios:copia(D.envios.filter(e => ids.has(e.id))), carregamentos:copia(R.carregamentos.filter(c => rs.some(r => r.id === c.romaneio_id))),
+    const vc = pode('full_comercial', 'ver');
+    return { ini:de, fim:ate, hoje:hojeBRT(), ver_custo:vc, perfis:copia(DEMO_COM.veiculos).map(v => vc ? v : { ...v, custo_viagem:undefined }),
+      romaneios:copia(rs).map(r => ({ ...r, custo_frete: vc ? r.custo_frete ?? null : undefined, doca_min:docaMin(r) })), envios:copia(D.envios.filter(e => ids.has(e.id))), carregamentos:copia(R.carregamentos.filter(c => rs.some(r => r.id === c.romaneio_id))),
       motoristas:copia(DEMO_CROSS.motoristas.filter(m => m.ativo)), responsaveis:['ARTHUR MAGDALENO', 'DAVI DUARTE', 'DEGMAR GOMES', 'DOUGLAS RIBEIRO', 'GUILHERME PORTO'] };
   }
   if (path.startsWith('/full/romaneio/historico')) return { eventos: R.eventos.filter(e => e.romaneio_id === q.get('id')) };
@@ -1750,6 +1761,10 @@ function apiRomDemo(path, corpo){
     let m = cab.motorista ? DEMO_CROSS.motoristas.find(x => x.nome === cab.motorista) : null;
     if (cab.motorista && !m) { m = { id:String(DEMO_CROSS.motoristas.length + 1), nome:cab.motorista, telefone:cab.motorista_tel, documento:null, veiculo:cab.veiculo, placa:cab.placa, transportadora:cab.transportadora, ativo:true }; DEMO_CROSS.motoristas.push(m); }
     cab.motorista_id = m?.id || null;
+    const perfil = corpo.veiculo_perfil_id ? DEMO_COM.veiculos.find(v => v.id === String(corpo.veiculo_perfil_id)) : null;
+    const antes = corpo.id ? R.romaneios.find(x => x.id === corpo.id) : null, dig = corpo.custo_frete != null && corpo.custo_frete !== '' && pode('full_comercial', 'editar') ? Number(corpo.custo_frete) : null;
+    cab.veiculo_perfil_id = perfil?.id || null;
+    cab.custo_frete = dig != null ? dig : !perfil ? null : antes && String(antes.veiculo_perfil_id ?? '') === String(perfil.id) && antes.custo_frete != null ? antes.custo_frete : perfil.custo_viagem ?? null;
     let r;
     if (!corpo.id) { r = { id:String(++R.seq), status:'aberto', chegada_em:null, saida_em:null, criado_em:ag, criado_por:'demonstracao', envio_ids:[], ...cab }; R.romaneios.push(r); ev(r.id, 'criar', null, { ...cab, envio_ids:ids }); }
     else {
@@ -2846,6 +2861,7 @@ const dowDe = d => new Date(d + 'T12:00:00Z').getUTCDay();
 const mesMais = (m, n) => { const [y, mm] = m.split('-').map(Number), t = y * 12 + mm - 1 + n; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; };
 const fimDoMes = m => addDias(mesMais(m, 1) + '-01', -1);
 const rotMes = m => `${MES_NOME[+m.slice(5) - 1]}/${m.slice(0, 4)}`;
+const fmtRS2 = v => (Number(v) || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL', minimumFractionDigits:2, maximumFractionDigits:2 });
 const fmtRS = v => (Number(v) || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits:0 });
 const lerValorBR = s => { const t = String(s ?? '').trim().replace(/[R$\s]/g, ''); if (!t) return null; const n = Number(/,/.test(t) ? t.replace(/\./g, '').replace(',', '.') : t); return Number.isFinite(n) ? n : null; };
 // feriados nacionais (para cadastrar com um clique; a data fica no calendário e pode ser apagada)
@@ -2862,8 +2878,8 @@ const DEMO_COM = (() => {
   [[-1, 1], [0, 1.05], [1, 1.25]].forEach(([k, f]) => { const mes = mesMais(m0, k);
     metas.push({ mes, cnpj_id:'DIGOS', meta_valor:Math.round(4500000 * f), ticket:78 }, { mes, cnpj_id:'DROSA', meta_valor:Math.round(2150000 * f), ticket:82 }, { mes, cnpj_id:'CACAL', meta_valor:Math.round(1500000 * f), ticket:85 }); });
   return { metas, meses:[], bloqueios:[['2026-10-12', 'Nossa Senhora Aparecida'], ['2026-11-02', 'Finados'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal']].map(([data, motivo]) => ({ data, motivo })),
-    dias:[0, 6], veiculos:[{ id:'1', nome:'Fiorino', capacidade_m3:3, capacidade_pares:null, disponiveis:2, ativo:true }, { id:'2', nome:'VUC', capacidade_m3:16, capacidade_pares:null, disponiveis:2, ativo:true },
-      { id:'3', nome:'Caminhão 3/4', capacidade_m3:25, capacidade_pares:null, disponiveis:1, ativo:true }], seq:10 };
+    dias:[0, 6], veiculos:[['Carreta', 90, null, 0, 3200], ['Truck', 50, 7000, 0, 2100], ['Toco', 40, 5600, 0, 1750], ['Caminhão 3/4', 25, 3200, 1, 1300], ['VUC', 16, 2200, 0, 950]]
+      .map(([nome, m3, pares, disp, custo], i) => ({ id:String(i + 1), nome, capacidade_m3:m3, capacidade_pares:pares, disponiveis:disp, custo_viagem:custo, ativo:true })), semanas:[], seq:10 };
 })();
 function demoRealCom(de, fim){
   // envios expedidos de exemplo: perto do plano, com alguns dias abaixo
@@ -2873,12 +2889,22 @@ function demoRealCom(de, fim){
     Object.entries(alvo).forEach(([loja, v]) => { if (d < h) out.push({ data:d, cnpj_id:loja, expedido:Math.round(v * k), aberto:0 }); else if (d <= addDias(h, 2)) out.push({ data:d, cnpj_id:loja, expedido:0, aberto:Math.round(v * 0.9) }); }); }
   return out;
 }
+// fretes de exemplo: um Caminhão 3/4 por dia (e um VUC quando não cabe); de vez em quando sem perfil, para mostrar o aviso
+function demoFretesCom(de, fim){
+  const V = id => DEMO_COM.veiculos.find(v => v.id === id), out = []; let seq = 500;
+  const dias = {}; demoRealCom(de, fim).forEach(x => { if (x.expedido) dias[x.data] = (dias[x.data] || 0) + x.expedido; });
+  Object.entries(dias).forEach(([d, p]) => { const add = (v, pares) => out.push({ id:String(++seq), data:d, status:'expedido', veiculo_perfil_id:v?.id || null, custo:v?.custo_viagem ?? null, perfil:v?.nome || null,
+      cap_m3:v?.capacidade_m3 ?? null, cap_pares:v?.capacidade_pares ?? null, pares, m3:Math.round(pares * 0.007 * 1000) / 1000 });
+    if (Number(d.slice(8)) % 11 === 3) return add(null, p);
+    const a = V('4'); if (p <= a.capacidade_pares) add(a, p); else { add(a, a.capacidade_pares); add(V('5'), p - a.capacidade_pares); } });
+  return out;
+}
 async function apiCom(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_COM, cp = x => JSON.parse(JSON.stringify(x));
   if (path.startsWith('/comercial?')) { const q = new URLSearchParams(path.split('?')[1]), de = q.get('de'), ate = q.get('ate');
-    return { de, ate, metas:cp(D.metas), meses:cp(D.meses), bloqueios:cp(D.bloqueios), dias_sem_embarque:cp(D.dias), veiculos:cp(D.veiculos), m3_por_par:DEMO_FULL.m3_por_par ?? 0.007,
-      real:demoRealCom(addDias(de + '-01', -45), fimDoMes(ate)), hoje:hojeBRT() }; }
+    return { de, ate, metas:cp(D.metas), meses:cp(D.meses), bloqueios:cp(D.bloqueios), dias_sem_embarque:cp(D.dias), veiculos:cp(D.veiculos), semanas:cp(D.semanas), m3_por_par:DEMO_FULL.m3_por_par ?? 0.007,
+      real:demoRealCom(addDias(de + '-01', -45), fimDoMes(ate)), fretes:demoFretesCom(addDias(de + '-01', -45), fimDoMes(ate)), hoje:hojeBRT() }; }
   if (path === '/comercial/salvar') { const t = corpo.tipo;
     if (t === 'meta') { D.metas = D.metas.filter(m => !(m.mes === corpo.mes && m.cnpj_id === corpo.cnpj_id)); if (!corpo.excluir) D.metas.push({ mes:corpo.mes, cnpj_id:corpo.cnpj_id, meta_valor:Number(corpo.meta_valor), ticket:Number(corpo.ticket) }); }
     if (t === 'mes') { D.meses = D.meses.filter(m => m.mes !== corpo.mes); D.meses.push({ mes:corpo.mes, inicio:corpo.inicio || null, prazo:corpo.prazo || null }); }
@@ -2886,6 +2912,8 @@ async function apiCom(path, corpo){
     if (t === 'dias_semana') D.dias = corpo.dias;
     if (t === 'veiculo') { if (corpo.id) Object.assign(D.veiculos.find(v => v.id === corpo.id), corpo); else D.veiculos.push({ ...corpo, id:String(++D.seq), ativo:true }); }
     if (t === 'veiculo_excluir') D.veiculos = D.veiculos.filter(v => v.id !== corpo.id);
+    if (t === 'semana') { D.semanas = D.semanas.filter(x => x.semana !== corpo.semana); const v = Object.fromEntries(Object.entries(corpo.veiculos || {}).filter(([, q]) => Number(q) > 0).map(([k, q]) => [k, Number(q)]));
+      if (!(corpo.limpar && !Object.keys(v).length)) D.semanas.push({ semana:corpo.semana, veiculos:v }); }
     return { ok:true }; }
 }
 
@@ -2898,25 +2926,33 @@ function janelaMes(r, mes){
   const prazo = prazoDe(mes), inicio = ov(mes).inicio || addDias(prazoDe(mesMais(mes, -1)), 1);
   return { inicio, prazo, inicioPadrao:!ov(mes).inicio, prazoPadrao:!ov(mes).prazo };
 }
-const capParesVeic = (v, m3) => Math.min(v.capacidade_pares || Infinity, v.capacidade_m3 ? Math.floor(v.capacidade_m3 / m3) : Infinity);
-// menor número de veículos que leva a demanda; empate: menos espaço sobrando (respeita quantos há de cada tipo)
-function veiculosPara(pares, veics, m3){
-  const T = veics.filter(v => v.ativo !== false).map(v => ({ ...v, cap:capParesVeic(v, m3), max:v.disponiveis ?? 99 })).filter(v => v.cap > 0 && isFinite(v.cap) && v.max > 0);
-  if (!pares || !T.length) return null;
-  const maxCap = Math.max(...T.map(v => v.cap)), n0 = Math.max(1, Math.ceil(pares / maxCap));
-  for (let n = n0; n <= n0 + 8; n++) {
-    let best = null;
-    const rec = (i, rest, cont, soma) => {
-      if (i === T.length) { if (rest === 0 && soma >= pares && (!best || soma < best.soma)) best = { soma, cont:[...cont] }; return; }
-      for (let k = 0; k <= Math.min(rest, T[i].max); k++) { cont[i] = k; rec(i + 1, rest - k, cont, soma + k * T[i].cap); }
-      cont[i] = 0;
-    };
-    rec(0, n, Array(T.length).fill(0), 0);
-    if (best) return { n, cap:best.soma, ocup:pares / best.soma, itens:T.map((v, i) => ({ nome:v.nome, qtd:best.cont[i], cap:v.cap })).filter(x => x.qtd) };
-  }
-  return { falta:true, n:null };
+// capacidade pelo m³ (conta original) e capacidade usada no cálculo (o máximo cadastrado = margem de segurança)
+const capM3Pares = (v, m3) => v.capacidade_m3 ? Math.floor(v.capacidade_m3 / m3) : null;
+const capParesVeic = (v, m3) => v.capacidade_pares || capM3Pares(v, m3) || 0;
+const m3Veic = (v, m3) => v.capacidade_m3 || (v.capacidade_pares ? v.capacidade_pares * m3 : 0);
+// escolhe os veículos para levar "pares" no dia. limites: { id: qtd } (negociado na semana), 'livre' (sugestão) ou null (padrão do perfil)
+// critério: com custo cadastrado em todos, o mais barato; senão, o menor número de veículos; empate: maior ocupação
+function veiculosPara(pares, veics, m3, limites = null){
+  const T = veics.filter(v => v.ativo !== false).map(v => ({ ...v, cap:capParesVeic(v, m3),
+    max: limites === 'livre' ? 20 : limites ? Number(limites[v.id] || 0) : (v.disponiveis ?? 20) })).filter(v => v.cap > 0 && v.max > 0);
+  if (!pares) return null;
+  if (!T.length) return { falta:true, n:0, cap:0, cobertura:0, custo:0, itens:[] };
+  const comCusto = T.every(v => Number(v.custo_viagem) > 0), minCap = Math.min(...T.map(v => v.cap));
+  const nMax = Math.min(30, Math.ceil(pares / minCap) + 1);
+  let best = null;
+  const avalia = cont => { let n = 0, cap = 0, custo = 0; cont.forEach((k, i) => { n += k; cap += k * T[i].cap; custo += k * (Number(T[i].custo_viagem) || 0); });
+    if (!n || cap < pares) return; const sc = comCusto ? [custo, n, cap] : [n, cap, custo];
+    if (!best || sc[0] < best.sc[0] || (sc[0] === best.sc[0] && (sc[1] < best.sc[1] || (sc[1] === best.sc[1] && sc[2] < best.sc[2])))) best = { sc, cont:[...cont], n, cap, custo }; };
+  const rec = (i, rest, cont) => { if (i === T.length) return avalia(cont); for (let k = 0; k <= Math.min(rest, T[i].max); k++) { cont[i] = k; rec(i + 1, rest - k, cont); } cont[i] = 0; };
+  rec(0, nMax, Array(T.length).fill(0));
+  const monta = (cont, extra) => ({ ...extra, itens:T.map((v, i) => ({ id:v.id, nome:v.nome, qtd:cont[i], cap:v.cap, custo:Number(v.custo_viagem) || 0, m3:m3Veic(v, m3) })).filter(x => x.qtd) });
+  if (best) { const r = monta(best.cont, { n:best.n, cap:best.cap, custo:comCusto || best.custo ? best.custo : null, ocup:pares / best.cap, cobertura:1 }); r.m3Cap = r.itens.reduce((t, x) => t + x.qtd * x.m3, 0); return r; }
+  // não cabe com o que há: usa tudo e mostra quanto cobre
+  const cont = T.map(v => v.max), cap = T.reduce((t, v) => t + v.max * v.cap, 0), custo = T.reduce((t, v) => t + v.max * (Number(v.custo_viagem) || 0), 0);
+  const r = monta(cont, { falta:true, n:cont.reduce((a, b) => a + b, 0), cap, custo, ocup:1, cobertura:cap / pares }); r.m3Cap = r.itens.reduce((t, x) => t + x.qtd * x.m3, 0); return r;
 }
-const txtVeic = v => !v ? '–' : v.falta ? 'frota insuficiente' : v.itens.map(x => `${x.qtd}× ${x.nome}`).join(' + ');
+const txtVeic = v => !v ? '–' : !v.itens?.length ? 'sem veículo' : v.itens.map(x => `${x.qtd}× ${x.nome}`).join(' + ') + (v.falta ? ` (cobre ${Math.round(v.cobertura * 100)}%)` : '');
+const segundaDe = d => addDias(d, -((dowDe(d) + 6) % 7));
 function calcMesCom(r, mes){
   const dsem = new Set((r.dias_sem_embarque || []).map(Number)), bloq = new Map(r.bloqueios.map(b => [b.data, b.motivo]));
   const J = janelaMes(r, mes), dias = [];
@@ -2932,8 +2968,7 @@ function calcMesCom(r, mes){
   // realizado do total: só das lojas que têm meta no mês (senão o % fica inflado por loja sem meta)
   const comMeta = metas.some(m => m.tem) ? metas.filter(m => m.tem).map(m => m.loja) : lojas;
   dias.forEach(x => { const rr = realDe.get(x.d) || {}; lojas.forEach(l => { x.real[l] = rr[l]?.expedido || 0; x.aberto[l] = rr[l]?.aberto || 0; });
-    x.tMeta = lojas.reduce((t, l) => t + (x.meta[l] || 0), 0); x.tReal = comMeta.reduce((t, l) => t + x.real[l], 0); x.tAberto = comMeta.reduce((t, l) => t + x.aberto[l], 0);
-    x.veic = x.tMeta ? veiculosPara(x.tMeta, r.veiculos, r.m3_por_par) : null; });
+    x.tMeta = lojas.reduce((t, l) => t + (x.meta[l] || 0), 0); x.tReal = comMeta.reduce((t, l) => t + x.real[l], 0); x.tAberto = comMeta.reduce((t, l) => t + x.aberto[l], 0); });
   const tot = { meta:metas.reduce((t, m) => t + m.meta, 0), pares:metas.reduce((t, m) => t + m.pares, 0) };
   tot.ticket = tot.pares ? tot.meta / tot.pares : null; tot.porDia = uteis.length ? Math.ceil(tot.pares / uteis.length) : 0;
   const hoje = r.hoje || hojeBRT();
@@ -2942,10 +2977,62 @@ function calcMesCom(r, mes){
   tot.restantes = uteis.filter(x => x.d >= hoje).length; tot.falta = Math.max(0, tot.pares - tot.real);
   tot.novoRitmo = tot.restantes ? Math.ceil(tot.falta / tot.restantes) : null;
   tot.realLoja = Object.fromEntries(lojas.map(l => [l, dias.reduce((t, x) => t + x.real[l], 0)]));
-  tot.veicDia = veiculosPara(tot.porDia, r.veiculos, r.m3_por_par);
-  // semanas (segunda a domingo)
-  const sem = []; dias.forEach(x => { const seg = addDias(x.d, -((dowDe(x.d) + 6) % 7)); let s = sem.find(y => y.seg === seg); if (!s) sem.push(s = { seg, ini:x.d, fim:x.d, uteis:0, meta:0, real:0 }); s.fim = x.d; s.uteis += x.util ? 1 : 0; s.meta += x.tMeta; s.real += x.tReal; });
+  // o que precisa por dia daqui para frente para bater a meta (o que faltou é dividido pelos dias de embarque que sobram)
+  const rest = uteis.filter(x => x.d >= hoje), baseN = rest.length ? Math.floor(tot.falta / rest.length) : 0, restoN = tot.falta - baseN * rest.length;
+  rest.forEach((x, i) => { x.necessario = baseN + (i < restoN ? 1 : 0); });
+  metas.forEach(m => { m.faltaLoja = Math.max(0, m.pares - (tot.realLoja[m.loja] || 0)); m.necDia = rest.length && m.tem ? Math.ceil(m.faltaLoja / rest.length) : 0; });
+  const semanaNeg = seg => (r.semanas || []).find(w => w.semana === seg)?.veiculos || null;
+  dias.forEach(x => { x.alvo = x.necessario ?? (x.util ? x.tMeta : 0);
+    x.veic = x.alvo ? veiculosPara(x.alvo, r.veiculos, r.m3_por_par, semanaNeg(segundaDe(x.d))) : null; });
+  tot.custo = dias.reduce((t, x) => t + (x.veic?.custo || 0), 0); tot.paresPlan = dias.reduce((t, x) => t + (x.veic ? Math.min(x.alvo, x.veic.cap) : 0), 0);
+  tot.capPlan = dias.reduce((t, x) => t + (x.veic?.cap || 0), 0);
+  tot.veicDia = veiculosPara(tot.porDia, r.veiculos, r.m3_por_par, 'livre');
+  // semanas (segunda a domingo): meta, real, necessidade, sugestão de veículos e o que foi negociado
+  const sem = []; dias.forEach(x => { const seg = segundaDe(x.d); let s = sem.find(y => y.seg === seg); if (!s) sem.push(s = { seg, ini:x.d, fim:x.d, uteis:0, meta:0, real:0, alvoDia:0, nec:0, custo:0, dias:[] }); s.fim = x.d; s.dias.push(x);
+    s.uteis += x.util ? 1 : 0; s.meta += x.tMeta; s.real += x.tReal; s.alvoDia = Math.max(s.alvoDia, x.alvo || 0); s.nec += x.necessario || 0; s.custo += x.veic?.custo || 0; });
+  // frete realizado (romaneios que saíram, com o perfil do veículo)
+  const fr = (r.fretes || []).filter(f => f.status === 'expedido');
+  dias.forEach(x => { x.fr = resumoFretes(fr.filter(f => f.data === x.d), r.m3_por_par); });
+  sem.forEach(w => { w.fr = resumoFretes(fr.filter(f => f.data >= w.ini && f.data <= w.fim), r.m3_por_par); });
+  tot.fr = resumoFretes(fr.filter(f => f.data >= J.inicio && f.data <= J.prazo), r.m3_por_par);
+  // plano até ontem (mesmo período do realizado), para comparar
+  const pas = dias.filter(x => x.d < hoje && x.veic?.itens?.length);
+  tot.planAte = { n:pas.reduce((t, x) => t + x.veic.n, 0), custo:pas.reduce((t, x) => t + (x.veic.custo || 0), 0), pares:pas.reduce((t, x) => t + Math.min(x.alvo, x.veic.cap), 0), cap:pas.reduce((t, x) => t + x.veic.cap, 0),
+    txt:Object.entries(pas.reduce((o, x) => { x.veic.itens.forEach(i => { o[i.nome] = (o[i.nome] || 0) + i.qtd; }); return o; }, {})).map(([n, q]) => `${q}× ${n}`).join(' + ') };
+  sem.forEach(s => { s.neg = semanaNeg(s.seg); s.futura = s.fim >= hoje; s.sug = s.alvoDia ? veiculosPara(s.alvoDia, r.veiculos, r.m3_por_par, 'livre') : null;
+    s.atual = s.alvoDia ? veiculosPara(s.alvoDia, r.veiculos, r.m3_por_par, s.neg) : null; });
   return { J, dias, uteis, metas, tot, sem, hoje };
+}
+
+// soma dos romaneios expedidos: viagens, custo, pares, m³ e capacidade (só dos que têm perfil)
+function resumoFretes(L, m3){
+  const P = L.filter(f => f.veiculo_perfil_id), C = L.filter(f => f.custo != null);
+  const o = { n:L.length, semPerfil:L.length - P.length, semCusto:L.filter(f => f.veiculo_perfil_id && f.custo == null).length,
+    pares:L.reduce((t, f) => t + (f.pares || 0), 0), m3:L.reduce((t, f) => t + (f.m3 || 0), 0),
+    paresP:P.reduce((t, f) => t + (f.pares || 0), 0), cap:P.reduce((t, f) => t + capParesVeic({ capacidade_m3:f.cap_m3, capacidade_pares:f.cap_pares }, m3), 0),
+    custo:C.reduce((t, f) => t + f.custo, 0), paresC:C.reduce((t, f) => t + (f.pares || 0), 0), m3C:C.reduce((t, f) => t + (f.m3 || 0), 0),
+    capC:C.filter(f => f.veiculo_perfil_id).reduce((t, f) => t + capParesVeic({ capacidade_m3:f.cap_m3, capacidade_pares:f.cap_pares }, m3), 0),
+    m3CapC:C.filter(f => f.veiculo_perfil_id).reduce((t, f) => t + (f.cap_m3 || (f.cap_pares || 0) * m3), 0) };
+  o.ocup = o.cap ? o.paresP / o.cap : null;
+  o.txt = Object.entries(L.reduce((a, f) => { const k = f.perfil || 'sem perfil'; a[k] = (a[k] || 0) + 1; return a; }, {})).map(([n, q]) => `${q}× ${n}`).join(' + ');
+  return o;
+}
+function painelFreteCom(C, r){
+  const F = C.tot.fr, P = C.tot.planAte, m3 = r.m3_por_par;
+  if (!F.n && !P.n) return '';
+  const rs = (v, d) => v != null && d ? fmtRS2(v / d) : '–';
+  const linha = (rot, x, real) => `<tr class="${real ? 'r' : ''}"><td><b>${rot}</b><small>${esc(x.txt || '–')}</small></td><td>${fmtN(x.n)}</td><td>${fmtN(real ? x.pares : x.pares)}</td>
+    <td>${x.custo ? fmtRS(x.custo) : '–'}</td>
+    <td><b>${rs(x.custo, real ? x.paresC : x.pares)}</b></td><td>${real ? rs(x.custo, x.m3C) : rs(x.custo, x.pares * m3)}</td>
+    <td>${real ? rs(x.custo, x.capC) : rs(x.custo, x.cap)}<small>${real ? (x.m3CapC ? rs(x.custo, x.m3CapC) + '/m³' : '') : x.cap ? rs(x.custo, x.cap * m3) + '/m³' : ''}</small></td>
+    <td>${real ? (x.ocup != null ? `<b class="${x.ocup < 0.8 ? 'dif' : 'ok'}">${Math.round(x.ocup * 100)}%</b>` : '–') : x.cap ? `${Math.round(x.pares / x.cap * 100)}%` : '–'}</td></tr>`;
+  const dif = F.paresC && P.pares && F.custo && P.custo ? F.custo / F.paresC - P.custo / P.pares : null;
+  return `<div class="painel" style="overflow-x:auto"><h3 class="cs-sub">Frete: plano x realizado <span class="info">até ontem, na janela de ${rotMes(state.full.cmMes)}</span></h3>
+    <table class="cm-fr"><thead><tr><th></th><th>Viagens</th><th>Pares</th><th>Frete</th><th>R$/par<small>efetivo</small></th><th>R$/m³<small>efetivo</small></th><th>R$/par cheio<small>o que era possível</small></th><th>Ocupação</th></tr></thead><tbody>
+      ${linha('Plano (com o negociado)', P, false)}${linha('Realizado', F, true)}</tbody></table>
+    ${dif != null ? `<div class="info" style="margin-top:6px">${dif > 0 ? `<b class="dif">${fmtRS2(dif)}/par acima do plano</b>` : `<b class="ok">${fmtRS2(-dif)}/par abaixo do plano</b>`} · ${F.ocup != null && F.ocup < 0.8 ? `os veículos saíram com ${Math.round(F.ocup * 100)}% da capacidade: dá para pedir menos viagens ou veículos menores.` : 'ocupação boa.'}</div>` : ''}
+    ${F.semPerfil || F.semCusto ? `<div class="aviso-rom" style="margin-top:8px">⚠ ${F.semPerfil ? `${F.semPerfil} romaneio(s) expedido(s) sem perfil de veículo (entram em pares, mas não em frete nem ocupação)` : ''}${F.semPerfil && F.semCusto ? ' · ' : ''}${F.semCusto ? `${F.semCusto} com perfil sem R$/viagem` : ''}. Acerte no romaneio, campo "Perfil do veículo".</div>` : ''}
+    <div class="info" style="margin-top:6px">Realizado = romaneios que <b>saíram</b> (data do embarque), com o perfil e o frete gravados no romaneio; pares = enviados (ou do plano, se faltar). Ocupação = pares ÷ capacidade do perfil (máximo cadastrado ou m³ ÷ ${String(m3).replace('.', ',')}).</div></div>`;
 }
 
 // ---- tela
@@ -3004,12 +3091,12 @@ function renderCom(){
     <div class="cm-grid">
       <div class="painel">
         <h3 class="cs-sub">Metas de ${rotMes(s.cmMes)} por loja</h3>
-        <div style="overflow-x:auto"><table class="tab-full cm-tab"><thead><tr><th style="text-align:left">Loja</th><th>Meta de vendas (R$)</th><th>Ticket médio (R$/par)</th><th>Pares no FULL</th><th>Pares/dia</th><th>Expedido</th></tr></thead><tbody>
+        <div style="overflow-x:auto"><table class="tab-full cm-tab"><thead><tr><th style="text-align:left">Loja</th><th>Meta de vendas (R$)</th><th>Ticket médio (R$/par)</th><th>Pares no FULL</th><th>Pares/dia<small class="cm-sm">divisão</small></th><th>Precisa/dia<small class="cm-sm">para bater</small></th><th>Expedido</th></tr></thead><tbody>
         ${C.metas.map(m => `<tr><td style="text-align:left">${tagLoja(m.loja)}</td>
           <td>${editar ? `<input class="cm-in" data-meta="${m.loja}" value="${m.tem ? m.meta.toLocaleString('pt-BR', { minimumFractionDigits:2 }) : ''}" placeholder="0,00" inputmode="decimal">` : fmtRS(m.meta)}</td>
           <td>${editar ? `<input class="cm-in cm-tk" data-tk="${m.loja}" value="${m.ticket ? m.ticket.toLocaleString('pt-BR', { minimumFractionDigits:2 }) : ''}" placeholder="0,00" inputmode="decimal">` : m.ticket ? fmtRS(m.ticket) : '–'}</td>
-          <td><b>${m.pares ? fmtN(m.pares) : '–'}</b></td><td>${m.porDia ? fmtN(m.porDia) : '–'}</td><td>${T.realLoja[m.loja] ? `${fmtN(T.realLoja[m.loja])} <small class="info">${pct(T.realLoja[m.loja], m.pares)}%</small>` : '–'}</td></tr>`).join('')}
-        </tbody><tfoot><tr><td style="text-align:left">Total</td><td>${fmtRS(T.meta)}</td><td>${T.ticket ? fmtRS(T.ticket) + ' <small class="info">médio</small>' : '–'}</td><td><b>${fmtN(T.pares)}</b></td><td><b>${fmtN(T.porDia)}</b></td><td>${fmtN(T.real)} <small class="info">${pct(T.real, T.pares)}%</small></td></tr></tfoot></table></div>
+          <td><b>${m.pares ? fmtN(m.pares) : '–'}</b></td><td>${m.porDia ? fmtN(m.porDia) : '–'}</td><td class="${m.necDia > m.porDia * 1.05 ? 'dif' : ''}">${m.tem && !passou ? fmtN(m.necDia) : '–'}</td><td>${T.realLoja[m.loja] ? `${fmtN(T.realLoja[m.loja])} <small class="info">${pct(T.realLoja[m.loja], m.pares)}%</small>` : '–'}</td></tr>`).join('')}
+        </tbody><tfoot><tr><td style="text-align:left">Total</td><td>${fmtRS(T.meta)}</td><td>${T.ticket ? fmtRS(T.ticket) + ' <small class="info">médio</small>' : '–'}</td><td><b>${fmtN(T.pares)}</b></td><td><b>${fmtN(T.porDia)}</b></td><td class="${T.novoRitmo > T.porDia * 1.05 ? 'dif' : ''}"><b>${!passou && T.novoRitmo != null ? fmtN(T.novoRitmo) : '–'}</b></td><td>${fmtN(T.real)} <small class="info">${pct(T.real, T.pares)}%</small></td></tr></tfoot></table></div>
         ${editar ? '<div class="info" style="margin-top:6px">Digite e saia do campo para salvar. Pares = meta ÷ ticket, arredondado para cima.</div>' : ''}
       </div>
       <div class="painel cm-jan">
@@ -3024,27 +3111,48 @@ function renderCom(){
       </div>
     </div>
     ${T.pares ? `
-    <div class="rr-res cm-tiles">
+    <div class="rr-res cm-tiles cm-t5">
       <div class="rr-tile" style="--c:#02285a"><span>Pares por dia de embarque</span><b>${fmtN(T.porDia)}</b><small>${fmtN(T.pares)} pares em ${C.uteis.length} dias · ${fmtN(Math.round(T.porDia * r.m3_por_par * 10) / 10)} m³/dia</small></div>
-      <div class="rr-tile" style="--c:#0f6e66"><span>Veículos por dia</span><b>${T.veicDia?.n ?? '–'}</b><small>${esc(txtVeic(T.veicDia))}${T.veicDia?.ocup ? ` · ocupação ${Math.round(T.veicDia.ocup * 100)}%` : ''}${!r.veiculos.length ? 'cadastre os perfis de veículo' : ''}</small></div>
+      <div class="rr-tile" style="--c:#0f6e66"><span>Veículos por dia (ideal)</span><b>${T.veicDia?.n ?? '–'}</b><small>${esc(txtVeic(T.veicDia))}${T.veicDia?.ocup ? ` · ocupação ${Math.round(T.veicDia.ocup * 100)}%` : ''}${T.veicDia?.custo ? ` · ${fmtRS(T.veicDia.custo)}/dia` : ''}${!r.veiculos.length ? 'cadastre os perfis de veículo' : ''}</small></div>
+      <div class="rr-tile" style="--c:#6b3fa0"><span>Frete do plano</span><b>${T.custo ? fmtRS(T.custo) : '–'}</b><small>${T.custo ? `${fmtRS2(T.custo / Math.max(1, T.paresPlan))}/par efetivo · ${fmtRS2(T.custo / Math.max(1, T.capPlan))}/par cheio` : 'cadastre o R$/viagem dos veículos'}</small></div>
       <div class="rr-tile" style="--c:${T.real >= T.metaAteHoje * 0.95 ? '#1a7a3e' : '#c27c0e'}"><span>Expedido ${passou ? 'na janela' : 'até agora'}</span><b>${fmtN(T.real)} <small style="font-size:12px;font-weight:400">${pct(T.real, T.pares)}% do mês</small></b><small>${comecou ? `meta até ontem: ${fmtN(T.metaAteHoje)} (${T.real >= T.metaAteHoje ? '+' : ''}${fmtN(T.real - T.metaAteHoje)}) · ≈ ${fmtRS(T.real * (T.ticket || 0))} em vendas` : 'janela ainda não começou'}</small></div>
       <div class="rr-tile" style="--c:${T.novoRitmo > T.porDia * 1.1 ? '#c62828' : '#566074'}"><span>${passou ? 'Resultado' : 'Para fechar o mês'}</span><b>${passou ? (T.real >= T.pares ? 'Meta batida' : `faltaram ${fmtN(T.falta)}`) : T.novoRitmo != null ? `${fmtN(T.novoRitmo)}/dia` : '–'}</b><small>${passou ? `${pct(T.real, T.pares)}% dos pares` : `faltam ${fmtN(T.falta)} pares em ${T.restantes} dia(s) de embarque${T.aberto ? ` · ${fmtN(T.aberto)} já programados` : ''}`}</small></div>
     </div>
+    ${painelFreteCom(C, r)}
     <div class="painel"><h3 class="cs-sub">Meta x realizado</h3>${graficoCom(C)}</div>
-    <div class="cm-grid2">
-      <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full cm-dias"><thead><tr><th style="text-align:left">Dia</th>${lojas.map(l => `<th>${esc(nomeLoja(l))}<small>meta / real</small></th>`).join('')}<th>Total<small>meta / real</small></th><th>m³</th><th>Veículos</th></tr></thead><tbody>
+    <div class="painel" style="padding:0;overflow-x:auto"><h3 class="cs-sub" style="padding:12px 14px 0">Semanas e veículos <span class="info">negocie com o Mercado Livre semana a semana</span></h3>
+      <table class="tab-full cm-sem"><thead><tr><th style="text-align:left">Semana</th><th>Dias</th><th>Meta</th><th>Expedido</th><th>Precisa/dia</th><th style="text-align:left">Sugestão (pedir ao MELI)</th><th style="text-align:left">Negociado por dia</th><th style="text-align:left">Com o negociado</th><th style="text-align:left">Realizado</th></tr></thead><tbody>
+      ${C.sem.filter(w => w.uteis).map(w => { const ativos = r.veiculos.filter(v => v.ativo !== false), A = w.atual, S = w.sug;
+        const res = !w.alvoDia ? '<span class="info">–</span>' : !A || !A.itens.length ? '<span class="dif">sem veículo</span>'
+          : `${A.falta ? `<b class="dif">cobre ${Math.round(A.cobertura * 100)}%</b> <span class="info">falta ${fmtN(w.alvoDia - A.cap)} pares/dia</span>` : `<b class="ok">cobre 100%</b> <span class="info">${Math.round(A.ocup * 100)}% ocupado</span>`}
+            ${A.custo ? `<small>${fmtRS(A.custo)}/dia · ${fmtRS2(A.custo / Math.min(w.alvoDia, A.cap))}/par · ${fmtRS2(A.custo / (Math.min(w.alvoDia, A.cap) * r.m3_por_par))}/m³</small>` : ''}`;
+        return `<tr class="${w.fim < C.hoje ? 'cm-pass' : ''}"><td style="text-align:left"><b>${dataBR(w.ini).slice(0, 5)}–${dataBR(w.fim).slice(0, 5)}</b>${w.ini <= C.hoje && w.fim >= C.hoje ? ' <span class="pl-vez">esta semana</span>' : ''}</td>
+          <td>${w.uteis}</td><td>${fmtN(w.meta)}</td><td>${w.real ? `${fmtN(w.real)} <small>${pct(w.real, w.meta)}%</small>` : '–'}</td>
+          <td class="${w.alvoDia > (w.meta / Math.max(1, w.uteis)) * 1.05 ? 'dif' : ''}"><b>${w.alvoDia ? fmtN(w.alvoDia) : '–'}</b><small>${w.alvoDia ? (w.alvoDia * r.m3_por_par).toLocaleString('pt-BR', { maximumFractionDigits:1 }) + ' m³' : ''}</small></td>
+          <td style="text-align:left">${S && S.itens.length ? `<b>${esc(txtVeic(S))}</b><small>${Math.round(S.ocup * 100)}% ocupado${S.custo ? ` · ${fmtRS(S.custo)}/dia · ${fmtRS2(S.custo / w.alvoDia)}/par` : ''}</small>
+            ${editar && w.futura ? `<button class="btn mini" data-aceitar="${w.seg}">Aceitar sugestão</button>` : ''}` : '<span class="info">–</span>'}</td>
+          <td style="text-align:left">${w.futura && editar ? `<div class="cm-neg">${ativos.map(v => `<label title="${esc(v.nome)}"><span>${esc(v.nome)}</span><input inputmode="numeric" data-neg="${w.seg}" data-nv="${v.id}" value="${w.neg?.[v.id] || ''}" placeholder="${w.neg ? '0' : v.disponiveis ?? '–'}"></label>`).join('')}</div>
+              <button class="btn mini" data-negsalvar="${w.seg}">Salvar</button>${w.neg ? ` <button class="btn mini" data-neglimpar="${w.seg}" title="Volta a usar o 'disponíveis/dia' do cadastro">Limpar</button>` : ''}`
+            : w.neg ? esc(Object.entries(w.neg).map(([id, q]) => `${q}× ${r.veiculos.find(v => String(v.id) === String(id))?.nome || '?'}`).join(' + ')) : '<span class="info">padrão do cadastro</span>'}
+            ${!w.neg && w.futura ? '<small class="info">sem negociação: usa o "disponíveis/dia" do cadastro</small>' : ''}</td>
+          <td style="text-align:left">${res}</td>
+          <td style="text-align:left">${w.fr.n ? `<b>${esc(w.fr.txt)}</b><small>${w.fr.ocup != null ? `${Math.round(w.fr.ocup * 100)}% ocupado` : ''}${w.fr.custo ? ` · ${fmtRS(w.fr.custo)} · ${fmtRS2(w.fr.custo / Math.max(1, w.fr.paresC))}/par` : ''}</small>` : '<span class="info">–</span>'}</td></tr>`; }).join('')}
+      </tbody></table></div>
+    <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full cm-dias"><thead><tr><th style="text-align:left">Dia</th>${lojas.map(l => `<th>${esc(nomeLoja(l))}<small>meta / real</small></th>`).join('')}<th>Total<small>meta / real</small></th><th>Precisa<small>para bater</small></th><th>m³</th><th>Veículos</th><th>Frete<small>R$/par</small></th></tr></thead><tbody>
         ${C.dias.map(x => { const st = x.d < C.hoje && x.tMeta ? (x.tReal >= x.tMeta * 0.95 ? 'ok' : 'baixo') : '';
           return `<tr class="${x.util ? '' : 'cm-off'} ${x.d === C.hoje ? 'cm-hoje' : ''}"><td style="text-align:left"><b>${x.d.slice(8)}/${x.d.slice(5, 7)}</b> <span class="info">${DOW_CURTO[dowDe(x.d)]}</span>${!x.util ? ` <span class="info">· ${esc(x.motivo)}</span>` : ''}</td>
           ${lojas.map(l => `<td>${x.meta[l] ? fmtN(x.meta[l]) : '<span class="info">–</span>'}<small class="${x.real[l] ? '' : 'info'}">${x.real[l] ? fmtN(x.real[l]) : x.aberto[l] ? `prog. ${fmtN(x.aberto[l])}` : ''}</small></td>`).join('')}
           <td class="cm-tot ${st}"><b>${x.tMeta ? fmtN(x.tMeta) : '–'}</b><small>${x.tReal ? fmtN(x.tReal) : x.tAberto ? `prog. ${fmtN(x.tAberto)}` : ''}${st === 'ok' ? ' ✓' : st === 'baixo' ? ' ▼' : ''}</small></td>
-          <td>${x.tMeta ? (x.tMeta * r.m3_por_par).toLocaleString('pt-BR', { maximumFractionDigits:1 }) : ''}</td><td class="cm-v">${x.tMeta ? `${esc(txtVeic(x.veic))}${x.veic?.ocup ? `<small>${Math.round(x.veic.ocup * 100)}% ocupado</small>` : ''}` : ''}</td></tr>`; }).join('')}
+          <td class="${x.necessario > x.tMeta * 1.05 ? 'dif' : ''}"><b>${x.necessario != null ? fmtN(x.necessario) : ''}</b></td>
+          <td>${x.alvo ? (x.alvo * r.m3_por_par).toLocaleString('pt-BR', { maximumFractionDigits:1 }) : ''}</td>
+          <td class="cm-v">${x.fr.n ? `<b title="realizado">✓ ${esc(x.fr.txt)}</b><small>${x.fr.ocup != null ? `${Math.round(x.fr.ocup * 100)}% ocupado · ` : ''}plano: ${esc(x.alvo ? txtVeic(x.veic) : '–')}</small>`
+            : x.alvo ? `${esc(txtVeic(x.veic))}${x.veic?.itens?.length && !x.veic.falta ? `<small>${Math.round(x.veic.ocup * 100)}% ocupado</small>` : ''}` : ''}</td>
+          <td>${x.fr.custo ? `<b title="realizado">${fmtRS(x.fr.custo)}</b><small>${fmtRS2(x.fr.custo / Math.max(1, x.fr.paresC))} real</small>` : x.veic?.custo ? `${fmtRS(x.veic.custo)}<small>${fmtRS2(x.veic.custo / Math.min(x.alvo, x.veic.cap))}</small>` : ''}</td></tr>`; }).join('')}
       </tbody></table></div>
-      <div class="painel" style="padding:0;align-self:start"><table class="tab-full"><thead><tr><th style="text-align:left">Semana</th><th>Dias</th><th>Meta</th><th>Expedido</th><th>%</th></tr></thead><tbody>
-        ${C.sem.map(w => `<tr><td style="text-align:left">${dataBR(w.ini).slice(0, 5)}–${dataBR(w.fim).slice(0, 5)}</td><td>${w.uteis}</td><td>${fmtN(w.meta)}</td><td>${w.real ? fmtN(w.real) : '–'}</td><td class="${w.real && w.meta && w.real < w.meta * 0.95 && w.fim < C.hoje ? 'dif' : ''}">${w.meta && (w.real || w.ini < C.hoje) ? pct(w.real, w.meta) + '%' : '–'}</td></tr>`).join('')}
-      </tbody><tfoot><tr><td style="text-align:left">Total</td><td>${C.uteis.length}</td><td>${fmtN(T.pares)}</td><td>${fmtN(T.real)}</td><td>${pct(T.real, T.pares)}%</td></tr></tfoot></table></div>
-    </div>
     <div class="info cs-nota"><b>Como funciona:</b> pares do mês = meta ÷ ticket médio (para cima), divididos por igual entre os dias de embarque da janela; o resto vai para os primeiros dias.
-      Realizado = pares dos envios <b>Expedidos</b> na data de expedição (os em aberto aparecem como "prog."). Veículos: a menor quantidade que leva os pares do dia (m³ = pares × ${String(r.m3_por_par).replace('.', ',')}), com a maior ocupação possível.</div>`
+      Realizado = pares dos envios <b>Expedidos</b> na data de expedição (os em aberto aparecem como "prog."). <b>Precisa</b> = o que falta para a meta dividido pelos dias de embarque que sobram (a divisão original continua na coluna Total).
+      Veículos do dia: com o que foi negociado na semana (ou o "disponíveis/dia" do cadastro); a <b>sugestão</b> ignora a disponibilidade e escolhe a combinação mais barata (com R$/viagem cadastrado) ou com menos veículos, sempre com a maior ocupação.
+      Capacidade em pares: o máximo cadastrado (margem de segurança) ou, sem ele, m³ ÷ ${String(r.m3_por_par).replace('.', ',')}. R$/par efetivo = frete ÷ pares a levar; cheio = frete ÷ capacidade.</div>`
     : `<div class="painel vazio">Sem meta para ${rotMes(s.cmMes)}. ${editar ? 'Preencha a meta e o ticket médio de cada loja acima.' : ''}</div>`}`;
   $c.querySelectorAll('[data-cmm]').forEach(b => b.onclick = () => { s.cmMes = b.dataset.cmm; if (!r._meses.includes(s.cmMes)) carregarCom(); else renderCom(); });
   if (!editar) return;
@@ -3059,6 +3167,12 @@ function renderCom(){
     salvarCom({ tipo:'mes', mes:s.cmMes, inicio: ini && ini !== janelaMes({ ...r, meses:r.meses.filter(x => x.mes !== s.cmMes) }, s.cmMes).inicio ? ini : null, prazo: pr && pr !== prazoPadrao(s.cmMes) ? pr : null }, 'Janela de embarque salva'); };
   document.getElementById('cm-ini').onchange = mudouJan; document.getElementById('cm-prazo').onchange = mudouJan;
   const vp = document.getElementById('cm-padrao'); if (vp) vp.onclick = () => salvarCom({ tipo:'mes', mes:s.cmMes, inicio:null, prazo:null }, 'Janela voltou ao padrão');
+  $c.querySelectorAll('[data-aceitar]').forEach(b => b.onclick = () => { const w = C.sem.find(x => x.seg === b.dataset.aceitar);
+    salvarCom({ tipo:'semana', semana:w.seg, veiculos:Object.fromEntries(w.sug.itens.map(x => [x.id, x.qtd])) }, `Semana de ${dataBR(w.ini).slice(0, 5)}: ${txtVeic(w.sug)} por dia`); });
+  $c.querySelectorAll('[data-negsalvar]').forEach(b => b.onclick = () => { const seg = b.dataset.negsalvar, v = {};
+    $c.querySelectorAll(`[data-neg="${seg}"]`).forEach(i => { const n = parseInt(i.value, 10); if (n > 0) v[i.dataset.nv] = n; });
+    salvarCom({ tipo:'semana', semana:seg, veiculos:v }, 'Negociação da semana salva'); });
+  $c.querySelectorAll('[data-neglimpar]').forEach(b => b.onclick = () => salvarCom({ tipo:'semana', semana:b.dataset.neglimpar, veiculos:{}, limpar:true }, 'Semana voltou ao padrão do cadastro'));
 }
 // dias sem embarque: dias da semana fixos + datas (feriados, inventário...)
 function calendarioCom(){
@@ -3085,24 +3199,32 @@ function calendarioCom(){
   document.body.appendChild(dlg); desenha();
 }
 function veiculosCom(){
-  const r = state.comDados, editar = pode('full_comercial', 'editar'), dlg = document.createElement('div'); dlg.className = 'pl-modal';
-  const desenha = () => { const m3 = state.comDados.m3_por_par;
-    dlg.innerHTML = `<div class="painel al-mod"><h3 style="margin:0 0 8px">Perfis de veículo</h3>
-    <div class="info">Capacidade em m³ (a conta usa ${String(m3).replace('.', ',')} m³ por par) e/ou em pares. Vale o menor dos dois. "Disponíveis" = quantos deste tipo dá para conseguir por dia (vazio = sem limite).</div>
-    <table class="tab-full" style="margin-top:8px"><thead><tr><th style="text-align:left">Veículo</th><th>m³</th><th>Pares (máx.)</th><th>Disponíveis/dia</th><th>Leva</th><th></th></tr></thead><tbody>
-    ${state.comDados.veiculos.map(v => `<tr class="${v.ativo ? '' : 'cm-off'}"><td style="text-align:left">${editar ? `<input class="cm-in" data-vn="${v.id}" value="${esc(v.nome)}">` : esc(v.nome)}</td>
-      <td>${editar ? `<input class="cm-in cm-n" data-vm="${v.id}" value="${v.capacidade_m3 ?? ''}">` : v.capacidade_m3 ?? '–'}</td><td>${editar ? `<input class="cm-in cm-n" data-vp="${v.id}" value="${v.capacidade_pares ?? ''}">` : v.capacidade_pares ?? '–'}</td>
-      <td>${editar ? `<input class="cm-in cm-n" data-vd="${v.id}" value="${v.disponiveis ?? ''}">` : v.disponiveis ?? '–'}</td><td>${fmtN(capParesVeic(v, m3))} pares</td>
-      <td>${editar ? `<button class="btn mini" data-vs="${v.id}">Salvar</button> <button class="pl-x" data-vx="${v.id}" title="Excluir">×</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="vazio">Nenhum veículo cadastrado.</td></tr>'}
-    </tbody></table>
-    ${editar ? `<div class="meta-nova" style="margin-top:8px"><input id="vn-n" placeholder="Nome (ex.: VUC)"><input id="vn-m" class="cm-n" placeholder="m³"><input id="vn-p" class="cm-n" placeholder="pares"><input id="vn-d" class="cm-n" placeholder="disp./dia"><button class="btn pri" id="vn-add">Adicionar</button></div>` : ''}
+  const editar = pode('full_comercial', 'editar'), dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  const desenha = () => { const m3 = state.comDados.m3_por_par, fm = v => String(v ?? '').replace('.', ',');
+    const linha = v => { const pm = capM3Pares(v, m3), conta = capParesVeic(v, m3), c = Number(v.custo_viagem) || 0, mv = m3Veic(v, m3);
+      return `<tr class="${v.ativo !== false ? '' : 'cm-off'}"><td style="text-align:left">${editar ? `<input class="cm-in cm-nome" data-vn="${v.id}" value="${esc(v.nome)}">` : esc(v.nome)}</td>
+        <td>${editar ? `<input class="cm-in cm-n" data-vm="${v.id}" value="${fm(v.capacidade_m3)}">` : fm(v.capacidade_m3) || '–'}</td>
+        <td class="info">${pm ? fmtN(pm) : '–'}</td>
+        <td>${editar ? `<input class="cm-in cm-n" data-vp="${v.id}" value="${v.capacidade_pares ?? ''}" placeholder="opcional">` : v.capacidade_pares ?? '–'}</td>
+        <td><b>${fmtN(conta)}</b>${v.capacidade_pares && pm ? `<small class="info">${Math.round(v.capacidade_pares / pm * 100)}% do m³</small>` : ''}</td>
+        <td>${editar ? `<input class="cm-in cm-n" data-vd="${v.id}" value="${v.disponiveis ?? ''}" placeholder="sem limite">` : v.disponiveis ?? '–'}</td>
+        <td>${editar ? `<input class="cm-in cm-n" data-vc="${v.id}" value="${v.custo_viagem != null ? fm(v.custo_viagem) : ''}" placeholder="R$">` : c ? fmtRS(c) : '–'}</td>
+        <td>${c && conta ? fmtRS2(c / conta) : '–'}</td><td>${c && mv ? fmtRS2(c / mv) : '–'}</td>
+        <td style="white-space:nowrap">${editar ? `<button class="btn mini" data-vs="${v.id}">Salvar</button> <button class="pl-x" data-vx="${v.id}" title="Excluir">×</button>` : ''}</td></tr>`; };
+    dlg.innerHTML = `<div class="painel cm-vmod"><h3 style="margin:0 0 6px">Perfis de veículo</h3>
+    <div class="info">"Pelo m³" é a conta original (m³ ÷ ${fm(m3)} m³ por par) e não muda. "Pares máx." é a sua margem de segurança: quando preenchido, é ele que vale no cálculo ("Usado na conta").
+      "Disponíveis/dia" é o padrão quando a semana não foi negociada (0 = não tenho; vazio = sem limite). R$/par e R$/m³ aqui são com o veículo cheio.</div>
+    <div style="overflow-x:auto;margin-top:8px"><table class="tab-full cm-vtab"><thead><tr><th style="text-align:left">Veículo</th><th>m³</th><th>Pelo m³<small class="cm-sm">pares</small></th><th>Pares máx.<small class="cm-sm">margem</small></th><th>Usado na conta</th><th>Disponíveis/dia</th><th>R$/viagem</th><th>R$/par cheio</th><th>R$/m³ cheio</th><th></th></tr></thead><tbody>
+    ${state.comDados.veiculos.map(linha).join('') || '<tr><td colspan="10" class="vazio">Nenhum veículo cadastrado.</td></tr>'}
+    </tbody>${editar ? `<tfoot><tr><td style="text-align:left"><input class="cm-in cm-nome" id="vn-n" placeholder="Novo (ex.: VUC)"></td><td><input class="cm-in cm-n" id="vn-m" placeholder="m³"></td><td></td><td><input class="cm-in cm-n" id="vn-p" placeholder="opcional"></td><td></td>
+      <td><input class="cm-in cm-n" id="vn-d" placeholder="sem limite"></td><td><input class="cm-in cm-n" id="vn-c" placeholder="R$"></td><td></td><td></td><td><button class="btn pri mini" id="vn-add">Adicionar</button></td></tr></tfoot>` : ''}</table></div>
     <div class="gv-acoes"><button class="btn" data-x>Fechar</button></div></div>`;
-    const q = s => dlg.querySelector(s), nv = v => { const t = String(v).trim().replace(',', '.'); return t === '' ? '' : Number(t); };
+    const q = sel => dlg.querySelector(sel), nv = v => { const t = String(v).trim(); if (t === '') return ''; const n = lerValorBR(t); return n == null ? t : n; };
     q('[data-x]').onclick = () => dlg.remove();
     if (!editar) return;
-    q('#vn-add').onclick = async () => { if (await salvarCom({ tipo:'veiculo', nome:q('#vn-n').value, capacidade_m3:nv(q('#vn-m').value), capacidade_pares:nv(q('#vn-p').value), disponiveis:nv(q('#vn-d').value) }, 'Veículo cadastrado')) desenha(); };
+    q('#vn-add').onclick = async () => { if (await salvarCom({ tipo:'veiculo', nome:q('#vn-n').value, capacidade_m3:nv(q('#vn-m').value), capacidade_pares:nv(q('#vn-p').value), disponiveis:nv(q('#vn-d').value), custo_viagem:nv(q('#vn-c').value) }, 'Veículo cadastrado')) desenha(); };
     dlg.querySelectorAll('[data-vs]').forEach(b => b.onclick = async () => { const id = b.dataset.vs;
-      if (await salvarCom({ tipo:'veiculo', id, nome:q(`[data-vn="${id}"]`).value, capacidade_m3:nv(q(`[data-vm="${id}"]`).value), capacidade_pares:nv(q(`[data-vp="${id}"]`).value), disponiveis:nv(q(`[data-vd="${id}"]`).value) }, 'Veículo salvo')) desenha(); });
+      if (await salvarCom({ tipo:'veiculo', id, nome:q(`[data-vn="${id}"]`).value, capacidade_m3:nv(q(`[data-vm="${id}"]`).value), capacidade_pares:nv(q(`[data-vp="${id}"]`).value), disponiveis:nv(q(`[data-vd="${id}"]`).value), custo_viagem:nv(q(`[data-vc="${id}"]`).value) }, 'Veículo salvo')) desenha(); });
     dlg.querySelectorAll('[data-vx]').forEach(b => b.onclick = async () => { if (!confirmaDupla(b, 'excluir?')) return; if (await salvarCom({ tipo:'veiculo_excluir', id:b.dataset.vx }, 'Veículo excluído')) desenha(); });
   };
   document.body.appendChild(dlg); desenha();
@@ -3183,6 +3305,9 @@ function renderRomaneios(){
   $r.querySelectorAll('[data-transp]').forEach(tr => tr.onclick = () => { s.romBusca = tr.dataset.transp === 'SEM TRANSPORTADORA' ? '' : tr.dataset.transp; s.romAba = 'todos'; telaRomaneios(); });
 }
 
+// perfis de veículo para o romaneio: os ativos + o que já está no romaneio (mesmo que inativo)
+const perfisRom = r => (state.romDados?.perfis || []).filter(v => v.ativo !== false || String(v.id) === String(r.veiculo_perfil_id ?? ''));
+const capPerfilTxt = v => [v.capacidade_m3 ? `${String(v.capacidade_m3).replace('.', ',')} m³` : '', v.capacidade_pares ? `máx. ${fmtN(v.capacidade_pares)} pares` : ''].filter(Boolean).join(' · ');
 // campos do embarque (usados para montar e para editar)
 function camposEmbarque(r, mots, ed){
   const dis = ed ? '' : 'disabled';
@@ -3195,7 +3320,9 @@ function camposEmbarque(r, mots, ed){
       <label>Telefone<input id="rm-tel" inputmode="tel" value="${esc(r.motorista_tel ? fmtTel(r.motorista_tel) : '')}" ${dis}></label>
       <label>Transportadora<input id="rm-transp" list="dl-rm-transp" autocapitalize="characters" value="${esc(r.transportadora || '')}" ${dis}></label>
       <label>Placa<input id="rm-placa" autocapitalize="characters" maxlength="8" value="${esc(r.placa ? fmtPlaca(r.placa) : '')}" ${dis}></label>
-      <label>Veículo<input id="rm-veic" autocapitalize="characters" value="${esc(r.veiculo || '')}" ${dis}></label>
+      <label>Perfil do veículo <span class="info">(cadastro do Planejamento comercial)</span><select id="rm-perfil" ${dis}><option value="">— não informado —</option>${perfisRom(r).map(v => `<option value="${esc(v.id)}" ${String(v.id) === String(r.veiculo_perfil_id ?? '') ? 'selected' : ''}>${esc(v.nome)}${v.ativo === false ? ' (inativo)' : ''} · ${capPerfilTxt(v)}</option>`).join('')}</select></label>
+      ${state.romDados?.ver_custo ? `<label>Frete desta viagem (R$) <span class="info">${pode('full_comercial', 'editar') ? '(vem do perfil; ajuste se o MELI cobrou outro valor)' : '(vem do perfil)'}</span><input id="rm-frete" inputmode="decimal" placeholder="0,00" value="${r.custo_frete != null ? Number(r.custo_frete).toLocaleString('pt-BR', { minimumFractionDigits:2 }) : ''}" ${pode('full_comercial', 'editar') ? dis : 'disabled'}></label>` : ''}
+      <label>Veículo <span class="info">(descrição livre)</span><input id="rm-veic" autocapitalize="characters" value="${esc(r.veiculo || '')}" ${dis}></label>
       <label>Responsável Valenro<input id="rm-resp" list="dl-rm-resp" autocomplete="off" placeholder="digite as iniciais" autocapitalize="characters" value="${esc(r.responsavel ?? caixaAltaTxt(state.usuario?.nome || ''))}" ${dis}></label>
     </div>
     <label class="gv-lab">Observação<textarea id="rm-obs" rows="2" maxlength="500" ${dis}>${esc(r.observacao || '')}</textarea></label>
@@ -3209,12 +3336,19 @@ function ligarCamposEmbarque(mots){
   ['rm-mot', 'rm-transp', 'rm-placa', 'rm-veic', 'rm-resp'].forEach(k => forcaCaixaAlta($(k))); mascaraTel($('rm-tel'));
   $('rm-mot').addEventListener('change', () => { const m = mots.find(x => x.nome === caixaAltaTxt($('rm-mot').value).trim()); if (!m) return;
     $('rm-tel').value = fmtTel(m.telefone); $('rm-transp').value = m.transportadora || ''; $('rm-placa').value = m.placa ? fmtPlaca(m.placa) : ''; $('rm-veic').value = m.veiculo || ''; });
+  // trocou o perfil: o frete acompanha (se ninguém digitou outro valor) e o "veículo" ganha o nome do perfil se estiver vazio
+  const pf = $('rm-perfil'), fr = $('rm-frete');
+  if (fr) fr.addEventListener('input', () => { fr.dataset.mexeu = '1'; });
+  if (pf) pf.addEventListener('change', () => { const v = (state.romDados?.perfis || []).find(x => String(x.id) === pf.value);
+    if (fr && !fr.dataset.mexeu) fr.value = v?.custo_viagem != null ? Number(v.custo_viagem).toLocaleString('pt-BR', { minimumFractionDigits:2 }) : '';
+    if (v && !$('rm-veic').value.trim()) $('rm-veic').value = caixaAltaTxt(v.nome); });
 }
 function lerCamposEmbarque(mots){
   const $ = k => document.getElementById(k), nome = caixaAltaTxt($('rm-mot').value).trim();
   const m = mots.find(x => x.nome === nome);
   return { data: $('rm-data').value, janela_ini: $('rm-jini').value || null, janela_fim: $('rm-jfim').value || null, lacre: $('rm-lacre').value.trim().toUpperCase(), ml_coleta: $('rm-ml').value.replace(/\s+/g, '').toUpperCase(), motorista_id: m?.id || null, motorista: nome, motorista_tel: $('rm-tel').value.replace(/\D/g, ''), transportadora: caixaAltaTxt($('rm-transp').value).trim(),
-    placa: $('rm-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), veiculo: caixaAltaTxt($('rm-veic').value).trim(), responsavel: caixaAltaTxt($('rm-resp').value).trim(), observacao: $('rm-obs').value.trim() };
+    placa: $('rm-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), veiculo: caixaAltaTxt($('rm-veic').value).trim(), responsavel: caixaAltaTxt($('rm-resp').value).trim(), observacao: $('rm-obs').value.trim(),
+    veiculo_perfil_id: $('rm-perfil')?.value || null, ...($('rm-frete') && !$('rm-frete').disabled ? { custo_frete: lerValorBR($('rm-frete').value) } : {}) };
 }
 const embParaImpresso = c => ({ janela_ini: c.janela_ini, janela_fim: c.janela_fim, lacre: c.lacre, ml_coleta: c.ml_coleta, motorista: c.motorista, telefone: c.motorista_tel ? fmtTel(c.motorista_tel) : '', transportadora: c.transportadora, placa: c.placa, veiculo: c.veiculo, responsavel: c.responsavel, data: c.data, observacao: c.observacao });
 
@@ -3323,6 +3457,10 @@ function abrirRomaneio(id, recarregando){
         <div class="gv-sec">Assinatura do motorista</div><div id="rd-assin"></div>
 
         <div class="gv-sec">Embarque ${edCab ? '' : r.status === 'expedido' ? '<span class="info">(veículo já saiu: só líder altera)</span>' : ''}</div>
+        ${(() => { const v = (state.romDados?.perfis || []).find(x => String(x.id) === String(r.veiculo_perfil_id ?? '')), m3f = state.fullDados?.m3_por_par ?? 0.007, p = soma(e => e.pares_envio ?? e.pares_plan), m = soma(e => e.m3);
+          if (!v) return r.status === 'expedido' ? '<div class="aviso-rom">⚠ Sem perfil de veículo: este embarque não entra no frete realizado do Planejamento comercial.</div>' : '';
+          const cap = capParesVeic(v, m3f), oc = cap ? p / cap : null, ocM = v.capacidade_m3 && m ? m / v.capacidade_m3 : null;
+          return `<div class="info rd-ocup">${esc(v.nome)}: ${fmtN(p)} de ${fmtN(cap)} pares${oc != null ? ` · <b class="${oc > 1 ? 'dif' : oc < 0.7 ? 'dif' : 'ok'}">${Math.round(oc * 100)}% ocupado</b>` : ''}${ocM != null ? ` · ${Math.round(ocM * 100)}% do m³` : ''}${r.custo_frete != null && p ? ` · frete ${fmtRS(r.custo_frete)} = ${fmtRS2(r.custo_frete / p)}/par` : ''}</div>`; })()}
         ${camposEmbarque(r, mots, edCab)}
         ${edCab ? '<div class="gv-acoes"><button class="btn pri" id="rd-salvar">Salvar dados do embarque</button></div>' : ''}
 
@@ -3338,7 +3476,7 @@ function abrirRomaneio(id, recarregando){
   const erro = msg => { const x = $('rd-erro'); x.hidden = false; x.textContent = msg; x.scrollIntoView({ block:'nearest' }); };
   const recarregar = async msg => { g.dataset.sujo = ''; if (msg) avisar(msg); await carregarRomaneios(); };
   const enviar = async (ids, extra = {}) => {
-    const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, janela_ini:r.janela_ini, janela_fim:r.janela_fim, lacre:r.lacre, ml_coleta:r.ml_coleta, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, responsavel:r.responsavel, observacao:r.observacao };
+    const c = $('rm-mot') && !$('rm-mot').disabled ? lerCamposEmbarque(mots) : { data:r.data, janela_ini:r.janela_ini, janela_fim:r.janela_fim, lacre:r.lacre, ml_coleta:r.ml_coleta, motorista_id:r.motorista_id, motorista:r.motorista, motorista_tel:r.motorista_tel, transportadora:r.transportadora, placa:r.placa, veiculo:r.veiculo, veiculo_perfil_id:r.veiculo_perfil_id, responsavel:r.responsavel, observacao:r.observacao };
     return apiFull('/full/romaneio', { id:r.id, versao:r.atualizado_em, ...c, envio_ids:ids, ...extra });
   };
   const imp = $('rd-imp'); if (imp) imp.onclick = async () => {
