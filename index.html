@@ -364,6 +364,9 @@
   .pl-mlb{width:150px;font-variant-numeric:tabular-nums;font-size:12px} .pl-prod{width:150px} .pl-cor{width:170px}
   .pl-q{text-align:center;padding:5px 2px;font-variant-numeric:tabular-nums} select.pl-loja{width:92px;padding:4px}
   .pl-tot,.pl-cx{text-align:center;min-width:44px;font-variant-numeric:tabular-nums} .pl-cx{color:var(--mute)}
+  .pl-end{width:130px;text-transform:uppercase;font-size:12px} .pl-endtag{display:inline-block;border-radius:5px;padding:1px 6px;font-size:11.5px;white-space:nowrap}
+  .pl-grade{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--mute);margin-left:10px} .pl-grade input{width:38px;text-align:center;padding:2px;border:1px solid var(--line);border-radius:5px;font:inherit;font-weight:700;color:#02285a}
+  .pl-grade.fora input{border-color:#f1c300;background:#fff8d6}
   .pl-x{border:0;background:none;color:#8a1f1f;font-size:18px;cursor:pointer;padding:0 6px}
   .pl-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px} .pl-add .btn{display:inline-flex;align-items:center;gap:4px}
   .pl-rodape{position:sticky;bottom:0;z-index:5;margin-top:14px;background:var(--card);border:1px solid var(--line);border-top:3px solid var(--amarelo);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 -4px 14px rgba(0,0,0,.08)}
@@ -1844,6 +1847,14 @@ function ligarAbasVista(){
 const faixaDe = (a, b) => Array.from({ length: b - a + 1 }, (_, k) => a + k);
 const FAIXAS_PLAN = { F: faixaDe(33, 40), M: faixaDe(37, 44), I: faixaDe(24, 36), B: faixaDe(19, 26) };
 const ORDEM_FAIXA = ['F', 'M', 'I', 'B'];
+// numeração da grade na coleta: a definida na coleta (grades) ou o padrão, aumentada até onde já tem quantidade
+const numsSecao = (p, f) => { const g = p?.grades?.[f]; let a = g ? g[0] : FAIXAS_PLAN[f][0], b = g ? g[1] : FAIXAS_PLAN[f].at(-1);
+  (p?.itens || []).forEach(i => { if (i.faixa !== f) return; Object.keys(i.q || {}).forEach(k => { const n = Number(k); if (i.q[k] > 0) { a = Math.min(a, n); b = Math.max(b, n); } }); });
+  return faixaDe(a, b); };
+// endereço de referência: cada endereço com uma cor (o mesmo endereço sempre na mesma cor); SEM END e MAIS DE UM destacados
+const PALETA_END = ['#ffd2d2', '#ffdfa8', '#cdebd5', '#d3e3fa', '#e4d4f6', '#fff0a6', '#c9ebe7', '#f7d3e5'];
+const corEnd = v => { const t = String(v || '').trim().toUpperCase(); if (!t) return ''; if (/^SEM\b/.test(t)) return 'background:#eef0f4;color:#1b2333;font-weight:700';
+  if (/MAIS DE UM/.test(t)) return 'background:#8a1f1f;color:#fff;font-weight:700'; let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `background:${PALETA_END[h % PALETA_END.length]};color:#1b2333;font-weight:700`; };
 // desenho no lugar do nome (o nome fica na dica ao passar o mouse)
 const ICO_FAIXA = {
   F: '<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M2.5 18.5c0-2.2 2.2-3.3 5-3.6 3.6-.4 6.7-1.6 9.3-4.4l3.7-4.1c1.3-1.4 3.5-1.4 4.6.1l1.6 2.2c.6.8.9 1.8.9 2.8v2.2h-2.4c-2.4 0-4.6 1-6.3 2.6-1.9 1.8-4.4 2.7-7 2.7H4.3c-1 0-1.8-.6-1.8-1.5z" fill="#c2185b"/><path d="M25.6 13.7h2.2l-.9 8.3h-1.2z" fill="#8e0f43"/></svg>',
@@ -1925,12 +1936,13 @@ async function apiPlan(path, corpo){
   if (path.startsWith('/full/plano/itens')) { const p = D.planos.find(x => x.envio_id === q.get('envio_id')); return { plano: p ? cp(p) : null, faixas:FAIXAS_PLAN }; }
   if (path === '/full/plano/salvar') {
     const itens = (corpo.itens || []).filter(i => i.produto || i.mlb || paresIt(i)).map(i => ({ mlb:String(i.mlb || '').replace(/\D/g, ''), produto:String(i.produto || '').trim().toUpperCase(), cor:String(i.cor || '').trim().toUpperCase(), faixa:i.faixa,
-      q:Object.fromEntries(Object.entries(i.q || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)])), loja: i.loja && i.loja !== corpo.cnpj_id ? i.loja : null }));
+      q:Object.fromEntries(Object.entries(i.q || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)])), loja: i.loja && i.loja !== corpo.cnpj_id ? i.loja : null,
+      ...(String(i.end || '').trim() ? { end:String(i.end).trim().toUpperCase().replace(/\s+/g, ' ') } : {}) }));
     itens.forEach((i, n) => { if (!i.produto) throw new Error(`Linha ${n + 1}: informe o produto`); });
     const pedido = String(corpo.pedido || '').replace(/\D/g, '') || null, pares = itens.reduce((t, i) => t + paresIt(i), 0);
     if (corpo.data_limite && corpo.data_expedicao && corpo.data_limite > corpo.data_expedicao) throw new Error('"Finalizar até" não pode ser depois do dia da coleta');
     if (pedido) { const dup = D.planos.find(x => x.cnpj_id === corpo.cnpj_id && x.pedido === pedido && x.status !== 'cancelado' && x.id !== corpo.id); if (dup) throw new Error(`O envio ${pedido} já está na coleta planejada ${nPlan(dup.id)}`); }
-    const cab = { cnpj_id:corpo.cnpj_id, pedido, data_limite:corpo.data_limite || null, data_expedicao:corpo.data_expedicao || null, observacao:corpo.observacao || null };
+    const cab = { cnpj_id:corpo.cnpj_id, pedido, data_limite:corpo.data_limite || null, data_expedicao:corpo.data_expedicao || null, observacao:corpo.observacao || null, grades:cp(corpo.grades || {}) };
     if (!corpo.id) { const id = String(++D.seq); D.planos.push({ id, ...cab, status:'rascunho', itens, pares, linhas:itens.length, comentario:null, envio_id:null, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu }); ev(id, 'criar', { pares, linhas:itens.length }); return { ok:true, id, versao:ag }; }
     const p = D.planos.find(x => x.id === corpo.id);
     if (corpo.versao && corpo.versao !== p.atualizado_em) throw new Error(`${quemTxt(p.atualizado_por)} alterou esta coleta enquanto você editava. Feche e abra de novo para ver a versão atual.`);
@@ -1968,10 +1980,11 @@ async function catalogoPlan(){
   if (state.planCat) return state.planCat;
   const { itens } = await apiPlan('/full/catalogo');
   const porMlb = new Map(), porProd = new Map();
-  itens.forEach(([mlb, produto, cor, faixa, loja, vezes]) => { const e = { mlb, produto, cor, faixa, loja, vezes };
+  const ends = new Set();
+  itens.forEach(([mlb, produto, cor, faixa, loja, vezes, end]) => { const e = { mlb, produto, cor, faixa, loja, vezes, end:end || '' }; if (end) ends.add(end);
     if (mlb) { if (!porMlb.has(mlb)) porMlb.set(mlb, []); porMlb.get(mlb).push(e); }
     if (!porProd.has(produto)) porProd.set(produto, []); porProd.get(produto).push(e); });
-  return state.planCat = { porMlb, porProd, produtos: [...porProd.keys()] };
+  return state.planCat = { porMlb, porProd, produtos: [...porProd.keys()], enderecos: [...ends].sort() };
 }
 
 // ---- lista
@@ -2061,21 +2074,25 @@ function editorPlano(d){
   const faixasUsadas = () => ORDEM_FAIXA.filter(f => ed.itens.some(i => i.faixa === f));
   const totais = () => { const pares = ed.itens.reduce((t, i) => t + paresIt(i), 0); return { pares, linhas: ed.itens.filter(i => i.produto || paresIt(i)).length, porFaixa: Object.fromEntries(ORDEM_FAIXA.map(f => [f, ed.itens.filter(i => i.faixa === f).reduce((t, i) => t + paresIt(i), 0)])), outra: ed.itens.filter(i => i.loja).length }; };
   const ro = podeEditar ? '' : 'disabled';
-  const linhaHtml = (i, idx) => { const tot = paresIt(i);
+  const endSug = i => { const cat = state.planCat; if (!cat || !i.produto) return ''; const L = (i.mlb && cat.porMlb.get(i.mlb)) || cat.porProd.get(i.produto) || []; const x = L.find(e => e.produto === i.produto && e.cor === i.cor && e.end); return x ? 'últ.: ' + x.end : ''; };
+  const linhaHtml = (i, idx, nums) => { const tot = paresIt(i);
     return `<tr data-li="${idx}">
       <td><input class="pl-in pl-mlb" data-c="mlb" value="${esc(i.mlb || '')}" inputmode="numeric" placeholder="MLB" ${ro}></td>
       <td><input class="pl-in pl-prod" data-c="produto" value="${esc(i.produto || '')}" list="pl-dl-prod" placeholder="Produto" ${ro}></td>
       <td><input class="pl-in pl-cor" data-c="cor" value="${esc(i.cor || '')}" list="pl-dl-cor" placeholder="Cor" ${ro}></td>
-      ${FAIXAS_PLAN[i.faixa].map(n => `<td class="pl-n"><input class="pl-in pl-q" data-n="${n}" value="${i.q?.[n] || ''}" inputmode="numeric" ${ro}></td>`).join('')}
+      ${nums.map(n => `<td class="pl-n"><input class="pl-in pl-q" data-n="${n}" value="${i.q?.[n] || ''}" inputmode="numeric" ${ro}></td>`).join('')}
       <td class="pl-tot"><b>${tot || ''}</b></td><td class="pl-cx">${tot ? cxTxt(tot) : ''}</td>
+      <td><input class="pl-in pl-end" data-c="end" value="${esc(i.end || '')}" list="pl-dl-end" placeholder="${esc(endSug(i))}" style="${corEnd(i.end)}" autocapitalize="characters" ${ro}></td>
       <td><select class="pl-in pl-loja" data-c="loja" ${ro} title="De qual loja sai o estoque"><option value="">Própria</option>${lojasOutras().map(l => `<option value="${l}" ${i.loja === l ? 'selected' : ''}>${esc(nomeLoja(l))}</option>`).join('')}</select></td>
       <td>${podeEditar ? `<button class="pl-x" data-rm="${idx}" title="Tirar a linha" aria-label="Tirar a linha">×</button>` : ''}</td></tr>`; };
-  const secaoHtml = f => { const idxs = ed.itens.map((i, k) => [i, k]).filter(([i]) => i.faixa === f), t = idxs.reduce((s, [i]) => s + paresIt(i), 0);
-    const somaN = n => idxs.reduce((s, [i]) => s + (Number(i.q?.[n]) || 0), 0);
-    return `<div class="pl-sec"><div class="pl-sec-cab"><b>${rotFaixa(f)}</b><span class="info">${idxs.length} linha(s) · ${fmtN(t)} pares · ${cxTxt(t)} cx</span></div>
-      <div class="pl-wrap"><table class="pl-tab"><thead><tr><th>MLB</th><th>Produto</th><th>Cor</th>${FAIXAS_PLAN[f].map(n => `<th class="pl-n">${n}</th>`).join('')}<th>Total</th><th>Cx</th><th>Estoque</th><th></th></tr></thead>
-      <tbody>${idxs.map(([i, k]) => linhaHtml(i, k)).join('')}</tbody>
-      <tfoot><tr><td colspan="3" style="text-align:right">Total da grade</td>${FAIXAS_PLAN[f].map(n => `<td class="pl-n" data-sn="${f}|${n}">${somaN(n) || ''}</td>`).join('')}<td class="pl-tot"><b data-st="${f}">${fmtN(t)}</b></td><td class="pl-cx" data-sc="${f}">${cxTxt(t)}</td><td colspan="2"></td></tr></tfoot></table></div>
+  const secaoHtml = f => { const idxs = ed.itens.map((i, k) => [i, k]).filter(([i]) => i.faixa === f), t = idxs.reduce((s, [i]) => s + paresIt(i), 0), nums = numsSecao(ed, f);
+    const somaN = n => idxs.reduce((s, [i]) => s + (Number(i.q?.[n]) || 0), 0), fora = nums[0] !== FAIXAS_PLAN[f][0] || nums.at(-1) !== FAIXAS_PLAN[f].at(-1);
+    return `<div class="pl-sec"><div class="pl-sec-cab"><b><span class="fxg" title="${NOME_FAIXA[f]}"><span class="fx-ico">${ICO_FAIXA[f]}</span>${NOME_FAIXA[f]}</span></b>
+        <span class="pl-grade ${fora ? 'fora' : ''}" title="Padrão: ${FAIXAS_PLAN[f][0]} a ${FAIXAS_PLAN[f].at(-1)}">nº ${podeEditar ? `<input data-gi="${f}" value="${nums[0]}" inputmode="numeric" maxlength="2"> a <input data-gf="${f}" value="${nums.at(-1)}" inputmode="numeric" maxlength="2">` : `${nums[0]} a ${nums.at(-1)}`}</span>
+        <span class="info">${idxs.length} linha(s) · ${fmtN(t)} pares · ${cxTxt(t)} cx</span></div>
+      <div class="pl-wrap"><table class="pl-tab"><thead><tr><th>MLB</th><th>Produto</th><th>Cor</th>${nums.map(n => `<th class="pl-n">${n}</th>`).join('')}<th>Total</th><th>Cx</th><th>Endereço</th><th>Estoque</th><th></th></tr></thead>
+      <tbody>${idxs.map(([i, k]) => linhaHtml(i, k, nums)).join('')}</tbody>
+      <tfoot><tr><td colspan="3" style="text-align:right">Total da grade</td>${nums.map(n => `<td class="pl-n" data-sn="${f}|${n}">${somaN(n) || ''}</td>`).join('')}<td class="pl-tot"><b data-st="${f}">${fmtN(t)}</b></td><td class="pl-cx" data-sc="${f}">${cxTxt(t)}</td><td colspan="3"></td></tr></tfoot></table></div>
       ${podeEditar ? `<button class="btn mini" data-add="${f}">+ linha</button>` : ''}</div>`; };
   const acoes = () => {
     const b = [];
@@ -2116,7 +2133,8 @@ function editorPlano(d){
         <div class="pl-bts">${acoes()}</div>
       </div>
       <div id="pl-hist-box" ${histAberto ? '' : 'hidden'}>${historicoPlanHtml(d.eventos)}</div>
-      <datalist id="pl-dl-prod">${state.planCat ? state.planCat.produtos.slice(0, 4000).map(p => `<option value="${esc(p)}">`).join('') : ''}</datalist><datalist id="pl-dl-cor"></datalist>`;
+      <datalist id="pl-dl-prod">${state.planCat ? state.planCat.produtos.slice(0, 4000).map(p => `<option value="${esc(p)}">`).join('') : ''}</datalist><datalist id="pl-dl-cor"></datalist>
+      <datalist id="pl-dl-end">${[...new Set([...ed.itens.map(i => i.end).filter(Boolean), ...(state.planCat?.enderecos || []), 'SEM END', 'MAIS DE UM'])].map(x => `<option value="${esc(x)}">`).join('')}</datalist>`;
     ligar();
   };
   const erro = m => { const e = document.getElementById('pl-erro'); if (!e) return avisar(m, true); e.hidden = !m; e.textContent = m || ''; if (m) e.scrollIntoView({ behavior:'smooth', block:'center' }); };
@@ -2159,14 +2177,27 @@ function editorPlano(d){
     const txt = ev.clipboardData?.getData('text') || ''; if (!/[\t\n]/.test(txt.trim())) return;
     ev.preventDefault();
     const linhas = txt.replace(/\r/g, '').split('\n').filter(l => l.trim()).map(l => l.split('\t'));
-    const faixa = ed.itens[idx].faixa, nums = FAIXAS_PLAN[faixa], ordem = ['mlb', 'produto', 'cor', ...nums.map(String)];
+    const faixa = ed.itens[idx].faixa, nums = numsSecao(ed, faixa);
+    // sem cabeçalho: MLB, produto, cor, a numeração da seção, total, caixas, endereço (a partir da coluna onde colou)
+    let ordem = ['mlb', 'produto', 'cor', ...nums.map(String), 'total', 'cx', 'end'], inicio = ordem.indexOf(col);
     let k = idx, n = 0;
     for (const cel of linhas) {
-      if (cel.some(c => /^\s*(MLB|PRODUTO|COR)\s*$/i.test(c))) continue;
+      // cabeçalho do Excel (MLB | PRODUTO | COR | 33 | 34 ... | TOTAL | VOL | endereço): usa a numeração dele
+      if (cel.some(c => /^\s*(MLB|PRODUTO|COR)\s*$/i.test(c))) {
+        let ant = null; ordem = cel.map(c => { const t = c.trim().toUpperCase(); let x = null;
+          if (t === 'MLB') x = 'mlb'; else if (t === 'PRODUTO') x = 'produto'; else if (t === 'COR') x = 'cor'; else if (/^\d{2}$/.test(t)) x = t; else if (/^TOTAL/.test(t)) x = 'total';
+          else if (/^(VOL|CX|CAIXA)/.test(t)) x = 'cx'; else if (/END/.test(t)) x = 'end'; else if (!t && ['cx', 'total'].includes(ant)) x = 'end';
+          ant = x; return x; });
+        inicio = 0; const ns = ordem.filter(x => /^\d+$/.test(x || '')).map(Number);
+        if (ns.length) { const a = Math.min(...ns), b = Math.max(...ns); if (a >= 10 && b <= 50 && b - a <= 20) { const cur = numsSecao(ed, faixa); ed.grades = { ...(ed.grades || {}), [faixa]:[Math.min(a, cur[0]), Math.max(b, cur.at(-1))] }; } }
+        continue;
+      }
+      if (cel.every(c => !c.trim())) continue;
       if (!ed.itens[k] || ed.itens[k].faixa !== faixa) { ed.itens.splice(k, 0, { mlb:'', produto:'', cor:'', faixa, q:{}, loja:null }); }
-      const it = ed.itens[k]; let c = ordem.indexOf(col);
-      for (const v of cel) { const campo = ordem[c++]; if (!campo) break; const t = v.trim();
+      const it = ed.itens[k]; let c = inicio;
+      for (const v of cel) { const campo = ordem[c++]; if (c > ordem.length) break; if (!campo || campo === 'total' || campo === 'cx') continue; const t = v.trim();
         if (['mlb', 'produto', 'cor'].includes(campo)) it[campo] = campo === 'mlb' ? t.replace(/\D/g, '') : t.toUpperCase();
+        else if (campo === 'end') { if (t) it.end = t.toUpperCase().replace(/\s+/g, ' ').slice(0, 40); }
         else { const q = parseInt(t.replace(/\D/g, ''), 10); if (q > 0) it.q[campo] = q; else delete it.q[campo]; } }
       k++; n++;
     }
@@ -2184,7 +2215,8 @@ function editorPlano(d){
         inp.onpaste = ev => colar(ev, idx, inp.dataset.n);
       });
       tr.querySelectorAll('[data-c]').forEach(inp => {
-        inp.addEventListener('input', () => { it[inp.dataset.c] = inp.dataset.c === 'loja' ? (inp.value || null) : inp.value; marcarSujo(); });
+        inp.addEventListener('input', () => { it[inp.dataset.c] = inp.dataset.c === 'loja' ? (inp.value || null) : inp.value; marcarSujo();
+          if (inp.dataset.c === 'end') { it.end = inp.value.toUpperCase(); inp.style.cssText = corEnd(it.end); } });
         if (inp.tagName === 'INPUT') inp.onpaste = ev => colar(ev, idx, inp.dataset.c);
       });
       const mlb = tr.querySelector('.pl-mlb'); if (mlb) mlb.onchange = () => { it.mlb = mlb.value.replace(/\D/g, ''); mlb.value = it.mlb; completarMlb(idx); };
@@ -2192,6 +2224,13 @@ function editorPlano(d){
       const cr = tr.querySelector('.pl-cor'); if (cr) { cr.onfocus = () => { const dl = $('pl-dl-cor'); if (dl) dl.innerHTML = coresDe(it).map(c => `<option value="${esc(c)}">`).join(''); }; cr.onchange = () => { it.cor = cr.value.trim().toUpperCase(); cr.value = it.cor; }; }
     });
     $c.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { ed.itens.splice(+b.dataset.rm, 1); marcarSujo(); desenha(); });
+    $c.querySelectorAll('[data-gi],[data-gf]').forEach(inp => inp.onchange = () => { const f = inp.dataset.gi || inp.dataset.gf, sec = inp.closest('.pl-grade');
+      const a = parseInt(sec.querySelector('[data-gi]').value, 10), b = parseInt(sec.querySelector('[data-gf]').value, 10);
+      if (!(a >= 10 && b <= 50 && b >= a)) { avisar('Numeração inválida: use de 10 a 50, com o fim maior que o início', true); return desenha(); }
+      if (b - a > 20) { avisar('No máximo 21 números na mesma grade', true); return desenha(); }
+      ed.grades = { ...(ed.grades || {}), [f]:[a, b] }; const real = numsSecao(ed, f);
+      if (real[0] < a || real.at(-1) > b) avisar(`Há quantidade fora de ${a} a ${b}: a grade ficou de ${real[0]} a ${real.at(-1)}. Apague as quantidades para encolher.`, true);
+      marcarSujo(); desenha(); });
     $c.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { const f = b.dataset.add, ult = ed.itens.map((i, k) => i.faixa === f ? k : -1).filter(k => k >= 0).pop();
       ed.itens.splice(ult + 1, 0, { mlb:'', produto:'', cor:'', faixa:f, q:{}, loja:null }); marcarSujo(); desenha(); const tr = $c.querySelector(`tr[data-li="${ult + 1}"] .pl-mlb`); if (tr) tr.focus(); });
     $c.querySelectorAll('[data-addsec]').forEach(b => b.onclick = () => { const f = b.dataset.addsec; ed.itens.push({ mlb:'', produto:'', cor:'', faixa:f, q:{}, loja:null }); marcarSujo(); desenha();
@@ -2201,7 +2240,7 @@ function editorPlano(d){
     const ie = $('pl-ir-envio'); if (ie) ie.onclick = () => { const s = state.full; s.vista = 'envios'; s.plan.aberto = null; s.aberto = d.envio.id; s.aba = 'todos'; s.st = null; telaFull(); };
     const salvar = async (silencioso) => {
       cabDoForm(); erro('');
-      const corpo = { id:P.id, cnpj_id:ed.cnpj_id, pedido:ed.pedido, data_limite:ed.data_limite || null, data_expedicao:ed.data_expedicao || null, observacao:ed.observacao, itens:ed.itens, versao };
+      const corpo = { id:P.id, cnpj_id:ed.cnpj_id, pedido:ed.pedido, data_limite:ed.data_limite || null, data_expedicao:ed.data_expedicao || null, observacao:ed.observacao, grades:ed.grades || {}, itens:ed.itens, versao };
       const r = await apiPlan('/full/plano/salvar', corpo);
       versao = r.versao || versao; sujo = false; state.planSujo = false;
       if (!P.id) { state.full.plan.aberto = r.id; }
@@ -2272,10 +2311,10 @@ function historicoPlanHtml(evs){
 // folha para a separação (o mesmo formato da aba "Impressão" da planilha)
 function folhaPlanoHtml(p){
   const quem = quemImprime(), aprov = p.status === 'aprovado';
-  const secoes = ORDEM_FAIXA.filter(f => p.itens.some(i => i.faixa === f)).map(f => { const L = p.itens.filter(i => i.faixa === f), nums = FAIXAS_PLAN[f], t = L.reduce((s, i) => s + paresIt(i), 0);
-    return `<table><thead><tr><th class="l">MLB</th><th class="l">Produto</th><th class="l">Cor</th>${nums.map(n => `<th>${n}</th>`).join('')}<th>Total</th><th>Cx</th><th>Estoque</th><th>✓</th></tr></thead><tbody>
-      ${L.map(i => `<tr><td class="l mlb">${esc(i.mlb || '')}</td><td class="l"><b>${esc(i.produto)}</b></td><td class="l">${esc(i.cor || '')}</td>${nums.map(n => `<td>${i.q[n] || ''}</td>`).join('')}<td><b>${paresIt(i)}</b></td><td>${cxTxt(paresIt(i))}</td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td><td class="ck"></td></tr>`).join('')}
-      </tbody><tfoot><tr><td class="l" colspan="3">${rotFaixa(f)}</td>${nums.map(n => `<td>${L.reduce((s, i) => s + (Number(i.q[n]) || 0), 0) || ''}</td>`).join('')}<td><b>${t}</b></td><td>${cxTxt(t)}</td><td colspan="2"></td></tr></tfoot></table>`; }).join('');
+  const secoes = ORDEM_FAIXA.filter(f => p.itens.some(i => i.faixa === f)).map(f => { const L = p.itens.filter(i => i.faixa === f), nums = numsSecao(p, f), t = L.reduce((s, i) => s + paresIt(i), 0);
+    return `<table><thead><tr><th class="l">MLB</th><th class="l">Produto</th><th class="l">Cor</th>${nums.map(n => `<th>${n}</th>`).join('')}<th>Total</th><th>Cx</th><th>Endereço</th><th>Estoque</th><th>✓</th></tr></thead><tbody>
+      ${L.map(i => `<tr><td class="l mlb">${esc(i.mlb || '')}</td><td class="l"><b>${esc(i.produto)}</b></td><td class="l">${esc(i.cor || '')}</td>${nums.map(n => `<td>${i.q[n] || ''}</td>`).join('')}<td><b>${paresIt(i)}</b></td><td>${cxTxt(paresIt(i))}</td><td class="end" style="${corEnd(i.end)}">${esc(i.end || '')}</td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td><td class="ck"></td></tr>`).join('')}
+      </tbody><tfoot><tr><td class="l" colspan="3"><span class="fxg"><span class="fx-ico">${ICO_FAIXA[f]}</span>${NOME_FAIXA[f]} ${nums[0]} a ${nums.at(-1)}</span></td>${nums.map(n => `<td>${L.reduce((s, i) => s + (Number(i.q[n]) || 0), 0) || ''}</td>`).join('')}<td><b>${t}</b></td><td>${cxTxt(t)}</td><td colspan="3"></td></tr></tfoot></table>`; }).join('');
   const total = p.itens.reduce((s, i) => s + paresIt(i), 0);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Coleta ${esc(p.pedido || nPlan(p.id))}</title><style>${CSS_IMPRESSO}
   @page{size:A4 landscape;margin:0}
@@ -2286,6 +2325,7 @@ function folhaPlanoHtml(p){
   td{border-bottom:0.3mm solid #c9cfda;padding:1.3mm 1mm;text-align:center} td.mlb{font-size:8pt;color:#566074}
   tfoot td{font-weight:700;background:#eef0f4;border-top:0.5mm solid #1b2333}
   .fxg{display:inline-flex;align-items:center;gap:2mm} .fx-ico{display:inline-flex;width:9mm;height:6.5mm} .fx-ico svg{width:100%;height:100%}
+  td.end{font-size:8.5pt;white-space:nowrap;border-radius:1mm}
   td.ck{width:8mm} .ck::after{content:'';display:inline-block;width:4mm;height:4mm;border:0.4mm solid #1b2333;border-radius:0.6mm}
   .marca{margin-top:3mm;padding:2mm;text-align:center;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm}
   </style></head><body><div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">SEPARAÇÃO · ENVIO FULL</div><div class="t2">${esc(nomeLoja(p.cnpj_id)).toUpperCase()} · MERCADO LIVRE</div></div><span class="esp"></span>
@@ -2305,8 +2345,8 @@ async function itensPlanejadosEnvio(el, e){
     const porFaixa = ORDEM_FAIXA.filter(f => plano.itens.some(i => i.faixa === f));
     el.innerHTML = `<div class="gv-sec">Planejamento <span class="info">coleta ${nPlan(plano.id)} · aprovada por ${esc(quemTxt(plano.aprovado_por))}</span></div>
       <div class="info">${plano.linhas} linha(s) · ${fmtN(plano.pares)} pares${plano.data_limite ? ` · finalizar até <b>${dataBR(plano.data_limite)}</b>` : ''}</div>
-      <details class="pl-det"><summary>Ver as linhas</summary>${porFaixa.map(f => `<div class="pl-wrap"><table class="pl-tab ro"><thead><tr><th>Produto</th><th>Cor</th>${FAIXAS_PLAN[f].map(n => `<th class="pl-n">${n}</th>`).join('')}<th>Total</th><th>Estoque</th></tr></thead><tbody>
-        ${plano.itens.filter(i => i.faixa === f).map(i => `<tr><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td>${FAIXAS_PLAN[f].map(n => `<td class="pl-n">${i.q[n] || ''}</td>`).join('')}<td class="pl-tot"><b>${paresIt(i)}</b></td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>
+      <details class="pl-det"><summary>Ver as linhas</summary>${porFaixa.map(f => `<div class="pl-wrap"><table class="pl-tab ro"><thead><tr><th>Produto</th><th>Cor</th>${numsSecao(plano, f).map(n => `<th class="pl-n">${n}</th>`).join('')}<th>Total</th><th>Endereço</th><th>Estoque</th></tr></thead><tbody>
+        ${plano.itens.filter(i => i.faixa === f).map(i => `<tr><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td>${numsSecao(plano, f).map(n => `<td class="pl-n">${i.q[n] || ''}</td>`).join('')}<td class="pl-tot"><b>${paresIt(i)}</b></td><td><span class="pl-endtag" style="${corEnd(i.end)}">${esc(i.end || '')}</span></td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>
       <div class="gv-acoes" style="justify-content:flex-start;margin-top:6px"><button class="btn" id="gv-imp-plan">🖨 Folha de separação</button></div>`;
     el.querySelector('#gv-imp-plan').onclick = () => imprimirHtml(folhaPlanoHtml({ ...plano, status:'aprovado' }));
   } catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = `<div class="info">Não consegui carregar o planejamento: ${esc(x.message)}</div>`; }
