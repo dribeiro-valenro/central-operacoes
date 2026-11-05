@@ -2540,6 +2540,281 @@ function renderCons(){
 }
 
 
+/* =================== TIME NECESSÁRIO x META (dimensionamento da semana) =================== */
+// Para cada atividade: volume do dia ÷ meta (unidades por hora-pessoa) = horas-pessoa; ÷ horas produtivas de uma pessoa = pessoas.
+// Soma das atividades + margem de ausência = time necessário do dia, comparado com quem está disponível.
+// Ao lado, o mesmo cálculo no ritmo REAL (histórico): a diferença é quanto a meta "vale" em pessoas.
+const UNID_DIM = ['pares', 'pedidos', 'pacotes', 'caixas', 'posições', 'volumes', 'notas'];
+const FONTES_DIM = { '':'digitado à mão', full:'FULL: pares do dia', ped_sep:'pedidos separados (média de 4 semanas)', ped_conf:'pedidos conferidos (média de 4 semanas)', cross:'pacotes CROSS (média de 4 semanas)' };
+const idDim = () => 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function docPadraoDim(r){
+  const h = r.ritmos_hist || {};
+  const A = (nome, tipo, unidade, fonte, extra = {}) => ({ id:idDim(), nome, tipo, unidade, fonte, modo:'volume', meta:null, real:null, janela:null, vol:{}, ...extra });
+  return { horas_dia:8, eficiencia:85, ausencia:5, dias_trab:[1, 2, 3, 4, 5], disp_padrao:r.pessoas_ativas || 0, disp:{}, fonte_full:'plano',
+    atividades:[A('Separação FULL', 'separacao', 'pares', 'full', { real:h.separacao || null }), A('Conferência FULL', 'conferencia', 'pares', 'full', { real:h.conferencia || null }),
+      A('Carregamento FULL', 'carregamento', 'pares', 'full'), A('Separação de pedidos', 'cross', 'pedidos', 'ped_sep'), A('Conferência e embalagem de pedidos', 'cross', 'pedidos', 'ped_conf'),
+      A('Expedição CROSS', 'cross', 'pacotes', 'cross'), A('Recebimento', 'recebimento', 'pares', ''), A('Movimentação e ressuprimento', 'movimentacao', 'pares', ''), A('Inventário', 'inventario', 'posições', ''),
+      A('Apoio / atividades fixas', 'outro', 'pessoas', '', { modo:'fixo', fixo:0 })] };
+}
+// a semana nova copia atividades, metas e parâmetros da última semana salva (os volumes e as pessoas do dia não)
+function docDeModelo(m, r){
+  const d = JSON.parse(JSON.stringify(m)); d.disp = {}; d.atividades.forEach(a => { a.vol = {}; a.id ||= idDim(); });
+  const h = r.ritmos_hist || {}; d.atividades.forEach(a => { if (a.real_auto !== false && h[a.tipo] && ['separacao', 'conferencia'].includes(a.tipo)) a.real = h[a.tipo]; });
+  return d;
+}
+const diasDim = sem => [0, 1, 2, 3, 4, 5, 6].map(i => addDias(sem, i));
+const isoDow = d => dowDe(d) || 7;
+// valor que o sistema sugere para a atividade no dia
+function fonteDim(r, a, d){
+  if (a.fonte === 'full') { const p = r.doc.fonte_full === 'plano' && r.plano ? r.plano[d] : null; return p ?? (r.full.find(x => x.data === d)?.pares ?? null); }
+  if (a.fonte === 'ped_sep' || a.fonte === 'ped_conf') { const x = r.pedidos_hist.find(y => y.dow === isoDow(d)); return x ? x[a.fonte === 'ped_sep' ? 'sep' : 'conf'] : null; }
+  if (a.fonte === 'cross') return r.cross_hist.find(y => y.dow === isoDow(d))?.pacotes ?? null;
+  return null;
+}
+function aplicarFontesDim(r, soVazios){
+  let n = 0; const trab = diasDim(r.semana).filter(d => r.doc.dias_trab.includes(isoDow(d)));
+  r.doc.atividades.forEach(a => { if (!a.fonte || a.modo === 'fixo') return; trab.forEach(d => { const v = fonteDim(r, a, d);
+    if (v == null || (soVazios && a.vol[d] != null && a.vol[d] !== '')) return; a.vol[d] = v; n++; }); });
+  return n;
+}
+function calcDim(r){
+  const d = r.doc, dias = diasDim(r.semana), hprod = d.horas_dia * d.eficiencia / 100, aus = Math.min(0.5, (d.ausencia || 0) / 100);
+  const trab = dias.filter(x => d.dias_trab.includes(isoDow(x)));
+  const A = d.atividades.map(a => { const ok = a.modo === 'fixo' || Number(a.meta) > 0;
+    const por = Object.fromEntries(trab.map(x => { const v = Number(a.vol?.[x]) || 0;
+      if (a.modo === 'fixo') { const p = Number(a.fixo) || 0; return [x, { v:p, hp:p * d.horas_dia, p, pR:p }]; }
+      if (!ok) return [x, { v, hp:0, p:0, pR:0, semMeta:v > 0 }];
+      const hp = v / a.meta, hpR = Number(a.real) > 0 ? v / a.real : hp;
+      return [x, { v, hp, p:hp / hprod, pR:hpR / hprod, sim:a.janela ? hp / (a.janela * d.eficiencia / 100) : null }]; }));
+    const tot = { v:trab.reduce((t, x) => t + por[x].v, 0), hp:trab.reduce((t, x) => t + por[x].hp, 0), p:trab.reduce((t, x) => t + por[x].p, 0) / Math.max(1, trab.length) };
+    return { a, ok, por, tot }; });
+  const D = trab.map(x => { const p = A.reduce((t, k) => t + k.por[x].p, 0), pR = A.reduce((t, k) => t + k.por[x].pR, 0), hp = A.reduce((t, k) => t + k.por[x].hp, 0);
+    const nec = Math.ceil(p / (1 - aus) - 1e-9), necR = Math.ceil(pR / (1 - aus) - 1e-9), disp = d.disp?.[x] ?? d.disp_padrao ?? 0;
+    const sim = A.filter(k => k.por[x].sim).map(k => ({ nome:k.a.nome, n:Math.ceil(k.por[x].sim - 1e-9), janela:k.a.janela }));
+    return { d:x, p, pR, hp, nec, necR, disp, saldo:disp - nec, saldoR:disp - necR, util:disp ? p / disp : null, sim:sim.filter(s => s.n > disp) }; });
+  const S = { pico:Math.max(0, ...D.map(x => x.nec)), picoR:Math.max(0, ...D.map(x => x.necR)), media:D.length ? D.reduce((t, x) => t + x.p / (1 - aus), 0) / D.length : 0,
+    mediaR:D.length ? D.reduce((t, x) => t + x.pR / (1 - aus), 0) / D.length : 0, hp:D.reduce((t, x) => t + x.hp, 0), falta:D.filter(x => x.saldo < 0), faltaR:D.filter(x => x.saldoR < 0),
+    dispMed:D.length ? D.reduce((t, x) => t + x.disp, 0) / D.length : 0, semMeta:A.filter(k => !k.ok && k.tot.v > 0) };
+  S.util = S.dispMed ? D.reduce((t, x) => t + x.p, 0) / D.length / S.dispMed : null;
+  return { A, D, S, trab, dias, hprod, aus };
+}
+
+// ---- demonstração
+const DEMO_DIM = { docs:{}, eventos:[] };
+async function apiDim(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  demoM3(); const ag = new Date().toISOString();
+  if (path.startsWith('/dimensionamento?')) { const sem = new URLSearchParams(path.split('?')[1]).get('semana'), fim = addDias(sem, 6);
+    const full = {}; DEMO_FULL.envios.filter(e => e.status !== 'cancelado' && e.data_expedicao >= sem && e.data_expedicao <= fim).forEach(e => { full[e.data_expedicao] = (full[e.data_expedicao] || 0) + Number(e.pares_envio ?? e.pares_plan); });
+    const d = DEMO_DIM.docs[sem], ant = Object.keys(DEMO_DIM.docs).filter(k => k < sem).sort().at(-1);
+    const modelo = ant ? DEMO_DIM.docs[ant].doc : (() => { const m = docPadraoDim({ ritmos_hist:{ separacao:238, conferencia:205 }, pessoas_ativas:9 });
+      const metas = [300, 250, 1500, 45, 70, 350, 450, 600, 80]; m.atividades.forEach((a, i) => { if (a.modo !== 'fixo') a.meta = metas[i]; else a.fixo = 1; }); m.atividades[6].vol = {}; return m; })();
+    return { semana:sem, doc:d ? JSON.parse(JSON.stringify(d.doc)) : null, versao:d?.versao || null, atualizado_por:d?.por || null, modelo:JSON.parse(JSON.stringify(modelo)),
+      full:Object.entries(full).map(([data, pares]) => ({ data, pares })), pedidos_hist:[[1, 820, 790], [2, 760, 735], [3, 700, 690], [4, 690, 670], [5, 740, 720], [6, 310, 300]].map(([dow, sep, conf]) => ({ dow, sep, conf })),
+      cross_hist:[[1, 1150], [2, 980], [3, 930], [4, 910], [5, 1010], [6, 420]].map(([dow, pacotes]) => ({ dow, pacotes })), pessoas_ativas:9, ritmos_hist:{ separacao:238, conferencia:205 },
+      eventos:DEMO_DIM.eventos.filter(e => e.semana === sem), hoje:hojeBRT() }; }
+  if (path === '/dimensionamento/salvar') { const d = DEMO_DIM.docs[corpo.semana];
+    if (d && corpo.versao !== d.versao) throw new Error('Alguém alterou esta semana enquanto você editava. Recarregue.');
+    DEMO_DIM.docs[corpo.semana] = { doc:JSON.parse(JSON.stringify(corpo.doc)), versao:ag, por:'demonstracao' };
+    DEMO_DIM.eventos.unshift({ semana:corpo.semana, em:ag, por:'demonstracao', resumo:corpo.resumo || 'alterou' }); return { ok:true, versao:ag }; }
+}
+
+// ---- tela
+function telaDimensionamento(){
+  ['css-aloc', 'css-dim'].forEach((id, i) => { if (!document.getElementById(id)) { const st = document.createElement('style'); st.id = id; st.textContent = i ? CSS_DIM : CSS_ALOC; document.head.appendChild(st); } });
+  const s = state.dim ||= { semana:segundaDe(hojeBRT()), real:true };
+  const editar = pode('alocacao', 'editar');
+  $app.innerHTML = `
+    <div class="barra"><h2>Time necessário x Meta</h2>
+      <div class="al-dia"><button class="btn" id="dm-ant" title="Semana anterior">‹</button><span class="dm-sem">${dataBR(s.semana).slice(0, 5)} – ${dataBR(addDias(s.semana, 6)).slice(0, 5)}</span><button class="btn" id="dm-prox" title="Próxima semana">›</button>${s.semana !== segundaDe(hojeBRT()) ? '<button class="btn mini" id="dm-hoje">Esta semana</button>' : ''}</div>
+      <span style="flex:1"></span><span class="info" id="dm-salvo"></span>
+      <button class="btn" id="dm-par">⚙ Parâmetros</button>
+      ${editar ? '<button class="btn" id="dm-fontes" title="Preenche os volumes com os números do sistema">↓ Puxar volumes do sistema</button><button class="btn pri" id="dm-novo">+ Atividade</button>' : ''}
+    </div>
+    <div id="dim"><div class="carregando">Carregando o dimensionamento…</div></div>`;
+  const $ = k => document.getElementById(k), ir = sem => { s.semana = sem; telaDimensionamento(); };
+  $('dm-ant').onclick = () => ir(addDias(s.semana, -7)); $('dm-prox').onclick = () => ir(addDias(s.semana, 7));
+  const hj = $('dm-hoje'); if (hj) hj.onclick = () => ir(segundaDe(hojeBRT()));
+  $('dm-par').onclick = parametrosDim;
+  const f = $('dm-fontes'); if (f) f.onclick = () => { if (!confirmaDupla(f, 'Clique de novo: substitui os volumes dos dias')) return; const n = aplicarFontesDim(state.dimDados, false); salvarDim(`puxou ${n} volume(s) do sistema`); renderDim(); avisar(`${n} volume(s) atualizados com os números do sistema`); };
+  const nv = $('dm-novo'); if (nv) nv.onclick = () => editarAtivDim(null);
+  carregarDim();
+}
+async function carregarDim(){
+  const s = state.dim;
+  try {
+    const r = await apiDim(`/dimensionamento?semana=${s.semana}`);
+    // plano comercial do FULL (pares por dia para bater a meta), para quem vê o comercial
+    r.plano = null;
+    if (pode('full_comercial', 'ver')) { try { const m1 = s.semana.slice(0, 7), m2 = mesMais(addDias(s.semana, 6).slice(0, 7), 1);
+      const c = await apiCom(`/comercial?de=${m1}&ate=${m2}`); r.plano = {};
+      for (let m = m1; m <= m2; m = mesMais(m, 1)) calcMesCom(c, m).dias.forEach(x => { if (x.d >= s.semana && x.d <= addDias(s.semana, 6) && x.alvo && r.plano[x.d] == null) r.plano[x.d] = x.alvo; });
+    } catch (e) { if (e instanceof SemSessao) throw e; r.plano = null; } }
+    r.novo = !r.doc;
+    if (!r.doc) { r.doc = r.modelo ? docDeModelo(r.modelo, r) : docPadraoDim(r); aplicarFontesDim(r, true); }
+    state.dimDados = r; renderDim();
+  } catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('dim'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+// salva em seguida a cada mudança (uma por vez)
+let filaDim = Promise.resolve();
+function salvarDim(resumo){
+  if (!pode('alocacao', 'editar')) return;
+  const r = state.dimDados, el = document.getElementById('dm-salvo'); if (el) el.textContent = 'salvando…';
+  filaDim = filaDim.then(async () => {
+    try { const x = await apiDim('/dimensionamento/salvar', { semana:r.semana, doc:r.doc, versao:r.versao, resumo }); r.versao = x.versao; r.novo = false;
+      const e2 = document.getElementById('dm-salvo'); if (e2) e2.textContent = `salvo ${new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}`; document.getElementById('dm-banner')?.remove(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); const e2 = document.getElementById('dm-salvo'); if (e2) e2.textContent = 'não salvo'; }
+  });
+}
+const fmtPd = v => (Math.round(v * 10) / 10).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 });
+function renderDim(){
+  const s = state.dim, r = state.dimDados, $c = document.getElementById('dim'); if (!$c || !r) return;
+  const d = r.doc, C = calcDim(r), editar = pode('alocacao', 'editar'), dis = editar ? '' : 'disabled', S = C.S;
+  const foco = document.activeElement?.dataset?.k;
+  const temReal = d.atividades.some(a => a.modo !== 'fixo' && Number(a.real) > 0 && Number(a.meta) > 0);
+  const hoje = r.hoje || hojeBRT();
+  $c.innerHTML = `
+    ${r.novo ? `<div class="pl-aviso val" id="dm-banner">Semana ainda não salva. ${r.modelo ? 'Atividades e metas vieram da última semana salva' : 'Comece pelas metas de cada atividade (pares/pedidos por hora-pessoa)'}; os volumes foram puxados do sistema onde havia número. Qualquer alteração já salva.${editar ? ' <button class="btn mini" id="dm-salvar-ja">Salvar assim</button>' : ''}</div>` : ''}
+    <div class="rr-res cm-tiles dm-tiles">
+      <div class="rr-tile" style="--c:#02285a"><span>Time necessário (pico)</span><b>${S.pico} <small style="font-size:12px;font-weight:400">pessoas</small></b><small>média ${fmtPd(S.media)}/dia · com ${d.ausencia}% de margem de ausência</small></div>
+      <div class="rr-tile" style="--c:${S.falta.length ? '#c62828' : '#1a7a3e'}"><span>Disponíveis</span><b>${fmtPd(S.dispMed)} <small style="font-size:12px;font-weight:400">por dia</small></b><small>${S.falta.length ? `falta gente em ${S.falta.length} dia(s): ${S.falta.map(x => DOW_CURTO[dowDe(x.d)]).join(', ')}` : 'cobre todos os dias'}</small></div>
+      <div class="rr-tile" style="--c:#9a5b00"><span>Ocupação do time</span><b>${S.util != null ? Math.round(S.util * 100) + '%' : '–'}</b><small>${fmtN(Math.round(S.hp))} horas-pessoa na semana · ${d.horas_dia}h × ${d.eficiencia}% = ${fmtPd(C.hprod)}h produtivas/pessoa</small></div>
+      <div class="rr-tile" style="--c:#6b3fa0"><span>No ritmo real</span><b>${temReal ? `${S.picoR} <small style="font-size:12px;font-weight:400">pessoas no pico</small>` : '–'}</b><small>${temReal ? (S.mediaR > S.media + 0.05 ? `bater a meta vale <span style="font-weight:700;color:#6b3fa0">${fmtPd(S.mediaR - S.media)} pessoa(s)/dia</span>` : S.mediaR < S.media - 0.05 ? 'o time já rende acima da meta' : 'meta igual ao ritmo real') : 'informe o ritmo real das atividades para comparar'}</small></div>
+    </div>
+    ${S.semMeta.length ? `<div class="aviso-rom">⚠ Sem meta (não entram na conta): ${S.semMeta.map(k => esc(k.a.nome)).join(', ')}.</div>` : ''}
+    <div class="painel"><h3 class="cs-sub">Pessoas por dia <span class="info">necessárias pela meta x disponíveis</span></h3>${graficoDim(C, temReal)}</div>
+    <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full dm-tab"><thead><tr><th style="text-align:left">Atividade</th><th>Meta<small>por hora-pessoa</small></th><th>Real<small>por hora-pessoa</small></th>
+      ${C.dias.map(x => { const t = C.trab.includes(x); return `<th class="${t ? '' : 'dm-off'} ${x === hoje ? 'dm-hj' : ''}">${DOW_CURTO[dowDe(x)]} ${x.slice(8)}/${x.slice(5, 7)}${t ? '<small>volume · pessoas</small>' : '<small>não trabalha</small>'}</th>`; }).join('')}<th>Semana<small>volume · pessoas/dia</small></th></tr></thead><tbody>
+      ${C.A.map((k, i) => { const a = k.a, T = TIPOS_ALOC[a.tipo] || TIPOS_ALOC.outro, fixo = a.modo === 'fixo';
+        return `<tr><td style="text-align:left"><button class="lnk dm-at" data-at="${i}" style="--c:${T.cor}" ${editar ? '' : 'disabled'}><i></i><b>${esc(a.nome)}</b></button><small>${fixo ? 'pessoas fixas no dia' : `${esc(a.unidade)}${a.fonte ? ` · ${esc(FONTES_DIM[a.fonte] || '')}` : ''}${a.janela ? ` · janela ${a.janela}h` : ''}`}</small></td>
+          <td>${fixo ? '<span class="info">–</span>' : `<input class="dm-in" data-k="m${i}" data-meta="${i}" inputmode="decimal" value="${a.meta ?? ''}" placeholder="meta" ${dis}>`}</td>
+          <td>${fixo ? '<span class="info">–</span>' : `<input class="dm-in dm-real" data-k="r${i}" data-real="${i}" inputmode="decimal" value="${a.real ?? ''}" placeholder="–" ${dis}>`}${!fixo && a.meta && a.real ? `<small class="${a.real < a.meta ? 'dif' : 'ok'}">${Math.round(a.real / a.meta * 100)}% da meta</small>` : ''}</td>
+          ${C.dias.map(x => { if (!C.trab.includes(x)) return '<td class="dm-off"></td>'; const p = k.por[x], sug = fixo ? null : fonteDim(r, a, x);
+            return `<td><input class="dm-in dm-vol" data-k="v${i}|${x}" data-vol="${i}|${x}" inputmode="numeric" value="${fixo ? (a.fixo ?? '') : (a.vol?.[x] ?? '')}" placeholder="${sug != null ? fmtN(sug) : '0'}" ${dis} ${fixo ? 'title="pessoas fixas (vale para todos os dias)"' : ''}>
+              <small class="${p.semMeta ? 'dif' : ''}">${p.semMeta ? 'sem meta' : p.p ? fmtPd(p.p) : ''}${p.sim && Math.ceil(p.sim - 1e-9) > Math.ceil(p.p - 1e-9) ? ` · ${Math.ceil(p.sim - 1e-9)} juntas` : ''}</small></td>`; }).join('')}
+          <td><b>${fixo ? '' : fmtN(k.tot.v)}</b><small>${k.tot.p ? fmtPd(k.tot.p) + '/dia' : ''}</small></td></tr>`; }).join('')}
+      </tbody><tfoot>
+        <tr><td style="text-align:left" colspan="3">Horas-pessoa</td>${C.dias.map(x => { const k = C.D.find(y => y.d === x); return `<td class="${k ? '' : 'dm-off'}">${k ? fmtPd(k.hp) + 'h' : ''}</td>`; }).join('')}<td>${fmtN(Math.round(S.hp))}h</td></tr>
+        <tr><td style="text-align:left" colspan="3">Pessoas pela meta <small>soma das atividades</small></td>${C.dias.map(x => { const k = C.D.find(y => y.d === x); return `<td class="${k ? '' : 'dm-off'}">${k ? fmtPd(k.p) : ''}</td>`; }).join('')}<td></td></tr>
+        <tr class="dm-nec"><td style="text-align:left" colspan="3">Time necessário <small>+ ${d.ausencia}% de ausência, arredondado para cima</small></td>${C.dias.map(x => { const k = C.D.find(y => y.d === x); return `<td class="${k ? '' : 'dm-off'}">${k ? `<b>${k.nec}</b>` : ''}</td>`; }).join('')}<td><b>${S.pico}</b><small>pico</small></td></tr>
+        ${temReal ? `<tr><td style="text-align:left" colspan="3">No ritmo real <small>se o time render o histórico</small></td>${C.dias.map(x => { const k = C.D.find(y => y.d === x); return `<td class="${k ? '' : 'dm-off'}">${k ? `${k.necR}` : ''}</td>`; }).join('')}<td>${S.picoR}<small>pico</small></td></tr>` : ''}
+        <tr><td style="text-align:left" colspan="3">Disponíveis <small>${editar ? 'digite quem estará no dia (férias, folgas, atestados)' : ''}</small></td>${C.dias.map(x => { const k = C.D.find(y => y.d === x);
+          return `<td class="${k ? '' : 'dm-off'}">${k ? `<input class="dm-in dm-vol" data-k="d${x}" data-disp="${x}" inputmode="numeric" value="${d.disp?.[x] ?? ''}" placeholder="${d.disp_padrao ?? 0}" ${dis}>` : ''}</td>`; }).join('')}<td>${fmtPd(S.dispMed)}<small>média</small></td></tr>
+        <tr class="dm-saldo"><td style="text-align:left" colspan="3">Saldo <small>disponíveis − necessário</small></td>${C.dias.map(x => { const k = C.D.find(y => y.d === x);
+          return `<td class="${k ? (k.saldo < 0 ? 'neg' : k.saldo > 1 ? 'folga' : 'ok') : 'dm-off'}">${k ? `<b>${k.saldo > 0 ? '+' : ''}${k.saldo}</b>${temReal && k.saldoR !== k.saldo ? `<small>real: ${k.saldoR > 0 ? '+' : ''}${k.saldoR}</small>` : ''}` : ''}</td>`; }).join('')}<td></td></tr>
+      </tfoot></table></div>
+    ${C.D.some(x => x.sim.length) ? `<div class="aviso-rom">⚠ Atividade com janela pede mais gente ao mesmo tempo do que há no dia: ${C.D.filter(x => x.sim.length).map(x => `${DOW_CURTO[dowDe(x.d)]}: ${x.sim.map(s => `${esc(s.nome)} precisa de ${s.n} em ${s.janela}h`).join(', ')}`).join(' · ')}</div>` : ''}
+    <div class="info cs-nota"><b>Como funciona:</b> horas-pessoa = volume ÷ meta por hora-pessoa; pessoas = horas-pessoa ÷ (${d.horas_dia}h × ${d.eficiencia}% de eficiência = ${fmtPd(C.hprod)}h produtivas).
+      A eficiência desconta pausas, deslocamento, reunião, ginástica, troca de atividade. Time necessário = soma das atividades ÷ (1 − ${d.ausencia}% de ausência), arredondado para cima.
+      "Real" = ritmo de verdade (a separação e a conferência do FULL vêm dos apontamentos dos últimos 30 dias); "juntas" = quantas pessoas ao mesmo tempo a atividade pede para caber na janela.
+      Volumes em cinza são o que o sistema sugere (${d.fonte_full === 'plano' && r.plano ? 'FULL pelo plano comercial' : 'FULL pelo programado'}; pedidos e CROSS pela média dos mesmos dias nas últimas 4 semanas).</div>
+    ${r.eventos?.length ? `<div class="info" style="margin-top:6px">Última alteração: ${quando(r.eventos[0].em)} por ${esc(String(r.eventos[0].por).split('@')[0])}</div>` : ''}`;
+  const num = v => { const t = String(v).trim().replace(/\./g, '').replace(',', '.'); if (!t) return null; const n = Number(t); return Number.isFinite(n) && n >= 0 ? n : null; };
+  $c.querySelectorAll('[data-at]').forEach(b => b.onclick = () => editarAtivDim(Number(b.dataset.at)));
+  const sj = document.getElementById('dm-salvar-ja'); if (sj) sj.onclick = () => salvarDim('criou a semana');
+  const muda = (i, fn, resumo) => i.onchange = () => setTimeout(() => { const k = document.activeElement?.dataset?.k; fn(num(i.value)); salvarDim(resumo); renderDim();
+    if (k) { const n = $c.querySelector(`[data-k="${CSS.escape(k)}"]`); if (n) { n.focus(); n.select?.(); } } });
+  $c.querySelectorAll('[data-meta]').forEach(i => { const a = d.atividades[i.dataset.meta]; muda(i, v => { a.meta = v || null; }, `meta de ${a.nome}`); });
+  $c.querySelectorAll('[data-real]').forEach(i => { const a = d.atividades[i.dataset.real]; muda(i, v => { a.real = v || null; a.real_auto = false; }, `ritmo real de ${a.nome}`); });
+  $c.querySelectorAll('[data-vol]').forEach(i => { const [k, x] = i.dataset.vol.split('|'), a = d.atividades[k];
+    muda(i, v => { if (a.modo === 'fixo') a.fixo = v || 0; else { a.vol ||= {}; if (v == null) delete a.vol[x]; else a.vol[x] = Math.round(v); } }, `volume de ${a.nome} (${dataBR(x).slice(0, 5)})`); });
+  $c.querySelectorAll('[data-disp]').forEach(i => { const x = i.dataset.disp; muda(i, v => { d.disp ||= {}; if (v == null) delete d.disp[x]; else d.disp[x] = Math.round(v); }, `disponíveis em ${dataBR(x).slice(0, 5)}`); });
+  if (foco) { const n = $c.querySelector(`[data-k="${CSS.escape(foco)}"]`); if (n) n.focus(); }
+}
+// barras empilhadas por atividade (pessoas) + marca de disponíveis e do necessário no ritmo real
+function graficoDim(C, temReal){
+  if (!C.D.length) return '<div class="vazio">Nenhum dia trabalhado na semana (⚙ Parâmetros).</div>';
+  const n = C.D.length, P = 110, W = n * P + 60, H = 240, base = 200, alt = 175;
+  const max = Math.max(1, ...C.D.map(x => Math.max(x.nec, x.disp, temReal ? x.necR : 0))) * 1.1, y = v => base - v / max * alt;
+  const xi = i => 50 + i * P + P / 2, bw = P * 0.42;
+  const marcas = []; for (let v = 0; v <= max; v += max > 30 ? 10 : max > 12 ? 5 : 2) marcas.push(v);
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Pessoas necessárias por dia">
+    ${marcas.map(v => `<line x1="50" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#eef0f4"/><text x="44" y="${y(v) + 3}" text-anchor="end" font-size="9" fill="#8a93a5">${v}</text>`).join('')}
+    ${C.D.map((x, i) => { let ac = 0; const segs = C.A.filter(k => k.por[x.d].p > 0).map(k => { const v = k.por[x.d].p, y0 = y(ac + v), h = y(ac) - y(ac + v); ac += v;
+        return `<rect x="${xi(i) - bw / 2}" y="${y0}" width="${bw}" height="${h}" fill="${(TIPOS_ALOC[k.a.tipo] || TIPOS_ALOC.outro).cor}" opacity=".88"><title>${dataBR(x.d).slice(0, 5)} · ${esc(k.a.nome)}: ${fmtPd(v)} pessoa(s)</title></rect>`; }).join('');
+      const margem = x.nec - ac;
+      return `${segs}${margem > 0 ? `<rect x="${xi(i) - bw / 2}" y="${y(x.nec)}" width="${bw}" height="${y(ac) - y(x.nec)}" fill="url(#dm-hach)" stroke="#8a93a5" stroke-width=".6"><title>margem de ausência e arredondamento</title></rect>` : ''}
+        <text x="${xi(i)}" y="${y(x.nec) - 5}" text-anchor="middle" font-size="12" font-weight="700" fill="#02285a">${x.nec}</text>
+        <line x1="${xi(i) - P * 0.4}" x2="${xi(i) + P * 0.4}" y1="${y(x.disp)}" y2="${y(x.disp)}" stroke="${x.saldo < 0 ? '#c62828' : '#1a7a3e'}" stroke-width="3"><title>disponíveis: ${x.disp}</title></line>
+        ${temReal ? `<circle cx="${xi(i) + bw / 2 + 9}" cy="${y(x.necR)}" r="4.5" fill="#6b3fa0"><title>no ritmo real: ${x.necR}</title></circle>` : ''}
+        <text x="${xi(i)}" y="${H - 22}" text-anchor="middle" font-size="11" fill="#566074">${DOW_CURTO[dowDe(x.d)]} ${x.d.slice(8)}/${x.d.slice(5, 7)}</text>
+        <text x="${xi(i)}" y="${H - 8}" text-anchor="middle" font-size="11" font-weight="700" fill="${x.saldo < 0 ? '#c62828' : '#1a7a3e'}">${x.saldo > 0 ? '+' : ''}${x.saldo}</text>`; }).join('')}
+    <defs><pattern id="dm-hach" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#b0b7c4" stroke-width="2"/></pattern></defs>
+    <line x1="50" x2="${W}" y1="${base + 0.5}" y2="${base + 0.5}" stroke="#d5dae3"/></svg></div>
+    <div class="cs-leg">${[...new Map(C.A.filter(k => k.tot.p > 0).map(k => [k.a.tipo, k])).values()].map(k => `<span><i style="background:${(TIPOS_ALOC[k.a.tipo] || TIPOS_ALOC.outro).cor}"></i>${esc((TIPOS_ALOC[k.a.tipo] || TIPOS_ALOC.outro).rot)}</span>`).join('')}
+      <span><i style="background:repeating-linear-gradient(45deg,#b0b7c4 0 2px,#fff 2px 4px)"></i>margem de ausência</span><span><i style="background:#1a7a3e;height:3px"></i>disponíveis (vermelho = falta)</span>${temReal ? '<span><i style="background:#6b3fa0;border-radius:50%"></i>necessário no ritmo real</span>' : ''}</div>`;
+}
+function parametrosDim(){
+  const r = state.dimDados; if (!r) return; const d = r.doc, editar = pode('alocacao', 'editar'), dis = editar ? '' : 'disabled';
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel al-mod"><h3 style="margin:0 0 8px">Parâmetros da semana</h3>
+    <div class="grade-form g2">
+      <label>Horas de trabalho por pessoa/dia <span class="info">(sem o almoço)</span><input id="dp-h" inputmode="decimal" value="${String(d.horas_dia).replace('.', ',')}" ${dis}></label>
+      <label>Eficiência <span class="info">(% do tempo de fato produzindo)</span><input id="dp-ef" inputmode="numeric" value="${d.eficiencia}" ${dis}></label>
+      <label>Margem de ausência <span class="info">(faltas, atestados, folgas — %)</span><input id="dp-au" inputmode="numeric" value="${d.ausencia}" ${dis}></label>
+      <label>Disponíveis por dia <span class="info">(padrão; ${r.pessoas_ativas} trabalharam nas últimas 4 semanas)</span><input id="dp-disp" inputmode="numeric" value="${d.disp_padrao ?? ''}" ${dis}></label>
+      <label>Volume do FULL vem de<select id="dp-ff" ${dis}><option value="plano" ${d.fonte_full === 'plano' ? 'selected' : ''}>Plano comercial${r.plano ? '' : ' (sem acesso)'}</option><option value="programado" ${d.fonte_full !== 'plano' ? 'selected' : ''}>Envios programados</option></select></label>
+    </div>
+    <div class="gv-sec">Dias trabalhados</div><div class="al-chips">${[1, 2, 3, 4, 5, 6, 7].map(i => `<label class="al-chip"><input type="checkbox" data-dt="${i}" ${d.dias_trab.includes(i) ? 'checked' : ''} ${dis}><span>${DOW_LONGO[i % 7]}</span></label>`).join('')}</div>
+    <div class="info" style="margin-top:8px">Referência: jornada de 44h/semana em 5 dias ≈ 8,8h por dia. Eficiência de 80–90% é comum em operação de armazém; abaixo de 75%, vale olhar o que está roubando tempo.</div>
+    <div class="gv-acoes"><button class="btn" data-x>Fechar</button>${editar ? '<button class="btn pri" id="dp-ok">Aplicar</button>' : ''}</div></div>`;
+  document.body.appendChild(dlg);
+  const q = k => dlg.querySelector(k); q('[data-x]').onclick = () => dlg.remove();
+  const ok = q('#dp-ok'); if (ok) ok.onclick = () => {
+    const h = Number(q('#dp-h').value.replace(',', '.')), ef = Number(q('#dp-ef').value), au = Number(q('#dp-au').value), dp = q('#dp-disp').value === '' ? 0 : Number(q('#dp-disp').value);
+    if (!(h > 0 && h <= 16)) return avisar('Horas por dia: entre 0 e 16', true); if (!(ef >= 30 && ef <= 100)) return avisar('Eficiência: entre 30% e 100%', true);
+    if (!(au >= 0 && au <= 50)) return avisar('Ausência: entre 0% e 50%', true);
+    const dt = [...dlg.querySelectorAll('[data-dt]:checked')].map(x => Number(x.dataset.dt)); if (!dt.length) return avisar('Marque ao menos um dia', true);
+    const ffMudou = d.fonte_full !== q('#dp-ff').value;
+    Object.assign(d, { horas_dia:h, eficiencia:ef, ausencia:au, disp_padrao:Math.round(dp), dias_trab:dt, fonte_full:q('#dp-ff').value });
+    if (ffMudou) avisar('Fonte do FULL trocada: use "↓ Puxar volumes do sistema" para atualizar os números');
+    salvarDim('alterou os parâmetros'); dlg.remove(); renderDim(); };
+}
+function editarAtivDim(i){
+  const r = state.dimDados, d = r.doc, novo = i == null, a = novo ? { id:idDim(), nome:'', tipo:'outro', unidade:'pares', fonte:'', modo:'volume', meta:null, real:null, janela:null, vol:{} } : d.atividades[i];
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel al-mod"><h3 style="margin:0 0 8px">${novo ? 'Nova atividade' : 'Editar atividade'}</h3>
+    <div class="grade-form g2">
+      <label>Nome<input id="da-nome" value="${esc(a.nome)}" maxlength="50" placeholder="ex.: Devoluções"></label>
+      <label>Grupo (cor)<select id="da-tipo">${Object.entries(TIPOS_ALOC).map(([k, t]) => `<option value="${k}" ${a.tipo === k ? 'selected' : ''}>${esc(t.rot)}</option>`).join('')}</select></label>
+      <label>Como conta<select id="da-modo"><option value="volume" ${a.modo !== 'fixo' ? 'selected' : ''}>Por volume (volume ÷ meta)</option><option value="fixo" ${a.modo === 'fixo' ? 'selected' : ''}>Pessoas fixas no dia (líder de turno, apoio…)</option></select></label>
+      <label class="da-v">Unidade<input id="da-un" list="dl-un" value="${esc(a.unidade || 'pares')}"><datalist id="dl-un">${UNID_DIM.map(u => `<option value="${u}">`).join('')}</datalist></label>
+      <label class="da-v">Meta <span class="info">(unidades por hora-pessoa)</span><input id="da-meta" inputmode="decimal" value="${a.meta ?? ''}"></label>
+      <label class="da-v">Ritmo real <span class="info">(opcional, para comparar)</span><input id="da-real" inputmode="decimal" value="${a.real ?? ''}"></label>
+      <label class="da-v">Janela <span class="info">(horas em que precisa caber; opcional)</span><input id="da-jan" inputmode="decimal" value="${a.janela ?? ''}" placeholder="ex.: 4"></label>
+      <label class="da-v">Volume sugerido pelo sistema<select id="da-fonte">${Object.entries(FONTES_DIM).map(([k, t]) => `<option value="${k}" ${(a.fonte || '') === k ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
+      <label class="da-f">Pessoas fixas por dia<input id="da-fixo" inputmode="numeric" value="${a.fixo ?? ''}"></label>
+    </div>
+    <div class="info">Janela: ex. a conferência do FULL precisa acabar antes do caminhão (4h) — o portal mostra quantas pessoas ao mesmo tempo isso pede.</div>
+    <div class="gv-acoes">${novo ? '' : '<button class="btn perigo" id="da-del">Excluir</button><button class="btn" id="da-sobe" title="Subir na lista">↑</button>'}<span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="da-ok">${novo ? 'Incluir' : 'Salvar'}</button></div></div>`;
+  document.body.appendChild(dlg);
+  const q = k => dlg.querySelector(k), modo = () => { const f = q('#da-modo').value === 'fixo'; dlg.querySelectorAll('.da-v').forEach(e => { e.hidden = f; }); q('.da-f').hidden = !f; };
+  q('#da-modo').onchange = modo; modo(); q('[data-x]').onclick = () => dlg.remove();
+  const n = v => { const t = String(v).trim().replace(',', '.'); return t === '' ? null : Number(t); };
+  q('#da-ok').onclick = () => { const nome = q('#da-nome').value.trim(); if (!nome) return avisar('Dê um nome à atividade', true);
+    const m = q('#da-modo').value, meta = n(q('#da-meta').value);
+    if (m !== 'fixo' && !(meta > 0)) return avisar('Informe a meta por hora-pessoa', true);
+    const real = n(q('#da-real').value), jan = n(q('#da-jan').value);
+    Object.assign(a, { nome, tipo:q('#da-tipo').value, modo:m, unidade:q('#da-un').value.trim() || 'unid.', meta:m === 'fixo' ? null : meta, real:real > 0 ? real : null, real_auto:a.real === real ? a.real_auto : false,
+      janela:jan > 0 ? jan : null, fonte:m === 'fixo' ? '' : q('#da-fonte').value, fixo:m === 'fixo' ? Math.round(n(q('#da-fixo').value) || 0) : undefined });
+    if (novo) { d.atividades.push(a); if (a.fonte) aplicarFontesDim({ ...r, doc:{ ...d, atividades:[a] } }, true); }
+    salvarDim(novo ? `incluiu ${nome}` : `alterou ${nome}`); dlg.remove(); renderDim(); };
+  const del = q('#da-del'); if (del) del.onclick = () => { if (!confirmaDupla(del, 'Clique de novo para excluir')) return; d.atividades.splice(i, 1); salvarDim(`excluiu ${a.nome}`); dlg.remove(); renderDim(); };
+  const sb = q('#da-sobe'); if (sb) sb.onclick = () => { if (i > 0) { d.atividades.splice(i - 1, 0, d.atividades.splice(i, 1)[0]); salvarDim('reordenou'); } dlg.remove(); renderDim(); };
+}
+const CSS_DIM = `
+  .dm-sem{font-weight:700;padding:0 8px;white-space:nowrap}
+  .dm-tiles{grid-template-columns:repeat(4,minmax(170px,1fr))} @media (max-width:1000px){ .dm-tiles{grid-template-columns:1fr 1fr} }
+  .dm-tab{min-width:1050px} .dm-tab td,.dm-tab th{padding:6px 6px;text-align:center;vertical-align:top} .dm-tab th small,.dm-tab td small{display:block;font-size:10.5px;font-weight:400;color:#566074}
+  .dm-tab th.dm-off,.dm-tab td.dm-off{background:#f4f5f8;color:#b0b7c4} .dm-tab th.dm-hj{box-shadow:inset 0 3px 0 #f1c300}
+  .dm-in{width:64px;text-align:center;padding:4px;border:1px solid var(--line);border-radius:5px;font:inherit;font-size:13px} .dm-in.dm-real{border-style:dashed} .dm-in:disabled{background:transparent;border-color:transparent;color:inherit}
+  .dm-at{display:flex;align-items:center;gap:6px;text-align:left;padding:0} .dm-at i{width:10px;height:10px;border-radius:3px;background:var(--c);flex:none} .dm-at:disabled{cursor:default;text-decoration:none;color:inherit}
+  .dm-tab td:first-child small{padding-left:16px}
+  .dm-tab tfoot td{border-top:1px solid var(--line);background:#fafbfd} .dm-tab tr.dm-nec td{font-size:15px;color:#02285a;border-top:2px solid #02285a}
+  .dm-tab tr.dm-saldo td.neg{background:#fbe9e9;color:#c62828} .dm-tab tr.dm-saldo td.ok{background:#e9f7ee;color:#1a7a3e} .dm-tab tr.dm-saldo td.folga{background:#e3eefc;color:#0b4fa8}
+  .dm-tab .ok{color:#1a7a3e} .dm-tab .dif{color:#c62828}
+`;
+
 /* =================== ALOCAÇÃO DO TIME (planejamento do dia em linha do tempo) =================== */
 // Blocos de atividade por pessoa e por horário. A duração da separação e da conferência sai dos pares ÷ (ritmo × pessoas),
 // pulando o almoço. Todo mundo vê a mesma página; líder edita.
@@ -6574,6 +6849,7 @@ const MENU = [
   { id:'comercial', titulo:'Comercial', tag:'Em desenvolvimento', filhos:[] },
   { id:'gestao', titulo:'Gestão do time', filhos:[
     { view:'alocacao', titulo:'Alocação do dia', tela:'alocacao' },
+    { view:'dimensionamento', titulo:'Time necessário x Meta', tela:'alocacao' },
     { view:'oo', titulo:'One-on-One', tela:'oo' },
     { view:'ponto', titulo:'Apontamentos de ponto', tela:'ponto' },
     { view:'testes', titulo:'Testes de perfil' },
@@ -6586,7 +6862,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { alocacao:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -6633,7 +6909,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -6652,6 +6928,7 @@ function irPara(view){
   if (view === 'impressos') return telaImpressos();
   if (view === 'consolidado') return telaConsolidado();
   if (view === 'alocacao') return telaAlocacao();
+  if (view === 'dimensionamento') return telaDimensionamento();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
