@@ -291,6 +291,15 @@
   .cm-sem td,.cm-sem th{padding:7px 9px;vertical-align:top} .cm-sem td small{display:block;font-size:11px;color:var(--mute)} .cm-sem tr.cm-pass td{color:#8a93a5}
   .cm-sem b.ok{color:#1a7a3e} .cm-neg{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px} .cm-neg label{display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--mute)}
   .cm-neg span{max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .cm-neg input{width:46px;text-align:center;padding:3px;border:1px solid var(--line);border-radius:5px;font:inherit;font-size:13px}
+  .pl-modal .painel.cm-smod{width:min(1180px,97vw)} .sm-op{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;margin:10px 0;font-size:13px} .sm-op label{display:flex;flex-direction:column;gap:2px} .sm-op label:first-child{flex-direction:row;align-items:center;gap:6px}
+  .sm-op input#sm-lim{width:120px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font:inherit}
+  .sm-tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line);margin:6px 0 8px} .sm-tabs button{border:1px solid var(--line);border-bottom:none;background:#f4f5f8;border-radius:8px 8px 0 0;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:#566074}
+  .sm-tabs button.on{background:#fff;color:#02285a;font-weight:700;box-shadow:inset 0 3px 0 #f1c300} .sm-tabs [data-novo]{background:none;border-style:dashed}
+  .sm-nome{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;font-size:13px} .sm-nome input{padding:4px 7px;border:1px solid var(--line);border-radius:6px;font:inherit;width:190px}
+  .sm-grade td,.sm-grade th{padding:5px 7px;text-align:center} .sm-grade th small,.sm-grade td small{display:block;font-size:10px;font-weight:400} .sm-q{width:46px;text-align:center;padding:4px;border:1px solid var(--line);border-radius:5px;font:inherit}
+  .sm-grade tr.cm-off td{background:#f7f8fa;color:#8a93a5} .sm-grade tfoot td{font-weight:700;border-top:2px solid var(--line)}
+  .sm-res{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0 6px} .sm-res>div{background:#f6f8fb;border-radius:8px;padding:8px 10px} .sm-res span{display:block;font-size:11px;color:#566074} .sm-res b{font-size:18px} .sm-res small{display:block;font-size:11px;color:#8a93a5}
+  .sm-comp td small{display:block} .cm-smod .ok,.cm-fr .ok,.rd-ocup .ok{color:#1a7a3e} .cm-smod .dif,.cm-fr .dif,.rd-ocup .dif{color:#c62828} @media (max-width:760px){ .sm-res{grid-template-columns:1fr 1fr} }
   .pl-modal .painel.cm-vmod{width:min(1080px,96vw);max-height:92vh;overflow:auto} .cm-vtab td,.cm-vtab th{padding:6px 7px} .cm-vtab td small{display:block;font-size:10.5px} .cm-nome{width:150px;text-align:left}
   @media (max-width:1000px){ .cm-t5{grid-template-columns:1fr 1fr} }
   /* alocação do dia */
@@ -2878,7 +2887,7 @@ const DEMO_COM = (() => {
   [[-1, 1], [0, 1.05], [1, 1.25]].forEach(([k, f]) => { const mes = mesMais(m0, k);
     metas.push({ mes, cnpj_id:'DIGOS', meta_valor:Math.round(4500000 * f), ticket:78 }, { mes, cnpj_id:'DROSA', meta_valor:Math.round(2150000 * f), ticket:82 }, { mes, cnpj_id:'CACAL', meta_valor:Math.round(1500000 * f), ticket:85 }); });
   return { metas, meses:[], bloqueios:[['2026-10-12', 'Nossa Senhora Aparecida'], ['2026-11-02', 'Finados'], ['2026-11-20', 'Consciência Negra'], ['2026-12-25', 'Natal']].map(([data, motivo]) => ({ data, motivo })),
-    dias:[0, 6], veiculos:[['Carreta', 90, null, 0, 3200], ['Truck', 50, 7000, 0, 2100], ['Toco', 40, 5600, 0, 1750], ['Caminhão 3/4', 25, 3200, 1, 1300], ['VUC', 16, 2200, 0, 950]]
+    dias:[0, 6], simOp:{ todo_dia:true, limite_dia:null }, veiculos:[['Carreta', 90, null, 0, 3200], ['Truck', 50, 7000, 0, 2100], ['Toco', 40, 5600, 0, 1750], ['Caminhão 3/4', 25, 3200, 1, 1300], ['VUC', 16, 2200, 0, 950]]
       .map(([nome, m3, pares, disp, custo], i) => ({ id:String(i + 1), nome, capacidade_m3:m3, capacidade_pares:pares, disponiveis:disp, custo_viagem:custo, ativo:true })), semanas:[], seq:10 };
 })();
 function demoRealCom(de, fim){
@@ -2904,7 +2913,7 @@ async function apiCom(path, corpo){
   const D = DEMO_COM, cp = x => JSON.parse(JSON.stringify(x));
   if (path.startsWith('/comercial?')) { const q = new URLSearchParams(path.split('?')[1]), de = q.get('de'), ate = q.get('ate');
     return { de, ate, metas:cp(D.metas), meses:cp(D.meses), bloqueios:cp(D.bloqueios), dias_sem_embarque:cp(D.dias), veiculos:cp(D.veiculos), semanas:cp(D.semanas), m3_por_par:DEMO_FULL.m3_por_par ?? 0.007,
-      real:demoRealCom(addDias(de + '-01', -45), fimDoMes(ate)), fretes:demoFretesCom(addDias(de + '-01', -45), fimDoMes(ate)), hoje:hojeBRT() }; }
+      real:demoRealCom(addDias(de + '-01', -45), fimDoMes(ate)), fretes:demoFretesCom(addDias(de + '-01', -45), fimDoMes(ate)), sim_opcoes:cp(D.simOp), hoje:hojeBRT() }; }
   if (path === '/comercial/salvar') { const t = corpo.tipo;
     if (t === 'meta') { D.metas = D.metas.filter(m => !(m.mes === corpo.mes && m.cnpj_id === corpo.cnpj_id)); if (!corpo.excluir) D.metas.push({ mes:corpo.mes, cnpj_id:corpo.cnpj_id, meta_valor:Number(corpo.meta_valor), ticket:Number(corpo.ticket) }); }
     if (t === 'mes') { D.meses = D.meses.filter(m => m.mes !== corpo.mes); D.meses.push({ mes:corpo.mes, inicio:corpo.inicio || null, prazo:corpo.prazo || null }); }
@@ -2913,7 +2922,9 @@ async function apiCom(path, corpo){
     if (t === 'veiculo') { if (corpo.id) Object.assign(D.veiculos.find(v => v.id === corpo.id), corpo); else D.veiculos.push({ ...corpo, id:String(++D.seq), ativo:true }); }
     if (t === 'veiculo_excluir') D.veiculos = D.veiculos.filter(v => v.id !== corpo.id);
     if (t === 'semana') { D.semanas = D.semanas.filter(x => x.semana !== corpo.semana); const v = Object.fromEntries(Object.entries(corpo.veiculos || {}).filter(([, q]) => Number(q) > 0).map(([k, q]) => [k, Number(q)]));
-      if (!(corpo.limpar && !Object.keys(v).length)) D.semanas.push({ semana:corpo.semana, veiculos:v }); }
+      const vd = corpo.veiculos_dia ? cp(corpo.veiculos_dia) : null;
+      if (!(corpo.limpar && !Object.keys(v).length && !vd)) D.semanas.push({ semana:corpo.semana, veiculos:vd ? {} : v, veiculos_dia:vd }); }
+    if (t === 'sim_opcoes') D.simOp = { todo_dia:corpo.todo_dia !== false, limite_dia:corpo.limite_dia || null };
     return { ok:true }; }
 }
 
@@ -2981,10 +2992,17 @@ function calcMesCom(r, mes){
   const rest = uteis.filter(x => x.d >= hoje), baseN = rest.length ? Math.floor(tot.falta / rest.length) : 0, restoN = tot.falta - baseN * rest.length;
   rest.forEach((x, i) => { x.necessario = baseN + (i < restoN ? 1 : 0); });
   metas.forEach(m => { m.faltaLoja = Math.max(0, m.pares - (tot.realLoja[m.loja] || 0)); m.necDia = rest.length && m.tem ? Math.ceil(m.faltaLoja / rest.length) : 0; });
-  const semanaNeg = seg => (r.semanas || []).find(w => w.semana === seg)?.veiculos || null;
-  dias.forEach(x => { x.alvo = x.necessario ?? (x.util ? x.tMeta : 0);
-    x.veic = x.alvo ? veiculosPara(x.alvo, r.veiculos, r.m3_por_par, semanaNeg(segundaDe(x.d))) : null; });
-  tot.custo = dias.reduce((t, x) => t + (x.veic?.custo || 0), 0); tot.paresPlan = dias.reduce((t, x) => t + (x.veic ? Math.min(x.alvo, x.veic.cap) : 0), 0);
+  // veículos de cada dia: semana negociada = os veículos daquele dia (o volume da semana se divide pela capacidade de cada dia);
+  // sem negociação = o "disponíveis/dia" do cadastro, dia a dia
+  const lim = r.sim_opcoes?.limite_dia || null, porSem = {};
+  dias.forEach(x => { x.alvo = x.necessario ?? (x.util ? x.tMeta : 0); (porSem[segundaDe(x.d)] ||= []).push(x); });
+  Object.entries(porSem).forEach(([seg, L]) => { const mapa = mapaSemana(r, seg);
+    if (!mapa) { L.forEach(x => { x.veic = x.alvo ? veiculosPara(x.alvo, r.veiculos, r.m3_por_par, null) : null; x.paresPlan = x.veic ? Math.min(x.alvo, x.veic.cap) : 0; }); return; }
+    const fut = L.filter(x => x.util && x.d >= hoje), A = avaliarSemana(fut, mapa, r.veiculos, r.m3_por_par, lim);
+    fut.forEach((x, i) => { x.veic = A.dias[i].veic; x.paresPlan = A.dias[i].leva; });
+    L.filter(x => !fut.includes(x)).forEach(x => { const k = avaliarSemana([x], mapa, r.veiculos, r.m3_por_par, lim).dias[0];
+      x.veic = x.alvo && k.n ? { ...k.veic, pool:false, falta:k.cap < x.alvo, cobertura:x.alvo ? Math.min(1, k.cap / x.alvo) : 1, ocup:k.cap ? Math.min(x.alvo, k.cap) / k.cap : 0 } : null; x.paresPlan = x.veic ? Math.min(x.alvo, x.veic.cap) : 0; }); });
+  tot.custo = dias.reduce((t, x) => t + (x.veic?.custo || 0), 0); tot.paresPlan = dias.reduce((t, x) => t + (x.paresPlan || 0), 0);
   tot.capPlan = dias.reduce((t, x) => t + (x.veic?.cap || 0), 0);
   tot.veicDia = veiculosPara(tot.porDia, r.veiculos, r.m3_por_par, 'livre');
   // semanas (segunda a domingo): meta, real, necessidade, sugestão de veículos e o que foi negociado
@@ -2997,11 +3015,183 @@ function calcMesCom(r, mes){
   tot.fr = resumoFretes(fr.filter(f => f.data >= J.inicio && f.data <= J.prazo), r.m3_por_par);
   // plano até ontem (mesmo período do realizado), para comparar
   const pas = dias.filter(x => x.d < hoje && x.veic?.itens?.length);
-  tot.planAte = { n:pas.reduce((t, x) => t + x.veic.n, 0), custo:pas.reduce((t, x) => t + (x.veic.custo || 0), 0), pares:pas.reduce((t, x) => t + Math.min(x.alvo, x.veic.cap), 0), cap:pas.reduce((t, x) => t + x.veic.cap, 0),
+  tot.planAte = { n:pas.reduce((t, x) => t + x.veic.n, 0), custo:pas.reduce((t, x) => t + (x.veic.custo || 0), 0), pares:pas.reduce((t, x) => t + (x.paresPlan || 0), 0), cap:pas.reduce((t, x) => t + x.veic.cap, 0),
     txt:Object.entries(pas.reduce((o, x) => { x.veic.itens.forEach(i => { o[i.nome] = (o[i.nome] || 0) + i.qtd; }); return o; }, {})).map(([n, q]) => `${q}× ${n}`).join(' + ') };
-  sem.forEach(s => { s.neg = semanaNeg(s.seg); s.futura = s.fim >= hoje; s.sug = s.alvoDia ? veiculosPara(s.alvoDia, r.veiculos, r.m3_por_par, 'livre') : null;
-    s.atual = s.alvoDia ? veiculosPara(s.alvoDia, r.veiculos, r.m3_por_par, s.neg) : null; });
+  sem.forEach(s => { s.mapa = mapaSemana(r, s.seg); s.futura = s.fim >= hoje;
+    s.fut = s.dias.filter(x => x.util && x.d >= hoje); s.base = s.futura ? s.fut : s.dias.filter(x => x.util);
+    s.needW = s.base.reduce((t, x) => t + (x.alvo || 0), 0); s.levaW = s.base.reduce((t, x) => t + (x.paresPlan || 0), 0);
+    s.capW = s.base.reduce((t, x) => t + (x.veic?.cap || 0), 0); s.custoW = s.base.reduce((t, x) => t + (x.veic?.custo || 0), 0); s.nW = s.base.reduce((t, x) => t + (x.veic?.n || 0), 0);
+    s.cob = s.needW ? s.levaW / s.needW : null;
+    s.sug = s.futura && s.needW ? otimizarSemana(s.needW, s.fut, r.veiculos, r.m3_por_par, r.sim_opcoes || {}) : null; });
   return { J, dias, uteis, metas, tot, sem, hoje };
+}
+
+// ---- veículos por dia da semana (negociação flexível + simulador)
+// mapa da semana: { "AAAA-MM-DD": { id: qtd } }. A forma antiga (mesma quantidade todo dia) vira um mapa igual em todos os dias.
+function mapaSemana(r, seg){
+  const w = (r.semanas || []).find(x => x.semana === seg); if (!w) return null;
+  if (w.veiculos_dia && Object.values(w.veiculos_dia).some(m => Object.keys(m || {}).length)) return w.veiculos_dia;
+  if (w.veiculos && Object.keys(w.veiculos).length) return Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map(i => [addDias(seg, i), { ...w.veiculos }]));
+  return null;
+}
+// avalia uma semana com os veículos de cada dia. O volume da semana é dividido pelos dias na proporção da capacidade
+// (dia com carreta leva mais, dia com VUC leva menos): o que vale é cobrir o total da semana.
+// lim = máximo de pares que a operação consegue separar/carregar num dia (null = sem limite)
+function avaliarSemana(dias, mapa, veics, m3, lim){
+  const V = Object.fromEntries(veics.map(v => [String(v.id), v])), L = lim || Infinity;
+  const D = dias.map(x => { const itens = Object.entries(mapa?.[x.d] || {}).filter(([id, q]) => Number(q) > 0 && V[id])
+      .map(([id, q]) => ({ id, nome:V[id].nome, qtd:Number(q), cap:capParesVeic(V[id], m3), custo:Number(V[id].custo_viagem) || 0, m3:m3Veic(V[id], m3), semCusto:!(Number(V[id].custo_viagem) > 0) }));
+    const cap = itens.reduce((t, i) => t + i.qtd * i.cap, 0);
+    return { d:x.d, alvo:x.alvo || 0, itens, cap, capEf:Math.min(cap, L), n:itens.reduce((t, i) => t + i.qtd, 0), custo:itens.reduce((t, i) => t + i.qtd * i.custo, 0),
+      m3Cap:itens.reduce((t, i) => t + i.qtd * i.m3, 0), semCusto:itens.some(i => i.semCusto) }; });
+  const need = D.reduce((t, x) => t + x.alvo, 0), capEfT = D.reduce((t, x) => t + x.capEf, 0), total = Math.min(need, capEfT);
+  D.forEach(x => { x.leva = capEfT ? Math.floor(total * x.capEf / capEfT) : 0; });
+  let resto = total - D.reduce((t, x) => t + x.leva, 0);
+  [...D].sort((a, b) => (b.capEf - b.leva) - (a.capEf - a.leva)).forEach(x => { if (resto > 0 && x.leva < x.capEf) { const k = Math.min(resto, x.capEf - x.leva); x.leva += k; resto -= k; } });
+  const cob = need ? capEfT / need : 1;
+  D.forEach(x => { x.veic = { pool:true, itens:x.itens, n:x.n, cap:x.cap, custo:x.custo, m3Cap:x.m3Cap, ocup:x.cap ? x.leva / x.cap : 0, falta:cob < 0.999, cobertura:Math.min(1, cob) }; });
+  const o = { dias:D, need, cap:D.reduce((t, x) => t + x.cap, 0), capEf:capEfT, leva:total, custo:D.reduce((t, x) => t + x.custo, 0), n:D.reduce((t, x) => t + x.n, 0),
+    m3Cap:D.reduce((t, x) => t + x.m3Cap, 0), cob:Math.min(1, cob), pico:Math.max(0, ...D.map(x => x.leva)), semCusto:D.some(x => x.semCusto), semVeic:D.filter(x => !x.n).length };
+  o.ocup = o.cap ? o.leva / o.cap : 0; o.porPar = o.leva && o.custo ? o.custo / o.leva : null; o.porM3 = o.leva && o.custo ? o.custo / (o.leva * m3) : null; o.cheio = o.cap && o.custo ? o.custo / o.cap : null;
+  o.limitado = lim ? D.some(x => x.cap > lim) : false;
+  return o;
+}
+// melhor combinação da semana: cobre o total com o menor frete (sem R$/viagem em todos: menos veículos);
+// as viagens são espalhadas pelos dias (a maior primeiro, no dia mais vazio). op.todo_dia: ao menos 1 veículo por dia.
+function otimizarSemana(need, dias, veics, m3, op = {}){
+  const T = veics.filter(v => v.ativo !== false).map(v => ({ id:String(v.id), cap:capParesVeic(v, m3), custo:Number(v.custo_viagem) || 0 })).filter(v => v.cap > 0).sort((a, b) => b.cap - a.cap);
+  const Dn = dias.length; if (!need || !Dn || !T.length) return null;
+  const L = op.limite_dia || Infinity, minN = op.todo_dia !== false ? Dn : 1;
+  const comCusto = T.every(v => v.custo > 0), minCap = Math.min(...T.map(v => Math.min(v.cap, L)));
+  const nMax = Math.min(28, Math.max(minN, Math.ceil(need / minCap)) + 1);
+  let best = null; const cont = Array(T.length).fill(0);
+  const distribui = c => { const trips = []; c.forEach((k, i) => { for (let j = 0; j < k; j++) trips.push(i); });
+    const dc = Array(Dn).fill(0), dm = Array.from({ length:Dn }, () => ({}));
+    trips.forEach(i => { let j = 0; for (let x = 1; x < Dn; x++) if (dc[x] < dc[j]) j = x; dc[j] += T[i].cap; dm[j][T[i].id] = (dm[j][T[i].id] || 0) + 1; });
+    return { dc, dm }; };
+  const avalia = (n, cap, custo) => {
+    if (n < minN || cap < need) return;
+    const sc0 = comCusto ? custo : n; if (best && sc0 > best.sc[0]) return;
+    const { dc, dm } = distribui(cont), ef = dc.reduce((t, c) => t + Math.min(c, L), 0); if (ef < need) return;
+    const pico = Math.max(...dc.map(c => Math.min(c, L))), sc = comCusto ? [custo, n, pico] : [n, custo, pico];
+    if (!best || sc[0] < best.sc[0] || (sc[0] === best.sc[0] && (sc[1] < best.sc[1] || (sc[1] === best.sc[1] && sc[2] < best.sc[2])))) best = { sc, dm }; };
+  const rec = (i, n, cap, custo) => {
+    if (comCusto && best && custo > best.sc[0]) return;
+    if (i === T.length) return avalia(n, cap, custo);
+    const kMax = Math.min(nMax - n, Math.ceil(need / T[i].cap) + Dn);
+    for (let k = 0; k <= kMax; k++) { cont[i] = k; rec(i + 1, n + k, cap + k * T[i].cap, custo + k * T[i].custo); }
+    cont[i] = 0; };
+  rec(0, 0, 0, 0);
+  let dm = best?.dm;
+  if (!dm) { // não cabe: o maior veículo, quantos forem precisos por dia (ou até o limite do dia)
+    const g = T[0], porDia = Math.max(1, Math.ceil(Math.min(L, need / Dn) / g.cap)); dm = dias.map(() => ({ [g.id]:porDia })); }
+  const mapa = Object.fromEntries(dias.map((x, i) => [x.d, dm[i]]));
+  return { mapa, A:avaliarSemana(dias, mapa, veics, m3, op.limite_dia || null) };
+}
+// texto curto do mapa: "seg: 1× Carreta · ter–sex: 1× Médio"
+function txtMapa(mapa, dias, veics){
+  if (!mapa || !dias.length) return '–';
+  const nome = id => veics.find(v => String(v.id) === String(id))?.nome || '?';
+  const t = d => { const m = mapa[d] || {}, k = Object.entries(m).filter(([, q]) => q > 0); return k.length ? k.map(([id, q]) => `${q}× ${nome(id)}`).join(' + ') : 'nenhum'; };
+  const g = []; dias.forEach(x => { const s = t(x.d), u = g.at(-1); if (u && u.s === s) u.fim = x.d; else g.push({ s, ini:x.d, fim:x.d }); });
+  if (g.length === 1) return `${g[0].s} por dia`;
+  return g.map(x => `${DOW_CURTO[dowDe(x.ini)]}${x.fim !== x.ini ? '–' + DOW_CURTO[dowDe(x.fim)] : ''}: ${x.s}`).join(' · ');
+}
+// grava o mapa da semana, mantendo os dias que não estavam no simulador (dias passados e os de fora da janela do mês)
+async function salvarMapaSemana(seg, mapaNovo, cenario, msg){
+  const r = state.comDados, base = mapaSemana(r, seg) || {}, vd = {};
+  [0, 1, 2, 3, 4, 5, 6].forEach(i => { const d = addDias(seg, i), m = mapaNovo[d] ?? base[d]; if (m) vd[d] = Object.fromEntries(Object.entries(m).filter(([, q]) => Number(q) > 0).map(([k, q]) => [k, Number(q)])); });
+  return salvarCom({ tipo:'semana', semana:seg, veiculos:{}, veiculos_dia:vd, cenario }, msg);
+}
+
+// simulador: cada dia da semana com sua combinação de veículos, vários cenários lado a lado
+function simuladorSemana(seg){
+  const r = state.comDados, s = state.full, C = calcMesCom(r, s.cmMes), w = C.sem.find(x => x.seg === seg); if (!w) return;
+  const editar = pode('full_comercial', 'editar'), m3 = r.m3_por_par, V = r.veiculos.filter(v => v.ativo !== false);
+  const op = { todo_dia:true, limite_dia:null, ...(r.sim_opcoes || {}) };
+  const fut = w.dias.filter(x => x.util && x.d >= C.hoje);
+  if (!fut.length) return avisar('Semana já passou: não há o que simular', true);
+  const S = ((s.cmSim ||= {})[seg] ||= { cen:[], at:0 });
+  const deVeic = x => Object.fromEntries((x.veic?.itens || []).map(i => [i.id, i.qtd]));
+  const mapaDe = f => Object.fromEntries(fut.map(x => [x.d, f(x)]));
+  const sugestao = () => otimizarSemana(w.needW, fut, r.veiculos, m3, op);
+  if (!S.cen.length) {
+    S.cen.push({ nome:w.mapa ? 'Negociado' : 'Padrão do cadastro', mapa:mapaDe(x => w.mapa ? { ...(w.mapa[x.d] || {}) } : deVeic(x)) });
+    const sg = sugestao(); if (sg) S.cen.push({ nome:'Sugestão (menor custo)', mapa:sg.mapa, sug:true });
+    const uni = veiculosPara(w.alvoDia, r.veiculos, m3, 'livre'); if (uni?.itens?.length) S.cen.push({ nome:'Mesmo veículo todo dia', mapa:mapaDe(() => Object.fromEntries(uni.itens.map(i => [i.id, i.qtd]))) });
+    S.at = 0;
+  }
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  const av = c => avaliarSemana(fut, c.mapa, r.veiculos, m3, op.limite_dia);
+  const pct = v => `${Math.round(v * 100)}%`;
+  const melhor = R => { const ok = R.map((a, i) => ({ a, i })).filter(x => x.a.cob >= 0.999);
+    if (ok.length) return ok.sort((x, y) => (x.a.custo || Infinity) - (y.a.custo || Infinity) || x.a.n - y.a.n)[0].i;
+    return R.map((a, i) => ({ a, i })).sort((x, y) => y.a.cob - x.a.cob)[0].i; };
+  const comparativo = () => { const R = S.cen.map(av), b = melhor(R), a0 = R[0];
+    return `<table class="cm-fr sm-comp"><thead><tr><th>Cenário</th><th>Veículos</th><th>Viagens</th><th>Cobre</th><th>Frete semana</th><th>R$/par<small>efetivo</small></th><th>R$/m³<small>efetivo</small></th><th>R$/par cheio</th><th>Ocupação</th><th>Maior dia<small>pares</small></th><th>vs. ${esc(S.cen[0].nome)}</th></tr></thead><tbody>
+      ${R.map((a, i) => `<tr class="${i === S.at ? 'r' : ''}" data-cen="${i}" style="cursor:pointer"><td><b>${i === b ? '★ ' : ''}${esc(S.cen[i].nome)}</b></td><td style="text-align:left"><small style="color:inherit">${esc(txtMapa(S.cen[i].mapa, fut, r.veiculos))}</small></td>
+        <td>${a.n}</td><td><b class="${a.cob >= 0.999 ? 'ok' : 'dif'}">${pct(a.cob)}</b></td><td>${a.custo ? fmtRS(a.custo) : '–'}${a.semCusto ? '<small>tem veículo sem R$/viagem</small>' : ''}</td>
+        <td><b>${a.porPar ? fmtRS2(a.porPar) : '–'}</b></td><td>${a.porM3 ? fmtRS2(a.porM3) : '–'}</td><td>${a.cheio ? fmtRS2(a.cheio) : '–'}</td>
+        <td class="${a.ocup && a.ocup < 0.75 ? 'dif' : ''}">${a.cap ? pct(a.ocup) : '–'}</td><td>${fmtN(a.pico)}</td>
+        <td>${i === 0 || !a.porPar || !a0.porPar ? '' : `${a.custo < a0.custo ? '−' : '+'}${fmtRS(Math.abs(a.custo - a0.custo))}<small class="${a.porPar <= a0.porPar ? 'ok' : 'dif'}">${a.porPar <= a0.porPar ? '−' : '+'}${fmtRS2(Math.abs(a.porPar - a0.porPar))}/par</small>`}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="info" style="margin-top:4px">★ = cobre 100% da semana com o menor frete. Compare pelo R$/par: um cenário mais caro no total pode levar muito mais pares. Clique numa linha para editar o cenário.</div>`; };
+  const celulas = (x, a) => { const k = a.dias.find(y => y.d === x.d);
+    return `<td>${fmtN(k.cap)}${op.limite_dia && k.cap > op.limite_dia ? `<small class="dif">limite ${fmtN(op.limite_dia)}</small>` : ''}</td><td><b>${fmtN(k.leva)}</b></td><td class="${k.cap && k.leva / k.cap < 0.75 ? 'dif' : ''}">${k.cap ? pct(k.leva / k.cap) : '–'}</td><td>${k.custo ? fmtRS(k.custo) : '–'}</td>`; };
+  const resumo = a => `<div class="sm-res">
+      <div><span>Precisa na semana</span><b>${fmtN(a.need)}</b><small>${fut.length} dia(s) · ${(a.need * m3).toLocaleString('pt-BR', { maximumFractionDigits:1 })} m³</small></div>
+      <div><span>Capacidade</span><b>${fmtN(a.capEf)}</b><small>${a.n} viagem(ns)${a.limitado ? ' · com o limite/dia' : ''}</small></div>
+      <div><span>Cobre</span><b class="${a.cob >= 0.999 ? 'ok' : 'dif'}">${pct(a.cob)}</b><small>${a.cob >= 0.999 ? `sobra ${fmtN(a.capEf - a.need)} pares` : `faltam ${fmtN(a.need - a.leva)} pares`}</small></div>
+      <div><span>Frete da semana</span><b>${a.custo ? fmtRS(a.custo) : '–'}</b><small>${a.porPar ? `${fmtRS2(a.porPar)}/par · ${fmtRS2(a.porM3)}/m³` : ''}</small></div>
+      <div><span>Ocupação</span><b class="${a.ocup && a.ocup < 0.75 ? 'dif' : ''}">${a.cap ? pct(a.ocup) : '–'}</b><small>${a.cheio ? `cheio: ${fmtRS2(a.cheio)}/par` : ''}</small></div></div>
+    ${a.semVeic && a.cob >= 0.999 ? `<div class="info">${a.semVeic} dia(s) sem veículo: o volume desses dias vai nos outros (precisa separar antes ou segurar o estoque).</div>` : ''}
+    ${!op.limite_dia && a.pico > (a.need / fut.length) * 1.6 ? `<div class="aviso-rom">⚠ O maior dia leva ${fmtN(a.pico)} pares (a média é ${fmtN(Math.round(a.need / fut.length))}). A operação separa e carrega isso num dia? Se não, informe o limite de pares/dia acima.</div>` : ''}`;
+  const desenha = () => {
+    const c = S.cen[S.at], a = av(c);
+    dlg.innerHTML = `<div class="painel cm-vmod cm-smod">
+      <div style="display:flex;align-items:flex-start;gap:10px"><div><h3 style="margin:0">Simular semana ${dataBR(w.ini).slice(0, 5)}–${dataBR(w.fim).slice(0, 5)}</h3>
+        <div class="info">Cada dia com seus veículos. O volume da semana é dividido entre os dias na proporção da capacidade de cada um.</div></div><span style="flex:1"></span><button class="btn" data-x>✕</button></div>
+      <div class="sm-op"><label><input type="checkbox" id="sm-todo" ${op.todo_dia ? 'checked' : ''}> Sugestão com ao menos 1 veículo por dia</label>
+        <label>Limite de pares por dia <span class="info">(o que a operação separa e carrega)</span><input id="sm-lim" inputmode="numeric" placeholder="sem limite" value="${op.limite_dia || ''}"></label>
+        <button class="btn mini" id="sm-resug">↻ Recalcular sugestão</button>${editar ? '' : '<span class="info">Você pode simular; para salvar a negociação é preciso permissão de edição.</span>'}</div>
+      <div class="sm-tabs">${S.cen.map((x, i) => `<button class="${i === S.at ? 'on' : ''}" data-cen="${i}">${esc(x.nome)}</button>`).join('')}<button data-novo title="Copia o cenário aberto">+ Copiar cenário</button></div>
+      <div class="sm-nome"><label>Nome <input id="sm-nome" value="${esc(c.nome)}" maxlength="30"></label>
+        <button class="btn mini" id="sm-copia1" title="Repete o primeiro dia nos demais">Repetir ${DOW_CURTO[dowDe(fut[0].d)]} nos outros dias</button><button class="btn mini" id="sm-zerar">Zerar</button>
+        ${S.cen.length > 1 ? '<button class="btn mini" id="sm-del">Excluir cenário</button>' : ''}</div>
+      <div style="overflow-x:auto"><table class="tab-full sm-grade"><thead><tr><th style="text-align:left">Dia</th><th>Precisa<small>divisão</small></th>${V.map(v => `<th title="${esc(capPerfilTxt(v))}">${esc(v.nome)}<small>${v.custo_viagem ? fmtRS(v.custo_viagem) : 'sem R$'}</small></th>`).join('')}<th>Capacidade<small>pares</small></th><th>Leva<small>pares</small></th><th>Ocup.</th><th>Frete</th></tr></thead><tbody>
+        ${w.dias.map(x => { const ed = fut.includes(x);
+          if (!ed) return `<tr class="cm-off"><td style="text-align:left"><b>${x.d.slice(8)}/${x.d.slice(5, 7)}</b> <span class="info">${DOW_CURTO[dowDe(x.d)]} · ${x.util ? 'já passou' : esc(x.motivo || 'sem embarque')}</span></td><td colspan="${V.length + 5}"></td></tr>`;
+          return `<tr><td style="text-align:left"><b>${x.d.slice(8)}/${x.d.slice(5, 7)}</b> <span class="info">${DOW_CURTO[dowDe(x.d)]}</span></td><td>${fmtN(x.alvo)}</td>
+            ${V.map(v => `<td><input class="sm-q" inputmode="numeric" data-d="${x.d}" data-v="${v.id}" value="${c.mapa[x.d]?.[v.id] || ''}" placeholder="0"></td>`).join('')}
+            ${celulas(x, a)}</tr>`; }).join('')}
+      </tbody><tfoot><tr><td style="text-align:left">Semana</td><td>${fmtN(a.need)}</td>${V.map(v => `<td>${fut.reduce((t, x) => t + Number(c.mapa[x.d]?.[v.id] || 0), 0) || ''}</td>`).join('')}<td>${fmtN(a.capEf)}</td><td>${fmtN(a.leva)}</td><td>${a.cap ? pct(a.ocup) : '–'}</td><td>${a.custo ? fmtRS(a.custo) : '–'}</td></tr></tfoot></table></div>
+      ${resumo(a)}
+      <h4 class="cs-sub" style="margin:14px 0 4px">Comparar cenários</h4>${comparativo()}
+      <div class="gv-acoes">${editar && w.mapa ? '<button class="btn" id="sm-limpar" title="Volta a usar o disponíveis/dia do cadastro">Voltar ao padrão do cadastro</button>' : ''}<span style="flex:1"></span>
+        <button class="btn" data-x>Fechar</button>${editar ? `<button class="btn pri" id="sm-salvar">💾 Salvar "${esc(c.nome)}" como negociado</button>` : ''}</div></div>`;
+    const q = k => dlg.querySelector(k);
+    dlg.querySelectorAll('[data-x]').forEach(b => b.onclick = () => dlg.remove());
+    dlg.querySelectorAll('[data-cen]').forEach(b => b.onclick = () => { S.at = Number(b.dataset.cen); desenha(); });
+    q('[data-novo]').onclick = () => { if (S.cen.length >= 6) return avisar('No máximo 6 cenários', true); S.cen.push({ nome:`Cenário ${S.cen.length + 1}`, mapa:JSON.parse(JSON.stringify(c.mapa)) }); S.at = S.cen.length - 1; desenha(); };
+    q('#sm-nome').onchange = e => { c.nome = e.target.value.trim() || c.nome; desenha(); };
+    q('#sm-copia1').onclick = () => { const m = c.mapa[fut[0].d] || {}; fut.forEach(x => { c.mapa[x.d] = { ...m }; }); desenha(); };
+    q('#sm-zerar').onclick = () => { fut.forEach(x => { c.mapa[x.d] = {}; }); desenha(); };
+    const del = q('#sm-del'); if (del) del.onclick = () => { S.cen.splice(S.at, 1); S.at = 0; desenha(); };
+    // digitação: recalcula sem perder o foco (a tabela é redesenhada ao sair do campo)
+    dlg.querySelectorAll('.sm-q').forEach(i => { i.oninput = () => { const n = Math.max(0, Math.min(20, parseInt(i.value, 10) || 0)); (c.mapa[i.dataset.d] ||= {})[i.dataset.v] = n; };
+      i.onchange = () => setTimeout(() => { const at = document.activeElement?.classList.contains('sm-q') ? { ...document.activeElement.dataset } : null; desenha();
+        if (at) { const n = dlg.querySelector(`.sm-q[data-d="${at.d}"][data-v="${at.v}"]`); if (n) { n.focus(); n.select(); } } }); });
+    const opMudou = async () => { op.todo_dia = q('#sm-todo').checked; const l = parseInt(q('#sm-lim').value, 10); op.limite_dia = l > 0 ? l : null;
+      if (editar) { try { await apiCom('/comercial/salvar', { tipo:'sim_opcoes', ...op }); r.sim_opcoes = { ...op }; } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } }
+      desenha(); };
+    q('#sm-todo').onchange = opMudou; q('#sm-lim').onchange = opMudou;
+    q('#sm-resug').onclick = () => { const sg = sugestao(); if (!sg) return avisar('Sem veículos com capacidade cadastrada', true);
+      const k = S.cen.findIndex(x => x.sug); if (k >= 0) { S.cen[k].mapa = sg.mapa; S.at = k; } else { S.cen.push({ nome:'Sugestão (menor custo)', mapa:sg.mapa, sug:true }); S.at = S.cen.length - 1; } desenha(); };
+    const sv = q('#sm-salvar'); if (sv) sv.onclick = async () => { sv.disabled = true;
+      if (await salvarMapaSemana(seg, c.mapa, c.nome, `Semana de ${dataBR(w.ini).slice(0, 5)}: "${c.nome}" salvo como negociado`)) { delete s.cmSim[seg]; dlg.remove(); } else sv.disabled = false; };
+    const lp = q('#sm-limpar'); if (lp) lp.onclick = async () => { if (await salvarCom({ tipo:'semana', semana:seg, veiculos:{}, limpar:true }, 'Semana voltou ao padrão do cadastro')) { delete s.cmSim[seg]; dlg.remove(); } };
+  };
+  document.body.appendChild(dlg); desenha();
 }
 
 // soma dos romaneios expedidos: viagens, custo, pares, m³ e capacidade (só dos que têm perfil)
@@ -3121,20 +3311,19 @@ function renderCom(){
     ${painelFreteCom(C, r)}
     <div class="painel"><h3 class="cs-sub">Meta x realizado</h3>${graficoCom(C)}</div>
     <div class="painel" style="padding:0;overflow-x:auto"><h3 class="cs-sub" style="padding:12px 14px 0">Semanas e veículos <span class="info">negocie com o Mercado Livre semana a semana</span></h3>
-      <table class="tab-full cm-sem"><thead><tr><th style="text-align:left">Semana</th><th>Dias</th><th>Meta</th><th>Expedido</th><th>Precisa/dia</th><th style="text-align:left">Sugestão (pedir ao MELI)</th><th style="text-align:left">Negociado por dia</th><th style="text-align:left">Com o negociado</th><th style="text-align:left">Realizado</th></tr></thead><tbody>
-      ${C.sem.filter(w => w.uteis).map(w => { const ativos = r.veiculos.filter(v => v.ativo !== false), A = w.atual, S = w.sug;
-        const res = !w.alvoDia ? '<span class="info">–</span>' : !A || !A.itens.length ? '<span class="dif">sem veículo</span>'
-          : `${A.falta ? `<b class="dif">cobre ${Math.round(A.cobertura * 100)}%</b> <span class="info">falta ${fmtN(w.alvoDia - A.cap)} pares/dia</span>` : `<b class="ok">cobre 100%</b> <span class="info">${Math.round(A.ocup * 100)}% ocupado</span>`}
-            ${A.custo ? `<small>${fmtRS(A.custo)}/dia · ${fmtRS2(A.custo / Math.min(w.alvoDia, A.cap))}/par · ${fmtRS2(A.custo / (Math.min(w.alvoDia, A.cap) * r.m3_por_par))}/m³</small>` : ''}`;
+      <table class="tab-full cm-sem"><thead><tr><th style="text-align:left">Semana</th><th>Dias</th><th>Meta</th><th>Expedido</th><th>Precisa/dia</th><th style="text-align:left">Sugestão (pedir ao MELI)</th><th style="text-align:left">Negociado</th><th style="text-align:left">Com o negociado</th><th style="text-align:left">Realizado</th></tr></thead><tbody>
+      ${C.sem.filter(w => w.uteis).map(w => { const S = w.sug;
+        const res = !w.needW ? '<span class="info">–</span>' : !w.nW ? '<span class="dif">sem veículo</span>'
+          : `${w.cob < 0.999 ? `<b class="dif">cobre ${Math.round(w.cob * 100)}%</b> <span class="info">faltam ${fmtN(w.needW - w.levaW)} pares na semana</span>` : `<b class="ok">cobre 100%</b> <span class="info">${w.capW ? Math.round(w.levaW / w.capW * 100) : 0}% ocupado</span>`}
+            <small>${w.nW} viagem(ns)${w.custoW ? ` · ${fmtRS(w.custoW)} na semana · ${fmtRS2(w.custoW / Math.max(1, w.levaW))}/par · ${fmtRS2(w.custoW / Math.max(0.001, w.levaW * r.m3_por_par))}/m³` : ''}</small>`;
         return `<tr class="${w.fim < C.hoje ? 'cm-pass' : ''}"><td style="text-align:left"><b>${dataBR(w.ini).slice(0, 5)}–${dataBR(w.fim).slice(0, 5)}</b>${w.ini <= C.hoje && w.fim >= C.hoje ? ' <span class="pl-vez">esta semana</span>' : ''}</td>
           <td>${w.uteis}</td><td>${fmtN(w.meta)}</td><td>${w.real ? `${fmtN(w.real)} <small>${pct(w.real, w.meta)}%</small>` : '–'}</td>
           <td class="${w.alvoDia > (w.meta / Math.max(1, w.uteis)) * 1.05 ? 'dif' : ''}"><b>${w.alvoDia ? fmtN(w.alvoDia) : '–'}</b><small>${w.alvoDia ? (w.alvoDia * r.m3_por_par).toLocaleString('pt-BR', { maximumFractionDigits:1 }) + ' m³' : ''}</small></td>
-          <td style="text-align:left">${S && S.itens.length ? `<b>${esc(txtVeic(S))}</b><small>${Math.round(S.ocup * 100)}% ocupado${S.custo ? ` · ${fmtRS(S.custo)}/dia · ${fmtRS2(S.custo / w.alvoDia)}/par` : ''}</small>
-            ${editar && w.futura ? `<button class="btn mini" data-aceitar="${w.seg}">Aceitar sugestão</button>` : ''}` : '<span class="info">–</span>'}</td>
-          <td style="text-align:left">${w.futura && editar ? `<div class="cm-neg">${ativos.map(v => `<label title="${esc(v.nome)}"><span>${esc(v.nome)}</span><input inputmode="numeric" data-neg="${w.seg}" data-nv="${v.id}" value="${w.neg?.[v.id] || ''}" placeholder="${w.neg ? '0' : v.disponiveis ?? '–'}"></label>`).join('')}</div>
-              <button class="btn mini" data-negsalvar="${w.seg}">Salvar</button>${w.neg ? ` <button class="btn mini" data-neglimpar="${w.seg}" title="Volta a usar o 'disponíveis/dia' do cadastro">Limpar</button>` : ''}`
-            : w.neg ? esc(Object.entries(w.neg).map(([id, q]) => `${q}× ${r.veiculos.find(v => String(v.id) === String(id))?.nome || '?'}`).join(' + ')) : '<span class="info">padrão do cadastro</span>'}
-            ${!w.neg && w.futura ? '<small class="info">sem negociação: usa o "disponíveis/dia" do cadastro</small>' : ''}</td>
+          <td style="text-align:left">${S ? `<b>${esc(txtMapa(S.mapa, w.fut, r.veiculos))}</b><small>${S.A.cob < 0.999 ? `cobre ${Math.round(S.A.cob * 100)}% · ` : ''}${Math.round(S.A.ocup * 100)}% ocupado${S.A.custo ? ` · ${fmtRS(S.A.custo)} na semana · ${fmtRS2(S.A.porPar)}/par` : ''}</small>
+            ${editar ? `<button class="btn mini" data-aceitar="${w.seg}">Aceitar sugestão</button>` : ''}` : '<span class="info">–</span>'}</td>
+          <td style="text-align:left">${w.mapa ? `<b>${esc(txtMapa(w.mapa, w.base, r.veiculos))}</b>` : '<span class="info">padrão do cadastro</span>'}
+            ${w.futura && w.fut.length ? `<button class="btn mini" data-sim="${w.seg}" title="Monte cenários dia a dia e compare o custo">🧪 Simular${editar ? ' / negociar' : ''}</button>` : ''}
+            ${!w.mapa && w.futura ? '<small class="info">sem negociação: usa o "disponíveis/dia" do cadastro</small>' : ''}</td>
           <td style="text-align:left">${res}</td>
           <td style="text-align:left">${w.fr.n ? `<b>${esc(w.fr.txt)}</b><small>${w.fr.ocup != null ? `${Math.round(w.fr.ocup * 100)}% ocupado` : ''}${w.fr.custo ? ` · ${fmtRS(w.fr.custo)} · ${fmtRS2(w.fr.custo / Math.max(1, w.fr.paresC))}/par` : ''}</small>` : '<span class="info">–</span>'}</td></tr>`; }).join('')}
       </tbody></table></div>
@@ -3146,15 +3335,18 @@ function renderCom(){
           <td class="${x.necessario > x.tMeta * 1.05 ? 'dif' : ''}"><b>${x.necessario != null ? fmtN(x.necessario) : ''}</b></td>
           <td>${x.alvo ? (x.alvo * r.m3_por_par).toLocaleString('pt-BR', { maximumFractionDigits:1 }) : ''}</td>
           <td class="cm-v">${x.fr.n ? `<b title="realizado">✓ ${esc(x.fr.txt)}</b><small>${x.fr.ocup != null ? `${Math.round(x.fr.ocup * 100)}% ocupado · ` : ''}plano: ${esc(x.alvo ? txtVeic(x.veic) : '–')}</small>`
-            : x.alvo ? `${esc(txtVeic(x.veic))}${x.veic?.itens?.length && !x.veic.falta ? `<small>${Math.round(x.veic.ocup * 100)}% ocupado</small>` : ''}` : ''}</td>
-          <td>${x.fr.custo ? `<b title="realizado">${fmtRS(x.fr.custo)}</b><small>${fmtRS2(x.fr.custo / Math.max(1, x.fr.paresC))} real</small>` : x.veic?.custo ? `${fmtRS(x.veic.custo)}<small>${fmtRS2(x.veic.custo / Math.min(x.alvo, x.veic.cap))}</small>` : ''}</td></tr>`; }).join('')}
+            : x.alvo ? (x.veic?.pool ? (x.veic.itens.length ? `${esc(x.veic.itens.map(i => `${i.qtd}× ${i.nome}`).join(' + '))}<small>leva ${fmtN(x.paresPlan)} · ${Math.round(x.veic.ocup * 100)}% ocupado</small>` : '<span class="info">sem veículo</span><small>volume vai nos outros dias</small>')
+              : `${esc(txtVeic(x.veic))}${x.veic?.itens?.length && !x.veic.falta ? `<small>${Math.round(x.veic.ocup * 100)}% ocupado</small>` : ''}`) : ''}</td>
+          <td>${x.fr.custo ? `<b title="realizado">${fmtRS(x.fr.custo)}</b><small>${fmtRS2(x.fr.custo / Math.max(1, x.fr.paresC))} real</small>` : x.veic?.custo ? `${fmtRS(x.veic.custo)}<small>${x.paresPlan ? fmtRS2(x.veic.custo / x.paresPlan) : '–'}</small>` : ''}</td></tr>`; }).join('')}
       </tbody></table></div>
     <div class="info cs-nota"><b>Como funciona:</b> pares do mês = meta ÷ ticket médio (para cima), divididos por igual entre os dias de embarque da janela; o resto vai para os primeiros dias.
       Realizado = pares dos envios <b>Expedidos</b> na data de expedição (os em aberto aparecem como "prog."). <b>Precisa</b> = o que falta para a meta dividido pelos dias de embarque que sobram (a divisão original continua na coluna Total).
-      Veículos do dia: com o que foi negociado na semana (ou o "disponíveis/dia" do cadastro); a <b>sugestão</b> ignora a disponibilidade e escolhe a combinação mais barata (com R$/viagem cadastrado) ou com menos veículos, sempre com a maior ocupação.
+      Veículos: na semana negociada, cada dia tem os seus (🧪 Simular) e o volume da semana se divide pela capacidade de cada dia; sem negociação, vale o "disponíveis/dia" do cadastro.
+      A <b>sugestão</b> ignora a disponibilidade e monta, dia a dia, a combinação que cobre a semana com o menor frete (com R$/viagem cadastrado) ou com menos veículos, respeitando o limite de pares/dia, se houver.
       Capacidade em pares: o máximo cadastrado (margem de segurança) ou, sem ele, m³ ÷ ${String(r.m3_por_par).replace('.', ',')}. R$/par efetivo = frete ÷ pares a levar; cheio = frete ÷ capacidade.</div>`
     : `<div class="painel vazio">Sem meta para ${rotMes(s.cmMes)}. ${editar ? 'Preencha a meta e o ticket médio de cada loja acima.' : ''}</div>`}`;
   $c.querySelectorAll('[data-cmm]').forEach(b => b.onclick = () => { s.cmMes = b.dataset.cmm; if (!r._meses.includes(s.cmMes)) carregarCom(); else renderCom(); });
+  $c.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => simuladorSemana(b.dataset.sim));
   if (!editar) return;
   const salvarLinha = l => { const mv = lerValorBR($c.querySelector(`[data-meta="${l}"]`).value), tk = lerValorBR($c.querySelector(`[data-tk="${l}"]`).value);
     const atual = r.metas.find(x => x.mes === s.cmMes && x.cnpj_id === l);
@@ -3168,11 +3360,7 @@ function renderCom(){
   document.getElementById('cm-ini').onchange = mudouJan; document.getElementById('cm-prazo').onchange = mudouJan;
   const vp = document.getElementById('cm-padrao'); if (vp) vp.onclick = () => salvarCom({ tipo:'mes', mes:s.cmMes, inicio:null, prazo:null }, 'Janela voltou ao padrão');
   $c.querySelectorAll('[data-aceitar]').forEach(b => b.onclick = () => { const w = C.sem.find(x => x.seg === b.dataset.aceitar);
-    salvarCom({ tipo:'semana', semana:w.seg, veiculos:Object.fromEntries(w.sug.itens.map(x => [x.id, x.qtd])) }, `Semana de ${dataBR(w.ini).slice(0, 5)}: ${txtVeic(w.sug)} por dia`); });
-  $c.querySelectorAll('[data-negsalvar]').forEach(b => b.onclick = () => { const seg = b.dataset.negsalvar, v = {};
-    $c.querySelectorAll(`[data-neg="${seg}"]`).forEach(i => { const n = parseInt(i.value, 10); if (n > 0) v[i.dataset.nv] = n; });
-    salvarCom({ tipo:'semana', semana:seg, veiculos:v }, 'Negociação da semana salva'); });
-  $c.querySelectorAll('[data-neglimpar]').forEach(b => b.onclick = () => salvarCom({ tipo:'semana', semana:b.dataset.neglimpar, veiculos:{}, limpar:true }, 'Semana voltou ao padrão do cadastro'));
+    salvarMapaSemana(w.seg, w.sug.mapa, 'Sugestão', `Semana de ${dataBR(w.ini).slice(0, 5)}: ${txtMapa(w.sug.mapa, w.fut, r.veiculos)}`); });
 }
 // dias sem embarque: dias da semana fixos + datas (feriados, inventário...)
 function calendarioCom(){
