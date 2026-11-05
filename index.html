@@ -1136,11 +1136,13 @@ async function apiFull(path, corpo){
   const num = v => v === '' || v === null || v === undefined ? null : Number(v);
   if (path.startsWith('/full/romaneio')) return apiRomDemo(path, corpo);
   demoRomIni(); demoPlanIni();
+  if (/^\/full\/(divergencia|recebimento)/.test(path)) return demoDivRec(path, corpo);
   if (path.startsWith('/full/eventos')) { const id = new URLSearchParams(path.split('?')[1]).get('id'); return { eventos: D.eventos.filter(e => e.envio_id === id) }; }
   if (path.startsWith('/full')) {
     if (path.startsWith('/full?') || path === '/full') {
       const q = new URLSearchParams(path.split('?')[1] || ''), ini = q.get('ini'), fim = q.get('fim'), desde = addDias(hojeBRT(), -45);
       const envios = D.envios.filter(e => ini ? e.data_expedicao >= ini && e.data_expedicao <= fim : (ABERTOS_FULL.includes(e.status) || e.data_expedicao >= desde));
+      demoDivRecIni(); envios.forEach(e => { e.div_abertas = D.divergencias.filter(d => d.envio_id === e.id && d.status === 'aberta').length; const rc = D.recebimentos[e.id]; e.meli = rc ? { status:rc.status_meli, dif:(rc.processadas ?? 0) - (rc.declaradas ?? 0), fim:rc.proc_fim_em } : null; });
       return { ini, fim, m3_por_par: DEMO_FULL.m3_por_par, envios: JSON.parse(JSON.stringify(envios)), coletas: JSON.parse(JSON.stringify(D.coletas)),
         coletadores: [...new Set(D.coletas.flatMap(c => c.coletadores).concat(['arthur magdaleno','davi duarte','nathan marques','tiago santos','vinicius correa']))].sort(),
         lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }], status: ORDEM_FULL,
@@ -1190,6 +1192,7 @@ function telaFull(){
   if (params.get('romaneio') && !s.linkRomUsado) { s.vista = 'romaneios'; s.romIr = params.get('romaneio').replace(/\D/g, ''); s.linkRomUsado = true; }
   if (s.vista === 'romaneios') return telaRomaneios();
   if (s.vista === 'resumo') return telaResumoFull();
+  if (s.vista === 'meli') return telaMeliFull();
   if (s.vista === 'plan' && pode('full_plan', 'ver')) return telaPlanejamento();
   if (s.vista === 'comercial' && pode('full_comercial', 'ver')) return telaComercialFull();
   if (s.vista === 'comercial') s.vista = 'envios';
@@ -1360,7 +1363,7 @@ function renderFull(){
       <tbody>${L.map(({ e, quem, cestos, prev, atraso, dif }) => `<tr data-envio="${e.id}" class="${s.aberto === e.id ? 'sel' : ''} ${s.sel.has(e.id) ? 'marcado' : ''}">
         <td class="chk"><input type="checkbox" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} title="Incluir no romaneio"></td>
         <td><span class="marca-loja" style="background:${corLoja(e.cnpj_id)};${LOJAS[e.cnpj_id]?.borda ? `border:1px solid ${LOJAS[e.cnpj_id].borda}` : ''}"></span>${esc(nomeLoja(e.cnpj_id))}</td>
-        <td>#${esc(e.pedido)}${chipRom(e)}</td><td class="${atraso ? 'atraso' : ''}">${dataExp(e)}${atraso ? ' ⚠' : ''}</td>
+        <td>#${esc(e.pedido)}${chipRom(e)}${chipsEnvio(e)}</td><td class="${atraso ? 'atraso' : ''}">${dataExp(e)}${atraso ? ' ⚠' : ''}</td>
         <td>${esc(cestos) || '<span class="info">–</span>'}</td><td>${esc(quem) || '<span class="info">–</span>'}</td>
         <td>${fmtN(e.pares_plan)}</td><td class="${prev ? 'prev' : dif ? 'dif' : ''}" title="${prev ? 'Previsto: ainda pode mudar' : dif ? 'Abaixo do plano' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</td>
         <td>${pillFull(e.status)}</td><td class="pct">${pct(e)}</td>
@@ -1374,7 +1377,7 @@ function renderFull(){
       <div class="subtot-cel">Subtotal · ${fmtN(lista.length)} pedidos · plano ${fmtN(plano)} · pares ${fmtN(pares)} (${fmtP(pares, plano)}) · ${fmtN(soma(validos, e => e.caixas))} cx · ${fmtM3(soma(validos, e => e.m3))} m³</div>
       ${L.map(({ e, quem, cestos, prev, atraso, dif }) => `
       <div class="card-full ${s.aberto === e.id ? 'sel' : ''} ${s.sel.has(e.id) ? 'marcado' : ''}" data-envio="${e.id}" role="button" tabindex="0" style="border-left-color:${LOJAS[e.cnpj_id]?.borda || corLoja(e.cnpj_id)}">
-        <div class="cf-top"><input type="checkbox" class="cf-chk" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} aria-label="Incluir no romaneio"><b>#${esc(e.pedido)}</b>${chipRom(e)}<span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
+        <div class="cf-top"><input type="checkbox" class="cf-chk" data-sel="${e.id}" ${s.sel.has(e.id) ? 'checked' : ''} aria-label="Incluir no romaneio"><b>#${esc(e.pedido)}</b>${chipRom(e)}${chipsEnvio(e)}<span class="info">${esc(nomeLoja(e.cnpj_id))}</span><span style="flex:1"></span><span class="${atraso ? 'atraso' : 'info'}">${dataExp(e)}${atraso ? ' ⚠' : ''}</span>
           <button class="btn mini imp" data-imp="${e.id}" title="Imprimir folha de rosto do palete">🖨</button></div>
         <div class="cf-mid">${pillFull(e.status)}<span class="mini-barra larga"><i style="width:${Math.min(100, e.pct_coleta || 0)}%"></i></span><b>${e.pct_coleta === null ? '–' : Math.round(e.pct_coleta) + '%'}</b></div>
         <div class="cf-bot"><span>Plano <b>${fmtN(e.pares_plan)}</b></span><span>Pares <b class="${prev ? 'prev' : dif ? 'dif' : ''}">${e.pares_envio === null ? '–' : fmtN(e.pares_envio)}</b></span><span>Cx <b>${e.caixas ?? '–'}</b></span>${quem ? `<span>${esc(quem)}</span>` : ''}${cestos ? `<span>Cesto ${esc(cestos)}</span>` : ''}</div>
@@ -1830,7 +1833,7 @@ function barraRomaneios(s){
     <div id="rom"><div class="carregando">Carregando romaneios…</div></div>
     <div id="gaveta" hidden></div>`;
 }
-const abasVistaFull = s => `<div class="abas vista-full">${[...(pode('full_plan', 'ver') ? [['plan','🗂 Planejamento']] : []), ['envios','Envios'],['romaneios','🚚 Romaneios'],['resumo','📊 Resumo'], ...(pode('full_comercial', 'ver') ? [['comercial','💰 Comercial']] : []), ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+const abasVistaFull = s => `<div class="abas vista-full">${[...(pode('full_plan', 'ver') ? [['plan','🗂 Planejamento']] : []), ['envios','Envios'],['romaneios','🚚 Romaneios'],['meli','📥 MELI'],['resumo','📊 Resumo'], ...(pode('full_comercial', 'ver') ? [['comercial','💰 Comercial']] : []), ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 function ligarAbasVista(){
   document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { if (state.full.vista === b.dataset.vista) return;
     if (state.planSujo && !confirmaDupla(b, 'Coleta sem salvar: clique de novo para sair')) return; state.planSujo = false; if (state.full.plan) state.full.plan.aberto = null; state.full.vista = b.dataset.vista; state.full.aberto = null; state.full.romAberto = null; telaFull(); });
@@ -1984,7 +1987,7 @@ function telaPlanejamento(){
       <button class="btn" id="pl-atualizar">Atualizar</button>
       ${pode('full_plan', 'editar') ? '<button class="btn pri" id="pl-novo">+ Nova coleta</button>' : ''}
     </div>
-    <div id="plan"><div class="carregando">Carregando coletas planejadas…</div></div>`;
+    <div id="pl-corr"></div><div id="plan"><div class="carregando">Carregando coletas planejadas…</div></div>`;
   ligarAbasVista();
   const $ = k => document.getElementById(k);
   $('pl-loja').onchange = () => { p.loja = $('pl-loja').value; renderPlanos(); };
@@ -1996,6 +1999,7 @@ function telaPlanejamento(){
   carregarPlanos();
 }
 async function carregarPlanos(){
+  const pc = document.getElementById('pl-corr'); if (pc) painelCorrecoes(pc);
   try { state.planDados = await apiPlan('/full/planos'); renderPlanos(); }
   catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('plan'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
@@ -2308,6 +2312,326 @@ async function itensPlanejadosEnvio(el, e){
   } catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = `<div class="info">Não consegui carregar o planejamento: ${esc(x.message)}</div>`; }
 }
 
+
+/* =================== FULL: divergências da separação e recebimento no MELI =================== */
+// Divergência: a logística aponta no envio o que não bateu com o planejado; o analista corrige no MELI e no Seenc e marca os dois.
+// Recebimento: o que o MELI conferiu (CSV "Baixar detalhe"), quando coletou/recebeu/processou e quanto cobrou.
+const MOTIVOS_DIV_PADRAO = ['Não localizado no estoque', 'Avariado', 'Em outro endereço / outra loja', 'Quantidade a mais', 'Produto, cor ou tamanho trocado', 'Outro'];
+const chipsEnvio = e => `${e.div_abertas ? `<span class="chip-div" title="${e.div_abertas} divergência(s) esperando correção no MELI/Seenc">⚠ ${e.div_abertas} div.</span>` : ''}${e.meli ? (e.meli.dif < 0 ? `<span class="chip-meli neg" title="MELI processou ${-e.meli.dif} unidade(s) a menos que o declarado">MELI −${-e.meli.dif}</span>` : e.meli.fim ? '<span class="chip-meli" title="Processado pelo MELI sem diferença">MELI ✓</span>' : '') : ''}`;
+const difTxt = (p, r) => { const d = r - p; return `<b class="${d < 0 ? 'dif' : 'ok'}">${d > 0 ? '+' : ''}${fmtN(d)}</b>`; };
+
+// ---- demonstração
+function demoDivRecIni(){
+  const D = DEMO_FULL; if (D.divergencias) return;
+  D.divergencias = []; D.recebimentos = {}; D.divSeq = 0;
+  const e1 = D.envios.find(e => e.id === '1'), e2 = D.envios.find(e => e.id === '2');
+  // exemplos inventados (não são dados reais de envio)
+  const lin = (sku, an, v, dec, pro, na = 0) => ({ sku, codigo_ml:'DEMO' + an.slice(-4), anuncio:an, variacao:v, declaradas:dec, processadas:pro, aptas:pro - na, nao_aptas:na, identificar:0 });
+  if (e1) D.recebimentos['1'] = { envio_id:'1', status_meli:'Processado com sucesso', coletado_em:`${e1.data_expedicao}T12:35:00.000Z`, volumes:12, recebido_em:`${e1.data_expedicao}T16:11:00.000Z`,
+    proc_inicio_em:`${addDias(e1.data_expedicao, 1)}T11:00:00.000Z`, proc_fim_em:`${addDias(e1.data_expedicao, 2)}T05:49:00.000Z`, custo_coleta:174.68, volume_m3:2.56, distancia_km:32.78, tarifas_extras:null, tarifas_obs:null,
+    itens:[lin('DEMO-100-PT-37', '1000000001', 'Preto | 37 BR', 120, 120), lin('DEMO-100-PT-38', '1000000001', 'Preto | 38 BR', 150, 150), lin('DEMO-200-ND-36', '1000000002', 'Nude | 36 BR', 161, 161)], atualizado_em:new Date().toISOString(), atualizado_por:'demonstracao' };
+  if (e2) D.recebimentos['2'] = { envio_id:'2', status_meli:'Processado com diferenças', coletado_em:`${e2.data_expedicao}T14:26:00.000Z`, volumes:13, recebido_em:`${e2.data_expedicao}T23:28:00.000Z`,
+    proc_inicio_em:`${addDias(e2.data_expedicao, 2)}T16:54:00.000Z`, proc_fim_em:`${addDias(e2.data_expedicao, 3)}T11:23:00.000Z`, custo_coleta:189.4, volume_m3:3.1, distancia_km:32.78, tarifas_extras:null, tarifas_obs:null,
+    itens:[lin('DEMO-300-PT-33', '1000000003', 'Preto | 33 BR', 8, 6), lin('DEMO-300-BG-40', '1000000004', 'Bege | 40 BR', 7, 4), lin('DEMO-300-PT-34', '1000000004', 'Preto | 34 BR', 14, 12), lin('DEMO-400-CR-35', '1000000005', 'Creme | 35 BR', 160, 160, 2), lin('DEMO-400-CR-36', '1000000005', 'Creme | 36 BR', 306, 306)], atualizado_em:new Date().toISOString(), atualizado_por:'demonstracao' };
+  Object.values(D.recebimentos).forEach(somaRec);
+  const ab = D.envios.find(e => ['separacao', 'conferencia'].includes(e.status));
+  if (ab) D.divergencias.push({ id:String(++D.divSeq), envio_id:ab.id, plano_id:null, produto:'TÊNIS CASUAL', cor:'PRETO', mlb:'', tamanho:'37', qtd_plan:12, qtd_real:8, motivo:'Não localizado no estoque', observacao:'Endereço vazio no WMS',
+    status:'aberta', meli_em:null, meli_por:null, wms_em:null, wms_por:null, criado_em:new Date().toISOString(), criado_por:'davi duarte', atualizado_em:new Date().toISOString(), atualizado_por:'davi duarte' });
+}
+function somaRec(r){ if (!r.itens?.length) return r; ['declaradas', 'processadas', 'aptas', 'nao_aptas', 'identificar'].forEach(k => { r[k] = r.itens.reduce((t, x) => t + (Number(x[k]) || 0), 0); }); return r; }
+function demoDivRec(path, corpo){
+  const D = DEMO_FULL; demoDivRecIni(); const q = new URLSearchParams(path.split('?')[1] || ''), ag = new Date().toISOString(), cp = x => JSON.parse(JSON.stringify(x));
+  const comEnvio = d => { const e = D.envios.find(x => x.id === d.envio_id) || {}; return { ...cp(d), pedido:e.pedido, cnpj_id:e.cnpj_id, envio_status:e.status, data_expedicao:e.data_expedicao, data_limite:e.data_limite || null }; };
+  if (path.startsWith('/full/divergencias')) { let L = D.divergencias; if (q.get('envio_id')) L = L.filter(d => d.envio_id === q.get('envio_id')); if (q.get('abertas') === '1') L = L.filter(d => d.status === 'aberta');
+    return { divergencias:L.map(comEnvio), motivos:MOTIVOS_DIV_PADRAO }; }
+  if (path === '/full/divergencia') { const n = { produto:caixaAltaTxt(corpo.produto || '').trim(), cor:caixaAltaTxt(corpo.cor || '').trim(), mlb:String(corpo.mlb || '').replace(/\D/g, ''), tamanho:String(corpo.tamanho || '').trim(),
+      qtd_plan:Number(corpo.qtd_plan), qtd_real:Number(corpo.qtd_real), motivo:corpo.motivo, observacao:corpo.observacao || null };
+    if (!n.produto) throw new Error('Informe o produto'); if (!(n.qtd_plan >= 0) || !(n.qtd_real >= 0)) throw new Error('Quantidades inválidas');
+    if (n.qtd_plan === n.qtd_real) throw new Error('Planejado e encontrado são iguais: não há divergência'); if (!n.motivo) throw new Error('Escolha o motivo');
+    if (n.motivo === 'Outro' && !n.observacao) throw new Error('Motivo "Outro": descreva na observação');
+    if (corpo.id) { const d = D.divergencias.find(x => x.id === corpo.id); if (d.meli_em || d.wms_em) throw new Error('O analista já começou a corrigir: para mudar, peça para ele desfazer a marcação'); Object.assign(d, n, { atualizado_em:ag }); return { ok:true, id:d.id }; }
+    const d = { id:String(++D.divSeq), envio_id:corpo.envio_id, plano_id:null, ...n, status:'aberta', meli_em:null, meli_por:null, wms_em:null, wms_por:null, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' };
+    D.divergencias.push(d); D.eventos.unshift({ envio_id:corpo.envio_id, em:ag, por:'demonstracao', acao:'divergencia.apontar', antes:null, depois:n }); return { ok:true, id:d.id }; }
+  if (path === '/full/divergencia/acao') { const d = D.divergencias.find(x => x.id === corpo.id), a = corpo.acao;
+    if (a === 'cancelar') { d.status = 'cancelada'; return { ok:true }; }
+    if (!pode('full_plan', 'editar')) throw new Error('Só o analista do planejamento marca a correção no MELI e no Seenc');
+    const col = a.endsWith('meli') ? 'meli' : 'wms', marca = !a.startsWith('desfazer'); d[col + '_em'] = marca ? ag : null; d[col + '_por'] = marca ? 'demonstracao' : null;
+    d.status = d.meli_em && d.wms_em ? 'corrigida' : 'aberta'; return { ok:true, status:d.status }; }
+  if (path.startsWith('/full/recebimentos')) { const ini = q.get('ini'), fim = q.get('fim');
+    return { ini, fim, recebimentos:D.envios.filter(e => e.status === 'expedido' && e.data_expedicao >= ini && e.data_expedicao <= fim).map(e => { const r = D.recebimentos[e.id] || {}, ro = DEMO_ROM.romaneios.find(x => x.envio_ids.includes(e.id));
+      return { ...cp(r), itens:undefined, linhas_dif:(r.itens || []).filter(x => x.processadas !== x.declaradas).length, envio_id:r.envio_id || null, envio:e.id, pedido:e.pedido, cnpj_id:e.cnpj_id, data_expedicao:e.data_expedicao,
+        pares_plan:e.pares_plan, pares_envio:e.pares_envio, saida_em:ro?.saida_em || null, divergencias:D.divergencias.filter(d => d.envio_id === e.id && d.status !== 'cancelada').length }; }) }; }
+  if (path.startsWith('/full/recebimento?')) return { recebimento:D.recebimentos[q.get('envio_id')] ? cp(D.recebimentos[q.get('envio_id')]) : null };
+  if (path === '/full/recebimento') { const t = ['coletado_em', 'recebido_em', 'proc_inicio_em', 'proc_fim_em'].map(k => corpo[k]).filter(Boolean);
+    for (let i = 1; i < t.length; i++) if (t[i] < t[i - 1]) throw new Error('As datas precisam seguir a ordem: coletado → recebido → início → fim do processamento');
+    D.recebimentos[corpo.envio_id] = somaRec({ ...cp(corpo), atualizado_em:ag, atualizado_por:'demonstracao' }); return { ok:true }; }
+}
+// mantém o selo da lista (divergências abertas e resultado do MELI) depois de mexer
+function atualizarSelosEnvio(envioId){
+  const D = state.fullDados, e = D?.envios.find(x => x.id === envioId); if (!e) return;
+  apiFull(`/full/divergencias?envio_id=${envioId}`).then(r => { e.div_abertas = r.divergencias.filter(d => d.status === 'aberta').length; if (typeof renderFull === 'function' && state.full?.vista === 'envios') renderFull(); }).catch(() => {});
+}
+
+// ---- no envio: divergências
+async function blocoDivergencias(el, e){
+  const editar = pode('full', 'editar'), analista = pode('full_plan', 'editar'), gerir = pode('full', 'gerir'), eu = state.usuario?.login || 'demonstracao';
+  let dados, plano = null;
+  try { dados = await apiFull(`/full/divergencias?envio_id=${e.id}`); if (e.plano_id) ({ plano } = await apiPlan(`/full/plano/itens?envio_id=${e.id}`)); }
+  catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = `<div class="info">Não consegui carregar as divergências: ${esc(x.message)}</div>`; return; }
+  const L = dados.divergencias.filter(d => d.status !== 'cancelada'), ab = L.filter(d => d.status === 'aberta');
+  const desenha = () => {
+    el.innerHTML = `<div class="gv-sec etapa-sec" style="--c:#c62828">Divergências da separação <span class="info">${L.length ? `${ab.length} aberta(s) de ${L.length}` : 'o que não bateu com o planejado'}</span></div>
+      ${ab.length ? `<div class="aviso-rom">⚠ O analista precisa corrigir ${ab.length === 1 ? 'esta divergência' : 'estas divergências'} no <b>MELI</b> e no <b>Seenc</b> antes da etiquetagem (as etiquetas saem do envio corrigido).</div>` : ''}
+      <div class="dv-lista">${L.map(d => `<div class="dv-card ${d.status}">
+        <div class="dv-top"><b>${esc(d.produto)}</b>${d.cor ? ` <span>${esc(d.cor)}</span>` : ''}${d.tamanho ? ` · nº <b>${esc(d.tamanho)}</b>` : ''}<span style="flex:1"></span>
+          <span>planejado ${fmtN(d.qtd_plan)} → encontrado ${fmtN(d.qtd_real)} (${difTxt(d.qtd_plan, d.qtd_real)})</span></div>
+        <div class="info">${esc(d.motivo)}${d.observacao ? ' · ' + esc(d.observacao) : ''} · apontado por ${esc(quemTxt(d.criado_por))} ${quando(d.criado_em)}</div>
+        <div class="dv-marcas">
+          ${['meli', 'wms'].map(k => { const ok = d[k + '_em'], rot = k === 'meli' ? 'MELI' : 'Seenc';
+            return ok ? `<span class="dv-ok">✓ ${rot} <small>${esc(quemTxt(d[k + '_por']))} ${quando(ok)}</small>${analista ? ` <button class="lnk" data-dva="desfazer_${k}" data-dv="${d.id}">desfazer</button>` : ''}</span>`
+              : analista ? `<button class="btn mini" data-dva="${k}" data-dv="${d.id}">✓ Corrigi no ${rot}</button>` : `<span class="dv-pend">${rot}: aguardando analista</span>`; }).join('')}
+          ${d.status === 'corrigida' ? '<span class="pill-ok">corrigida</span>' : ''}<span style="flex:1"></span>
+          ${editar && d.status === 'aberta' && !d.meli_em && !d.wms_em && (d.criado_por === eu || gerir) ? `<button class="btn mini" data-dve="${d.id}">Editar</button>` : ''}
+          ${d.status === 'aberta' && (d.criado_por === eu || gerir) ? `<button class="btn mini" data-dvc="${d.id}">Cancelar</button>` : ''}</div></div>`).join('')}</div>
+      ${editar && e.status !== 'cancelado' ? '<div id="dv-form"></div><button class="btn mini" id="dv-nova" style="margin-top:6px">+ Apontar divergência</button>' : ''}`;
+    el.querySelectorAll('[data-dva]').forEach(b => b.onclick = async () => { b.disabled = true;
+      try { await apiFull('/full/divergencia/acao', { id:b.dataset.dv, acao:b.dataset.dva }); avisar(b.dataset.dva.startsWith('desfazer') ? 'Marcação desfeita' : 'Correção registrada'); atualizarSelosEnvio(e.id); blocoDivergencias(el, e); }
+      catch (x) { if (x instanceof SemSessao) throw x; avisar(x.message, true); b.disabled = false; } });
+    el.querySelectorAll('[data-dvc]').forEach(b => b.onclick = async () => { if (!confirmaDupla(b, 'Confirmar cancelamento')) return;
+      try { await apiFull('/full/divergencia/acao', { id:b.dataset.dvc, acao:'cancelar' }); avisar('Divergência cancelada'); atualizarSelosEnvio(e.id); blocoDivergencias(el, e); } catch (x) { if (x instanceof SemSessao) throw x; avisar(x.message, true); } });
+    el.querySelectorAll('[data-dve]').forEach(b => b.onclick = () => formDiv(L.find(d => d.id === b.dataset.dve)));
+    const nv = el.querySelector('#dv-nova'); if (nv) nv.onclick = () => formDiv(null);
+  };
+  const formDiv = d => {
+    const f = el.querySelector('#dv-form'); if (!f) return; el.querySelector('#dv-nova').hidden = true;
+    const linhas = plano?.itens || [], motivos = dados.motivos || MOTIVOS_DIV_PADRAO;
+    f.innerHTML = `<div class="dv-form">
+      ${linhas.length ? `<label>Linha do planejamento<select id="dv-linha"><option value="">— outro produto (digitar) —</option>${linhas.map((i, k) => `<option value="${k}">${esc(i.produto)}${i.cor ? ' · ' + esc(i.cor) : ''}${i.loja ? ` (estoque ${esc(nomeLoja(i.loja))})` : ''}</option>`).join('')}</select></label>` : ''}
+      <div class="grade-form g2">
+        <label>Produto<input id="dv-prod" value="${esc(d?.produto || '')}" autocapitalize="characters"></label>
+        <label>Cor<input id="dv-cor" value="${esc(d?.cor || '')}" autocapitalize="characters"></label>
+        <label>Tamanho<input id="dv-tam" list="dl-dv-tam" value="${esc(d?.tamanho || '')}" inputmode="numeric"><datalist id="dl-dv-tam"></datalist></label>
+        <label>MLB <span class="info">(se souber)</span><input id="dv-mlb" value="${esc(d?.mlb || '')}" inputmode="numeric"></label>
+        <label>Planejado<input id="dv-plan" inputmode="numeric" value="${d?.qtd_plan ?? ''}"></label>
+        <label>Encontrado / separado<input id="dv-real" inputmode="numeric" value="${d?.qtd_real ?? ''}"></label>
+      </div>
+      <label class="gv-lab">Motivo<select id="dv-mot"><option value="">–</option>${motivos.map(m => `<option ${d?.motivo === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
+      <label class="gv-lab">Observação<input id="dv-obs" maxlength="300" value="${esc(d?.observacao || '')}" placeholder="ex.: endereço AR2-BL1 vazio; achou 2 avariados"></label>
+      <div class="gv-acoes"><button class="btn" id="dv-x">Cancelar</button><button class="btn pri" id="dv-ok">${d ? 'Salvar' : 'Apontar'}</button></div></div>`;
+    const q = k => f.querySelector(k), sel = q('#dv-linha');
+    const tamanhos = () => { const i = sel && sel.value !== '' ? linhas[sel.value] : null; q('#dl-dv-tam').innerHTML = i ? Object.keys(i.q).map(n => `<option value="${n}">${i.q[n]} planejado(s)</option>`).join('') : ''; };
+    if (sel) sel.onchange = () => { const i = linhas[sel.value]; if (i) { q('#dv-prod').value = i.produto; q('#dv-cor').value = i.cor || ''; q('#dv-mlb').value = i.mlb || ''; } tamanhos(); q('#dv-tam').focus(); };
+    q('#dv-tam').oninput = () => { const i = sel && sel.value !== '' ? linhas[sel.value] : null; if (i && i.q[q('#dv-tam').value] != null) q('#dv-plan').value = i.q[q('#dv-tam').value]; };
+    q('#dv-x').onclick = () => { f.innerHTML = ''; el.querySelector('#dv-nova').hidden = false; };
+    q('#dv-ok').onclick = async () => { const b = q('#dv-ok'); b.disabled = true;
+      try { await apiFull('/full/divergencia', { id:d?.id, envio_id:e.id, produto:q('#dv-prod').value, cor:q('#dv-cor').value, tamanho:q('#dv-tam').value, mlb:q('#dv-mlb').value,
+          qtd_plan:q('#dv-plan').value === '' ? NaN : Number(q('#dv-plan').value), qtd_real:q('#dv-real').value === '' ? NaN : Number(q('#dv-real').value), motivo:q('#dv-mot').value, observacao:q('#dv-obs').value.trim() });
+        avisar(d ? 'Divergência alterada' : 'Divergência apontada: o analista vê em Planejamento › Correções pendentes'); atualizarSelosEnvio(e.id); blocoDivergencias(el, e); }
+      catch (x) { if (x instanceof SemSessao) throw x; avisar(x.message, true); b.disabled = false; } };
+  };
+  desenha();
+}
+
+// ---- no planejamento: correções pendentes (o analista corrige no MELI e no Seenc)
+async function painelCorrecoes(el){
+  let r; try { r = await apiFull('/full/divergencias?abertas=1'); } catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = ''; return; }
+  const L = r.divergencias, analista = pode('full_plan', 'editar');
+  if (!L.length) { el.innerHTML = '<div class="info dv-zero">✓ Nenhuma correção pendente da separação.</div>'; return; }
+  const porEnvio = {}; L.forEach(d => (porEnvio[d.envio_id] ||= []).push(d));
+  el.innerHTML = `<div class="painel dv-painel"><h3 class="cs-sub">🔧 Correções pendentes <span class="dv-n">${L.length}</span> <span class="info">a logística apontou diferença na separação: corrija no MELI e no Seenc e marque</span></h3>
+    <div style="overflow-x:auto"><table class="tab-full dv-tab"><thead><tr><th style="text-align:left">Envio</th><th style="text-align:left">Produto</th><th>Nº</th><th>Planejado</th><th>Encontrado</th><th>Dif.</th><th style="text-align:left">Motivo</th><th style="text-align:left">Apontado</th><th>MELI</th><th>Seenc</th></tr></thead><tbody>
+    ${Object.values(porEnvio).map(G => G.map((d, i) => `<tr>${i === 0 ? `<td rowspan="${G.length}" style="text-align:left;vertical-align:top"><b>#${esc(d.pedido)}</b> ${tagLoja(d.cnpj_id)}<small>${pillFull(d.envio_status)} coleta ${dataBR(d.data_expedicao).slice(0, 5)}${d.data_limite ? ` · separar até ${dataBR(d.data_limite).slice(0, 5)}` : ''}</small></td>` : ''}
+      <td style="text-align:left"><b>${esc(d.produto)}</b>${d.cor ? `<small>${esc(d.cor)}</small>` : ''}</td><td>${esc(d.tamanho || '–')}</td><td>${fmtN(d.qtd_plan)}</td><td>${fmtN(d.qtd_real)}</td><td>${difTxt(d.qtd_plan, d.qtd_real)}</td>
+      <td style="text-align:left">${esc(d.motivo)}${d.observacao ? `<small>${esc(d.observacao)}</small>` : ''}</td><td style="text-align:left"><small style="color:inherit">${esc(quemTxt(d.criado_por))}<br>${quando(d.criado_em)}</small></td>
+      ${['meli', 'wms'].map(k => `<td>${d[k + '_em'] ? `<span class="dv-ok" title="${esc(quemTxt(d[k + '_por']))} ${quando(d[k + '_em'])}">✓</span>${analista ? ` <button class="lnk" data-cra="desfazer_${k}" data-cr="${d.id}">desfazer</button>` : ''}` : analista ? `<button class="btn mini" data-cra="${k}" data-cr="${d.id}">Corrigi</button>` : '<span class="info">pendente</span>'}</td>`).join('')}</tr>`).join('')).join('')}
+    </tbody></table></div>
+    <div class="info" style="margin-top:6px">Quando MELI e Seenc estão marcados, a divergência sai daqui e o envio fica liberado. Ajuste também a quantidade de pares do envio, se mudou.</div></div>`;
+  el.querySelectorAll('[data-cra]').forEach(b => b.onclick = async () => { b.disabled = true;
+    try { await apiFull('/full/divergencia/acao', { id:b.dataset.cr, acao:b.dataset.cra }); avisar(b.dataset.cra.startsWith('desfazer') ? 'Marcação desfeita' : 'Correção registrada'); painelCorrecoes(el); }
+    catch (x) { if (x instanceof SemSessao) throw x; avisar(x.message, true); b.disabled = false; } });
+}
+
+// ---- recebimento no MELI: leitura do CSV "Baixar detalhe" e do texto da página do envio
+function lerCsvMeli(txt){
+  const linhas = txt.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+  if (linhas.length < 2) throw new Error('Arquivo vazio');
+  const sep = linhas[0].includes(';') ? ';' : ',', cab = linhas[0].split(sep).map(c => c.trim().toLowerCase());
+  const col = nome => cab.findIndex(c => c === nome.toLowerCase());
+  const C = { id:col('ID do envio'), st:col('Status do envio'), rec:col('Data de recebimento'), ml:col('Código ML'), sku:col('SKU'), an:col('Código do anúncio'), v:col('Variações'),
+    dec:col('Unidades declaradas'), pro:col('Unidades processadas'), apt:col('Unidades aptas para venda'), na:col('Unidades não aptas para venda'), idf:col('Unidades para identificar'), dl:col('Data de download do detalhe') };
+  if (C.id < 0 || C.dec < 0 || C.pro < 0) throw new Error('Não é o CSV de detalhe do envio do Mercado Livre (faltam as colunas "ID do envio", "Unidades declaradas" e "Unidades processadas")');
+  const L = linhas.slice(1).map(l => l.split(sep)), n = (x, i) => i >= 0 ? Number(String(x[i] ?? '').replace(',', '.')) || 0 : 0;
+  const ids = [...new Set(L.map(x => x[C.id]?.trim()).filter(Boolean))];
+  if (ids.length > 1) throw new Error(`O arquivo tem mais de um envio (${ids.join(', ')})`);
+  const dt = s => s ? new Date(String(s).trim().replace(' ', 'T') + '-03:00').toISOString() : null;
+  return { envio:ids[0], status_meli:L[0][C.st]?.trim() || null, recebido_em:C.rec >= 0 ? dt(L[0][C.rec]) : null, arquivo_em:C.dl >= 0 ? dt(L[0][C.dl]) : null,
+    itens:L.map(x => ({ sku:x[C.sku]?.trim() || '', codigo_ml:x[C.ml]?.trim() || '', anuncio:x[C.an]?.trim() || '', variacao:x[C.v]?.trim() || '', declaradas:n(x, C.dec), processadas:n(x, C.pro), aptas:n(x, C.apt), nao_aptas:n(x, C.na), identificar:n(x, C.idf) })) };
+}
+// texto copiado da página do envio (histórico e tarifas): "19 out 09:35 | Coletamos 37 volumes e 0 pallets."
+function lerTextoMeli(txt, ano){
+  const MES = { jan:1, fev:2, mar:3, abr:4, mai:5, jun:6, jul:7, ago:8, set:9, out:10, nov:11, dez:12 }, o = {};
+  const quando = l => { const m = l.match(/(\d{1,2})\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-zç.]*\s+(\d{1,2}):(\d{2})/i); if (!m) return null;
+    return new Date(`${ano}-${String(MES[m[2].toLowerCase()]).padStart(2, '0')}-${m[1].padStart(2, '0')}T${m[3].padStart(2, '0')}:${m[4]}:00-03:00`).toISOString(); };
+  let etapa = null;
+  txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean).forEach(l => {
+    const low = l.toLowerCase();
+    if (/^coleta pendente/.test(low)) etapa = 'pend'; else if (/^a caminho do centro/.test(low)) etapa = 'col'; else if (/^recebido no centro/.test(low)) etapa = 'rec';
+    else if (/^processamento em andamento/.test(low)) etapa = 'ini'; else if (/^processamento finalizado/.test(low)) etapa = 'fim';
+    const w = quando(l);
+    if (w) { const k = { col:'coletado_em', rec:'recebido_em', ini:'proc_inicio_em', fim:'proc_fim_em' }[etapa]; if (k && !o[k]) o[k] = w; }
+    const vol = l.match(/coletamos\s+(\d+)\s+volumes?/i); if (vol) { o.volumes = Number(vol[1]); if (w && !o.coletado_em) o.coletado_em = w; }
+    const m3 = l.match(/volume total:\s*([\d.,]+)\s*m/i); if (m3) o.volume_m3 = Number(m3[1].replace(/\./g, '').replace(',', '.'));
+    const km = l.match(/dist[âa]ncia[^:]*:\s*([\d.,]+)\s*km/i); if (km) o.distancia_km = Number(km[1].replace(/\./g, '').replace(',', '.'));
+    if (/custo da coleta/i.test(l)) etapa = 'custo';
+    const rs = l.match(/R\$\s*([\d.]+,\d{2})/); if (rs && etapa === 'custo' && o.custo_coleta == null) o.custo_coleta = Number(rs[1].replace(/\./g, '').replace(',', '.'));
+  });
+  return o;
+}
+const isoParaLocal = v => v ? isoLocal(v).slice(0, 16) : '';
+const hDur = (a, b) => a && b ? (new Date(b) - new Date(a)) / 60e3 : null;
+const fmtHoras = min => min == null ? '–' : min < 60 ? `${Math.round(min)} min` : min < 48 * 60 ? `${(min / 60).toLocaleString('pt-BR', { maximumFractionDigits:1 })} h` : `${(min / 1440).toLocaleString('pt-BR', { maximumFractionDigits:1 })} dias`;
+
+async function blocoRecebimento(el, e){
+  const editar = pode('full', 'editar');
+  let r; try { ({ recebimento:r } = await apiFull(`/full/recebimento?envio_id=${e.id}`)); } catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = `<div class="info">Não consegui carregar o recebimento: ${esc(x.message)}</div>`; return; }
+  const pares = Number(e.pares_envio ?? e.pares_plan) || 0, saida = state.romDados?.romaneios?.find(ro => ro.envio_ids?.includes(e.id))?.saida_em || null;
+  const resumo = () => { if (!r) return `<div class="info">Ainda não lançado. Quando o MELI finalizar o processamento, baixe o detalhe do envio (CSV) e copie o texto da página (histórico e tarifas).</div>`;
+    const dif = (r.processadas ?? 0) - (r.declaradas ?? 0), lin = (r.itens || []).filter(x => x.processadas !== x.declaradas || x.nao_aptas || x.identificar);
+    const custo = (r.custo_coleta || 0) + (r.tarifas_extras || 0);
+    return `<div class="rc-tl">${[['Coletado', r.coletado_em, r.volumes != null ? `${r.volumes} volumes` : ''], ['Recebido no CD', r.recebido_em, hDur(r.coletado_em, r.recebido_em) != null ? `+${fmtHoras(hDur(r.coletado_em, r.recebido_em))}` : ''],
+        ['Início do processamento', r.proc_inicio_em, hDur(r.recebido_em, r.proc_inicio_em) != null ? `fila ${fmtHoras(hDur(r.recebido_em, r.proc_inicio_em))}` : ''], ['Processado', r.proc_fim_em, hDur(r.proc_inicio_em, r.proc_fim_em) != null ? `+${fmtHoras(hDur(r.proc_inicio_em, r.proc_fim_em))}` : '']]
+        .map(([t, v, s]) => `<div class="${v ? 'on' : ''}"><i></i><b>${t}</b><span>${v ? quando(v) : '–'}</span><small>${s}</small></div>`).join('')}</div>
+      <div class="info">Da coleta ao fim do processamento: <b>${fmtHoras(hDur(r.coletado_em, r.proc_fim_em))}</b>${r.recebido_em && r.proc_fim_em ? ` · no CD do MELI: <b>${fmtHoras(hDur(r.recebido_em, r.proc_fim_em))}</b>` : ''}${saida && r.coletado_em ? ` · saída do romaneio → coleta MELI: ${fmtHoras(hDur(saida, r.coletado_em))}` : ''}</div>
+      <div class="rc-num">
+        <div><span>Status MELI</span><b class="${/diferen/i.test(r.status_meli || '') ? 'dif' : 'ok'}" style="font-size:13px">${esc(r.status_meli || '–')}</b></div>
+        <div><span>Declaradas</span><b>${fmtN(r.declaradas ?? 0)}</b><small>${pares && r.declaradas != null && r.declaradas !== pares ? `envio: ${fmtN(pares)} pares` : ''}</small></div>
+        <div><span>Processadas</span><b>${fmtN(r.processadas ?? 0)}</b><small>${difTxt(r.declaradas ?? 0, r.processadas ?? 0)}</small></div>
+        <div><span>Não aptas · identificar</span><b class="${r.nao_aptas || r.identificar ? 'dif' : ''}">${fmtN(r.nao_aptas ?? 0)} · ${fmtN(r.identificar ?? 0)}</b></div>
+        <div><span>Custo da coleta</span><b>${custo ? fmtRS2(custo) : '–'}</b><small>${custo && r.processadas ? `${fmtRS2(custo / r.processadas)}/par` : ''}${r.tarifas_extras ? ` · inclui ${fmtRS2(r.tarifas_extras)} adicionais` : ''}</small></div>
+        <div><span>Volume MELI</span><b>${r.volume_m3 != null ? fmtM3(r.volume_m3) + ' m³' : '–'}</b><small>${r.volume_m3 != null && e.m3 ? `nosso: ${fmtM3(e.m3)} m³` : ''}${r.distancia_km ? ` · ${String(r.distancia_km).replace('.', ',')} km` : ''}</small></div>
+      </div>
+      ${r.tarifas_obs ? `<div class="info">Tarifas: ${esc(r.tarifas_obs)}</div>` : ''}
+      ${lin.length ? `<div style="overflow-x:auto"><table class="tab-full rc-tab"><thead><tr><th style="text-align:left">SKU</th><th style="text-align:left">Variação</th><th>Declaradas</th><th>Processadas</th><th>Dif.</th><th>Não aptas</th><th>Identificar</th></tr></thead><tbody>
+        ${lin.map(x => `<tr><td style="text-align:left">${esc(x.sku)}<small>MLB${esc(x.anuncio)}</small></td><td style="text-align:left">${esc(x.variacao || '–')}</td><td>${x.declaradas}</td><td>${x.processadas}</td><td>${difTxt(x.declaradas, x.processadas)}</td><td class="${x.nao_aptas ? 'dif' : ''}">${x.nao_aptas || ''}</td><td class="${x.identificar ? 'dif' : ''}">${x.identificar || ''}</td></tr>`).join('')}</tbody></table></div>` : r.itens?.length ? '<div class="info">✓ Todas as linhas do CSV bateram.</div>' : ''}
+      ${r.itens?.length ? `<details class="pl-det"><summary>Ver as ${r.itens.length} linhas do CSV</summary><div style="overflow-x:auto"><table class="tab-full rc-tab"><tbody>${r.itens.map(x => `<tr><td style="text-align:left">${esc(x.sku)}</td><td style="text-align:left">${esc(x.variacao || '')}</td><td>${x.declaradas}</td><td>${x.processadas}</td><td>${x.aptas}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
+      <div class="info" style="margin-top:4px">Lançado por ${esc(quemTxt(r.atualizado_por))} ${quando(r.atualizado_em)}</div>`; };
+  const desenha = () => {
+    el.innerHTML = `<div class="gv-sec etapa-sec" style="--c:#f1c300">Recebimento no MELI ${r ? `<span class="info">${esc(r.status_meli || '')}</span>` : ''}</div>${resumo()}
+      ${editar ? `<div class="gv-acoes" style="justify-content:flex-start;margin-top:6px"><button class="btn mini" id="rc-ed">${r ? '✎ Atualizar' : '📥 Lançar recebimento'}</button></div><div id="rc-form"></div>` : ''}`;
+    const ed = el.querySelector('#rc-ed'); if (ed) ed.onclick = () => { ed.hidden = true; form(); };
+  };
+  const form = () => {
+    const f = el.querySelector('#rc-form'), v = { ...(r || {}), itens:r?.itens || [] }, ano = (e.data_expedicao || hojeBRT()).slice(0, 4);
+    f.innerHTML = `<div class="dv-form">
+      <div class="rc-passo"><b>1.</b> No MELI, abra o envio <b>#${esc(e.pedido)}</b> › <b>Baixar detalhe</b> e escolha o arquivo:<input type="file" id="rc-csv" accept=".csv,text/csv"><span class="info" id="rc-csv-info">${v.itens.length ? `${v.itens.length} linha(s) já lançadas` : ''}</span></div>
+      <div class="rc-passo"><b>2.</b> Na mesma página, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole aqui (o portal lê o histórico e as tarifas):<textarea id="rc-txt" rows="3" placeholder="Cole aqui o texto da página do envio"></textarea><button class="btn mini" id="rc-ler">Ler texto</button></div>
+      <div class="rc-passo"><b>3.</b> Confira e salve:</div>
+      <div class="grade-form g2">
+        <label>Status no MELI<input id="rc-st" value="${esc(v.status_meli || '')}" placeholder="Processado com sucesso"></label>
+        <label>Volumes coletados<input id="rc-vol" inputmode="numeric" value="${v.volumes ?? ''}"></label>
+        <label>Coletado (a caminho do CD)<input id="rc-col" type="datetime-local" value="${isoParaLocal(v.coletado_em)}"></label>
+        <label>Recebido no CD<input id="rc-rec" type="datetime-local" value="${isoParaLocal(v.recebido_em)}"></label>
+        <label>Início do processamento<input id="rc-ini" type="datetime-local" value="${isoParaLocal(v.proc_inicio_em)}"></label>
+        <label>Processamento finalizado<input id="rc-fim" type="datetime-local" value="${isoParaLocal(v.proc_fim_em)}"></label>
+        <label>Custo da coleta (R$)<input id="rc-custo" inputmode="decimal" value="${v.custo_coleta != null ? String(v.custo_coleta).replace('.', ',') : ''}"></label>
+        <label>Tarifas adicionais (R$)<input id="rc-extra" inputmode="decimal" value="${v.tarifas_extras != null ? String(v.tarifas_extras).replace('.', ',') : ''}" placeholder="etiquetagem, armazenagem…"></label>
+        <label>Volume total (m³)<input id="rc-m3" inputmode="decimal" value="${v.volume_m3 != null ? String(v.volume_m3).replace('.', ',') : ''}"></label>
+        <label>Distância (km)<input id="rc-km" inputmode="decimal" value="${v.distancia_km != null ? String(v.distancia_km).replace('.', ',') : ''}"></label>
+      </div>
+      <label class="gv-lab">Detalhe das tarifas adicionais / observação<input id="rc-obs" maxlength="300" value="${esc(v.tarifas_obs || '')}"></label>
+      ${!v.itens.length ? `<div class="grade-form g2"><label>Unidades declaradas <span class="info">(sem o CSV)</span><input id="rc-dec" inputmode="numeric" value="${v.declaradas ?? ''}"></label><label>Unidades processadas<input id="rc-pro" inputmode="numeric" value="${v.processadas ?? ''}"></label></div>` : ''}
+      <div class="gv-acoes"><button class="btn" id="rc-x">Cancelar</button><button class="btn pri" id="rc-ok">Salvar recebimento</button></div></div>`;
+    const q = k => f.querySelector(k), loc = k => q(k).value ? deLocal(q(k).value) : null, nb = k => { const t = q(k)?.value.trim(); return t ? Number(t.replace(/\./g, '').replace(',', '.')) : null; };
+    const poe = (k, val) => { if (val != null && val !== '') q(k).value = val; };
+    q('#rc-csv').onchange = async () => { const arq = q('#rc-csv').files[0]; if (!arq) return;
+      try { const c = lerCsvMeli(await arq.text());
+        if (c.envio && c.envio !== String(e.pedido)) { q('#rc-csv').value = ''; return avisar(`Esse CSV é do envio ${c.envio}, não do #${e.pedido}`, true); }
+        v.itens = c.itens; v.arquivo_em = c.arquivo_em; poe('#rc-st', c.status_meli); if (c.recebido_em) q('#rc-rec').value = isoParaLocal(c.recebido_em);
+        const dec = c.itens.reduce((t, x) => t + x.declaradas, 0), pro = c.itens.reduce((t, x) => t + x.processadas, 0);
+        q('#rc-csv-info').innerHTML = `✓ ${c.itens.length} linha(s) · ${fmtN(dec)} declaradas · ${fmtN(pro)} processadas (${difTxt(dec, pro)})`; }
+      catch (x) { avisar(x.message, true); q('#rc-csv').value = ''; } };
+    q('#rc-ler').onclick = () => { const o = lerTextoMeli(q('#rc-txt').value, ano); const n = Object.keys(o).length;
+      if (!n) return avisar('Não achei datas nem tarifas no texto. Copie a página inteira do envio.', true);
+      [['coletado_em', '#rc-col'], ['recebido_em', '#rc-rec'], ['proc_inicio_em', '#rc-ini'], ['proc_fim_em', '#rc-fim']].forEach(([k, id]) => { if (o[k]) q(id).value = isoParaLocal(o[k]); });
+      poe('#rc-vol', o.volumes); [['custo_coleta', '#rc-custo'], ['volume_m3', '#rc-m3'], ['distancia_km', '#rc-km']].forEach(([k, id]) => { if (o[k] != null) q(id).value = String(o[k]).replace('.', ','); });
+      avisar(`${n} informação(ões) lida(s) do texto: confira antes de salvar`); };
+    q('#rc-x').onclick = desenha;
+    q('#rc-ok').onclick = async () => { const b = q('#rc-ok'); b.disabled = true;
+      const corpo = { envio_id:e.id, status_meli:q('#rc-st').value.trim() || null, volumes:nb('#rc-vol'), coletado_em:loc('#rc-col'), recebido_em:loc('#rc-rec'), proc_inicio_em:loc('#rc-ini'), proc_fim_em:loc('#rc-fim'),
+        custo_coleta:nb('#rc-custo'), tarifas_extras:nb('#rc-extra'), volume_m3:nb('#rc-m3'), distancia_km:nb('#rc-km'), tarifas_obs:q('#rc-obs').value.trim() || null, itens:v.itens, arquivo_em:v.arquivo_em || null,
+        declaradas:v.itens.length ? null : nb('#rc-dec'), processadas:v.itens.length ? null : nb('#rc-pro') };
+      try { await apiFull('/full/recebimento', corpo); avisar('Recebimento no MELI salvo'); ({ recebimento:r } = await apiFull(`/full/recebimento?envio_id=${e.id}`));
+        const en = state.fullDados?.envios.find(x => x.id === e.id); if (en && r) en.meli = { status:r.status_meli, dif:(r.processadas ?? 0) - (r.declaradas ?? 0), fim:r.proc_fim_em }; desenha(); }
+      catch (x) { if (x instanceof SemSessao) throw x; avisar(x.message, true); b.disabled = false; } };
+  };
+  desenha();
+}
+
+// ---- aba "📥 MELI": prazos, diferenças e custo das coletas recebidas
+function telaMeliFull(){
+  const s = state.full; s.meliPer ||= '30';
+  $app.innerHTML = `
+    <div class="barra"><h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <div class="abas">${[['30', '30 dias'], ['60', '60 dias'], ['90', '90 dias']].map(([k, t]) => `<button data-mp="${k}" class="${s.meliPer === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>
+    <div id="meli"><div class="carregando">Carregando os recebimentos…</div></div>`;
+  ligarAbasVista();
+  document.querySelectorAll('[data-mp]').forEach(b => b.onclick = () => { s.meliPer = b.dataset.mp; telaMeliFull(); });
+  carregarMeliFull();
+}
+async function carregarMeliFull(){
+  const s = state.full, fim = hojeBRT(), ini = addDias(fim, -Number(s.meliPer));
+  try { const r = await apiFull(`/full/recebimentos?ini=${ini}&fim=${fim}`); renderMeliFull(r); }
+  catch (x) { if (x instanceof SemSessao) throw x; const $c = document.getElementById('meli'); if ($c) $c.innerHTML = `<div class="erro">${esc(x.message)}</div>`; }
+}
+function renderMeliFull(R){
+  const $c = document.getElementById('meli'); if (!$c) return;
+  const L = R.recebimentos, com = L.filter(x => x.envio_id), med = a => { const v = a.filter(x => x != null); return v.length ? v.reduce((t, x) => t + x, 0) / v.length : null; };
+  const tRec = med(com.map(x => hDur(x.coletado_em, x.recebido_em))), tFila = med(com.map(x => hDur(x.recebido_em, x.proc_inicio_em))), tProc = med(com.map(x => hDur(x.recebido_em, x.proc_fim_em))), tTot = med(com.map(x => hDur(x.coletado_em, x.proc_fim_em)));
+  const dec = com.reduce((t, x) => t + (x.declaradas || 0), 0), pro = com.reduce((t, x) => t + (x.processadas || 0), 0), comDif = com.filter(x => x.processadas != null && x.declaradas != null && x.processadas !== x.declaradas);
+  const custo = com.reduce((t, x) => t + (x.custo_coleta || 0) + (x.tarifas_extras || 0), 0), m3 = com.reduce((t, x) => t + (x.volume_m3 || 0), 0), na = com.reduce((t, x) => t + (x.nao_aptas || 0) + (x.identificar || 0), 0);
+  const ord = [...L].sort((a, b) => b.data_expedicao.localeCompare(a.data_expedicao));
+  $c.innerHTML = `
+    <div class="rr-res cm-tiles cm-t5">
+      <div class="rr-tile" style="--c:#02285a"><span>Recebimentos lançados</span><b>${com.length}<small style="font-size:12px;font-weight:400"> de ${L.length}</small></b><small>${L.length - com.length ? `${L.length - com.length} envio(s) expedido(s) sem o retorno do MELI` : 'todos os expedidos lançados'}</small></div>
+      <div class="rr-tile" style="--c:#0b4fa8"><span>Coleta → fim do processamento</span><b>${fmtHoras(tTot)}</b><small>até chegar no CD ${fmtHoras(tRec)} · no CD ${fmtHoras(tProc)}${tFila != null ? ` (fila ${fmtHoras(tFila)})` : ''}</small></div>
+      <div class="rr-tile" style="--c:${comDif.length ? '#c62828' : '#1a7a3e'}"><span>Diferença na conferência do MELI</span><b>${dec ? `${pro - dec > 0 ? '+' : ''}${fmtN(pro - dec)}` : '–'}</b><small>${dec ? `${fmtN(pro)} de ${fmtN(dec)} unidades (${(pro / dec * 100).toLocaleString('pt-BR', { maximumFractionDigits:1 })}%) · ${comDif.length} envio(s) com diferença` : ''}</small></div>
+      <div class="rr-tile" style="--c:${na ? '#c27c0e' : '#566074'}"><span>Não aptas / para identificar</span><b>${fmtN(na)}</b><small>unidades que não foram para venda</small></div>
+      <div class="rr-tile" style="--c:#6b3fa0"><span>Custo das coletas</span><b>${custo ? fmtRS(custo) : '–'}</b><small>${custo && pro ? `${fmtRS2(custo / pro)}/par` : ''}${custo && m3 ? ` · ${fmtRS2(custo / m3)}/m³` : ''}</small></div>
+    </div>
+    <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full rc-lista"><thead><tr><th style="text-align:left">Envio</th><th>Coleta</th><th>Status MELI</th><th>Até o CD</th><th>Fila</th><th>Processando</th><th>Total</th><th>Declaradas</th><th>Processadas</th><th>Dif.</th><th>Não aptas</th><th>Custo</th><th>R$/par</th><th>Div. separação</th></tr></thead><tbody>
+      ${ord.map(x => { const lanc = !!x.envio_id, d = lanc && x.declaradas != null ? (x.processadas ?? 0) - x.declaradas : null, c = (x.custo_coleta || 0) + (x.tarifas_extras || 0);
+        return `<tr data-ir-envio-meli="${x.envio}" data-ped="${esc(x.pedido)}" data-loja="${x.cnpj_id}" style="cursor:pointer"><td style="text-align:left"><b>#${esc(x.pedido)}</b> ${tagLoja(x.cnpj_id)}</td><td>${dataBR(x.data_expedicao).slice(0, 5)}</td>
+          ${lanc ? `<td><span class="${/diferen/i.test(x.status_meli || '') ? 'dif' : 'ok'}">${esc((x.status_meli || '').replace('Processado com ', '') || '–')}</span></td>
+          <td>${fmtHoras(hDur(x.coletado_em, x.recebido_em))}</td><td>${fmtHoras(hDur(x.recebido_em, x.proc_inicio_em))}</td><td>${fmtHoras(hDur(x.proc_inicio_em, x.proc_fim_em))}</td><td><b>${fmtHoras(hDur(x.coletado_em, x.proc_fim_em))}</b></td>
+          <td>${x.declaradas != null ? fmtN(x.declaradas) : '–'}</td><td>${x.processadas != null ? fmtN(x.processadas) : '–'}</td><td>${d != null ? difTxt(x.declaradas, x.processadas) : '–'}${x.linhas_dif ? `<small>${x.linhas_dif} SKU</small>` : ''}</td>
+          <td class="${x.nao_aptas || x.identificar ? 'dif' : ''}">${(x.nao_aptas || 0) + (x.identificar || 0) || ''}</td><td>${c ? fmtRS2(c) : '–'}</td><td>${c && x.processadas ? fmtRS2(c / x.processadas) : '–'}</td>`
+          : `<td colspan="11" class="info" style="text-align:left">sem o retorno do MELI — abra o envio e lance o recebimento</td>`}
+          <td>${x.divergencias ? `<span class="chip-div">${x.divergencias}</span>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="14" class="vazio">Nenhum envio expedido no período.</td></tr>'}
+    </tbody></table></div>
+    <div class="info cs-nota">Até o CD = coleta → recebido no centro de distribuição; fila = recebido → início do processamento; processando = início → fim; total = coleta → fim.
+      Dif. = processadas − declaradas, pelo CSV do MELI. "Div. separação" = divergências que a logística apontou na separação deste envio (corrigidas antes de declarar).</div>`;
+  $c.querySelectorAll('[data-ir-envio-meli]').forEach(tr => tr.onclick = () => { const s = state.full; s.vista = 'envios'; s.irPara = { pedido:tr.dataset.ped, loja:tr.dataset.loja }; telaFull(); });
+}
+const CSS_DIVREC = `
+  .chip-div{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;color:#8a1f1f;background:#fbe9e9;border-radius:9px;padding:0 6px;white-space:nowrap}
+  .chip-meli{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;color:#1a7a3e;background:#e2f5e8;border-radius:9px;padding:0 6px;white-space:nowrap} .chip-meli.neg{color:#8a1f1f;background:#fbe9e9}
+  .dv-lista{display:flex;flex-direction:column;gap:6px} .dv-card{border:1px solid var(--line);border-left:4px solid #c62828;border-radius:8px;padding:7px 10px;background:#fff} .dv-card.corrigida{border-left-color:#1a7a3e;background:#f6fbf7}
+  .dv-top{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline;font-size:13px} .dv-marcas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:5px;font-size:12px}
+  .dv-ok{color:#1a7a3e;font-weight:700} .dv-ok small{font-weight:400;color:#566074} .dv-pend{color:#9a5b00} .pill-ok{background:#e2f5e8;color:#1a7a3e;border-radius:9px;padding:0 7px;font-weight:700;font-size:11px}
+  .dv-form{border:1px dashed var(--line);border-radius:8px;padding:10px;margin-top:6px;background:#fafbfd} .dv-form .gv-lab{display:block;margin-top:6px}
+  .dv-painel{border-left:4px solid #c62828} .dv-n{display:inline-block;background:#c62828;color:#fff;border-radius:10px;padding:0 8px;font-size:12px} .dv-zero{margin:0 0 10px}
+  .dv-tab td,.dv-tab th{padding:6px 8px;text-align:center;vertical-align:top} .dv-tab td small{display:block;font-size:11px;color:#566074} .dv-tab .dif{color:#c62828} .dv-tab .ok{color:#1a7a3e}
+  .rc-tl{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0} .rc-tl>div{border-top:3px solid #d5dae3;padding-top:4px;font-size:12px} .rc-tl>div.on{border-top-color:#f1c300}
+  .rc-tl b{display:block;font-size:11px;color:#566074} .rc-tl span{display:block;font-weight:700} .rc-tl small{color:#8a93a5}
+  .rc-num{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0} .rc-num>div{background:#f6f8fb;border-radius:8px;padding:6px 8px} .rc-num span{display:block;font-size:11px;color:#566074} .rc-num b{font-size:16px} .rc-num small{display:block;font-size:11px;color:#8a93a5}
+  .rc-num .dif,.rc-tab .dif,.rc-lista .dif{color:#c62828} .rc-num .ok,.rc-lista .ok{color:#1a7a3e}
+  .rc-tab td,.rc-tab th{padding:4px 6px;font-size:12px;text-align:center} .rc-tab td small{display:block;color:#8a93a5;font-size:10.5px}
+  .rc-passo{margin:4px 0 8px;font-size:13px;display:flex;flex-direction:column;gap:4px} .rc-passo textarea{font:inherit;font-size:12px;padding:6px;border:1px solid var(--line);border-radius:6px} .rc-passo .btn{align-self:flex-start}
+  .rc-lista td,.rc-lista th{padding:6px 7px;text-align:center} .rc-lista td small{display:block;font-size:10.5px;color:#8a93a5}
+  @media (max-width:700px){ .rc-tl{grid-template-columns:1fr 1fr} .rc-num{grid-template-columns:1fr 1fr} }
+`;
+
+document.head.insertAdjacentHTML('beforeend', `<style id="css-divrec">${CSS_DIVREC}</style>`);
 
 /* =================== IMPRESSÃO: placas e folhas padrão Valenro (A4) =================== */
 // Cada modelo: campos editáveis + função que monta a folha. A folha sai pelo imprimirHtml (imprimir ou salvar PDF).
@@ -4343,11 +4667,13 @@ function abrirEnvio(id, recarregando){
         <label class="gv-lab">Observação<textarea id="gv-obs" rows="2" maxlength="500" ${ro(editar)}>${esc(e.observacao || '')}</textarea></label>
         ${editar ? `<div class="gv-acoes"><button class="btn pri" id="gv-salvar">${novo ? 'Cadastrar envio' : 'Salvar'}</button></div>` : ''}
 
+        ${novo ? '' : '<div id="gv-div"></div>'}
         ${novo ? '<div class="info" style="margin-top:14px">As coletas são lançadas depois de cadastrar o envio.</div>' : `
         ${[...ETAPAS_ENVIO, ...(coletasDe(id, 'etiquetagem').length ? ['etiquetagem'] : [])].map(et => { const ca = coletasDe(id, et), E = ETAPAS_TRAB[et], som = ca.reduce((t, c) => t + (Number(c.pares) || 0), 0);
           return `<div class="gv-sec etapa-sec" style="--c:${E.cor}">${esc(E.rot)} <span class="info">${ca.length ? `${ca.length} apontamento(s)` : 'sem apontamento'}${et === 'separacao' && ca.length ? ` · ${fmtN(som)} pares${e.pares_envio ? ` · ${fmtP(som, e.pares_envio)} do a enviar` : ''}` : ''}</span></div>
           ${ca.length ? resumoColeta(ca) : ''}${listaApontamentos(ca, et, mexeColeta, paresEnvio(e))}
           ${mexeColeta && ETAPAS_ENVIO.includes(et) ? `<div id="gv-form-${et}"></div><button class="btn mini" data-nova="${et}" style="margin-top:6px">+ Apontar ${esc(E.rot.toLowerCase())}</button>` : ''}`; }).join('')}
+        ${e.status === 'expedido' ? '<div id="gv-meli"></div>' : ''}
         <div class="gv-sec">Fotos <span class="info">palete, carga, avaria</span></div><div id="gv-fotos"></div>
         <div class="gv-sec">Histórico <button class="btn mini" id="gv-hist-btn">Ver</button></div><div id="gv-hist"></div>
         ${gerir ? `<div style="margin-top:24px"><button class="btn perigo" id="gv-excluir">Excluir envio</button> <span class="info">Para pedido cadastrado por engano. Se o ML cancelou, use o status Cancelado.</span></div>` : ''}`}
@@ -4373,11 +4699,14 @@ function abrirEnvio(id, recarregando){
     $('gv-m3').placeholder = v ? `automático: ${v}` : 'automático';
     const fx = $('gv-m3-fonte'); if (fx) { const dig = $('gv-m3').value.trim() !== ''; fx.textContent = dig ? '(digitado: apague para voltar ao automático)' : p ? `= ${usa === 'pares' ? 'Qtd. pares' : 'plano'} × ${fmtFatorM3(fatorM3)}` : ''; fx.className = 'info ' + (dig ? '' : usa === 'pares' ? 'm3-src-pares' : ''); } };
   ['gv-plano', 'gv-pares', 'gv-m3'].forEach(k => $(k).addEventListener('input', contaM3)); contaM3();
-  g.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { status = b.dataset.st; g.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); marcaSujo(); avaliarDif(); });
+  g.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { status = b.dataset.st; g.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b)); marcaSujo(); avaliarDif();
+    if (e.div_abertas && ['etiquetagem', 'aguardando_envio', 'expedido'].includes(status)) avisar(`Atenção: ${e.div_abertas} divergência(s) ainda sem correção no MELI/Seenc. As etiquetas precisam sair do envio corrigido.`, true); });
   $('gv-fechar').onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; fecharEnvio(); };
   $('gv-fundo').onclick = $('gv-fechar').onclick;
   const ib = $('gv-imp'); if (ib) ib.onclick = () => imprimirFolha(e);
   if ($('gv-plan')) itensPlanejadosEnvio($('gv-plan'), e);
+  if ($('gv-div')) blocoDivergencias($('gv-div'), e);
+  if ($('gv-meli')) blocoRecebimento($('gv-meli'), e);
   const ir = $('gv-ir-rom'); if (ir) ir.onclick = () => { if (g.dataset.sujo === '1' && !confirmarSaida()) return; s.vista = 'romaneios'; s.romAba = 'todos'; s.romIr = e.romaneio_id; s.aberto = null; telaFull(); };
   const erro = msg => { const el = $('gv-erro'); el.hidden = !msg; el.textContent = msg || ''; if (msg) el.scrollIntoView({ behavior:'smooth', block:'center' }); };
 
