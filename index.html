@@ -1137,7 +1137,7 @@ async function apiFull(path, corpo){
   if (path === '/full/config') { const f = Number(String(corpo.m3_por_par).replace(',', '.')); if (!(f > 0 && f <= 1)) throw new Error('m³ por par inválido (ex.: 0,007)'); DEMO_FULL.m3_por_par = f; return { ok:true, m3_por_par:f }; }
   const D = DEMO_FULL, ag = new Date().toISOString(), ev = (envio_id, acao, antes, depois) => D.eventos.unshift({ envio_id, em:ag, por:'demonstracao', acao, antes, depois });
   const num = v => v === '' || v === null || v === undefined ? null : Number(v);
-  if (path.startsWith('/full/romaneio')) return apiRomDemo(path, corpo);
+  if (path.startsWith('/full/romaneio') || path === '/full/janela_padrao') return apiRomDemo(path, corpo);
   demoRomIni(); demoPlanIni();
   if (/^\/full\/(divergencia|recebimento)/.test(path)) return demoDivRec(path, corpo);
   if (path.startsWith('/full/eventos')) { const id = new URLSearchParams(path.split('?')[1]).get('id'); return { eventos: D.eventos.filter(e => e.envio_id === id) }; }
@@ -1196,6 +1196,7 @@ function telaFull(){
   if (s.vista === 'romaneios') return telaRomaneios();
   if (s.vista === 'resumo') return telaResumoFull();
   if (s.vista === 'meli') return telaMeliFull();
+  if (s.vista === 'pont') return telaPontualFull();
   if (s.vista === 'plan' && pode('full_plan', 'ver')) return telaPlanejamento();
   if (s.vista === 'comercial' && pode('full_comercial', 'ver')) return telaComercialFull();
   if (s.vista === 'comercial') s.vista = 'envios';
@@ -1743,6 +1744,14 @@ function demoRomIni(){
   novo('2026-10-19', m[0], ['1', '2', '3'], { veiculo_perfil_id:'4', custo_frete:1300, janela_ini:'13:00', janela_fim:'15:00', status:'expedido', chegada_em:'2026-10-19T16:40:00.000Z', saida_em:'2026-10-19T17:55:00.000Z' });
   novo('2026-10-21', m[1] || m[0], ['4', '5', '6'], { janela_ini:'10:00', janela_fim:'12:00', status:'expedido', chegada_em:'2026-10-21T15:10:00.000Z', saida_em:'2026-10-21T15:58:00.000Z' });
   novo(hojeBRT(), m[0], ['11', '13', '14'], { janela_ini:'09:00', janela_fim:'11:00' });
+  // histórico de demonstração para o relatório de pontualidade (sem envios: só os pares)
+  const rnd = n => { const x = Math.sin(n * 7919 + 104729) * 233280; return x - Math.floor(x); }, hm = v => `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
+  const pl = [['FRA6J26', 'CARLOS ALBERTO', '4'], ['GHT3B21', 'ANDERSON LIMA', '2'], ['EZB0H99', 'ROBERTO SILVA', '4'], ['QWE4R56', 'PAULO HENRIQUE', '3']];
+  for (let k = 1; k <= 30; k++) { const d = addDias(hojeBRT(), -k), dow = new Date(d + 'T12:00:00Z').getUTCDay(); if (!dow || dow === 6 || ['2026-10-19', '2026-10-21'].includes(d)) continue;
+    const r1 = rnd(k), che = 9 * 60 + (r1 > 0.85 ? 130 + Math.round(r1 * 50) : Math.round(r1 * 110)), sai = che + 45 + Math.round(rnd(k + 50) * 60), p = pl[k % pl.length], semJan = k % 7 === 3;
+    if (rnd(k + 9) > 0.96) { novo(d, null, [], { janela_ini:'09:00', janela_fim:'11:00', pares_demo:0, observacao:'Veículo não compareceu' }); continue; }
+    novo(d, null, [], { placa:p[0], motorista:p[1], veiculo_perfil_id:p[2], janela_ini:semJan ? null : '09:00', janela_fim:semJan ? null : '11:00', status:'expedido', pares_demo:3200 + Math.round(rnd(k + 3) * 1800),
+      chegada_em:new Date(`${d}T${hm(che)}:00-03:00`).toISOString(), saida_em:new Date(`${d}T${hm(sai)}:00-03:00`).toISOString() }); }
   const mais = (iso, min) => new Date(new Date(iso).getTime() + min * 60e3).toISOString();
   DEMO_ROM.carregamentos.push(
     { id:'901', romaneio_id:'1', etapa:'carregamento', coletadores:['davi duarte', 'guilherme', 'vitor'], pares:null, caixas:null, periodos:[{ inicio:mais('2026-10-19T16:40:00.000Z', 15), fim:mais('2026-10-19T17:55:00.000Z', -10) }] },
@@ -1758,11 +1767,13 @@ function apiRomDemo(path, corpo){
     const rs = R.romaneios.filter(r => (r.data >= de && r.data <= ate) || ['aberto', 'carregando'].includes(r.status)).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id);
     const ids = new Set(rs.flatMap(r => r.envio_ids));
     const vc = pode('full_comercial', 'ver');
-    return { ini:de, fim:ate, hoje:hojeBRT(), ver_custo:vc, perfis:copia(DEMO_COM.veiculos).map(v => vc ? v : { ...v, custo_viagem:undefined }),
+    return { ini:de, fim:ate, hoje:hojeBRT(), ver_custo:vc, janela_padrao:R.janelaPadrao || JANELA_FULL_PADRAO, perfis:copia(DEMO_COM.veiculos).map(v => vc ? v : { ...v, custo_viagem:undefined }),
       romaneios:copia(rs).map(r => ({ ...r, custo_frete: vc ? r.custo_frete ?? null : undefined, doca_min:docaMin(r) })), envios:copia(D.envios.filter(e => ids.has(e.id))), carregamentos:copia(R.carregamentos.filter(c => rs.some(r => r.id === c.romaneio_id))),
       motoristas:copia(DEMO_CROSS.motoristas.filter(m => m.ativo)), responsaveis:['ARTHUR MAGDALENO', 'DAVI DUARTE', 'DEGMAR GOMES', 'DOUGLAS RIBEIRO', 'GUILHERME PORTO'] };
   }
   if (path.startsWith('/full/romaneio/historico')) return { eventos: R.eventos.filter(e => e.romaneio_id === q.get('id')) };
+  if (path === '/full/janela_padrao') { if (!corpo.ini || !corpo.fim || corpo.fim < corpo.ini) throw new Error('Janela inválida (use HH:MM, com o fim depois do início)'); if (!corpo.dias?.length) throw new Error('Marque ao menos um dia');
+    R.janelaPadrao = { ini:corpo.ini, fim:corpo.fim, tolerancia_min:Number(corpo.tolerancia_min) || 0, dias:corpo.dias }; return { ok:true, janela_padrao:R.janelaPadrao }; }
   if (path === '/full/romaneio') {
     const ids = [...new Set(corpo.envio_ids)];
     if (!ids.length) throw new Error('Selecione ao menos uma coleta para o romaneio');
@@ -1836,7 +1847,7 @@ function barraRomaneios(s){
     <div id="rom"><div class="carregando">Carregando romaneios…</div></div>
     <div id="gaveta" hidden></div>`;
 }
-const abasVistaFull = s => `<div class="abas vista-full">${[...(pode('full_plan', 'ver') ? [['plan','🗂 Planejamento']] : []), ['envios','Envios'],['romaneios','🚚 Romaneios'],['meli','📥 MELI'],['resumo','📊 Resumo'], ...(pode('full_comercial', 'ver') ? [['comercial','💰 Comercial']] : []), ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+const abasVistaFull = s => `<div class="abas vista-full">${[...(pode('full_plan', 'ver') ? [['plan','🗂 Planejamento']] : []), ['envios','Envios'],['romaneios','🚚 Romaneios'],['pont','🕒 Pontualidade'],['meli','📥 MELI'],['resumo','📊 Resumo'], ...(pode('full_comercial', 'ver') ? [['comercial','💰 Comercial']] : []), ...(pode('full', 'gerir') ? [['tempos','⏱ Tempos e equipe']] : [])].map(([k, t]) => `<button data-vista="${k}" class="${s.vista === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 function ligarAbasVista(){
   document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { if (state.full.vista === b.dataset.vista) return;
     if (state.planSujo && !confirmaDupla(b, 'Coleta sem salvar: clique de novo para sair')) return; state.planSujo = false; if (state.full.plan) state.full.plan.aberto = null; state.full.vista = b.dataset.vista; state.full.aberto = null; state.full.romAberto = null; telaFull(); });
@@ -4160,7 +4171,7 @@ function camposEmbarque(r, mots, ed){
   const dis = ed ? '' : 'disabled';
   return `<div class="grade-form g2">
       <label>Data do embarque<input id="rm-data" type="date" value="${esc(r.data || hojeBRT())}" ${dis}></label>
-      <label>Janela de chegada <span class="info">(a do site do Mercado Livre)</span><span class="linha-hora"><input id="rm-jini" type="time" value="${esc(r.janela_ini || '')}" ${dis}> até <input id="rm-jfim" type="time" value="${esc(r.janela_fim || '')}" ${dis}></span></label>
+      <label>Janela de chegada <span class="info">(a do site do Mercado Livre)</span><span class="linha-hora"><input id="rm-jini" type="time" value="${esc(r.janela_ini || (!r.id && janelaPadraoFull().dias.includes(isoDowDe(r.data || hojeBRT())) ? janelaPadraoFull().ini : ''))}" ${dis}> até <input id="rm-jfim" type="time" value="${esc(r.janela_fim || (!r.id && janelaPadraoFull().dias.includes(isoDowDe(r.data || hojeBRT())) ? janelaPadraoFull().fim : ''))}" ${dis}></span></label>
       <label>Nº do lacre <span class="info">(se tiver mais de um, separe por vírgula)</span><input id="rm-lacre" autocapitalize="characters" autocomplete="off" value="${esc(r.lacre || '')}" placeholder="ex.: 0012345" ${dis}></label>
       <label>Nº da coleta ML <span class="info">(agendamento no Mercado Livre)</span><input id="rm-ml" autocapitalize="characters" autocomplete="off" value="${esc(r.ml_coleta || '')}" placeholder="opcional" ${dis}></label>
       <label>Motorista<input id="rm-mot" list="dl-rm-mot" placeholder="buscar no cadastro" autocapitalize="characters" autocomplete="off" value="${esc(r.motorista || '')}" ${dis}></label>
@@ -5297,7 +5308,7 @@ async function carregarPontual(){
   try { const [c, j] = await Promise.all([apiCross(`/cross?ini=${s.ptIni}&fim=${s.ptFim}`), apiCross('/cross/janelas')]); state.pontualDados = c; state.janelasCross = j.janelas; state.crossDados ||= c; renderPontual(); }
   catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('pontual'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
-const ST_PONT = { no_horario:['No horário', '#1a7a3e', '#e2f5e8'], antecipada:['Antecipada', '#0b4fa8', '#e3eefc'], atrasada:['Atrasada', '#c62828', '#fbe9e9'], nao_veio:['Não veio', '#ffffff', '#8a1f1f'], sem_janela:['Sem janela', '#566074', '#eef0f4'], aguardando:['Aguardando', '#9a5b00', '#fff1d6'] };
+const ST_PONT = { no_horario:['No horário', '#1a7a3e', '#e2f5e8'], antecipada:['Antecipada', '#0b4fa8', '#e3eefc'], atrasada:['Atrasada', '#c62828', '#fbe9e9'], nao_veio:['Não veio', '#ffffff', '#8a1f1f'], sem_janela:['Sem janela', '#566074', '#eef0f4'], sem_registro:['Sem horário', '#9a5b00', '#fff1d6'], aguardando:['Aguardando', '#9a5b00', '#fff1d6'] };
 function calcPontual(){
   const s = state.cross, r = state.pontualDados, J = state.janelasCross || [], canal = s.ptCanal, loja = s.ptLoja, hoje = hojeBRT();
   const agora = (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
@@ -5354,7 +5365,7 @@ function graficoPontual(R, seq, imp){
     ${L.filter(l => l.st === 'nao_veio').map(l => `<g transform="translate(${x(l.d)},${H - B - 10})"><path d="M-5,-5L5,5M5,-5L-5,5" stroke="#8a1f1f" stroke-width="2.5"/><title>${dataBR(l.d)}: não veio</title></g>`).join('')}
     <line x1="${E}" x2="${W - R2}" y1="${H - B}" y2="${H - B}" stroke="#c9cfda"/></svg>`;
 }
-const legPontual = () => `<div class="cs-leg pt-leg"><span><i style="background:#1a7a3e;opacity:.45"></i>janela combinada (verde claro = tolerância)</span><span><i style="background:none;border-top:2px dashed #c62828;height:0;width:16px"></i>corte dos pedidos</span>
+const legPontual = semCorte => `<div class="cs-leg pt-leg"><span><i style="background:#1a7a3e;opacity:.45"></i>janela combinada (verde claro = tolerância)</span>${semCorte ? '' : '<span><i style="background:none;border-top:2px dashed #c62828;height:0;width:16px"></i>corte dos pedidos</span>'}
   <span><i style="background:#0b4fa8;height:3px"></i>chegada efetiva</span><span><i style="background:#6b3fa0;height:3px"></i>saída efetiva (fim do carregamento)</span><span style="color:#8a1f1f;font-weight:700">✕ não veio</span></div>`;
 const combTxt = l => l.j ? `${l.j.coleta_ini}${l.j.coleta_fim !== l.j.coleta_ini ? '–' + l.j.coleta_fim : ''}` : '–';
 const desvioTxt = l => l.desvio == null ? '' : `${l.desvio > 0 ? '+' : '−'}${fmtHoras(Math.abs(l.desvio))}`;
@@ -5381,32 +5392,40 @@ function renderPontual(){
     <div class="info cs-nota">No horário = chegada dentro da janela combinada, com a tolerância de cada janela. Atrasada/antecipada mostram a diferença para o fim/início da janela.
       O combinado de cada dia é a janela vigente naquela data (aba ⏰ Janelas). ${R.loja !== 'todos' ? 'Com loja escolhida, os pacotes são só os dessa loja.' : ''} O relatório impresso não leva documento do motorista.</div>`;
 }
-function impressoPontual(R){
-  const quem = quemImprime(), pct = v => v == null ? '–' : `${Math.round(v * 100)}%`, compacto = R.linhas.length > 22;
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Pontualidade ${esc(R.canal)} ${dataBR(R.ini)} a ${dataBR(R.fim)}</title><style>${CSS_IMPRESSO}
+// folha A4 paisagem padrão Valenro dos relatórios de pontualidade (CROSS e FULL)
+function impressoPontualBase(o){
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(o.titulo)}</title><style>${CSS_IMPRESSO}
   @page{size:A4 landscape;margin:8mm} body{font-size:9pt} .topo{border-radius:2mm}
   .filt{font-size:10pt;color:#566074;margin:3mm 0 2mm} .filt b{color:#1b2333}
   .kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:2.5mm;margin:2mm 0 3mm} .kpi div{border:0.4mm solid #c9cfda;border-radius:2mm;padding:1.6mm 2mm;text-align:center}
   .kpi span{display:block;font-size:7pt;font-weight:700;letter-spacing:.8pt;color:#566074;text-transform:uppercase} .kpi b{display:block;font-size:14pt;color:#02285a} .kpi em{display:block;font-style:normal;font-size:7pt;color:#566074}
   h3{font-size:8.5pt;letter-spacing:1.2pt;color:#566074;text-transform:uppercase;margin:2mm 0 1mm} .graf{border:0.3mm solid #dfe3ea;border-radius:2mm;padding:1mm 2mm;break-inside:avoid}
   .cs-leg{display:flex;flex-wrap:wrap;gap:4mm;font-size:7.5pt;color:#566074;margin-top:1mm} .cs-leg i{display:inline-block;width:5mm;height:2.5mm;margin-right:1mm;vertical-align:middle}
-  table{width:100%;border-collapse:collapse;font-size:${compacto ? '7.6pt' : '8.6pt'};margin-top:3mm} th{background:#02285a;color:#fff;font-size:7pt;letter-spacing:.6pt;text-transform:uppercase;padding:1.3mm 1.6mm;text-align:center}
-  td{padding:${compacto ? '0.6mm' : '1.1mm'} 1.6mm;border-bottom:0.25mm solid #dfe3ea;text-align:center;font-variant-numeric:tabular-nums} td.l,th.l{text-align:left} tr{break-inside:avoid}
+  table{width:100%;border-collapse:collapse;font-size:${o.compacto ? '7.6pt' : '8.6pt'};margin-top:3mm} th{background:#02285a;color:#fff;font-size:7pt;letter-spacing:.6pt;text-transform:uppercase;padding:1.3mm 1.6mm;text-align:center}
+  td{padding:${o.compacto ? '0.6mm' : '1.1mm'} 1.6mm;border-bottom:0.25mm solid #dfe3ea;text-align:center;font-variant-numeric:tabular-nums} td.l,th.l{text-align:left} tr{break-inside:avoid}
   .pt-pill{display:inline-block;border-radius:2mm;padding:0.2mm 1.6mm;font-weight:700;font-size:7pt} td small{display:block;font-size:6.8pt;color:#566074}
   thead{display:table-header-group}
   </style></head><body>
-    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">PONTUALIDADE DAS COLETAS</div><div class="t2">${esc(R.canal.toUpperCase())} · ${R.loja === 'todos' ? 'TODAS AS LOJAS' : esc(nomeLoja(R.loja).toUpperCase())}</div></div><span class="esp"></span><span class="st"><small>PERÍODO</small><b>${dataBR(R.ini)} a ${dataBR(R.fim)}</b></span></div>
-    <div class="filt">Horário combinado (corte e janela de coleta) x horário efetivo de chegada e saída do veículo, por dia.</div>
-    <div class="kpi"><div><span>Coletas combinadas</span><b>${R.combinadas}</b><em>${R.realizadas} realizadas</em></div><div><span>Não vieram</span><b>${R.naoVeio}</b><em>cumprimento ${pct(R.cumprimento)}</em></div>
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">PONTUALIDADE DAS COLETAS</div><div class="t2">${o.t2}</div></div><span class="esp"></span><span class="st"><small>PERÍODO</small><b>${dataBR(o.ini)} a ${dataBR(o.fim)}</b></span></div>
+    <div class="filt">${o.sub}</div>
+    <div class="kpi">${o.kpi}</div>
+    ${o.graf}
+    ${o.tab}
+    <div class="rodape" style="padding:3mm 0 0;margin-top:3mm"><span>No horário = chegada dentro da janela combinada, com tolerância. Horários registrados na doca da Valenro (Central de Operações).</span><span>Gerado em ${quando(new Date().toISOString())}${o.quem ? ` por ${esc(o.quem)}` : ''}</span></div>
+  </body></html>`;
+}
+function impressoPontual(R){
+  const quem = quemImprime(), pct = v => v == null ? '–' : `${Math.round(v * 100)}%`;
+  return impressoPontualBase({ titulo:`Pontualidade ${R.canal} ${dataBR(R.ini)} a ${dataBR(R.fim)}`, t2:`${esc(R.canal.toUpperCase())} · ${R.loja === 'todos' ? 'TODAS AS LOJAS' : esc(nomeLoja(R.loja).toUpperCase())}`, ini:R.ini, fim:R.fim,
+    sub:'Horário combinado (corte e janela de coleta) x horário efetivo de chegada e saída do veículo, por dia.', compacto:R.linhas.length > 22, quem,
+    kpi:`<div><span>Coletas combinadas</span><b>${R.combinadas}</b><em>${R.realizadas} realizadas</em></div><div><span>Não vieram</span><b>${R.naoVeio}</b><em>cumprimento ${pct(R.cumprimento)}</em></div>
       <div><span>Chegada no horário</span><b>${pct(R.pontualidade)}</b><em>${R.noHorario} de ${R.feitas}</em></div><div><span>Atrasos</span><b>${R.atrasadas}</b><em>${R.atrasadas ? `média ${fmtHoras(R.atrasoMedio)} · máx. ${fmtHoras(R.atrasoMax)}` : 'nenhum'}</em></div>
-      <div><span>Pacotes coletados</span><b>${fmtN(R.pacotes)}</b><em>${R.docaMedia != null ? `média na doca ${fmtHoras(R.docaMedia)}` : ''}</em></div></div>
-    ${R.seqsGraf.map(seq => `<h3>${R.seqsGraf.length > 1 || seq > 1 ? `${seq}ª coleta · ` : ''}Combinado x efetivo</h3><div class="graf">${graficoPontual(R, seq, true)}${legPontual()}</div>`).join('')}
-    <table><thead><tr><th class="l">Data</th><th>Coleta</th><th>Corte</th><th>Janela combinada</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th class="l">Placa</th><th class="l">Motorista</th><th>Pacotes</th><th>Situação</th></tr></thead><tbody>
+      <div><span>Pacotes coletados</span><b>${fmtN(R.pacotes)}</b><em>${R.docaMedia != null ? `média na doca ${fmtHoras(R.docaMedia)}` : ''}</em></div>`,
+    graf:R.seqsGraf.map(seq => `<h3>${R.seqsGraf.length > 1 || seq > 1 ? `${seq}ª coleta · ` : ''}Combinado x efetivo</h3><div class="graf">${graficoPontual(R, seq, true)}${legPontual()}</div>`).join(''),
+    tab:`<table><thead><tr><th class="l">Data</th><th>Coleta</th><th>Corte</th><th>Janela combinada</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th class="l">Placa</th><th class="l">Motorista</th><th>Pacotes</th><th>Situação</th></tr></thead><tbody>
       ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st]; return `<tr><td class="l"><b>${dataBR(l.d)}</b> ${DOW_ISO[isoDowDe(l.d)]}</td><td>${l.seq}ª</td><td>${hmMin(l.corte) || '–'}</td><td>${combTxt(l)}${l.j ? ` <small>±${l.j.tolerancia_min} min</small>` : ''}</td>
         <td><b>${l.c?.hora_chegada || '–'}</b></td><td>${l.c?.hora_saida || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td><td class="l">${l.c?.placa ? fmtPlaca(l.c.placa) : '–'}</td><td class="l">${esc(l.c?.motorista || '–')}</td>
-        <td>${l.c ? fmtN(l.pac) : '–'}</td><td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>
-    <div class="rodape" style="padding:3mm 0 0;margin-top:3mm"><span>No horário = chegada dentro da janela combinada, com tolerância. Horários registrados na doca da Valenro (Central de Operações).</span><span>Gerado em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
-  </body></html>`;
+        <td>${l.c ? fmtN(l.pac) : '–'}</td><td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>` });
 }
 function csvPontual(R){
   const sep = ';', cab = ['Data', 'Dia', 'Coleta', 'Corte', 'Janela inicio', 'Janela fim', 'Tolerancia min', 'Chegada', 'Saida', 'Na doca min', 'Placa', 'Motorista', 'Pacotes', 'Situacao', 'Desvio min'];
@@ -5426,6 +5445,130 @@ const CSS_JANELAS = `
   .pt-pill{display:inline-block;border-radius:9px;padding:0 8px;font-size:11px;font-weight:700;white-space:nowrap}
 `;
 document.head.insertAdjacentHTML('beforeend', `<style id="css-janelas">${CSS_JANELAS}</style>`);
+
+/* =================== FULL: pontualidade das coletas (janela do romaneio x chegada e saída) =================== */
+const JANELA_FULL_PADRAO = { ini:'09:00', fim:'11:00', tolerancia_min:15, dias:[1, 2, 3, 4, 5] };
+const janelaPadraoFull = () => ({ ...JANELA_FULL_PADRAO, ...(state.romDados?.janela_padrao || {}) });
+const hmDeIso = v => v ? isoLocal(v).slice(11, 16) : null;
+function telaPontualFull(){
+  const s = state.full; s.pfIni ||= addDias(hojeBRT(), -14); s.pfFim ||= hojeBRT(); s.pfLoja ||= 'todos';
+  $app.innerHTML = `
+    <div class="barra"><h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <select id="pf-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.pfLoja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <span class="datas"><input type="date" id="pf-ini" value="${s.pfIni}" max="${hojeBRT()}"> até <input type="date" id="pf-fim" value="${s.pfFim}" max="${hojeBRT()}"></span>
+      ${pode('full', 'gerir') ? '<button class="btn" id="pf-jan">⏰ Janela padrão</button>' : ''}
+      <button class="btn" id="pf-imp">🖨 Imprimir / PDF</button><button class="btn" id="pf-csv">⬇ CSV</button></div>
+    <div id="pontual"><div class="carregando">Carregando…</div></div>`;
+  ligarAbasVista();
+  const $ = k => document.getElementById(k);
+  $('pf-loja').onchange = () => { s.pfLoja = $('pf-loja').value; renderPontualFull(); };
+  const datas = () => { let a = $('pf-ini').value, b = $('pf-fim').value; if (!a || !b) return; if (b < a) [a, b] = [b, a]; if (difDias(a, b) > 92) return avisar('Período máximo de 93 dias', true); s.pfIni = a; s.pfFim = b; carregarPontualFull(); };
+  $('pf-ini').onchange = datas; $('pf-fim').onchange = datas;
+  const jb = $('pf-jan'); if (jb) jb.onclick = editarJanelaFull;
+  $('pf-imp').onclick = () => { const R = calcPontualFull(); if (!R.linhas.length) return avisar('Nada para imprimir no período', true); imprimirHtml(impressoPontualFull(R)); };
+  $('pf-csv').onclick = () => { const R = calcPontualFull(); if (!R.linhas.length) return avisar('Nada para exportar', true); csvPontualFull(R); };
+  carregarPontualFull();
+}
+async function carregarPontualFull(){
+  const s = state.full;
+  try { state.romDados = await apiFull(`/full/romaneios?ini=${s.pfIni}&fim=${s.pfFim}`); renderPontualFull(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('pontual'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function calcPontualFull(){
+  const s = state.full, r = state.romDados, jp = janelaPadraoFull(), hoje = hojeBRT(), loja = s.pfLoja;
+  const agora = (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
+  const env = Object.fromEntries((r.envios || []).map(e => [e.id, e]));
+  const rs = r.romaneios.filter(x => x.status !== 'cancelado' && x.data >= s.pfIni && x.data <= s.pfFim && x.data <= hoje)
+    .map(x => { const es = x.envio_ids.map(id => env[id]).filter(Boolean), daLoja = es.filter(e => loja === 'todos' || e.cnpj_id === loja);
+      return { x, es:daLoja, todos:es }; })
+    .filter(o => loja === 'todos' || o.es.length || (!o.todos.length && o.x.pares_demo));
+  const porDia = {}; rs.forEach(o => (porDia[o.x.data] ||= []).push(o));
+  const linhas = [];
+  Object.keys(porDia).sort().forEach(d => porDia[d].sort((a, b) => (a.x.janela_ini || '99').localeCompare(b.x.janela_ini || '99') || a.x.id - b.x.id).forEach((o, i) => {
+    const x = o.x, usaPadrao = !x.janela_ini && jp.dias.includes(isoDowDe(d));
+    const ini = minHM(x.janela_ini || (usaPadrao ? jp.ini : null)), fim = minHM(x.janela_fim || x.janela_ini || (usaPadrao ? jp.fim : null)), tol = jp.tolerancia_min;
+    const ch = minHM(hmDeIso(x.chegada_em)), sa = minHM(hmDeIso(x.saida_em));
+    let st, desvio = null;
+    if (ch == null) st = x.status === 'expedido' ? 'sem_registro' : (d < hoje || (d === hoje && fim != null && agora > fim + tol)) ? 'nao_veio' : 'aguardando';
+    else if (ini == null) st = 'sem_janela';
+    else if (ch < ini - tol) { st = 'antecipada'; desvio = ch - ini; }
+    else if (ch > fim + tol) { st = 'atrasada'; desvio = ch - fim; }
+    else st = 'no_horario';
+    const pares = o.es.length ? o.es.reduce((t, e) => t + (Number(e.pares_envio ?? e.pares_plan) || 0), 0) : (x.pares_demo || 0);
+    linhas.push({ d, seq:i + 1, x, j:ini != null ? { tolerancia_min:tol, coleta_ini:hmMin(ini), coleta_fim:hmMin(fim) } : null, padrao:usaPadrao, ini, fim, ch, sa, corteJan:null, st, desvio,
+      pares, envios:o.es.length, doca:ch != null && sa != null ? sa - ch : null });
+  }));
+  const feitas = linhas.filter(l => l.ch != null && l.j), atr = linhas.filter(l => l.st === 'atrasada');
+  const R = { linhas, seqsGraf:[...new Set(linhas.filter(l => l.j).map(l => l.seq))].sort(), ini:s.pfIni, fim:s.pfFim, loja,
+    romaneios:linhas.length, naoVeio:linhas.filter(l => l.st === 'nao_veio').length, semRegistro:linhas.filter(l => l.st === 'sem_registro').length,
+    noHorario:feitas.filter(l => l.st === 'no_horario').length, feitas:feitas.length, atrasadas:atr.length,
+    atrasoMedio:atr.length ? atr.reduce((t, l) => t + l.desvio, 0) / atr.length : null, atrasoMax:atr.length ? Math.max(...atr.map(l => l.desvio)) : null,
+    pares:linhas.reduce((t, l) => t + l.pares, 0), docaMedia:(() => { const v = linhas.filter(l => l.doca != null); return v.length ? v.reduce((t, l) => t + l.doca, 0) / v.length : null; })(), jp };
+  R.pontualidade = R.feitas ? R.noHorario / R.feitas : null;
+  return R;
+}
+const veicRom = x => { const p = (state.romDados?.perfis || []).find(v => String(v.id) === String(x.veiculo_perfil_id ?? '')); return p?.nome || x.veiculo || ''; };
+const janTxtFull = l => l.j ? `${l.j.coleta_ini}${l.j.coleta_fim !== l.j.coleta_ini ? '–' + l.j.coleta_fim : ''}` : '–';
+function renderPontualFull(){
+  const $c = document.getElementById('pontual'); if (!$c || !state.romDados) return;
+  const R = calcPontualFull(), pct = v => v == null ? '–' : `${Math.round(v * 100)}%`, jp = R.jp;
+  if (!R.linhas.length) { $c.innerHTML = '<div class="vazio">Nenhum romaneio no período.</div>'; return; }
+  $c.innerHTML = `
+    <div class="info" style="margin:-4px 0 8px">Janela padrão: <b>${jp.ini}–${jp.fim}</b> (±${jp.tolerancia_min} min) · ${jp.dias.map(d => DOW_ISO[d]).join(', ')}. Vale quando o romaneio não tem a janela do Mercado Livre preenchida.</div>
+    <div class="rr-res cm-tiles cm-t5">
+      <div class="rr-tile" style="--c:#02285a"><span>Coletas (romaneios)</span><b>${R.romaneios}</b><small>${R.semRegistro ? `${R.semRegistro} expedido(s) sem horário de chegada` : 'todos com horário'}</small></div>
+      <div class="rr-tile" style="--c:${R.naoVeio ? '#8a1f1f' : '#1a7a3e'}"><span>Não vieram</span><b>${R.naoVeio}</b><small>romaneio aberto e o veículo não chegou</small></div>
+      <div class="rr-tile" style="--c:${R.pontualidade != null && R.pontualidade < 0.9 ? '#c62828' : '#1a7a3e'}"><span>Chegada no horário</span><b>${pct(R.pontualidade)}</b><small>${R.noHorario} de ${R.feitas} com janela</small></div>
+      <div class="rr-tile" style="--c:#c62828"><span>Atrasos</span><b>${R.atrasadas}</b><small>${R.atrasadas ? `média ${fmtHoras(R.atrasoMedio)} · máx. ${fmtHoras(R.atrasoMax)}` : 'nenhum'}</small></div>
+      <div class="rr-tile" style="--c:#6b3fa0"><span>Pares coletados</span><b>${fmtN(R.pares)}</b><small>${R.docaMedia != null ? `tempo médio na doca ${fmtHoras(R.docaMedia)}` : ''}</small></div>
+    </div>
+    ${R.seqsGraf.map(seq => `<div class="painel"><h3 class="cs-sub">${R.seqsGraf.length > 1 ? `${seq}º veículo do dia · ` : ''}Janela x efetivo <span class="info">FULL · ${R.loja === 'todos' ? 'todas as lojas' : esc(nomeLoja(R.loja))}</span></h3>${graficoPontual(R, seq)}${legPontual(true)}</div>`).join('')}
+    <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full pt-tab"><thead><tr><th style="text-align:left">Data</th><th>Romaneio</th><th>Janela</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th style="text-align:left">Placa</th><th style="text-align:left">Motorista</th><th style="text-align:left">Veículo</th><th>Envios</th><th>Pares</th><th>Situação</th></tr></thead><tbody>
+      ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st], x = l.x;
+        return `<tr data-rom-ir="${x.id}" style="cursor:pointer"><td style="text-align:left"><b>${dataBR(l.d).slice(0, 5)}</b> <span class="info">${DOW_ISO[isoDowDe(l.d)]}</span></td><td>${nRom(x.id)}</td>
+          <td>${janTxtFull(l)}${l.padrao ? '<small>padrão</small>' : ''}</td><td><b>${hmDeIso(x.chegada_em) || '–'}</b></td><td>${hmDeIso(x.saida_em) || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td>
+          <td style="text-align:left">${x.placa ? fmtPlaca(x.placa) : '–'}</td><td style="text-align:left">${esc(x.motorista || '–')}</td><td style="text-align:left">${esc(veicRom(x) || '–')}</td>
+          <td>${l.envios || '–'}</td><td>${fmtN(l.pares)}</td><td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="info cs-nota">Cada romaneio é uma coleta. A janela é a do romaneio (a que o Mercado Livre informa no agendamento); sem ela, vale a janela padrão.
+      Chegada e saída = horários registrados no romaneio (chegada do veículo e saída da doca). "Sem horário" = romaneio expedido sem a chegada registrada: não entra na pontualidade.
+      ${R.loja !== 'todos' ? 'Com loja escolhida, os pares são só os envios dessa loja.' : ''} Clique na linha para abrir o romaneio.</div>`;
+  $c.querySelectorAll('[data-rom-ir]').forEach(tr => tr.onclick = () => { const s = state.full; s.vista = 'romaneios'; s.romIr = tr.dataset.romIr; telaFull(); });
+}
+function editarJanelaFull(){
+  const jp = janelaPadraoFull(), dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel al-mod"><h3 style="margin:0 0 8px">Janela padrão da coleta FULL</h3>
+    <div class="info" style="margin-bottom:8px">Preenche a janela dos romaneios novos e vale no relatório quando o romaneio não tem a janela do Mercado Livre. Se o MELI informar outra no agendamento, ajuste no próprio romaneio.</div>
+    <div class="grade-form g2"><label>Chegada a partir de<input id="jfp-ini" type="time" value="${jp.ini}"></label><label>até<input id="jfp-fim" type="time" value="${jp.fim}"></label>
+      <label>Tolerância (min)<input id="jfp-tol" inputmode="numeric" value="${jp.tolerancia_min}"></label></div>
+    <div class="gv-sec">Dias com coleta</div><div class="al-chips">${[1, 2, 3, 4, 5, 6, 7].map(i => `<label class="al-chip"><input type="checkbox" data-jfd="${i}" ${jp.dias.includes(i) ? 'checked' : ''}><span>${DOW_LONGO[i % 7]}</span></label>`).join('')}</div>
+    <div class="gv-acoes"><button class="btn" data-x>Cancelar</button><button class="btn pri" id="jfp-ok">Salvar</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k); q('[data-x]').onclick = () => dlg.remove();
+  q('#jfp-ok').onclick = async () => { const corpo = { ini:q('#jfp-ini').value, fim:q('#jfp-fim').value, tolerancia_min:Number(q('#jfp-tol').value || 0), dias:[...dlg.querySelectorAll('[data-jfd]:checked')].map(x => Number(x.dataset.jfd)) };
+    try { const r = await apiFull('/full/janela_padrao', corpo); state.romDados.janela_padrao = r.janela_padrao; avisar('Janela padrão salva'); dlg.remove(); renderPontualFull(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+}
+function impressoPontualFull(R){
+  const quem = quemImprime(), pct = v => v == null ? '–' : `${Math.round(v * 100)}%`;
+  const kpi = `<div><span>Coletas</span><b>${R.romaneios}</b><em>romaneios no período</em></div><div><span>Não vieram</span><b>${R.naoVeio}</b><em>&nbsp;</em></div>
+    <div><span>Chegada no horário</span><b>${pct(R.pontualidade)}</b><em>${R.noHorario} de ${R.feitas}</em></div><div><span>Atrasos</span><b>${R.atrasadas}</b><em>${R.atrasadas ? `média ${fmtHoras(R.atrasoMedio)} · máx. ${fmtHoras(R.atrasoMax)}` : 'nenhum'}</em></div>
+    <div><span>Pares coletados</span><b>${fmtN(R.pares)}</b><em>${R.docaMedia != null ? `média na doca ${fmtHoras(R.docaMedia)}` : ''}</em></div>`;
+  const graf = R.seqsGraf.map(seq => `<h3>${R.seqsGraf.length > 1 ? `${seq}º veículo do dia · ` : ''}Janela x efetivo</h3><div class="graf">${graficoPontual(R, seq, true)}${legPontual(true)}</div>`).join('');
+  const tab = `<table><thead><tr><th class="l">Data</th><th>Romaneio</th><th>Janela</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th class="l">Placa</th><th class="l">Motorista</th><th class="l">Veículo</th><th>Envios</th><th>Pares</th><th>Situação</th></tr></thead><tbody>
+    ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st], x = l.x; return `<tr><td class="l"><b>${dataBR(l.d)}</b> ${DOW_ISO[isoDowDe(l.d)]}</td><td>${nRom(x.id)}</td><td>${janTxtFull(l)}${l.j ? ` <small>±${l.j.tolerancia_min} min${l.padrao ? ' · padrão' : ''}</small>` : ''}</td>
+      <td><b>${hmDeIso(x.chegada_em) || '–'}</b></td><td>${hmDeIso(x.saida_em) || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td><td class="l">${x.placa ? fmtPlaca(x.placa) : '–'}</td><td class="l">${esc(x.motorista || '–')}</td>
+      <td class="l">${esc(veicRom(x) || '–')}</td><td>${l.envios || '–'}</td><td>${fmtN(l.pares)}</td><td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>`;
+  return impressoPontualBase({ titulo:`Pontualidade FULL ${dataBR(R.ini)} a ${dataBR(R.fim)}`, t2:`MERCADO LIVRE FULL · ${R.loja === 'todos' ? 'TODAS AS LOJAS' : esc(nomeLoja(R.loja).toUpperCase())}`, ini:R.ini, fim:R.fim,
+    sub:'Janela de coleta agendada x horário efetivo de chegada e saída do veículo, por romaneio.', kpi, graf, tab, compacto:R.linhas.length > 22, quem });
+}
+function csvPontualFull(R){
+  const sep = ';', cab = ['Data', 'Dia', 'Romaneio', 'Janela inicio', 'Janela fim', 'Janela padrao', 'Tolerancia min', 'Chegada', 'Saida', 'Na doca min', 'Placa', 'Motorista', 'Veiculo', 'Envios', 'Pares', 'Situacao', 'Desvio min'];
+  const q = v => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const L = R.linhas.map(l => [dataBR(l.d), DOW_ISO[isoDowDe(l.d)], nRom(l.x.id), l.j?.coleta_ini || '', l.j?.coleta_fim || '', l.padrao ? 'sim' : 'nao', l.j?.tolerancia_min ?? '', hmDeIso(l.x.chegada_em) || '', hmDeIso(l.x.saida_em) || '', l.doca ?? '',
+    l.x.placa || '', l.x.motorista || '', veicRom(l.x), l.envios, l.pares, ST_PONT[l.st][0], l.desvio ?? ''].map(q).join(sep));
+  const blob = new Blob(['﻿' + [cab.join(sep), ...L].join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `pontualidade_full_${R.ini}_${R.fim}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5e3);
+}
 
 /* =================== ABANDONO DE PEDIDOS (CROSS e Full) =================== */
 const SIT_AB = {
