@@ -1872,7 +1872,7 @@ const ST_PLAN = {
   aprovado:  { rot:'Aprovada',     cor:'#1a7a3e', fundo:'#e2f5e8' },
   cancelado: { rot:'Cancelada',    cor:'#8a1f1f', fundo:'#fbe9e9' },
 };
-const ROT_ACAO_PLAN = { criar:'criou', alterar:'alterou', enviar:'enviou para validação', puxar:'puxou de volta para rascunho', devolver:'devolveu para ajuste', aprovar:'aprovou e liberou para separação', cancelar:'cancelou', duplicar:'criou a partir de outra coleta' };
+const ROT_ACAO_PLAN = { criar:'criou', alterar:'alterou', enviar:'enviou para validação', puxar:'puxou de volta para rascunho', devolver:'devolveu para ajuste', aprovar:'aprovou e liberou para separação', vincular:'aprovou e vinculou ao envio que já existia (registro)', cancelar:'cancelou', duplicar:'criou a partir de outra coleta' };
 const pillPlan = st => `<span class="st-full" style="color:${ST_PLAN[st]?.cor};background:${ST_PLAN[st]?.fundo}">${esc(ST_PLAN[st]?.rot || st)}</span>`;
 const nPlan = id => '#' + String(id).padStart(4, '0');
 const paresIt = i => Object.values(i.q || {}).reduce((t, n) => t + (Number(n) || 0), 0);
@@ -1962,13 +1962,18 @@ async function apiPlan(path, corpo){
     if (corpo.acao === 'cancelar') return muda('cancelado', c ? { comentario:c } : {});
     if (corpo.acao === 'aprovar') {
       if (!p.pedido) throw new Error('Informe o nº do envio do ML antes de aprovar');
-      if (DEMO_FULL.envios.some(e => e.cnpj_id === p.cnpj_id && e.pedido === p.pedido)) throw new Error(`O envio ${p.pedido} já existe na aba Envios. Confira se não é duplicado ou corrija o nº.`);
+      if (DEMO_FULL.envios.some(e => e.cnpj_id === p.cnpj_id && e.pedido === p.pedido)) throw new Error(`ENVIO_EXISTE: O envio ${p.pedido} já existe na aba Envios. Se esta coleta é o planejamento dele, vincule ao envio existente; senão, corrija o nº.`);
       const id = String(++DEMO_FULL.seq);
       DEMO_FULL.envios.push({ id, cnpj_id:p.cnpj_id, pedido:p.pedido, data_expedicao:p.data_expedicao, data_limite:p.data_limite, hora_expedicao:null, pares_plan:p.pares, pares_envio:null, status:'programado', pct_coleta:0, caixas:Math.ceil(p.pares / 12), m3:null,
         motivo_diferenca:null, observacao:[`Planejamento ${nPlan(p.id)}`, p.observacao].filter(Boolean).join(' · '), status_em:ag, atualizado_em:ag, atualizado_por:eu, plano_id:p.id });
       DEMO_FULL.eventos.unshift({ envio_id:id, em:ag, por:eu, acao:'envio.criar', antes:null, depois:{ origem:'planejamento', plano_id:p.id, pares_plan:p.pares } });
       return { ...muda('aprovado', { aprovado_em:ag, aprovado_por:eu, envio_id:id, comentario:null }, { envio_id:id }), envio_id:id };
     }
+    if (corpo.acao === 'vincular') { const env = DEMO_FULL.envios.find(e => e.cnpj_id === p.cnpj_id && e.pedido === p.pedido);
+      if (!env) throw new Error(`Não existe o envio ${p.pedido} nesta loja: use "Aprovar" para criar o envio`);
+      const outro = D.planos.find(x => x.envio_id === env.id && x.id !== p.id && x.status === 'aprovado'); if (outro) throw new Error(`O envio ${p.pedido} já tem o planejamento ${nPlan(outro.id)} vinculado`);
+      env.plano_id = p.id; DEMO_FULL.eventos.unshift({ envio_id:env.id, em:ag, por:eu, acao:'envio.vincular_plano', antes:null, depois:{ plano_id:p.id, pares_plan_coleta:p.pares } });
+      return { ...muda('aprovado', { aprovado_em:ag, aprovado_por:eu, envio_id:env.id, comentario:null, ...(p.data_expedicao ? {} : { data_expedicao:env.data_expedicao }) }, { envio_id:env.id, vinculado:true, envio_status:env.status }), envio_id:env.id }; }
     if (corpo.acao === 'duplicar') { const id = String(++D.seq); D.planos.push({ ...cp(p), id, pedido:null, data_limite:null, data_expedicao:null, status:'rascunho', comentario:null, envio_id:null, enviado_em:null, enviado_por:null, aprovado_em:null, aprovado_por:null, observacao:null, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu });
       ev(id, 'duplicar', { origem:p.id, pares:p.pares, linhas:p.linhas }); return { ok:true, id }; }
   }
@@ -2137,7 +2142,7 @@ function editorPlano(d){
       <datalist id="pl-dl-end">${[...new Set([...ed.itens.map(i => i.end).filter(Boolean), ...(state.planCat?.enderecos || []), 'SEM END', 'MAIS DE UM'])].map(x => `<option value="${esc(x)}">`).join('')}</datalist>`;
     ligar();
   };
-  const erro = m => { const e = document.getElementById('pl-erro'); if (!e) return avisar(m, true); e.hidden = !m; e.textContent = m || ''; if (m) e.scrollIntoView({ behavior:'smooth', block:'center' }); };
+  const erro = m => { m = String(m || '').replace(/^ENVIO_EXISTE: /, ''); const e = document.getElementById('pl-erro'); if (!e) return avisar(m, true); e.hidden = !m; e.textContent = m || ''; if (m) e.scrollIntoView({ behavior:'smooth', block:'center' }); };
   const cabDoForm = () => { const v = k => document.getElementById(k)?.value ?? '';
     ed.cnpj_id = v('pl-cnpj') || ed.cnpj_id; ed.pedido = v('pl-pedido').replace(/\D/g, ''); ed.data_limite = v('pl-dl'); ed.data_expedicao = v('pl-de'); ed.observacao = v('pl-obs'); };
   const atualizaLinha = tr => { const i = ed.itens[+tr.dataset.li], tot = paresIt(i);
@@ -2258,7 +2263,22 @@ function editorPlano(d){
       if (vazias) { ed.itens = ed.itens.filter(i => paresIt(i) > 0); marcarSujo(); }
       acao(en, 'enviar', {}, vazias ? `Enviada para o gestor validar (${vazias} linha(s) sem quantidade foram tiradas)` : 'Enviada para o gestor validar'); };
     const pu = $('pl-puxar'); if (pu) pu.onclick = () => acao(pu, 'puxar', {}, 'Voltou para rascunho');
-    const ap = $('pl-aprovar'); if (ap) ap.onclick = () => { if (!confirmaDupla(ap, `Confirmar: vira envio de ${fmtN(totais().pares)} pares`)) return; acao(ap, 'aprovar', {}, 'Aprovada: a coleta já está na aba Envios como Programado'); };
+    const ap = $('pl-aprovar'); if (ap) ap.onclick = () => { if (!confirmaDupla(ap, `Confirmar: vira envio de ${fmtN(totais().pares)} pares`)) return;
+      tentar(ap, async () => { let id = P.id; if (podeEditar && (sujo || !id)) id = await salvar(true);
+        try { await apiPlan('/full/plano/acao', { id, acao:'aprovar', versao }); avisar('Aprovada: a coleta já está na aba Envios como Programado'); await recarregar(id); }
+        catch (e) { if (e instanceof SemSessao || !/^ENVIO_EXISTE/.test(e.message)) throw e; ap.disabled = false; perguntarVincular(id); } }); };
+    // o nº já é de um envio cadastrado (ex.: coleta antiga, já expedida): em vez de criar outro, liga o planejamento a ele
+    const perguntarVincular = id => {
+      const env = state.fullDados?.envios?.find(e => e.cnpj_id === ed.cnpj_id && String(e.pedido) === String(ed.pedido));
+      const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+      dlg.innerHTML = `<div class="painel" style="max-width:560px"><h3 style="margin:0 0 8px">O envio #${esc(ed.pedido)} já existe</h3>
+        <p style="margin:0 0 8px">Já há um envio com esse nº na aba Envios${env ? ` (${esc(ST_FULL[env.status]?.rot || env.status)}, coleta ${dataBR(env.data_expedicao)}, ${fmtN(env.pares_envio ?? env.pares_plan ?? 0)} pares)` : ''}.</p>
+        <p style="margin:0 0 8px"><b>Se esta coleta é o planejamento desse envio</b> (por exemplo, uma coleta antiga que você está registrando), vincule: a coleta fica <b>Aprovada</b> e ligada ao envio, e o envio <b>não muda</b> (status, pares, romaneio e recebimento continuam como estão).</p>
+        <p class="info" style="margin:0">Se for outro envio, cancele e corrija o nº.</p>
+        <div class="gv-acoes"><button class="btn" data-x>Cancelar</button><button class="btn pri" id="vc-ok">🔗 Vincular ao envio existente</button></div></div>`;
+      document.body.appendChild(dlg); dlg.querySelector('[data-x]').onclick = () => dlg.remove();
+      dlg.querySelector('#vc-ok').onclick = () => { dlg.remove(); tentar(ap, async () => { await apiPlan('/full/plano/acao', { id, acao:'vincular', versao }); avisar(`Coleta vinculada ao envio #${ed.pedido} (registro do planejamento)`); await recarregar(id); }); };
+    };
     const dv = $('pl-devolver'); if (dv) dv.onclick = () => pedirComentario('Devolver para ajuste', 'O que precisa ser ajustado? (o analista vê esta mensagem)', true, c => acao(dv, 'devolver', { comentario:c }, 'Devolvida para o analista'));
     const cn = $('pl-cancelar'); if (cn) cn.onclick = () => pedirComentario('Cancelar coleta', 'Motivo do cancelamento (opcional)', false, c => acao(cn, 'cancelar', { comentario:c }, 'Coleta cancelada'));
     const du = $('pl-dup'); if (du) du.onclick = () => { if (sujo && !confirmaDupla(du, 'Há alterações não salvas: clique de novo')) return; acao(du, 'duplicar', {}, 'Rascunho novo criado com as mesmas linhas (sem nº e sem datas)'); };
@@ -4844,9 +4864,14 @@ const DEMO_CROSS = (() => {
   // histórico de demonstração (45 dias, sem domingo) para o resumo
   const rnd = n => { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); };
   for (let k = 1; k <= 45; k++) { const dd = addDias(d, -k); if (new Date(dd + 'T12:00:00Z').getUTCDay() === 0) continue;
-    [['ml_flex', ['DIGOS', 'CACAL', 'DROSA'], [18, 30, 0, 9, 0, 6]], ['shopee_rapida', ['DIGOS'], [40, 60]], ['ml_coleta', ['DIGOS', 'CACAL', 'DROSA'], [50, 50, 5, 12, 2, 8]], ['shein', ['DIGOS', 'CACAL'], [20, 25, 2, 6]]].forEach(([cn, lj, f], j) => {
+    [['ml_flex', ['DIGOS', 'CACAL', 'DROSA'], [18, 30, 0, 9, 0, 6]], ['shopee_rapida', ['DIGOS'], [40, 60]], ['ml_coleta', ['DIGOS', 'CACAL', 'DROSA'], [50, 50, 5, 12, 2, 8]], ['shein', ['DIGOS', 'CACAL'], [20, 25, 2, 6]], ['shopee_rapida', ['DIGOS'], [12, 20], 2]].forEach(([cn, lj, f, sq = 1], j) => {
+      if (sq === 2 && new Date(dd + 'T12:00:00Z').getUTCDay() === 6) return;
       const pac = {}; lj.forEach((l, i) => { const v = Math.round(f[i * 2] + rnd(k * 7 + j * 3 + i) * f[i * 2 + 1]); if (v) pac[l] = v; });
-      coletas.push({ id:'h' + k + '_' + j, data:dd, canal_id:cn, sequencia:1, hora_chegada:'10:00', hora_corte:null, hora_saida:'10:40', pacotes:pac, total:Object.values(pac).reduce((a, b) => a + b, 0), manifestos:[], placa:null, veiculo:null, motorista:null,
+      const base = sq === 2 ? 13 * 60 + 40 : { ml_flex:12 * 60 + 40, shopee_rapida:11 * 60 + 35, ml_coleta:10 * 60 + 20, shein:11 * 60 + 45 }[cn], r1 = rnd(k * 13 + j), atraso = r1 > 0.86 ? 45 + Math.round(r1 * 60) : Math.round((r1 - 0.45) * 40);
+      if (rnd(k * 17 + j * 5) > 0.95) return;   // às vezes a plataforma não vem
+      const che = base + atraso, sai = che + 20 + Math.round(rnd(k * 3 + j) * 35), hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+      const mot = [['FRA6J26', 'CARLOS ALBERTO'], ['TCA4C13', 'MARCOS VINICIUS'], ['MIB2G27', 'JULIO CESAR'], ['EZB0H99', 'ROBERTO SILVA'], ['GHT3B21', 'ANDERSON LIMA']][(k + j) % 5];
+      coletas.push({ id:'h' + k + '_' + j, data:dd, canal_id:cn, sequencia:sq, hora_chegada:hm(che), hora_corte:null, hora_saida:hm(sai), pacotes:pac, total:Object.values(pac).reduce((a, b) => a + b, 0), manifestos:[], placa:mot[0], veiculo:null, motorista:mot[1],
         motorista_doc:null, motorista_tel:null, motorista_id:null, responsavel:'DEGMAR GOMES', observacao:null, assinatura:null, assinado_em:ag, alterada_apos_assinatura:false, atualizado_em:ag, atualizado_por:'demonstracao' }); }); }
   const motoristas = [];
   coletas.forEach(c => { if (!c.motorista) return; let m = motoristas.find(x => x.nome === c.motorista);
@@ -4857,6 +4882,18 @@ async function apiCross(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_CROSS, ag = new Date().toISOString(), ev = (coleta_id, acao, antes, depois) => D.eventos.unshift({ coleta_id, em:ag, por:'demonstracao', acao, antes, depois });
   const q = new URLSearchParams(path.split('?')[1] || '');
+  demoJanelasIni();
+  if (path === '/cross/janelas') return { janelas:JSON.parse(JSON.stringify(D.janelas)) };
+  if (path === '/cross/janela/excluir') { const j = D.janelas.find(x => x.id === corpo.id); j.ativo = false; return { ok:true }; }
+  if (path === '/cross/janela') { const n = { ...corpo }; delete n.encerrar_anteriores; delete n.id;
+    if (!n.coleta_ini) throw new Error('Informe o início da coleta'); if (!n.dias?.length) throw new Error('Marque ao menos um dia da semana');
+    if (n.coleta_fim < n.coleta_ini) throw new Error('O fim da janela de coleta é antes do início');
+    const conf = D.janelas.filter(j => j.ativo && j.id !== corpo.id && j.canal_id === n.canal_id && (j.cnpj_id || null) === (n.cnpj_id || null) && j.sequencia === n.sequencia && j.dias.some(x => n.dias.includes(x))
+      && j.vigente_de <= (n.vigente_ate || '9999') && (j.vigente_ate || '9999') >= n.vigente_de);
+    if (conf.length) { if (!corpo.encerrar_anteriores || conf.some(j => j.vigente_de >= n.vigente_de)) throw new Error(`JANELA_CONFLITO: Já existe janela vigente para a ${n.sequencia}ª coleta de ${nomeCanal(n.canal_id)}${n.cnpj_id ? ` (${n.cnpj_id})` : ''} nesses dias. Encerre a anterior (vigência "até") ou mude a data de início.`);
+      conf.forEach(j => { j.vigente_ate = addDias(n.vigente_de, -1); }); }
+    if (corpo.id) Object.assign(D.janelas.find(j => j.id === corpo.id), n, { atualizado_em:ag }); else D.janelas.push({ id:String(++D.seq), ...n, ativo:true, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' });
+    return { ok:true }; }
   if (path.startsWith('/cross/coleta?')) { const c = D.coletas.find(x => x.id === q.get('id')); return { coleta: JSON.parse(JSON.stringify(c)), eventos: D.eventos.filter(e => e.coleta_id === c.id) }; }
   if (path.startsWith('/cross?')) {
     const ini = q.get('ini'), fim = q.get('fim');
@@ -4906,6 +4943,8 @@ async function apiCross(path, corpo){
 function telaCross(){
   const s = state.cross ||= { data: hojeBRT(), canal:'todos', loja:'todos', aberto:null, vista:'dia' };
   if (s.vista === 'resumo') return telaResumoCross();
+  if (s.vista === 'pontual') return telaPontualCross();
+  if (s.vista === 'janelas') return telaJanelasCross();
   $app.innerHTML = `
     <div class="barra">
       <h2>Gestão - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
@@ -5099,8 +5138,294 @@ function resumoCrossHtml(R){
     <div class="rodape" style="padding:3mm 0 0;margin-top:6mm"><span>Pacotes lançados nas coletas do CROSS (Central de Operações)</span><span>Gerado em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
   </div></body></html>`;
 }
-const abasVistaCross = s => `<div class="abas vista-full">${[['dia','Coletas do dia'],['resumo','📊 Resumo']].map(([k, t]) => `<button data-vx="${k}" class="${(s.vista || 'dia') === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+const abasVistaCross = s => `<div class="abas vista-full">${[['dia','Coletas do dia'],['resumo','📊 Resumo'],['pontual','🕒 Pontualidade'],['janelas','⏰ Janelas']].map(([k, t]) => `<button data-vx="${k}" class="${(s.vista || 'dia') === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 function ligarAbasVistaCross(){ document.querySelectorAll('[data-vx]').forEach(b => b.onclick = () => { if ((state.cross.vista || 'dia') === b.dataset.vx) return; state.cross.vista = b.dataset.vx; telaCross(); }); }
+
+/* =================== CROSS: janelas combinadas (corte e coleta) e relatório de pontualidade =================== */
+const DOW_ISO = ['', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+const isoDowDe = d => new Date(d + 'T12:00:00Z').getUTCDay() || 7;
+const minHM = t => { if (!t) return null; const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+const hmMin = m => m == null ? '' : `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.round(m % 60)).padStart(2, '0')}`;
+const statusJanela = j => { const h = hojeBRT(); return !j.ativo ? 'excluida' : j.vigente_ate && j.vigente_ate < h ? 'encerrada' : j.vigente_de > h ? 'futura' : 'vigente'; };
+const ROT_ST_JAN = { vigente:['Vigente', '#1a7a3e', '#e2f5e8'], futura:['A partir de', '#0b4fa8', '#e3eefc'], encerrada:['Encerrada', '#566074', '#eef0f4'], excluida:['Excluída', '#8a1f1f', '#fbe9e9'] };
+// janela que vale para a data/coleta: a da loja tem preferência; sem loja escolhida, vale a "todas as lojas"
+function janelaPara(J, canal, loja, d, seq){
+  const dow = isoDowDe(d), ok = J.filter(j => j.ativo && j.canal_id === canal && j.sequencia === seq && j.dias.includes(dow) && j.vigente_de <= d && (!j.vigente_ate || j.vigente_ate >= d));
+  return (loja !== 'todos' && ok.find(j => j.cnpj_id === loja)) || ok.find(j => !j.cnpj_id) || (loja === 'todos' ? ok[0] : null) || null;
+}
+
+// ---- demonstração
+function demoJanelasIni(){
+  const D = DEMO_CROSS; if (D.janelas) return; const ag = new Date().toISOString(), ini = addDias(hojeBRT(), -60);
+  const J = (canal_id, cnpj_id, sequencia, dias, hora_corte, coleta_ini, coleta_fim, tolerancia_min = 15) => ({ id:String(++D.seq), canal_id, cnpj_id, sequencia, dias, hora_corte, coleta_ini, coleta_fim, tolerancia_min,
+    vigente_de:ini, vigente_ate:null, observacao:null, ativo:true, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' });
+  D.janelas = [J('shopee_rapida', null, 1, [1, 2, 3, 4, 5, 6], '11:00', '11:30', '12:00'), J('shopee_rapida', null, 2, [1, 2, 3, 4, 5], '13:00', '13:30', '14:00'),
+    J('shein', null, 1, [1, 2, 3, 4, 5], '11:00', '11:30', '12:30'), J('ml_coleta', null, 1, [1, 2, 3, 4, 5, 6], '10:00', '10:00', '11:00'),
+    J('ml_flex', null, 1, [1, 2, 3, 4, 5, 6], '12:00', '12:30', '13:30', 20)];
+}
+
+// ---- tela: cadastro das janelas
+function telaJanelasCross(){
+  const s = state.cross; s.janMostrar ||= 'vigentes'; s.janDow ||= isoDowDe(hojeBRT());
+  $app.innerHTML = `
+    <div class="barra"><h2>Gestão - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
+      <div class="abas">${[['vigentes', 'Vigentes e futuras'], ['todas', 'Todas']].map(([k, t]) => `<button data-jm="${k}" class="${s.janMostrar === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      ${pode('cross', 'gerir') ? '<button class="btn pri" id="jn-nova">+ Nova janela</button>' : ''}</div>
+    <div id="janelas"><div class="carregando">Carregando janelas…</div></div>`;
+  ligarAbasVistaCross();
+  document.querySelectorAll('[data-jm]').forEach(b => b.onclick = () => { s.janMostrar = b.dataset.jm; telaJanelasCross(); });
+  const nv = document.getElementById('jn-nova'); if (nv) nv.onclick = () => editarJanela(null);
+  carregarJanelas();
+}
+async function carregarJanelas(){
+  try { const [j, c] = await Promise.all([apiCross('/cross/janelas'), state.crossDados ? Promise.resolve(state.crossDados) : apiCross(`/cross?ini=${hojeBRT()}&fim=${hojeBRT()}`)]);
+    state.crossDados ||= c; state.janelasCross = j.janelas; renderJanelas(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('janelas'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function renderJanelas(){
+  const s = state.cross, $c = document.getElementById('janelas'); if (!$c) return;
+  const canais = (state.crossDados?.canais || CANAIS_DEMO).filter(c => c.ativo !== false), gerir = pode('cross', 'gerir');
+  const J = state.janelasCross.filter(j => s.janMostrar === 'todas' || ['vigente', 'futura'].includes(statusJanela(j)));
+  const lojaTxt = j => j.cnpj_id ? tagLoja(j.cnpj_id) : '<span class="info">todas as lojas</span>';
+  $c.innerHTML = `
+    <div class="painel"><h3 class="cs-sub">Grade do dia <span class="info">o que está combinado para</span>
+      <span class="abas mini-abas">${[1, 2, 3, 4, 5, 6, 7].map(i => `<button data-jd="${i}" class="${s.janDow === i ? 'on' : ''}">${DOW_ISO[i]}</button>`).join('')}</span></h3>${gradeJanelas(canais, s.janDow)}</div>
+    ${canais.map(cn => { const L = J.filter(j => j.canal_id === cn.id);
+      return `<div class="painel jn-canal"><div class="jn-cab"><b>${esc(cn.nome)}</b><span class="info">${L.length ? `${L.length} janela(s)` : 'nenhuma janela cadastrada'}</span><span style="flex:1"></span>
+          ${gerir ? `<button class="btn mini" data-jnova="${cn.id}">+ Janela</button>` : ''}</div>
+        ${L.length ? `<div style="overflow-x:auto"><table class="tab-full jn-tab"><thead><tr><th style="text-align:left">Loja</th><th>Coleta</th><th style="text-align:left">Dias</th><th>Corte dos pedidos</th><th>Janela de coleta</th><th>Tolerância</th><th style="text-align:left">Vigência</th><th style="text-align:left">Obs.</th><th></th></tr></thead><tbody>
+          ${L.map(j => { const st = statusJanela(j), [rot, cor, fundo] = ROT_ST_JAN[st];
+            return `<tr class="${['encerrada', 'excluida'].includes(st) ? 'jn-off' : ''}"><td style="text-align:left">${lojaTxt(j)}</td><td><b>${j.sequencia}ª</b></td>
+              <td style="text-align:left">${[1, 2, 3, 4, 5, 6, 7].map(i => `<span class="jn-d ${j.dias.includes(i) ? 'on' : ''}">${DOW_ISO[i]}</span>`).join('')}</td>
+              <td><b>${j.hora_corte || '–'}</b></td><td><b>${j.coleta_ini}${j.coleta_fim !== j.coleta_ini ? ` – ${j.coleta_fim}` : ''}</b></td><td>±${j.tolerancia_min} min</td>
+              <td style="text-align:left"><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span> <small>${st === 'futura' ? dataBR(j.vigente_de) : `desde ${dataBR(j.vigente_de)}`}${j.vigente_ate ? ` até ${dataBR(j.vigente_ate)}` : ''}</small></td>
+              <td style="text-align:left"><small>${esc(j.observacao || '')}</small></td>
+              <td>${gerir && st !== 'excluida' ? `<button class="lnk" data-jed="${j.id}">editar</button>` : ''}</td></tr>`; }).join('')}</tbody></table></div>` : ''}</div>`; }).join('')}
+    <div class="info cs-nota">Janela = o horário em que o motorista do marketplace deve chegar para carregar. Corte = até que horas o pedido entra nessa coleta.
+      Quando a plataforma mudar o horário, crie uma janela nova com a data de início: a anterior é encerrada no dia anterior e o relatório de pontualidade continua comparando cada dia com o que valia nele.
+      "Todas as lojas" vale para as lojas que não têm janela própria.</div>`;
+  $c.querySelectorAll('[data-jd]').forEach(b => b.onclick = () => { s.janDow = Number(b.dataset.jd); renderJanelas(); });
+  $c.querySelectorAll('[data-jnova]').forEach(b => b.onclick = () => editarJanela(null, b.dataset.jnova));
+  $c.querySelectorAll('[data-jed]').forEach(b => b.onclick = () => editarJanela(state.janelasCross.find(j => j.id === b.dataset.jed)));
+}
+// linha do tempo do dia: cada marketplace com o corte (traço vermelho) e a janela de coleta (barra)
+function gradeJanelas(canais, dow){
+  const d = hojeBRT(), linhas = [];
+  canais.forEach(cn => { const L = state.janelasCross.filter(j => j.ativo && j.canal_id === cn.id && j.dias.includes(dow) && j.vigente_de <= d && (!j.vigente_ate || j.vigente_ate >= d));
+    if (L.length) linhas.push({ cn, L }); });
+  if (!linhas.length) return `<div class="vazio">Nada combinado para ${DOW_ISO[dow]}.</div>`;
+  const tudo = linhas.flatMap(x => x.L.flatMap(j => [minHM(j.hora_corte), minHM(j.coleta_ini), minHM(j.coleta_fim)])).filter(v => v != null);
+  const h0 = Math.max(0, Math.floor(Math.min(...tudo) / 60) - 1) * 60, h1 = Math.min(24, Math.ceil(Math.max(...tudo) / 60) + 1) * 60;
+  const W = 900, E = 150, H = linhas.length * 34 + 30, x = m => E + (m - h0) / (h1 - h0) * (W - E - 10);
+  const horas = []; for (let m = h0; m <= h1; m += 60) horas.push(m);
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:640px" role="img" aria-label="Grade de cortes e coletas do dia">
+    ${horas.map(m => `<line x1="${x(m)}" x2="${x(m)}" y1="18" y2="${H - 4}" stroke="#eef0f4"/><text x="${x(m)}" y="12" text-anchor="middle" font-size="10" fill="#8a93a5">${hmMin(m).slice(0, 2)}h</text>`).join('')}
+    ${linhas.map(({ cn, L }, i) => { const y = 24 + i * 34;
+      return `<text x="0" y="${y + 15}" font-size="12" font-weight="700" fill="#1b2333">${esc(cn.nome)}</text>
+        ${L.map(j => { const a = minHM(j.coleta_ini), b = Math.max(minHM(j.coleta_fim), a + 5), c = minHM(j.hora_corte), loja = j.cnpj_id ? ` · ${nomeLoja(j.cnpj_id)}` : '';
+          return `<rect x="${x(a)}" y="${y + 4}" width="${Math.max(4, x(b) - x(a))}" height="18" rx="4" fill="#1a7a3e" opacity=".8"><title>${esc(cn.nome)}${esc(loja)} · ${j.sequencia}ª coleta: ${j.coleta_ini}–${j.coleta_fim}</title></rect>
+            <text x="${x(a) + 4}" y="${y + 17}" font-size="10" fill="#fff" font-weight="700">${j.sequencia}ª ${j.coleta_ini}${esc(loja)}</text>
+            ${c != null ? `<line x1="${x(c)}" x2="${x(c)}" y1="${y}" y2="${y + 26}" stroke="#c62828" stroke-width="2.5"><title>corte ${j.hora_corte}</title></line>` : ''}`; }).join('')}`; }).join('')}
+  </svg></div><div class="cs-leg"><span><i style="background:#c62828;width:3px"></i>corte dos pedidos</span><span><i style="background:#1a7a3e"></i>janela de coleta</span></div>`;
+}
+function editarJanela(j, canal){
+  const canais = (state.crossDados?.canais || CANAIS_DEMO).filter(c => c.ativo !== false), novo = !j;
+  const v = j || { canal_id:canal || canais[0]?.id, cnpj_id:null, sequencia:1, dias:[1, 2, 3, 4, 5], hora_corte:'', coleta_ini:'', coleta_fim:'', tolerancia_min:15, vigente_de:hojeBRT(), vigente_ate:null, observacao:'' };
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  const lojasDe = id => { const c = canais.find(x => x.id === id); return (c?.lojas?.length ? c.lojas : state.cnpjs.map(x => x.id)); };
+  dlg.innerHTML = `<div class="painel al-mod"><h3 style="margin:0 0 8px">${novo ? 'Nova janela' : 'Editar janela'}</h3>
+    <div class="grade-form g2">
+      <label>Marketplace<select id="jf-canal" ${novo ? '' : 'disabled'}>${canais.map(c => `<option value="${c.id}" ${v.canal_id === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select></label>
+      <label>Loja<select id="jf-loja"></select></label>
+      <label>Coleta<select id="jf-seq">${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${v.sequencia === n ? 'selected' : ''}>${n}ª coleta do dia</option>`).join('')}</select></label>
+      <label>Corte dos pedidos <span class="info">(até que horas o pedido entra)</span><input id="jf-corte" type="time" value="${v.hora_corte || ''}"></label>
+      <label>Coleta: chegada a partir de<input id="jf-ini" type="time" value="${v.coleta_ini || ''}"></label>
+      <label>até <span class="info">(fim da janela; igual = horário fixo)</span><input id="jf-fim" type="time" value="${v.coleta_fim || ''}"></label>
+      <label>Tolerância (min) <span class="info">antes e depois</span><input id="jf-tol" inputmode="numeric" value="${v.tolerancia_min}"></label>
+      <label>Vigente a partir de<input id="jf-de" type="date" value="${v.vigente_de}"></label>
+      <label>Até <span class="info">(vazio = sem data para acabar)</span><input id="jf-ate" type="date" value="${v.vigente_ate || ''}"></label>
+    </div>
+    <div class="gv-sec">Dias da semana</div><div class="al-chips">${[1, 2, 3, 4, 5, 6, 7].map(i => `<label class="al-chip"><input type="checkbox" data-jdia="${i}" ${v.dias.includes(i) ? 'checked' : ''}><span>${DOW_LONGO[i % 7]}</span></label>`).join('')}</div>
+    <label class="gv-lab" style="display:block;margin-top:8px">Observação<input id="jf-obs" maxlength="300" value="${esc(v.observacao || '')}" placeholder="ex.: combinado com o gerente de conta em 01/11"></label>
+    <div class="gv-acoes">${novo ? '' : '<button class="btn perigo" id="jf-del">Excluir</button>'}<span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="jf-ok">Salvar</button></div></div>`;
+  document.body.appendChild(dlg);
+  const q = k => dlg.querySelector(k);
+  const lojas = () => { const id = q('#jf-canal').value; q('#jf-loja').innerHTML = `<option value="">Todas as lojas</option>${lojasDe(id).map(l => `<option value="${l}" ${v.cnpj_id === l ? 'selected' : ''}>${esc(nomeLoja(l))}</option>`).join('')}`; };
+  q('#jf-canal').onchange = lojas; lojas();
+  q('#jf-ini').onchange = () => { if (!q('#jf-fim').value || q('#jf-fim').value < q('#jf-ini').value) q('#jf-fim').value = q('#jf-ini').value; };
+  q('[data-x]').onclick = () => dlg.remove();
+  const enviar = async encerrar => {
+    const corpo = { id:j?.id, canal_id:q('#jf-canal').value, cnpj_id:q('#jf-loja').value || null, sequencia:Number(q('#jf-seq').value), hora_corte:q('#jf-corte').value || null,
+      coleta_ini:q('#jf-ini').value, coleta_fim:q('#jf-fim').value || q('#jf-ini').value, tolerancia_min:Number(q('#jf-tol').value || 0), vigente_de:q('#jf-de').value, vigente_ate:q('#jf-ate').value || null,
+      dias:[...dlg.querySelectorAll('[data-jdia]:checked')].map(x => Number(x.dataset.jdia)), observacao:q('#jf-obs').value.trim(), encerrar_anteriores:encerrar };
+    try { await apiCross('/cross/janela', corpo); avisar(encerrar ? `Janela salva; a anterior foi encerrada em ${dataBR(addDias(corpo.vigente_de, -1))}` : 'Janela salva'); dlg.remove(); carregarJanelas(); }
+    catch (e) { if (e instanceof SemSessao) throw e;
+      if (/^JANELA_CONFLITO/.test(e.message) && !encerrar && novo) {
+        const ok = confirm(`${e.message.replace(/^JANELA_CONFLITO: /, '')}\n\nQuer encerrar a janela anterior em ${dataBR(addDias(corpo.vigente_de, -1))} e começar esta em ${dataBR(corpo.vigente_de)}?`);
+        if (ok) return enviar(true); return; }
+      avisar(e.message.replace(/^JANELA_CONFLITO: /, ''), true); } };
+  q('#jf-ok').onclick = () => enviar(false);
+  const del = q('#jf-del'); if (del) del.onclick = async () => { if (!confirmaDupla(del, 'Clique de novo para excluir')) return;
+    try { await apiCross('/cross/janela/excluir', { id:j.id }); avisar('Janela excluída'); dlg.remove(); carregarJanelas(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+}
+
+// ---- tela: relatório de pontualidade (combinado x efetivo), para mandar à plataforma
+function telaPontualCross(){
+  const s = state.cross; s.ptIni ||= addDias(hojeBRT(), -14); s.ptFim ||= hojeBRT(); s.ptLoja ||= 'todos'; s.ptSeq ||= 'todas';
+  const canais = (state.crossDados?.canais || CANAIS_DEMO).filter(c => c.ativo !== false); s.ptCanal ||= canais[0]?.id;
+  $app.innerHTML = `
+    <div class="barra"><h2>Gestão - CROSS</h2>${abasVistaCross(s)}<span style="flex:1"></span>
+      <select id="pt-canal">${canais.map(c => `<option value="${c.id}" ${s.ptCanal === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>
+      <select id="pt-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.ptLoja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <span class="datas"><input type="date" id="pt-ini" value="${s.ptIni}" max="${hojeBRT()}"> até <input type="date" id="pt-fim" value="${s.ptFim}" max="${hojeBRT()}"></span>
+      <select id="pt-seq"><option value="todas">Todas as coletas</option>${[1, 2, 3].map(n => `<option value="${n}" ${String(s.ptSeq) === String(n) ? 'selected' : ''}>${n}ª coleta</option>`).join('')}</select>
+      <button class="btn" id="pt-imp">🖨 Imprimir / PDF</button><button class="btn" id="pt-csv">⬇ CSV</button></div>
+    <div id="pontual"><div class="carregando">Carregando…</div></div>`;
+  ligarAbasVistaCross();
+  const $ = k => document.getElementById(k);
+  $('pt-canal').onchange = () => { s.ptCanal = $('pt-canal').value; renderPontual(); };
+  $('pt-loja').onchange = () => { s.ptLoja = $('pt-loja').value; renderPontual(); };
+  $('pt-seq').onchange = () => { s.ptSeq = $('pt-seq').value; renderPontual(); };
+  const datas = () => { let a = $('pt-ini').value, b = $('pt-fim').value; if (!a || !b) return; if (b < a) [a, b] = [b, a]; if (difDias(a, b) > 92) return avisar('Período máximo de 93 dias', true); s.ptIni = a; s.ptFim = b; carregarPontual(); };
+  $('pt-ini').onchange = datas; $('pt-fim').onchange = datas;
+  $('pt-imp').onclick = () => { const R = calcPontual(); if (!R.linhas.length) return avisar('Nada para imprimir no período', true); imprimirHtml(impressoPontual(R)); };
+  $('pt-csv').onclick = () => { const R = calcPontual(); if (!R.linhas.length) return avisar('Nada para exportar', true); csvPontual(R); };
+  carregarPontual();
+}
+async function carregarPontual(){
+  const s = state.cross;
+  try { const [c, j] = await Promise.all([apiCross(`/cross?ini=${s.ptIni}&fim=${s.ptFim}`), apiCross('/cross/janelas')]); state.pontualDados = c; state.janelasCross = j.janelas; state.crossDados ||= c; renderPontual(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('pontual'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+const ST_PONT = { no_horario:['No horário', '#1a7a3e', '#e2f5e8'], antecipada:['Antecipada', '#0b4fa8', '#e3eefc'], atrasada:['Atrasada', '#c62828', '#fbe9e9'], nao_veio:['Não veio', '#ffffff', '#8a1f1f'], sem_janela:['Sem janela', '#566074', '#eef0f4'], aguardando:['Aguardando', '#9a5b00', '#fff1d6'] };
+function calcPontual(){
+  const s = state.cross, r = state.pontualDados, J = state.janelasCross || [], canal = s.ptCanal, loja = s.ptLoja, hoje = hojeBRT();
+  const agora = (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
+  const linhas = [];
+  for (let d = s.ptIni; d <= s.ptFim; d = addDias(d, 1)) {
+    const cols = r.coletas.filter(c => c.data === d && c.canal_id === canal && (loja === 'todos' || (c.pacotes?.[loja] || 0) > 0 || !Object.keys(c.pacotes || {}).length));
+    const seqs = new Set([...cols.map(c => c.sequencia), ...[1, 2, 3, 4, 5].filter(n => janelaPara(J, canal, loja, d, n))]);
+    [...seqs].sort().forEach(seq => { if (s.ptSeq !== 'todas' && String(seq) !== String(s.ptSeq)) return;
+      const j = janelaPara(J, canal, loja, d, seq), c = cols.find(x => x.sequencia === seq);
+      const ch = minHM(c?.hora_chegada), sa = minHM(c?.hora_saida), ini = minHM(j?.coleta_ini), fim = minHM(j?.coleta_fim), tol = j?.tolerancia_min ?? 0;
+      let st, desvio = null;
+      if (!c) st = d < hoje || (d === hoje && agora > fim + tol) ? 'nao_veio' : 'aguardando';
+      else if (!j) st = 'sem_janela';
+      else if (ch == null) st = 'sem_janela';
+      else if (ch < ini - tol) { st = 'antecipada'; desvio = ch - ini; }
+      else if (ch > fim + tol) { st = 'atrasada'; desvio = ch - fim; }
+      else st = 'no_horario';
+      const pac = c ? (loja === 'todos' ? c.total : (c.pacotes?.[loja] || 0)) : 0;
+      linhas.push({ d, seq, j, c, ch, sa, ini, fim, corte:minHM(c?.hora_corte || j?.hora_corte), corteJan:minHM(j?.hora_corte), st, desvio, pac, doca:ch != null && sa != null ? sa - ch : null });
+    }); }
+  const comJ = linhas.filter(x => x.j), feitas = comJ.filter(x => x.c && x.ch != null), atr = linhas.filter(x => x.st === 'atrasada');
+  const R = { linhas, seqs:[...new Set(linhas.map(x => x.seq))].sort(), seqsGraf:[...new Set(linhas.filter(x => x.j).map(x => x.seq))].sort(), combinadas:comJ.filter(x => x.st !== 'aguardando').length, realizadas:linhas.filter(x => x.c).length,
+    naoVeio:linhas.filter(x => x.st === 'nao_veio').length, noHorario:feitas.filter(x => x.st === 'no_horario').length, feitas:feitas.length, atrasadas:atr.length,
+    atrasoMedio:atr.length ? atr.reduce((t, x) => t + x.desvio, 0) / atr.length : null, atrasoMax:atr.length ? Math.max(...atr.map(x => x.desvio)) : null,
+    pacotes:linhas.reduce((t, x) => t + x.pac, 0), docaMedia:(() => { const v = linhas.filter(x => x.doca != null); return v.length ? v.reduce((t, x) => t + x.doca, 0) / v.length : null; })(),
+    canal:nomeCanal(canal), loja, ini:s.ptIni, fim:s.ptFim };
+  R.pontualidade = R.feitas ? R.noHorario / R.feitas : null; R.cumprimento = R.combinadas ? (R.combinadas - R.naoVeio) / R.combinadas : null;
+  return R;
+}
+// gráfico de linha: dias no eixo X, horário no eixo Y; faixa = janela combinada, tracejado = corte, linhas = chegada e saída efetivas
+function graficoPontual(R, seq, imp){
+  const L = R.linhas.filter(x => x.seq === seq); if (!L.length) return '';
+  const dias = []; for (let d = R.ini; d <= R.fim; d = addDias(d, 1)) dias.push(d);
+  const vals = L.flatMap(x => [x.ch, x.sa, x.ini, x.fim, x.corteJan]).filter(v => v != null);
+  if (!vals.length) return '';
+  const y0 = Math.floor((Math.min(...vals) - 20) / 60) * 60, y1 = Math.ceil((Math.max(...vals) + 20) / 60) * 60;
+  const W = imp ? 1000 : 1000, H = imp ? 250 : 280, E = 46, B = 36, T = 14, R2 = 12, pw = (W - E - R2) / dias.length;
+  const x = d => E + (dias.indexOf(d) + 0.5) * pw, y = m => T + (y1 - m) / (y1 - y0) * (H - T - B);   // mais tarde = mais alto
+  const por = Object.fromEntries(L.map(l => [l.d, l]));
+  const linha = (k, cor, dash) => { let p = '', ab = false; dias.forEach(d => { const v = por[d]?.[k]; if (v == null) { ab = false; return; } p += `${ab ? 'L' : 'M'}${x(d).toFixed(1)},${y(v).toFixed(1)} `; ab = true; });
+    return p ? `<path d="${p}" fill="none" stroke="${cor}" stroke-width="${dash ? 1.6 : 2.2}" ${dash ? 'stroke-dasharray="5 4"' : ''}/>` : ''; };
+  const marcas = []; for (let m = y0; m <= y1; m += (y1 - y0) > 360 ? 120 : 60) marcas.push(m);
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Horário combinado e efetivo por dia, ${seq}ª coleta" style="display:block">
+    ${marcas.map(m => `<line x1="${E}" x2="${W - R2}" y1="${y(m)}" y2="${y(m)}" stroke="#e6e9ef"/><text x="${E - 6}" y="${y(m) + 3}" text-anchor="end" font-size="10" fill="#8a93a5">${hmMin(m)}</text>`).join('')}
+    ${dias.map(d => { const l = por[d]; const fds = [6, 7].includes(isoDowDe(d));
+      return `${fds ? `<rect x="${x(d) - pw / 2}" y="${T}" width="${pw}" height="${H - T - B}" fill="#f7f8fa"/>` : ''}
+        ${l?.ini != null ? `<rect x="${x(d) - pw * 0.38}" y="${y(l.fim + (l.j?.tolerancia_min || 0))}" width="${pw * 0.76}" height="${Math.max(2, y(l.ini - (l.j?.tolerancia_min || 0)) - y(l.fim + (l.j?.tolerancia_min || 0)))}" fill="#cdebd5" opacity=".55"/>
+          <rect x="${x(d) - pw * 0.38}" y="${y(l.fim)}" width="${pw * 0.76}" height="${Math.max(2, y(l.ini) - y(l.fim))}" fill="#1a7a3e" opacity=".28"/>` : ''}
+        <text x="${x(d)}" y="${H - B + 13}" text-anchor="middle" font-size="9.5" fill="#566074">${d.slice(8)}/${d.slice(5, 7)}</text>
+        <text x="${x(d)}" y="${H - B + 25}" text-anchor="middle" font-size="8.5" fill="#8a93a5">${DOW_ISO[isoDowDe(d)]}</text>`; }).join('')}
+    ${linha('corteJan', '#c62828', true)}${linha('sa', '#6b3fa0', false)}${linha('ch', '#0b4fa8', false)}
+    ${L.map(l => l.ch != null ? `<circle cx="${x(l.d)}" cy="${y(l.ch)}" r="4" fill="${ST_PONT[l.st][1] === '#ffffff' ? '#8a1f1f' : ST_PONT[l.st][1]}" stroke="#fff" stroke-width="1.2"><title>${dataBR(l.d)} chegada ${hmMin(l.ch)} · ${ST_PONT[l.st][0]}</title></circle>` : '').join('')}
+    ${L.map(l => l.sa != null ? `<circle cx="${x(l.d)}" cy="${y(l.sa)}" r="3" fill="#6b3fa0"><title>${dataBR(l.d)} saída ${hmMin(l.sa)}</title></circle>` : '').join('')}
+    ${L.filter(l => l.st === 'nao_veio').map(l => `<g transform="translate(${x(l.d)},${H - B - 10})"><path d="M-5,-5L5,5M5,-5L-5,5" stroke="#8a1f1f" stroke-width="2.5"/><title>${dataBR(l.d)}: não veio</title></g>`).join('')}
+    <line x1="${E}" x2="${W - R2}" y1="${H - B}" y2="${H - B}" stroke="#c9cfda"/></svg>`;
+}
+const legPontual = () => `<div class="cs-leg pt-leg"><span><i style="background:#1a7a3e;opacity:.45"></i>janela combinada (verde claro = tolerância)</span><span><i style="background:none;border-top:2px dashed #c62828;height:0;width:16px"></i>corte dos pedidos</span>
+  <span><i style="background:#0b4fa8;height:3px"></i>chegada efetiva</span><span><i style="background:#6b3fa0;height:3px"></i>saída efetiva (fim do carregamento)</span><span style="color:#8a1f1f;font-weight:700">✕ não veio</span></div>`;
+const combTxt = l => l.j ? `${l.j.coleta_ini}${l.j.coleta_fim !== l.j.coleta_ini ? '–' + l.j.coleta_fim : ''}` : '–';
+const desvioTxt = l => l.desvio == null ? '' : `${l.desvio > 0 ? '+' : '−'}${fmtHoras(Math.abs(l.desvio))}`;
+function renderPontual(){
+  const $c = document.getElementById('pontual'); if (!$c || !state.pontualDados) return;
+  const R = calcPontual(), pct = v => v == null ? '–' : `${Math.round(v * 100)}%`;
+  if (!R.linhas.length) { $c.innerHTML = `<div class="vazio">Nenhuma janela nem coleta de ${esc(R.canal)} no período. Cadastre as janelas na aba ⏰ Janelas.</div>`; return; }
+  $c.innerHTML = `
+    <div class="rr-res cm-tiles cm-t5">
+      <div class="rr-tile" style="--c:#02285a"><span>Coletas combinadas</span><b>${R.combinadas}</b><small>${R.realizadas} realizadas no período</small></div>
+      <div class="rr-tile" style="--c:${R.naoVeio ? '#8a1f1f' : '#1a7a3e'}"><span>Não vieram</span><b>${R.naoVeio}</b><small>cumprimento ${pct(R.cumprimento)}</small></div>
+      <div class="rr-tile" style="--c:${R.pontualidade != null && R.pontualidade < 0.9 ? '#c62828' : '#1a7a3e'}"><span>Chegada no horário</span><b>${pct(R.pontualidade)}</b><small>${R.noHorario} de ${R.feitas} coletas com janela</small></div>
+      <div class="rr-tile" style="--c:#c62828"><span>Atrasos</span><b>${R.atrasadas}</b><small>${R.atrasadas ? `média ${fmtHoras(R.atrasoMedio)} · máx. ${fmtHoras(R.atrasoMax)}` : 'nenhum'}</small></div>
+      <div class="rr-tile" style="--c:#6b3fa0"><span>Pacotes coletados</span><b>${fmtN(R.pacotes)}</b><small>${R.docaMedia != null ? `tempo médio na doca ${fmtHoras(R.docaMedia)}` : ''}</small></div>
+    </div>
+    ${R.seqsGraf.map(seq => `<div class="painel"><h3 class="cs-sub">${R.seqsGraf.length > 1 || seq > 1 ? `${seq}ª coleta · ` : ''}Combinado x efetivo <span class="info">${esc(R.canal)} · ${R.loja === 'todos' ? 'todas as lojas' : esc(nomeLoja(R.loja))}</span></h3>${graficoPontual(R, seq)}${legPontual()}</div>`).join('')}
+    <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full pt-tab"><thead><tr><th style="text-align:left">Data</th><th>Coleta</th><th>Corte</th><th>Janela combinada</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th style="text-align:left">Placa</th><th style="text-align:left">Motorista</th><th>Pacotes</th><th>Situação</th></tr></thead><tbody>
+      ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st];
+        return `<tr><td style="text-align:left"><b>${dataBR(l.d).slice(0, 5)}</b> <span class="info">${DOW_ISO[isoDowDe(l.d)]}</span></td><td>${l.seq}ª</td><td>${hmMin(l.corte) || '–'}</td><td>${combTxt(l)}</td>
+          <td><b>${l.c?.hora_chegada || '–'}</b></td><td>${l.c?.hora_saida || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td>
+          <td style="text-align:left">${l.c?.placa ? fmtPlaca(l.c.placa) : '–'}</td><td style="text-align:left">${esc(l.c?.motorista || '–')}</td><td>${l.c ? fmtN(l.pac) : '–'}</td>
+          <td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="info cs-nota">No horário = chegada dentro da janela combinada, com a tolerância de cada janela. Atrasada/antecipada mostram a diferença para o fim/início da janela.
+      O combinado de cada dia é a janela vigente naquela data (aba ⏰ Janelas). ${R.loja !== 'todos' ? 'Com loja escolhida, os pacotes são só os dessa loja.' : ''} O relatório impresso não leva documento do motorista.</div>`;
+}
+function impressoPontual(R){
+  const quem = quemImprime(), pct = v => v == null ? '–' : `${Math.round(v * 100)}%`, compacto = R.linhas.length > 22;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Pontualidade ${esc(R.canal)} ${dataBR(R.ini)} a ${dataBR(R.fim)}</title><style>${CSS_IMPRESSO}
+  @page{size:A4 landscape;margin:8mm} body{font-size:9pt} .topo{border-radius:2mm}
+  .filt{font-size:10pt;color:#566074;margin:3mm 0 2mm} .filt b{color:#1b2333}
+  .kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:2.5mm;margin:2mm 0 3mm} .kpi div{border:0.4mm solid #c9cfda;border-radius:2mm;padding:1.6mm 2mm;text-align:center}
+  .kpi span{display:block;font-size:7pt;font-weight:700;letter-spacing:.8pt;color:#566074;text-transform:uppercase} .kpi b{display:block;font-size:14pt;color:#02285a} .kpi em{display:block;font-style:normal;font-size:7pt;color:#566074}
+  h3{font-size:8.5pt;letter-spacing:1.2pt;color:#566074;text-transform:uppercase;margin:2mm 0 1mm} .graf{border:0.3mm solid #dfe3ea;border-radius:2mm;padding:1mm 2mm;break-inside:avoid}
+  .cs-leg{display:flex;flex-wrap:wrap;gap:4mm;font-size:7.5pt;color:#566074;margin-top:1mm} .cs-leg i{display:inline-block;width:5mm;height:2.5mm;margin-right:1mm;vertical-align:middle}
+  table{width:100%;border-collapse:collapse;font-size:${compacto ? '7.6pt' : '8.6pt'};margin-top:3mm} th{background:#02285a;color:#fff;font-size:7pt;letter-spacing:.6pt;text-transform:uppercase;padding:1.3mm 1.6mm;text-align:center}
+  td{padding:${compacto ? '0.6mm' : '1.1mm'} 1.6mm;border-bottom:0.25mm solid #dfe3ea;text-align:center;font-variant-numeric:tabular-nums} td.l,th.l{text-align:left} tr{break-inside:avoid}
+  .pt-pill{display:inline-block;border-radius:2mm;padding:0.2mm 1.6mm;font-weight:700;font-size:7pt} td small{display:block;font-size:6.8pt;color:#566074}
+  thead{display:table-header-group}
+  </style></head><body>
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">PONTUALIDADE DAS COLETAS</div><div class="t2">${esc(R.canal.toUpperCase())} · ${R.loja === 'todos' ? 'TODAS AS LOJAS' : esc(nomeLoja(R.loja).toUpperCase())}</div></div><span class="esp"></span><span class="st"><small>PERÍODO</small><b>${dataBR(R.ini)} a ${dataBR(R.fim)}</b></span></div>
+    <div class="filt">Horário combinado (corte e janela de coleta) x horário efetivo de chegada e saída do veículo, por dia.</div>
+    <div class="kpi"><div><span>Coletas combinadas</span><b>${R.combinadas}</b><em>${R.realizadas} realizadas</em></div><div><span>Não vieram</span><b>${R.naoVeio}</b><em>cumprimento ${pct(R.cumprimento)}</em></div>
+      <div><span>Chegada no horário</span><b>${pct(R.pontualidade)}</b><em>${R.noHorario} de ${R.feitas}</em></div><div><span>Atrasos</span><b>${R.atrasadas}</b><em>${R.atrasadas ? `média ${fmtHoras(R.atrasoMedio)} · máx. ${fmtHoras(R.atrasoMax)}` : 'nenhum'}</em></div>
+      <div><span>Pacotes coletados</span><b>${fmtN(R.pacotes)}</b><em>${R.docaMedia != null ? `média na doca ${fmtHoras(R.docaMedia)}` : ''}</em></div></div>
+    ${R.seqsGraf.map(seq => `<h3>${R.seqsGraf.length > 1 || seq > 1 ? `${seq}ª coleta · ` : ''}Combinado x efetivo</h3><div class="graf">${graficoPontual(R, seq, true)}${legPontual()}</div>`).join('')}
+    <table><thead><tr><th class="l">Data</th><th>Coleta</th><th>Corte</th><th>Janela combinada</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th class="l">Placa</th><th class="l">Motorista</th><th>Pacotes</th><th>Situação</th></tr></thead><tbody>
+      ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st]; return `<tr><td class="l"><b>${dataBR(l.d)}</b> ${DOW_ISO[isoDowDe(l.d)]}</td><td>${l.seq}ª</td><td>${hmMin(l.corte) || '–'}</td><td>${combTxt(l)}${l.j ? ` <small>±${l.j.tolerancia_min} min</small>` : ''}</td>
+        <td><b>${l.c?.hora_chegada || '–'}</b></td><td>${l.c?.hora_saida || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td><td class="l">${l.c?.placa ? fmtPlaca(l.c.placa) : '–'}</td><td class="l">${esc(l.c?.motorista || '–')}</td>
+        <td>${l.c ? fmtN(l.pac) : '–'}</td><td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>
+    <div class="rodape" style="padding:3mm 0 0;margin-top:3mm"><span>No horário = chegada dentro da janela combinada, com tolerância. Horários registrados na doca da Valenro (Central de Operações).</span><span>Gerado em ${quando(new Date().toISOString())}${quem ? ` por ${esc(quem)}` : ''}</span></div>
+  </body></html>`;
+}
+function csvPontual(R){
+  const sep = ';', cab = ['Data', 'Dia', 'Coleta', 'Corte', 'Janela inicio', 'Janela fim', 'Tolerancia min', 'Chegada', 'Saida', 'Na doca min', 'Placa', 'Motorista', 'Pacotes', 'Situacao', 'Desvio min'];
+  const q = v => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const L = R.linhas.map(l => [dataBR(l.d), DOW_ISO[isoDowDe(l.d)], l.seq, hmMin(l.corte), l.j?.coleta_ini || '', l.j?.coleta_fim || '', l.j?.tolerancia_min ?? '', l.c?.hora_chegada || '', l.c?.hora_saida || '', l.doca ?? '',
+    l.c?.placa || '', l.c?.motorista || '', l.c ? l.pac : '', ST_PONT[l.st][0], l.desvio ?? ''].map(q).join(sep));
+  const blob = new Blob(['﻿' + [cab.join(sep), ...L].join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `pontualidade_${R.canal.replace(/\W+/g, '_').toLowerCase()}_${R.ini}_${R.fim}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5e3);
+}
+const CSS_JANELAS = `
+  .mini-abas{display:inline-flex;margin-left:8px;vertical-align:middle} .mini-abas button{padding:2px 8px;font-size:12px}
+  .jn-cab{display:flex;align-items:center;gap:10px;margin-bottom:6px} .jn-cab b{font-size:15px;color:#02285a}
+  .jn-tab td,.jn-tab th{padding:6px 8px;text-align:center} .jn-tab td small{color:#566074} .jn-tab tr.jn-off td{color:#a0a8b8}
+  .jn-d{display:inline-block;font-size:10.5px;padding:0 4px;margin-right:2px;border-radius:4px;color:#b0b7c4;background:#f4f5f8} .jn-d.on{color:#fff;background:#02285a;font-weight:700}
+  .pt-tab td,.pt-tab th{padding:6px 8px;text-align:center} .pt-tab td small{display:block;font-size:10.5px;color:#566074}
+  .pt-leg i{display:inline-block;width:16px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .pt-pill{display:inline-block;border-radius:9px;padding:0 8px;font-size:11px;font-weight:700;white-space:nowrap}
+`;
+document.head.insertAdjacentHTML('beforeend', `<style id="css-janelas">${CSS_JANELAS}</style>`);
 
 /* =================== ABANDONO DE PEDIDOS (CROSS e Full) =================== */
 const SIT_AB = {
