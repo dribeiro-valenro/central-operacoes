@@ -347,6 +347,8 @@
   .tab-plan tr.pl-meu td{background:#fffaf0} .tab-plan tr.canc td{color:var(--mute)}
   .pl-vez{font-size:11px;font-weight:700;color:#fff;background:#9a5b00;border-radius:8px;padding:1px 6px}
   .pl-atraso{color:#a33d00;font-weight:700}
+  .chip-plat{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;letter-spacing:.4px;color:#fff;background:var(--c);border-radius:5px;padding:0 5px;vertical-align:middle}
+  .pl-skus{font-weight:700} .pl-skus.alto{color:#9a5b00} .pl-skus.estourou{color:#c62828}
   .tag-loja{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;border-left:4px solid var(--c);background:#f3f5f9}
   .pl-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px} .pl-topo h3{margin:0;font-size:18px;display:flex;gap:8px;align-items:center}
   .pl-aviso{margin-bottom:10px} .pl-aviso.val{background:#fff4e0} .pl-aviso.ok{background:#e9f7ee;border-color:#b7e1c4;color:#1a5e30} .pl-aviso.canc{background:#fbe9e9;border-color:#efc4c4;color:#8a1f1f}
@@ -1210,6 +1212,7 @@ function telaFull(){
       <h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
       <input id="f-busca" class="campo" placeholder="Buscar pedido" value="${esc(s.busca)}" inputmode="numeric" style="width:140px">
       <select id="f-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
+      <select id="f-plat"><option value="todos">Todas as plataformas</option>${Object.entries(PLAT_FULL).map(([k, v]) => `<option value="${k}" ${s.plat === k ? 'selected' : ''}>${esc(v.nome)}</option>`).join('')}</select>
       <select id="f-per" title="Data de expedição">
         ${[['padrao','Expedição: em aberto + últimos 45 dias'],['hoje','Expedição: hoje'],['amanha','Expedição: amanhã'],['semana','Expedição: esta semana'],['prox7','Expedição: próximos 7 dias'],['mes','Expedição: este mês'],['outro','Expedição: escolher datas…']]
           .map(([k, r]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${r}</option>`).join('')}
@@ -1225,6 +1228,7 @@ function telaFull(){
     <div id="gaveta" hidden></div>`;
   ligarAbasVista();
   document.getElementById('f-loja').onchange = e => { s.loja = e.target.value; renderFull(); };
+  document.getElementById('f-plat').onchange = e => { s.plat = e.target.value; renderFull(); };
   document.querySelectorAll('[data-fa]').forEach(b => b.onclick = () => { s.aba = b.dataset.fa; s.st = null; marcarAbas(); renderFull(); });
   const $b = document.getElementById('f-busca'); $b.oninput = () => { s.busca = $b.value; renderFull(); };
   // período: a lista e o calendário andam juntos (escolher um atualiza o outro)
@@ -1318,7 +1322,7 @@ function renderFull(){
   if (!$f || !r) return;
   const hoje = r.hoje || hojeBRT(), termo = s.busca.replace(/\D/g, '');
   // base: loja + busca + período (o quadro de etapas usa esta base, para mostrar o fluxo inteiro)
-  const base = r.envios.filter(e => (s.loja === 'todos' || e.cnpj_id === s.loja) && (!termo || e.pedido.includes(termo)));
+  const base = r.envios.filter(e => (s.loja === 'todos' || e.cnpj_id === s.loja) && (!s.plat || s.plat === 'todos' || (e.plataforma || 'meli') === s.plat) && (!termo || e.pedido.toUpperCase().includes(termo.toUpperCase())));
   const lista = base
     .filter(e => s.st ? e.status === s.st : (s.aba === 'todos' || (s.aba === 'abertos' ? ABERTOS_FULL.includes(e.status) : ['expedido', 'cancelado'].includes(e.status))))
     .sort((a, b) => a.data_expedicao.localeCompare(b.data_expedicao) || (a.hora_expedicao || '99').localeCompare(b.hora_expedicao || '99') || a.cnpj_id.localeCompare(b.cnpj_id) || a.pedido.localeCompare(b.pedido));
@@ -1858,6 +1862,14 @@ function ligarAbasVista(){
 const faixaDe = (a, b) => Array.from({ length: b - a + 1 }, (_, k) => a + k);
 const FAIXAS_PLAN = { F: faixaDe(33, 40), M: faixaDe(37, 44), I: faixaDe(24, 36), B: faixaDe(19, 26) };
 const ORDEM_FAIXA = ['F', 'M', 'I', 'B'];
+// plataformas do FULL (skus = limite de SKUs distintos por envio; null = sem limite conhecido)
+const PLAT_FULL = { meli:{ nome:'Mercado Livre', curto:'MELI', skus:50, cor:'#c9a400' }, shopee:{ nome:'Shopee', curto:'SHOPEE', skus:null, cor:'#ee4d2d' },
+  amazon:{ nome:'Amazon', curto:'AMAZON', skus:null, cor:'#232f3e' }, magalu:{ nome:'Magalu', curto:'MAGALU', skus:null, cor:'#0086ff' } };
+const nomePlat = k => PLAT_FULL[k || 'meli']?.nome || k;
+const chipPlat = k => (k || 'meli') === 'meli' ? '' : `<span class="chip-plat" style="--c:${PLAT_FULL[k]?.cor || '#566074'}">${esc(PLAT_FULL[k]?.curto || k)}</span>`;
+const pedidoLimpoFull = (v, plat) => (plat || 'meli') === 'meli' ? String(v || '').replace(/\D/g, '') : String(v || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 40);
+// SKU = produto (ou MLB) + cor + numeração com quantidade
+const skusPlano = itens => { const S = new Set(); (itens || []).forEach(i => Object.entries(i.q || {}).forEach(([n, q]) => { if (Number(q) > 0) S.add(`${i.mlb || i.produto}|${i.cor}|${n}`); })); return S.size; };
 // numeração da grade na coleta: a definida na coleta (grades) ou o padrão, aumentada até onde já tem quantidade
 const numsSecao = (p, f) => { const g = p?.grades?.[f]; let a = g ? g[0] : FAIXAS_PLAN[f][0], b = g ? g[1] : FAIXAS_PLAN[f].at(-1);
   (p?.itens || []).forEach(i => { if (i.faixa !== f) return; Object.keys(i.q || {}).forEach(k => { const n = Number(k); if (i.q[k] > 0) { a = Math.min(a, n); b = Math.max(b, n); } }); });
@@ -1950,10 +1962,10 @@ async function apiPlan(path, corpo){
       q:Object.fromEntries(Object.entries(i.q || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)])), loja: i.loja && i.loja !== corpo.cnpj_id ? i.loja : null,
       ...(String(i.end || '').trim() ? { end:String(i.end).trim().toUpperCase().replace(/\s+/g, ' ') } : {}) }));
     itens.forEach((i, n) => { if (!i.produto) throw new Error(`Linha ${n + 1}: informe o produto`); });
-    const pedido = String(corpo.pedido || '').replace(/\D/g, '') || null, pares = itens.reduce((t, i) => t + paresIt(i), 0);
+    const pedido = pedidoLimpoFull(corpo.pedido, corpo.plataforma) || null, pares = itens.reduce((t, i) => t + paresIt(i), 0);
     if (corpo.data_limite && corpo.data_expedicao && corpo.data_limite > corpo.data_expedicao) throw new Error('"Finalizar até" não pode ser depois do dia da coleta');
     if (pedido) { const dup = D.planos.find(x => x.cnpj_id === corpo.cnpj_id && x.pedido === pedido && x.status !== 'cancelado' && x.id !== corpo.id); if (dup) throw new Error(`O envio ${pedido} já está na coleta planejada ${nPlan(dup.id)}`); }
-    const cab = { cnpj_id:corpo.cnpj_id, pedido, data_limite:corpo.data_limite || null, data_expedicao:corpo.data_expedicao || null, observacao:corpo.observacao || null, grades:cp(corpo.grades || {}) };
+    const cab = { cnpj_id:corpo.cnpj_id, pedido, data_limite:corpo.data_limite || null, data_expedicao:corpo.data_expedicao || null, observacao:corpo.observacao || null, plataforma:corpo.plataforma || 'meli', grades:cp(corpo.grades || {}) };
     if (!corpo.id) { const id = String(++D.seq); D.planos.push({ id, ...cab, status:'rascunho', itens, pares, linhas:itens.length, comentario:null, envio_id:null, criado_em:ag, criado_por:eu, atualizado_em:ag, atualizado_por:eu }); ev(id, 'criar', { pares, linhas:itens.length }); return { ok:true, id, versao:ag }; }
     const p = D.planos.find(x => x.id === corpo.id);
     if (corpo.versao && corpo.versao !== p.atualizado_em) throw new Error(`${quemTxt(p.atualizado_por)} alterou esta coleta enquanto você editava. Feche e abra de novo para ver a versão atual.`);
@@ -1975,7 +1987,7 @@ async function apiPlan(path, corpo){
       if (!p.pedido) throw new Error('Informe o nº do envio do ML antes de aprovar');
       if (DEMO_FULL.envios.some(e => e.cnpj_id === p.cnpj_id && e.pedido === p.pedido)) throw new Error(`ENVIO_EXISTE: O envio ${p.pedido} já existe na aba Envios. Se esta coleta é o planejamento dele, vincule ao envio existente; senão, corrija o nº.`);
       const id = String(++DEMO_FULL.seq);
-      DEMO_FULL.envios.push({ id, cnpj_id:p.cnpj_id, pedido:p.pedido, data_expedicao:p.data_expedicao, data_limite:p.data_limite, hora_expedicao:null, pares_plan:p.pares, pares_envio:null, status:'programado', pct_coleta:0, caixas:Math.ceil(p.pares / 12), m3:null,
+      DEMO_FULL.envios.push({ id, cnpj_id:p.cnpj_id, plataforma:p.plataforma || 'meli', pedido:p.pedido, data_expedicao:p.data_expedicao, data_limite:p.data_limite, hora_expedicao:null, pares_plan:p.pares, pares_envio:null, status:'programado', pct_coleta:0, caixas:Math.ceil(p.pares / 12), m3:null,
         motivo_diferenca:null, observacao:[`Planejamento ${nPlan(p.id)}`, p.observacao].filter(Boolean).join(' · '), status_em:ag, atualizado_em:ag, atualizado_por:eu, plano_id:p.id });
       DEMO_FULL.eventos.unshift({ envio_id:id, em:ag, por:eu, acao:'envio.criar', antes:null, depois:{ origem:'planejamento', plano_id:p.id, pares_plan:p.pares } });
       return { ...muda('aprovado', { aprovado_em:ag, aprovado_por:eu, envio_id:id, comentario:null }, { envio_id:id }), envio_id:id };
@@ -2054,7 +2066,7 @@ function renderPlanos(){
     <div class="painel" style="padding:0;overflow-x:auto">
       <table class="tab-full tab-plan"><thead><tr><th>Coleta</th><th>Loja</th><th>Nº envio ML</th><th>Finalizar até</th><th>Dia da coleta</th><th>Linhas</th><th>Pares</th><th>Caixas</th><th>Status</th><th style="text-align:left">Última alteração</th></tr></thead><tbody>
       ${lista.map(p => { const atrasado = p.data_limite && p.data_limite < hoje && ['rascunho', 'validacao', 'devolvido'].includes(p.status), meu = gestor && p.status === 'validacao' && p.enviado_por !== eu;
-        return `<tr data-plano="${p.id}" class="${meu ? 'pl-meu' : ''} ${p.status === 'cancelado' ? 'canc' : ''}"><td><b>${nPlan(p.id)}</b></td><td>${tagLoja(p.cnpj_id)}</td><td>${p.pedido ? esc(p.pedido) : '<span class="info">a definir</span>'}</td>
+        return `<tr data-plano="${p.id}" class="${meu ? 'pl-meu' : ''} ${p.status === 'cancelado' ? 'canc' : ''}"><td><b>${nPlan(p.id)}</b></td><td>${tagLoja(p.cnpj_id)}</td><td>${p.pedido ? esc(p.pedido) : '<span class="info">a definir</span>'}${chipPlat(p.plataforma)}</td>
           <td class="${atrasado ? 'pl-atraso' : ''}">${p.data_limite ? dataBR(p.data_limite) : '–'}${atrasado ? ' ⚠' : ''}</td><td>${p.data_expedicao ? dataBR(p.data_expedicao) : '–'}</td>
           <td>${p.linhas}${p.linhas_outra_loja ? ` <span class="info" title="linhas com estoque de outra loja">(${p.linhas_outra_loja} outra loja)</span>` : ''}</td><td><b>${fmtN(p.pares)}</b></td><td>${cxTxt(p.pares)}</td><td>${pillPlan(p.status)}${meu ? ' <span class="pl-vez">sua vez</span>' : ''}</td>
           <td style="text-align:left"><span class="info">${quemTxt(p.atualizado_por)} · ${quando(p.atualizado_em)}</span></td></tr>`; }).join('') || `<tr><td colspan="10" class="vazio">Nenhuma coleta ${s.aba === 'andamento' ? 'em andamento' : 'nesta lista'}.${pode('full_plan', 'editar') && s.aba === 'andamento' ? ' Clique em <b>+ Nova coleta</b> para montar.' : ''}</td></tr>`}
@@ -2088,6 +2100,11 @@ function editorPlano(d){
   const lojasOutras = () => state.cnpjs.map(c => c.id).filter(id => id !== ed.cnpj_id);
   const marcarSujo = () => { sujo = true; state.planSujo = true; const b = document.getElementById('pl-salvar'); if (b) b.classList.add('pulsa'); const st = document.getElementById('pl-salvo'); if (st) st.textContent = 'alterações não salvas'; };
   const faixasUsadas = () => ORDEM_FAIXA.filter(f => ed.itens.some(i => i.faixa === f));
+  const avisoSku = () => { const n = skusPlano(ed.itens), lim = limSku(); if (!lim || n <= lim * 0.9) return '';
+    return n > lim ? `<div class="erro">⚠ <b>${n} SKUs</b>: passou do limite de ${lim} SKUs por envio do ${esc(nomePlat(ed.plataforma))} (cada cor e numeração conta como um). O MELI vai quebrar em mais de um envio: divida esta coleta em duas (use "Duplicar" e tire as linhas de uma e de outra).</div>`
+      : `<div class="aviso pl-aviso val">Atenção: <b>${n} de ${lim} SKUs</b> do ${esc(nomePlat(ed.plataforma))}. Faltam ${lim - n} para o limite por envio.</div>`; };
+  const limSku = () => PLAT_FULL[ed.plataforma || 'meli']?.skus || null;
+  const skuTxt = () => { const n = skusPlano(ed.itens), lim = limSku(); return `<span id="pl-skus" class="pl-skus ${lim && n > lim ? 'estourou' : lim && n > lim * 0.9 ? 'alto' : ''}" title="SKU = produto + cor + numeração com quantidade${lim ? `. Limite do ${nomePlat(ed.plataforma)}: ${lim} por envio` : ''}"><b>${n}</b>${lim ? `/${lim}` : ''} SKUs</span>`; };
   const totais = () => { const pares = ed.itens.reduce((t, i) => t + paresIt(i), 0); return { pares, linhas: ed.itens.filter(i => i.produto || paresIt(i)).length, porFaixa: Object.fromEntries(ORDEM_FAIXA.map(f => [f, ed.itens.filter(i => i.faixa === f).reduce((t, i) => t + paresIt(i), 0)])), outra: ed.itens.filter(i => i.loja).length }; };
   const ro = podeEditar ? '' : 'disabled';
   const endSug = i => { const cat = state.planCat; if (!cat || !i.produto) return ''; const L = (i.mlb && cat.porMlb.get(i.mlb)) || cat.porProd.get(i.produto) || []; const x = L.find(e => e.produto === i.produto && e.cor === i.cor && e.end); return x ? 'últ.: ' + x.end : ''; };
@@ -2136,16 +2153,18 @@ function editorPlano(d){
       <div class="painel">
         <div class="grade-form pl-cab">
           <label>Loja<select id="pl-cnpj" ${ro}>${state.cnpjs.map(c => `<option value="${c.id}" ${ed.cnpj_id === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select></label>
-          <label>Nº do envio no ML <span class="info">(obrigatório para aprovar)</span><input id="pl-pedido" inputmode="numeric" value="${esc(ed.pedido || '')}" placeholder="só números" ${ro}></label>
+          <label>Plataforma<select id="pl-plat" ${ro}>${Object.entries(PLAT_FULL).map(([k, v]) => `<option value="${k}" ${(ed.plataforma || 'meli') === k ? 'selected' : ''}>${esc(v.nome)}</option>`).join('')}</select></label>
+          <label>Nº do envio na plataforma <span class="info">(obrigatório para aprovar)</span><input id="pl-pedido" value="${esc(ed.pedido || '')}" placeholder="${(ed.plataforma || 'meli') === 'meli' ? 'só números' : 'nº do envio'}" ${ro}></label>
           <label>Finalizar separação até<input type="date" id="pl-dl" value="${esc(ed.data_limite || '')}" ${ro}></label>
           <label>Dia da coleta<input type="date" id="pl-de" value="${esc(ed.data_expedicao || '')}" ${ro}></label>
           <label class="pl-obs">Observação<input id="pl-obs" value="${esc(ed.observacao || '')}" maxlength="500" placeholder="opcional" ${ro}></label>
         </div>
       </div>
+      <div id="pl-sku-aviso">${avisoSku()}</div>
       ${usadas.map(secaoHtml).join('') || `<div class="painel info">Nenhuma linha ainda. ${podeEditar ? 'Escolha a grade abaixo para começar. Dica: dá para colar as linhas direto do Excel (MLB, produto, cor e a grade) no campo MLB.' : ''}</div>`}
       ${podeEditar ? `<div class="pl-add">${ORDEM_FAIXA.map(f => `<button class="btn" data-addsec="${f}">+ ${rotFaixa(f)}</button>`).join('')}</div>` : ''}
       <div class="pl-rodape">
-        <div class="pl-tots"><span><b>${fmtN(t.pares)}</b> pares</span><span><b>${cxTxt(t.pares)}</b> caixas</span><span><b>${t.linhas}</b> linhas</span>${usadas.length > 1 ? usadas.map(f => `<span class="info fx-tot" title="${NOME_FAIXA[f]}"><span class="fx-ico">${ICO_FAIXA[f]}</span>${fmtN(t.porFaixa[f])}</span>`).join('') : ''}${t.outra ? `<span class="info">${t.outra} com estoque de outra loja</span>` : ''}<span class="info" id="pl-salvo">${sujo ? 'alterações não salvas' : ''}</span></div>
+        <div class="pl-tots"><span><b>${fmtN(t.pares)}</b> pares</span><span><b>${cxTxt(t.pares)}</b> caixas</span><span><b>${t.linhas}</b> linhas</span>${skuTxt()}${usadas.length > 1 ? usadas.map(f => `<span class="info fx-tot" title="${NOME_FAIXA[f]}"><span class="fx-ico">${ICO_FAIXA[f]}</span>${fmtN(t.porFaixa[f])}</span>`).join('') : ''}${t.outra ? `<span class="info">${t.outra} com estoque de outra loja</span>` : ''}<span class="info" id="pl-salvo">${sujo ? 'alterações não salvas' : ''}</span></div>
         <div class="pl-bts">${acoes()}</div>
       </div>
       <div id="pl-hist-box" ${histAberto ? '' : 'hidden'}>${historicoPlanHtml(d.eventos)}</div>
@@ -2155,10 +2174,11 @@ function editorPlano(d){
   };
   const erro = m => { m = String(m || '').replace(/^ENVIO_EXISTE: /, ''); const e = document.getElementById('pl-erro'); if (!e) return avisar(m, true); e.hidden = !m; e.textContent = m || ''; if (m) e.scrollIntoView({ behavior:'smooth', block:'center' }); };
   const cabDoForm = () => { const v = k => document.getElementById(k)?.value ?? '';
-    ed.cnpj_id = v('pl-cnpj') || ed.cnpj_id; ed.pedido = v('pl-pedido').replace(/\D/g, ''); ed.data_limite = v('pl-dl'); ed.data_expedicao = v('pl-de'); ed.observacao = v('pl-obs'); };
+    ed.cnpj_id = v('pl-cnpj') || ed.cnpj_id; ed.plataforma = v('pl-plat') || ed.plataforma || 'meli'; ed.pedido = pedidoLimpoFull(v('pl-pedido'), ed.plataforma); ed.data_limite = v('pl-dl'); ed.data_expedicao = v('pl-de'); ed.observacao = v('pl-obs'); };
   const atualizaLinha = tr => { const i = ed.itens[+tr.dataset.li], tot = paresIt(i);
     tr.querySelector('.pl-tot b').textContent = tot || ''; tr.querySelector('.pl-cx').textContent = tot ? cxTxt(tot) : '';
     const t = totais(), r = $c.querySelector('.pl-tots'); if (r) { r.children[0].innerHTML = `<b>${fmtN(t.pares)}</b> pares`; r.children[1].innerHTML = `<b>${cxTxt(t.pares)}</b> caixas`; r.children[2].innerHTML = `<b>${t.linhas}</b> linhas`; }
+    const sk = $c.querySelector('#pl-skus'); if (sk) sk.outerHTML = skuTxt(); const sa = $c.querySelector('#pl-sku-aviso'); if (sa) sa.innerHTML = avisoSku();
     const f = i.faixa, L = ed.itens.filter(x => x.faixa === f), tf = L.reduce((s, x) => s + paresIt(x), 0);
     $c.querySelectorAll(`[data-sn^="${f}|"]`).forEach(td => { const n = td.dataset.sn.split('|')[1]; td.textContent = L.reduce((s, x) => s + (Number(x.q?.[n]) || 0), 0) || ''; });
     const st = $c.querySelector(`[data-st="${f}"]`); if (st) st.textContent = fmtN(tf); const sc = $c.querySelector(`[data-sc="${f}"]`); if (sc) sc.textContent = cxTxt(tf);
@@ -2223,6 +2243,7 @@ function editorPlano(d){
     const $ = k => document.getElementById(k);
     $('pl-voltar').onclick = () => { if (sujo && !confirmaDupla($('pl-voltar'), 'Sair sem salvar? Clique de novo')) return; fecharPlano(); };
     ['pl-cnpj', 'pl-pedido', 'pl-dl', 'pl-de', 'pl-obs'].forEach(k => { const el = $(k); if (el) el.addEventListener('input', () => { cabDoForm(); marcarSujo(); }); });
+    const pp = $('pl-plat'); if (pp) pp.onchange = () => { cabDoForm(); marcarSujo(); desenha(); };
     const lj = $('pl-cnpj'); if (lj) lj.onchange = () => { cabDoForm(); ed.itens.forEach(i => { if (i.loja === ed.cnpj_id) i.loja = null; }); marcarSujo(); desenha(); };
     $c.querySelectorAll('tr[data-li]').forEach(tr => {
       const idx = +tr.dataset.li, it = ed.itens[idx];
@@ -2256,7 +2277,7 @@ function editorPlano(d){
     const ie = $('pl-ir-envio'); if (ie) ie.onclick = () => { const s = state.full; s.vista = 'envios'; s.plan.aberto = null; s.aberto = d.envio.id; s.aba = 'todos'; s.st = null; telaFull(); };
     const salvar = async (silencioso) => {
       cabDoForm(); erro('');
-      const corpo = { id:P.id, cnpj_id:ed.cnpj_id, pedido:ed.pedido, data_limite:ed.data_limite || null, data_expedicao:ed.data_expedicao || null, observacao:ed.observacao, grades:ed.grades || {}, itens:ed.itens, versao };
+      const corpo = { id:P.id, cnpj_id:ed.cnpj_id, pedido:ed.pedido, data_limite:ed.data_limite || null, data_expedicao:ed.data_expedicao || null, observacao:ed.observacao, plataforma:ed.plataforma || 'meli', grades:ed.grades || {}, itens:ed.itens, versao };
       const r = await apiPlan('/full/plano/salvar', corpo);
       versao = r.versao || versao; sujo = false; state.planSujo = false;
       if (!P.id) { state.full.plan.aberto = r.id; }
@@ -2270,11 +2291,13 @@ function editorPlano(d){
       const r = await apiPlan('/full/plano/acao', { id, acao:a, versao, ...extra }); avisar(msg);
       if (a === 'duplicar') return recarregar(r.id);
       await recarregar(id); });
-    const en = $('pl-enviar'); if (en) en.onclick = () => { const vazias = ed.itens.filter(i => !paresIt(i)).length;
+    const en = $('pl-enviar'); if (en) en.onclick = () => { const vazias = ed.itens.filter(i => !paresIt(i)).length, nS = skusPlano(ed.itens), lim = limSku();
+      if (lim && nS > lim && !confirmaDupla(en, `${nS} SKUs: passa de ${lim}. Clique de novo para enviar mesmo assim`)) return;
       if (vazias) { ed.itens = ed.itens.filter(i => paresIt(i) > 0); marcarSujo(); }
       acao(en, 'enviar', {}, vazias ? `Enviada para o gestor validar (${vazias} linha(s) sem quantidade foram tiradas)` : 'Enviada para o gestor validar'); };
     const pu = $('pl-puxar'); if (pu) pu.onclick = () => acao(pu, 'puxar', {}, 'Voltou para rascunho');
-    const ap = $('pl-aprovar'); if (ap) ap.onclick = () => { if (!confirmaDupla(ap, `Confirmar: vira envio de ${fmtN(totais().pares)} pares`)) return;
+    const ap = $('pl-aprovar'); if (ap) ap.onclick = () => { const nS = skusPlano(ed.itens), lim = limSku();
+      if (!confirmaDupla(ap, lim && nS > lim ? `⚠ ${nS} SKUs (limite ${lim}). Confirmar mesmo assim: vira envio de ${fmtN(totais().pares)} pares` : `Confirmar: vira envio de ${fmtN(totais().pares)} pares`)) return;
       tentar(ap, async () => { let id = P.id; if (podeEditar && (sujo || !id)) id = await salvar(true);
         try { await apiPlan('/full/plano/acao', { id, acao:'aprovar', versao }); avisar('Aprovada: a coleta já está na aba Envios como Programado'); await recarregar(id); }
         catch (e) { if (e instanceof SemSessao || !/^ENVIO_EXISTE/.test(e.message)) throw e; ap.disabled = false; perguntarVincular(id); } }); };
@@ -2388,7 +2411,7 @@ async function itensPlanejadosEnvio(el, e){
 // Divergência: a logística aponta no envio o que não bateu com o planejado; o analista corrige no MELI e no Seenc e marca os dois.
 // Recebimento: o que o MELI conferiu (CSV "Baixar detalhe"), quando coletou/recebeu/processou e quanto cobrou.
 const MOTIVOS_DIV_PADRAO = ['Não localizado no estoque', 'Avariado', 'Em outro endereço / outra loja', 'Quantidade a mais', 'Produto, cor ou tamanho trocado', 'Outro'];
-const chipsEnvio = e => `${e.div_abertas ? `<span class="chip-div" title="${e.div_abertas} divergência(s) esperando correção no MELI/Seenc">⚠ ${e.div_abertas} div.</span>` : ''}${e.meli ? (e.meli.dif < 0 ? `<span class="chip-meli neg" title="MELI processou ${-e.meli.dif} unidade(s) a menos que o declarado">MELI −${-e.meli.dif}</span>` : e.meli.fim ? '<span class="chip-meli" title="Processado pelo MELI sem diferença">MELI ✓</span>' : '') : ''}`;
+const chipsEnvio = e => `${chipPlat(e.plataforma)}${e.div_abertas ? `<span class="chip-div" title="${e.div_abertas} divergência(s) esperando correção no MELI/Seenc">⚠ ${e.div_abertas} div.</span>` : ''}${e.meli ? (e.meli.dif < 0 ? `<span class="chip-meli neg" title="MELI processou ${-e.meli.dif} unidade(s) a menos que o declarado">MELI −${-e.meli.dif}</span>` : e.meli.fim ? '<span class="chip-meli" title="Processado pelo MELI sem diferença">MELI ✓</span>' : '') : ''}`;
 const difTxt = (p, r) => { const d = r - p; return `<b class="${d < 0 ? 'dif' : 'ok'}">${d > 0 ? '+' : ''}${fmtN(d)}</b>`; };
 
 // ---- demonstração
@@ -2415,6 +2438,11 @@ function demoDivRec(path, corpo){
   const comEnvio = d => { const e = D.envios.find(x => x.id === d.envio_id) || {}; return { ...cp(d), pedido:e.pedido, cnpj_id:e.cnpj_id, envio_status:e.status, data_expedicao:e.data_expedicao, data_limite:e.data_limite || null }; };
   if (path.startsWith('/full/divergencias')) { let L = D.divergencias; if (q.get('envio_id')) L = L.filter(d => d.envio_id === q.get('envio_id')); if (q.get('abertas') === '1') L = L.filter(d => d.status === 'aberta');
     return { divergencias:L.map(comEnvio), motivos:MOTIVOS_DIV_PADRAO }; }
+  if (path === '/full/divergencia' && Array.isArray(corpo.itens)) { if (!corpo.produto) throw new Error('Informe o produto'); if (!corpo.motivo) throw new Error('Escolha o motivo');
+    const ids = corpo.itens.filter(x => x.qtd_plan !== x.qtd_real).map(x => { const d = { id:String(++D.divSeq), envio_id:corpo.envio_id, plano_id:null, produto:caixaAltaTxt(corpo.produto).trim(), cor:caixaAltaTxt(corpo.cor || '').trim(), mlb:String(corpo.mlb || ''), tamanho:String(x.tamanho),
+      qtd_plan:x.qtd_plan, qtd_real:x.qtd_real, motivo:corpo.motivo, observacao:corpo.observacao || null, status:'aberta', meli_em:null, meli_por:null, wms_em:null, wms_por:null, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' };
+      D.divergencias.push(d); return d.id; });
+    return { ok:true, ids, n:ids.length }; }
   if (path === '/full/divergencia') { const n = { produto:caixaAltaTxt(corpo.produto || '').trim(), cor:caixaAltaTxt(corpo.cor || '').trim(), mlb:String(corpo.mlb || '').replace(/\D/g, ''), tamanho:String(corpo.tamanho || '').trim(),
       qtd_plan:Number(corpo.qtd_plan), qtd_real:Number(corpo.qtd_real), motivo:corpo.motivo, observacao:corpo.observacao || null };
     if (!n.produto) throw new Error('Informe o produto'); if (!(n.qtd_plan >= 0) || !(n.qtd_real >= 0)) throw new Error('Quantidades inválidas');
@@ -2478,23 +2506,45 @@ async function blocoDivergencias(el, e){
     const linhas = plano?.itens || [], motivos = dados.motivos || MOTIVOS_DIV_PADRAO;
     f.innerHTML = `<div class="dv-form">
       ${linhas.length ? `<label>Linha do planejamento<select id="dv-linha"><option value="">— outro produto (digitar) —</option>${linhas.map((i, k) => `<option value="${k}">${esc(i.produto)}${i.cor ? ' · ' + esc(i.cor) : ''}${i.loja ? ` (estoque ${esc(nomeLoja(i.loja))})` : ''}</option>`).join('')}</select></label>` : ''}
+      <div id="dv-grade" hidden></div>
       <div class="grade-form g2">
         <label>Produto<input id="dv-prod" value="${esc(d?.produto || '')}" autocapitalize="characters"></label>
         <label>Cor<input id="dv-cor" value="${esc(d?.cor || '')}" autocapitalize="characters"></label>
-        <label>Tamanho<input id="dv-tam" list="dl-dv-tam" value="${esc(d?.tamanho || '')}" inputmode="numeric"><datalist id="dl-dv-tam"></datalist></label>
+        <label class="dv-um">Tamanho<input id="dv-tam" list="dl-dv-tam" value="${esc(d?.tamanho || '')}" inputmode="numeric"><datalist id="dl-dv-tam"></datalist></label>
         <label>MLB <span class="info">(se souber)</span><input id="dv-mlb" value="${esc(d?.mlb || '')}" inputmode="numeric"></label>
-        <label>Planejado<input id="dv-plan" inputmode="numeric" value="${d?.qtd_plan ?? ''}"></label>
-        <label>Encontrado / separado<input id="dv-real" inputmode="numeric" value="${d?.qtd_real ?? ''}"></label>
+        <label class="dv-um">Planejado<input id="dv-plan" inputmode="numeric" value="${d?.qtd_plan ?? ''}"></label>
+        <label class="dv-um">Encontrado / separado<input id="dv-real" inputmode="numeric" value="${d?.qtd_real ?? ''}"></label>
       </div>
       <label class="gv-lab">Motivo<select id="dv-mot"><option value="">–</option>${motivos.map(m => `<option ${d?.motivo === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
       <label class="gv-lab">Observação<input id="dv-obs" maxlength="300" value="${esc(d?.observacao || '')}" placeholder="ex.: endereço AR2-BL1 vazio; achou 2 avariados"></label>
       <div class="gv-acoes"><button class="btn" id="dv-x">Cancelar</button><button class="btn pri" id="dv-ok">${d ? 'Salvar' : 'Apontar'}</button></div></div>`;
     const q = k => f.querySelector(k), sel = q('#dv-linha');
     const tamanhos = () => { const i = sel && sel.value !== '' ? linhas[sel.value] : null; q('#dl-dv-tam').innerHTML = i ? Object.keys(i.q).map(n => `<option value="${n}">${i.q[n]} planejado(s)</option>`).join('') : ''; };
-    if (sel) sel.onchange = () => { const i = linhas[sel.value]; if (i) { q('#dv-prod').value = i.produto; q('#dv-cor').value = i.cor || ''; q('#dv-mlb').value = i.mlb || ''; } tamanhos(); q('#dv-tam').focus(); };
+    // linha do planejamento escolhida (apontamento novo): todas as numerações de uma vez
+    const grade = () => { const i = !d && sel && sel.value !== '' ? linhas[sel.value] : null, g = q('#dv-grade');
+      f.querySelectorAll('.dv-um').forEach(x => { x.style.display = i ? 'none' : ''; }); g.hidden = !i; if (!i) { g.innerHTML = ''; return; }
+      const ns = Object.keys(i.q).filter(n => Number(i.q[n]) > 0).sort((a, b) => a - b);
+      g.innerHTML = `<div class="dv-gr-cab"><b>Quanto foi encontrado de cada número</b> <span class="info">deixe em branco o que veio certo</span><span style="flex:1"></span>
+          <button class="btn mini" id="dv-zera">Nenhuma encontrada</button><button class="btn mini" id="dv-limpa">Limpar</button></div>
+        <div class="dv-gr">${ns.map(n => `<label><span>nº <b>${n}</b></span><small>planejado ${i.q[n]}</small><input class="dv-gn" data-n="${n}" data-p="${i.q[n]}" inputmode="numeric" placeholder="${i.q[n]}"></label>`).join('')}</div>
+        <div class="info" id="dv-gr-res"></div>`;
+      const res = () => { const L = [...g.querySelectorAll('.dv-gn')].filter(x => x.value !== '' && Number(x.value) !== Number(x.dataset.p));
+        g.querySelectorAll('.dv-gn').forEach(x => x.classList.toggle('dif', x.value !== '' && Number(x.value) !== Number(x.dataset.p)));
+        q('#dv-gr-res').innerHTML = L.length ? `${L.length} numeração(ões) com diferença · faltam ${fmtN(L.reduce((t, x) => t + Math.max(0, x.dataset.p - x.value), 0))} par(es)` : 'Nenhuma diferença marcada ainda.'; };
+      g.querySelectorAll('.dv-gn').forEach(x => x.oninput = res);
+      q('#dv-zera').onclick = () => { g.querySelectorAll('.dv-gn').forEach(x => { x.value = '0'; }); if (!q('#dv-mot').value) q('#dv-mot').value = 'Não localizado no estoque'; res(); };
+      q('#dv-limpa').onclick = () => { g.querySelectorAll('.dv-gn').forEach(x => { x.value = ''; }); res(); }; res(); };
+    if (sel) sel.onchange = () => { const i = linhas[sel.value]; if (i) { q('#dv-prod').value = i.produto; q('#dv-cor').value = i.cor || ''; q('#dv-mlb').value = i.mlb || ''; } tamanhos(); grade(); };
     q('#dv-tam').oninput = () => { const i = sel && sel.value !== '' ? linhas[sel.value] : null; if (i && i.q[q('#dv-tam').value] != null) q('#dv-plan').value = i.q[q('#dv-tam').value]; };
     q('#dv-x').onclick = () => { f.innerHTML = ''; el.querySelector('#dv-nova').hidden = false; };
     q('#dv-ok').onclick = async () => { const b = q('#dv-ok'); b.disabled = true;
+      const g = q('#dv-grade');
+      if (!g.hidden) { const itens = [...g.querySelectorAll('.dv-gn')].filter(x => x.value !== '' && Number(x.value) !== Number(x.dataset.p)).map(x => ({ tamanho:x.dataset.n, qtd_plan:Number(x.dataset.p), qtd_real:Number(x.value) }));
+        if (!itens.length) { b.disabled = false; return avisar('Marque quanto foi encontrado nas numerações com diferença', true); }
+        try { const r = await apiFull('/full/divergencia', { envio_id:e.id, produto:q('#dv-prod').value, cor:q('#dv-cor').value, mlb:q('#dv-mlb').value, motivo:q('#dv-mot').value, observacao:q('#dv-obs').value.trim(), itens });
+          avisar(`${r.n || itens.length} divergência(s) apontada(s): o analista vê em Planejamento › Correções pendentes`); atualizarSelosEnvio(e.id); blocoDivergencias(el, e); }
+        catch (x) { if (x instanceof SemSessao) throw x; avisar(x.message, true); b.disabled = false; }
+        return; }
       try { await apiFull('/full/divergencia', { id:d?.id, envio_id:e.id, produto:q('#dv-prod').value, cor:q('#dv-cor').value, tamanho:q('#dv-tam').value, mlb:q('#dv-mlb').value,
           qtd_plan:q('#dv-plan').value === '' ? NaN : Number(q('#dv-plan').value), qtd_real:q('#dv-real').value === '' ? NaN : Number(q('#dv-real').value), motivo:q('#dv-mot').value, observacao:q('#dv-obs').value.trim() });
         avisar(d ? 'Divergência alterada' : 'Divergência apontada: o analista vê em Planejamento › Correções pendentes'); atualizarSelosEnvio(e.id); blocoDivergencias(el, e); }
@@ -2587,15 +2637,15 @@ async function blocoRecebimento(el, e){
       ${r.itens?.length ? `<details class="pl-det"><summary>Ver as ${r.itens.length} linhas do CSV</summary><div style="overflow-x:auto"><table class="tab-full rc-tab"><tbody>${r.itens.map(x => `<tr><td style="text-align:left">${esc(x.sku)}</td><td style="text-align:left">${esc(x.variacao || '')}</td><td>${x.declaradas}</td><td>${x.processadas}</td><td>${x.aptas}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
       <div class="info" style="margin-top:4px">Lançado por ${esc(quemTxt(r.atualizado_por))} ${quando(r.atualizado_em)}</div>`; };
   const desenha = () => {
-    el.innerHTML = `<div class="gv-sec etapa-sec" style="--c:#f1c300">Recebimento no MELI ${r ? `<span class="info">${esc(r.status_meli || '')}</span>` : ''}</div>${resumo()}
+    el.innerHTML = `<div class="gv-sec etapa-sec" style="--c:${PLAT_FULL[e.plataforma || 'meli']?.cor || '#f1c300'}">Recebimento ${(e.plataforma || 'meli') === 'meli' ? 'no MELI' : `na ${esc(nomePlat(e.plataforma))}`} ${r ? `<span class="info">${esc(r.status_meli || '')}</span>` : ''}</div>${resumo()}
       ${editar ? `<div class="gv-acoes" style="justify-content:flex-start;margin-top:6px"><button class="btn mini" id="rc-ed">${r ? '✎ Atualizar' : '📥 Lançar recebimento'}</button></div><div id="rc-form"></div>` : ''}`;
     const ed = el.querySelector('#rc-ed'); if (ed) ed.onclick = () => { ed.hidden = true; form(); };
   };
   const form = () => {
     const f = el.querySelector('#rc-form'), v = { ...(r || {}), itens:r?.itens || [] }, ano = (e.data_expedicao || hojeBRT()).slice(0, 4);
     f.innerHTML = `<div class="dv-form">
-      <div class="rc-passo"><b>1.</b> No MELI, abra o envio <b>#${esc(e.pedido)}</b> › <b>Baixar detalhe</b> e escolha o arquivo:<input type="file" id="rc-csv" accept=".csv,text/csv"><span class="info" id="rc-csv-info">${v.itens.length ? `${v.itens.length} linha(s) já lançadas` : ''}</span></div>
-      <div class="rc-passo"><b>2.</b> Na mesma página, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole aqui (o portal lê o histórico e as tarifas):<textarea id="rc-txt" rows="3" placeholder="Cole aqui o texto da página do envio"></textarea><button class="btn mini" id="rc-ler">Ler texto</button></div>
+      ${(e.plataforma || 'meli') !== 'meli' ? `<div class="info" style="margin-bottom:6px">Leitura automática (CSV e texto) só para o Mercado Livre por enquanto: preencha os campos à mão.</div>` : `<div class="rc-passo"><b>1.</b> No MELI, abra o envio <b>#${esc(e.pedido)}</b> › <b>Baixar detalhe</b> e escolha o arquivo:<input type="file" id="rc-csv" accept=".csv,text/csv"><span class="info" id="rc-csv-info">${v.itens.length ? `${v.itens.length} linha(s) já lançadas` : ''}</span></div>
+      <div class="rc-passo"><b>2.</b> Na mesma página, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole aqui (o portal lê o histórico e as tarifas):<textarea id="rc-txt" rows="3" placeholder="Cole aqui o texto da página do envio"></textarea><button class="btn mini" id="rc-ler">Ler texto</button></div>`}
       <div class="rc-passo"><b>3.</b> Confira e salve:</div>
       <div class="grade-form g2">
         <label>Status no MELI<input id="rc-st" value="${esc(v.status_meli || '')}" placeholder="Processado com sucesso"></label>
@@ -2614,14 +2664,14 @@ async function blocoRecebimento(el, e){
       <div class="gv-acoes"><button class="btn" id="rc-x">Cancelar</button><button class="btn pri" id="rc-ok">Salvar recebimento</button></div></div>`;
     const q = k => f.querySelector(k), loc = k => q(k).value ? deLocal(q(k).value) : null, nb = k => { const t = q(k)?.value.trim(); return t ? Number(t.replace(/\./g, '').replace(',', '.')) : null; };
     const poe = (k, val) => { if (val != null && val !== '') q(k).value = val; };
-    q('#rc-csv').onchange = async () => { const arq = q('#rc-csv').files[0]; if (!arq) return;
+    if (q('#rc-csv')) q('#rc-csv').onchange = async () => { const arq = q('#rc-csv').files[0]; if (!arq) return;
       try { const c = lerCsvMeli(await arq.text());
         if (c.envio && c.envio !== String(e.pedido)) { q('#rc-csv').value = ''; return avisar(`Esse CSV é do envio ${c.envio}, não do #${e.pedido}`, true); }
         v.itens = c.itens; v.arquivo_em = c.arquivo_em; poe('#rc-st', c.status_meli); if (c.recebido_em) q('#rc-rec').value = isoParaLocal(c.recebido_em);
         const dec = c.itens.reduce((t, x) => t + x.declaradas, 0), pro = c.itens.reduce((t, x) => t + x.processadas, 0);
         q('#rc-csv-info').innerHTML = `✓ ${c.itens.length} linha(s) · ${fmtN(dec)} declaradas · ${fmtN(pro)} processadas (${difTxt(dec, pro)})`; }
       catch (x) { avisar(x.message, true); q('#rc-csv').value = ''; } };
-    q('#rc-ler').onclick = () => { const o = lerTextoMeli(q('#rc-txt').value, ano); const n = Object.keys(o).length;
+    if (q('#rc-ler')) q('#rc-ler').onclick = () => { const o = lerTextoMeli(q('#rc-txt').value, ano); const n = Object.keys(o).length;
       if (!n) return avisar('Não achei datas nem tarifas no texto. Copie a página inteira do envio.', true);
       [['coletado_em', '#rc-col'], ['recebido_em', '#rc-rec'], ['proc_inicio_em', '#rc-ini'], ['proc_fim_em', '#rc-fim']].forEach(([k, id]) => { if (o[k]) q(id).value = isoParaLocal(o[k]); });
       poe('#rc-vol', o.volumes); [['custo_coleta', '#rc-custo'], ['volume_m3', '#rc-m3'], ['distancia_km', '#rc-km']].forEach(([k, id]) => { if (o[k] != null) q(id).value = String(o[k]).replace('.', ','); });
@@ -2656,7 +2706,7 @@ async function carregarMeliFull(){
 }
 function renderMeliFull(R){
   const $c = document.getElementById('meli'); if (!$c) return;
-  const L = R.recebimentos, com = L.filter(x => x.envio_id), med = a => { const v = a.filter(x => x != null); return v.length ? v.reduce((t, x) => t + x, 0) / v.length : null; };
+  const L = R.recebimentos.filter(x => (x.plataforma || 'meli') === 'meli'), com = L.filter(x => x.envio_id), med = a => { const v = a.filter(x => x != null); return v.length ? v.reduce((t, x) => t + x, 0) / v.length : null; };
   const tRec = med(com.map(x => hDur(x.coletado_em, x.recebido_em))), tFila = med(com.map(x => hDur(x.recebido_em, x.proc_inicio_em))), tProc = med(com.map(x => hDur(x.recebido_em, x.proc_fim_em))), tTot = med(com.map(x => hDur(x.coletado_em, x.proc_fim_em)));
   const dec = com.reduce((t, x) => t + (x.declaradas || 0), 0), pro = com.reduce((t, x) => t + (x.processadas || 0), 0), comDif = com.filter(x => x.processadas != null && x.declaradas != null && x.processadas !== x.declaradas);
   const custo = com.reduce((t, x) => t + (x.custo_coleta || 0) + (x.tarifas_extras || 0), 0), m3 = com.reduce((t, x) => t + (x.volume_m3 || 0), 0), na = com.reduce((t, x) => t + (x.nao_aptas || 0) + (x.identificar || 0), 0);
@@ -2689,6 +2739,9 @@ const CSS_DIVREC = `
   .dv-lista{display:flex;flex-direction:column;gap:6px} .dv-card{border:1px solid var(--line);border-left:4px solid #c62828;border-radius:8px;padding:7px 10px;background:#fff} .dv-card.corrigida{border-left-color:#1a7a3e;background:#f6fbf7}
   .dv-top{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline;font-size:13px} .dv-marcas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:5px;font-size:12px}
   .dv-ok{color:#1a7a3e;font-weight:700} .dv-ok small{font-weight:400;color:#566074} .dv-pend{color:#9a5b00} .pill-ok{background:#e2f5e8;color:#1a7a3e;border-radius:9px;padding:0 7px;font-weight:700;font-size:11px}
+  .dv-gr-cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 4px;font-size:13px}
+  .dv-gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px} .dv-gr label{display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff;font-size:12px}
+  .dv-gr small{color:#8a93a5;font-size:10.5px} .dv-gn{width:56px;text-align:center;padding:3px;border:1px solid var(--line);border-radius:5px;font:inherit;margin-top:2px} .dv-gn.dif{border-color:#c62828;background:#fbe9e9;font-weight:700}
   .dv-form{border:1px dashed var(--line);border-radius:8px;padding:10px;margin-top:6px;background:#fafbfd} .dv-form .gv-lab{display:block;margin-top:6px}
   .dv-painel{border-left:4px solid #c62828} .dv-n{display:inline-block;background:#c62828;color:#fff;border-radius:10px;padding:0 8px;font-size:12px} .dv-zero{margin:0 0 10px}
   .dv-tab td,.dv-tab th{padding:6px 8px;text-align:center;vertical-align:top} .dv-tab td small{display:block;font-size:11px;color:#566074} .dv-tab .dif{color:#c62828} .dv-tab .ok{color:#1a7a3e}
@@ -4219,7 +4272,8 @@ async function montarRomaneio(){
   try { state.romDados = await apiFull(`/full/romaneios?ini=${addDias(hojeBRT(), -30)}&fim=${addDias(hojeBRT(), 30)}`); mots = state.romDados.motoristas; } catch (e) { if (e instanceof SemSessao) throw e; }
   const salva = pode('full', 'editar');
   const jaEm = L.filter(e => e.romaneio_id), canc = L.filter(e => e.status === 'cancelado');
-  const bloqueio = jaEm.length ? `Já estão em romaneio: ${jaEm.map(e => `#${e.pedido} (${nRom(e.romaneio_id)})`).join(', ')}. Para mudar, abra o romaneio na aba Romaneios.`
+  const plats = [...new Set(L.map(e => e.plataforma || 'meli'))];
+  const bloqueio = plats.length > 1 ? `Envios de plataformas diferentes (${plats.map(nomePlat).join(', ')}): cada plataforma tem o seu veículo. Monte um romaneio para cada.` : jaEm.length ? `Já estão em romaneio: ${jaEm.map(e => `#${e.pedido} (${nRom(e.romaneio_id)})`).join(', ')}. Para mudar, abra o romaneio na aba Romaneios.`
     : canc.length ? `Coleta cancelada não entra em romaneio: ${canc.map(e => '#' + e.pedido).join(', ')}` : '';
   const datas = L.map(e => e.data_expedicao).sort(), dataPadrao = datas.includes(hojeBRT()) ? hojeBRT() : datas[0];
   const g = document.getElementById('gaveta'); g.hidden = false; document.body.classList.add('gaveta-aberta');
@@ -4230,7 +4284,8 @@ async function montarRomaneio(){
         Não sabe ainda quem vem buscar? Deixe o motorista em branco e preencha depois.</div>
       ${camposEmbarque({ data: dataPadrao }, mots, true)}
       ${salva ? '<div class="gv-sec">Fotos <span class="info">sobem junto ao salvar</span></div><div id="rm-fotos"></div>' : ''}
-      <div class="gv-acoes"><button class="btn" id="rm-so-imp" title="Imprime sem número e sem registrar">🖨 Só imprimir</button>${salva ? `<button class="btn pri" id="rm-ok" ${bloqueio ? 'disabled' : ''}>💾 Salvar e imprimir</button>` : ''}</div>
+      <div class="gv-acoes"><button class="btn" id="rm-so-imp" title="Imprime um rascunho, sem número e sem registrar">🖨 Imprimir rascunho</button>${salva ? `<button class="btn pri" id="rm-ok" ${bloqueio ? 'disabled' : ''}>💾 Salvar</button>` : ''}</div>
+      ${salva ? '<div class="info" style="text-align:right">Depois de salvar, o romaneio abre com o número e o botão para imprimir.</div>' : ''}
     </div></aside>`;
   const $ = k => document.getElementById(k);
   ligarCamposEmbarque(mots);
@@ -4247,10 +4302,8 @@ async function montarRomaneio(){
       const res = await apiFull('/full/romaneio', { ...c, envio_ids: L.map(e => e.id) });
       const nf = fotosRm?.pendentes() ? await fotosRm.enviarPendentes(res.id) : 0;
       if (nf) avisar(`${nf} foto(s) anexada(s) ao romaneio`);
-      const rom = { id: res.id, ...c, status:'aberto' };
-      imprimirHtml(romaneioHtml(L, embParaImpresso(c), rom));
       fechar(); s.sel.clear(); avisar(`Romaneio ${nRom(res.id)} salvo`);
-      await carregarFull();
+      s.vista = 'romaneios'; s.romAba = 'todos'; s.romIr = String(res.id); telaFull();
     } catch (e) { if (e instanceof SemSessao) throw e; $('rm-erro').hidden = false; $('rm-erro').textContent = e.message; ok.disabled = false; }
   };
   $('rm-mot').focus();
@@ -4720,7 +4773,8 @@ function abrirEnvio(id, recarregando){
         <div class="gv-sec">Pedido ${gerir ? '' : '<span class="info">(só líder altera)</span>'}</div>
         <div class="grade-form g2">
           <label>Loja<select id="gv-loja" ${ro(gerir)}>${r.lojas.map(l => `<option value="${l.id}" ${l.id === e.cnpj_id ? 'selected' : ''}>${esc(nomeLoja(l.id))}</option>`).join('')}</select></label>
-          <label>Nº da coleta (pedido ML)<input id="gv-pedido" inputmode="numeric" value="${esc(e.pedido)}" placeholder="só números" ${ro(gerir)}></label>
+          <label>Plataforma<select id="gv-plat" ${ro(gerir)}>${Object.entries(PLAT_FULL).map(([k, v]) => `<option value="${k}" ${(e.plataforma || 'meli') === k ? 'selected' : ''}>${esc(v.nome)}</option>`).join('')}</select></label>
+          <label>Nº do envio na plataforma<input id="gv-pedido" value="${esc(e.pedido)}" placeholder="nº do envio" ${ro(gerir)}></label>
           <label>Data de expedição<input id="gv-data" type="date" value="${esc(e.data_expedicao)}" ${ro(gerir)}></label>
           <label>Hora planejada<input id="gv-hora" type="time" value="${esc(e.hora_expedicao || '')}" ${ro(gerir)}></label>
           <label># Pares (plano)<input id="gv-plano" inputmode="numeric" value="${e.pares_plan ?? ''}" ${ro(gerir)}></label>
@@ -4783,7 +4837,7 @@ function abrirEnvio(id, recarregando){
 
   const sv = $('gv-salvar');
   if (sv) sv.onclick = async () => {
-    const corpo = { id: novo ? null : e.id, versao: novo ? null : e.atualizado_em, cnpj_id: $('gv-loja').value, pedido: $('gv-pedido').value.replace(/\D/g, ''),
+    const corpo = { id: novo ? null : e.id, versao: novo ? null : e.atualizado_em, cnpj_id: $('gv-loja').value, plataforma: $('gv-plat').value, pedido: pedidoLimpoFull($('gv-pedido').value, $('gv-plat').value),
       data_expedicao: $('gv-data').value, hora_expedicao: $('gv-hora').value || null, pares_plan: $('gv-plano').value.trim(), pares_envio: $('gv-pares').value.trim(), status,
       pct_coleta: $('gv-pct').value.trim().replace(',', '.'), caixas: $('gv-caixas').value.trim(), m3: $('gv-m3').value.trim().replace(',', '.'),
       motivo_diferenca: $('gv-motivo').value || null, observacao: $('gv-obs').value.trim() || null };
@@ -4899,6 +4953,7 @@ async function apiCross(path, corpo){
   if (path === '/cross/janela') { const n = { ...corpo }; delete n.encerrar_anteriores; delete n.id;
     if (!n.coleta_ini) throw new Error('Informe o início da coleta'); if (!n.dias?.length) throw new Error('Marque ao menos um dia da semana');
     if (n.coleta_fim < n.coleta_ini) throw new Error('O fim da janela de coleta é antes do início');
+    if (!n.corte_dias && n.hora_corte && n.hora_corte > n.coleta_fim) throw new Error('O corte no mesmo dia está depois do fim da coleta: se o corte é no dia anterior, escolha "dia anterior (D-1)"');
     const conf = D.janelas.filter(j => j.ativo && j.id !== corpo.id && j.canal_id === n.canal_id && (j.cnpj_id || null) === (n.cnpj_id || null) && j.sequencia === n.sequencia && j.dias.some(x => n.dias.includes(x))
       && j.vigente_de <= (n.vigente_ate || '9999') && (j.vigente_ate || '9999') >= n.vigente_de);
     if (conf.length) { if (!corpo.encerrar_anteriores || conf.some(j => j.vigente_de >= n.vigente_de)) throw new Error(`JANELA_CONFLITO: Já existe janela vigente para a ${n.sequencia}ª coleta de ${nomeCanal(n.canal_id)}${n.cnpj_id ? ` (${n.cnpj_id})` : ''} nesses dias. Encerre a anterior (vigência "até") ou mude a data de início.`);
@@ -5157,6 +5212,8 @@ const DOW_ISO = ['', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 const isoDowDe = d => new Date(d + 'T12:00:00Z').getUTCDay() || 7;
 const minHM = t => { if (!t) return null; const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 const hmMin = m => m == null ? '' : `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.round(m % 60)).padStart(2, '0')}`;
+// corte com o dia: "23:59" (mesmo dia) ou "D-1 23:59" (pedidos do dia anterior)
+const corteTxt = j => !j?.hora_corte ? '–' : j.corte_dias ? `D-${j.corte_dias} ${j.hora_corte}` : j.hora_corte;
 const statusJanela = j => { const h = hojeBRT(); return !j.ativo ? 'excluida' : j.vigente_ate && j.vigente_ate < h ? 'encerrada' : j.vigente_de > h ? 'futura' : 'vigente'; };
 const ROT_ST_JAN = { vigente:['Vigente', '#1a7a3e', '#e2f5e8'], futura:['A partir de', '#0b4fa8', '#e3eefc'], encerrada:['Encerrada', '#566074', '#eef0f4'], excluida:['Excluída', '#8a1f1f', '#fbe9e9'] };
 // janela que vale para a data/coleta: a da loja tem preferência; sem loja escolhida, vale a "todas as lojas"
@@ -5168,10 +5225,10 @@ function janelaPara(J, canal, loja, d, seq){
 // ---- demonstração
 function demoJanelasIni(){
   const D = DEMO_CROSS; if (D.janelas) return; const ag = new Date().toISOString(), ini = addDias(hojeBRT(), -60);
-  const J = (canal_id, cnpj_id, sequencia, dias, hora_corte, coleta_ini, coleta_fim, tolerancia_min = 15) => ({ id:String(++D.seq), canal_id, cnpj_id, sequencia, dias, hora_corte, coleta_ini, coleta_fim, tolerancia_min,
+  const J = (canal_id, cnpj_id, sequencia, dias, hora_corte, coleta_ini, coleta_fim, tolerancia_min = 15, corte_dias = 0) => ({ id:String(++D.seq), canal_id, cnpj_id, sequencia, dias, corte_dias, hora_corte, coleta_ini, coleta_fim, tolerancia_min,
     vigente_de:ini, vigente_ate:null, observacao:null, ativo:true, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' });
   D.janelas = [J('shopee_rapida', null, 1, [1, 2, 3, 4, 5, 6], '11:00', '11:30', '12:00'), J('shopee_rapida', null, 2, [1, 2, 3, 4, 5], '13:00', '13:30', '14:00'),
-    J('shein', null, 1, [1, 2, 3, 4, 5], '11:00', '11:30', '12:30'), J('ml_coleta', null, 1, [1, 2, 3, 4, 5, 6], '10:00', '10:00', '11:00'),
+    J('shein', null, 1, [1, 2, 3, 4, 5], '23:59', '11:00', '17:00', 15, 1), J('ml_coleta', null, 1, [1, 2, 3, 4, 5, 6], '10:00', '10:00', '11:00'),
     J('ml_flex', null, 1, [1, 2, 3, 4, 5, 6], '12:00', '12:30', '13:30', 20)];
 }
 
@@ -5208,7 +5265,7 @@ function renderJanelas(){
           ${L.map(j => { const st = statusJanela(j), [rot, cor, fundo] = ROT_ST_JAN[st];
             return `<tr class="${['encerrada', 'excluida'].includes(st) ? 'jn-off' : ''}"><td style="text-align:left">${lojaTxt(j)}</td><td><b>${j.sequencia}ª</b></td>
               <td style="text-align:left">${[1, 2, 3, 4, 5, 6, 7].map(i => `<span class="jn-d ${j.dias.includes(i) ? 'on' : ''}">${DOW_ISO[i]}</span>`).join('')}</td>
-              <td><b>${j.hora_corte || '–'}</b></td><td><b>${j.coleta_ini}${j.coleta_fim !== j.coleta_ini ? ` – ${j.coleta_fim}` : ''}</b></td><td>±${j.tolerancia_min} min</td>
+              <td><b>${corteTxt(j)}</b>${j.corte_dias ? `<small>pedidos ${j.corte_dias === 1 ? 'do dia anterior' : `de ${j.corte_dias} dias antes`}</small>` : ''}</td><td><b>${j.coleta_ini}${j.coleta_fim !== j.coleta_ini ? ` – ${j.coleta_fim}` : ''}</b></td><td>±${j.tolerancia_min} min</td>
               <td style="text-align:left"><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span> <small>${st === 'futura' ? dataBR(j.vigente_de) : `desde ${dataBR(j.vigente_de)}`}${j.vigente_ate ? ` até ${dataBR(j.vigente_ate)}` : ''}</small></td>
               <td style="text-align:left"><small>${esc(j.observacao || '')}</small></td>
               <td>${gerir && st !== 'excluida' ? `<button class="lnk" data-jed="${j.id}">editar</button>` : ''}</td></tr>`; }).join('')}</tbody></table></div>` : ''}</div>`; }).join('')}
@@ -5225,17 +5282,25 @@ function gradeJanelas(canais, dow){
   canais.forEach(cn => { const L = state.janelasCross.filter(j => j.ativo && j.canal_id === cn.id && j.dias.includes(dow) && j.vigente_de <= d && (!j.vigente_ate || j.vigente_ate >= d));
     if (L.length) linhas.push({ cn, L }); });
   if (!linhas.length) return `<div class="vazio">Nada combinado para ${DOW_ISO[dow]}.</div>`;
-  const tudo = linhas.flatMap(x => x.L.flatMap(j => [minHM(j.hora_corte), minHM(j.coleta_ini), minHM(j.coleta_fim)])).filter(v => v != null);
+  const tudo = linhas.flatMap(x => x.L.flatMap(j => [j.corte_dias ? null : minHM(j.hora_corte), minHM(j.coleta_ini), minHM(j.coleta_fim)])).filter(v => v != null);
   const h0 = Math.max(0, Math.floor(Math.min(...tudo) / 60) - 1) * 60, h1 = Math.min(24, Math.ceil(Math.max(...tudo) / 60) + 1) * 60;
-  const W = 900, E = 150, H = linhas.length * 34 + 30, x = m => E + (m - h0) / (h1 - h0) * (W - E - 10);
+  const W = 900, E = 150, x = m => E + (m - h0) / (h1 - h0) * (W - E - 10), pxMin = (h1 - h0) / (W - E - 10);
+  const rotJ = j => `${j.sequencia}ª ${j.coleta_ini}–${j.coleta_fim}${j.cnpj_id ? ` · ${nomeLoja(j.cnpj_id)}` : ' · todas as lojas'}${j.corte_dias && j.hora_corte ? ` · corte ${corteTxt(j)}` : ''}`;
+  // janelas (com o texto) que se sobrepõem no mesmo marketplace vão em linhas separadas
+  linhas.forEach(o => { const fins = []; o.L.sort((a, b) => a.coleta_ini.localeCompare(b.coleta_ini)).forEach(j => { const a = minHM(j.coleta_ini), b = Math.max(minHM(j.coleta_fim), a + 5);
+    const fim = Math.max(b, (rotJ(j).length * 5.6 < (b - a) / pxMin - 8 ? b : b + (rotJ(j).length * 5.6 + 10) * pxMin));
+    let k = fins.findIndex(f => f < a); if (k < 0) { k = fins.length; fins.push(0); } fins[k] = fim; j._faixa = k; }); o.n = Math.max(1, fins.length); });
+  let acc = 24; linhas.forEach(o => { o.y = acc; acc += o.n * 26 + 8; });
+  const H = acc + 6;
   const horas = []; for (let m = h0; m <= h1; m += 60) horas.push(m);
   return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:640px" role="img" aria-label="Grade de cortes e coletas do dia">
     ${horas.map(m => `<line x1="${x(m)}" x2="${x(m)}" y1="18" y2="${H - 4}" stroke="#eef0f4"/><text x="${x(m)}" y="12" text-anchor="middle" font-size="10" fill="#8a93a5">${hmMin(m).slice(0, 2)}h</text>`).join('')}
-    ${linhas.map(({ cn, L }, i) => { const y = 24 + i * 34;
+    ${linhas.map(({ cn, L, y: y0 }) => { const y = y0;
       return `<text x="0" y="${y + 15}" font-size="12" font-weight="700" fill="#1b2333">${esc(cn.nome)}</text>
-        ${L.map(j => { const a = minHM(j.coleta_ini), b = Math.max(minHM(j.coleta_fim), a + 5), c = minHM(j.hora_corte), loja = j.cnpj_id ? ` · ${nomeLoja(j.cnpj_id)}` : '';
+        ${L.map(j => { const a = minHM(j.coleta_ini), b = Math.max(minHM(j.coleta_fim), a + 5), c = j.corte_dias ? null : minHM(j.hora_corte), loja = j.cnpj_id ? ` · ${nomeLoja(j.cnpj_id)}` : ' · todas as lojas', y = y0 + j._faixa * 26;
           return `<rect x="${x(a)}" y="${y + 4}" width="${Math.max(4, x(b) - x(a))}" height="18" rx="4" fill="#1a7a3e" opacity=".8"><title>${esc(cn.nome)}${esc(loja)} · ${j.sequencia}ª coleta: ${j.coleta_ini}–${j.coleta_fim}</title></rect>
-            <text x="${x(a) + 4}" y="${y + 17}" font-size="10" fill="#fff" font-weight="700">${j.sequencia}ª ${j.coleta_ini}${esc(loja)}</text>
+            ${(() => { const t = rotJ(j), cabe = t.length * 5.6 < x(b) - x(a) - 8;
+              return `<text x="${cabe ? x(a) + 4 : x(b) + 5}" y="${y + 17}" font-size="10" fill="${cabe ? '#fff' : '#1b2333'}" font-weight="700">${esc(t)}</text>`; })()}
             ${c != null ? `<line x1="${x(c)}" x2="${x(c)}" y1="${y}" y2="${y + 26}" stroke="#c62828" stroke-width="2.5"><title>corte ${j.hora_corte}</title></line>` : ''}`; }).join('')}`; }).join('')}
   </svg></div><div class="cs-leg"><span><i style="background:#c62828;width:3px"></i>corte dos pedidos</span><span><i style="background:#1a7a3e"></i>janela de coleta</span></div>`;
 }
@@ -5249,7 +5314,7 @@ function editarJanela(j, canal){
       <label>Marketplace<select id="jf-canal" ${novo ? '' : 'disabled'}>${canais.map(c => `<option value="${c.id}" ${v.canal_id === c.id ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select></label>
       <label>Loja<select id="jf-loja"></select></label>
       <label>Coleta<select id="jf-seq">${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${v.sequencia === n ? 'selected' : ''}>${n}ª coleta do dia</option>`).join('')}</select></label>
-      <label>Corte dos pedidos <span class="info">(até que horas o pedido entra)</span><input id="jf-corte" type="time" value="${v.hora_corte || ''}"></label>
+      <label style="grid-column:1/-1">Corte dos pedidos <span class="info">(até que horas o pedido entra nesta coleta)</span><span class="linha-hora jn-corte"><select id="jf-cdia">${[[0, 'no mesmo dia'], [1, 'no dia anterior (D-1)'], [2, '2 dias antes (D-2)']].map(([k, t]) => `<option value="${k}" ${(v.corte_dias || 0) === k ? 'selected' : ''}>${t}</option>`).join('')}</select><input id="jf-corte" type="time" value="${v.hora_corte || ''}"></span></label>
       <label>Coleta: chegada a partir de<input id="jf-ini" type="time" value="${v.coleta_ini || ''}"></label>
       <label>até <span class="info">(fim da janela; igual = horário fixo)</span><input id="jf-fim" type="time" value="${v.coleta_fim || ''}"></label>
       <label>Tolerância (min) <span class="info">antes e depois</span><input id="jf-tol" inputmode="numeric" value="${v.tolerancia_min}"></label>
@@ -5257,6 +5322,8 @@ function editarJanela(j, canal){
       <label>Até <span class="info">(vazio = sem data para acabar)</span><input id="jf-ate" type="date" value="${v.vigente_ate || ''}"></label>
     </div>
     <div class="gv-sec">Dias da semana</div><div class="al-chips">${[1, 2, 3, 4, 5, 6, 7].map(i => `<label class="al-chip"><input type="checkbox" data-jdia="${i}" ${v.dias.includes(i) ? 'checked' : ''}><span>${DOW_LONGO[i % 7]}</span></label>`).join('')}</div>
+    <div class="info jn-ex">Ex.: Shein — pedidos concretizados até <b>23:59 do dia anterior</b> ficam disponíveis para carregar <b>a partir das 11:00</b> do dia útil seguinte:
+      corte <b>no dia anterior (D-1) · 23:59</b>, coleta <b>a partir de 11:00 até</b> o horário-limite do carregamento (depois dele conta como atraso), dias <b>seg a sex</b>.</div>
     <label class="gv-lab" style="display:block;margin-top:8px">Observação<input id="jf-obs" maxlength="300" value="${esc(v.observacao || '')}" placeholder="ex.: combinado com o gerente de conta em 01/11"></label>
     <div class="gv-acoes">${novo ? '' : '<button class="btn perigo" id="jf-del">Excluir</button>'}<span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="jf-ok">Salvar</button></div></div>`;
   document.body.appendChild(dlg);
@@ -5266,7 +5333,7 @@ function editarJanela(j, canal){
   q('#jf-ini').onchange = () => { if (!q('#jf-fim').value || q('#jf-fim').value < q('#jf-ini').value) q('#jf-fim').value = q('#jf-ini').value; };
   q('[data-x]').onclick = () => dlg.remove();
   const enviar = async encerrar => {
-    const corpo = { id:j?.id, canal_id:q('#jf-canal').value, cnpj_id:q('#jf-loja').value || null, sequencia:Number(q('#jf-seq').value), hora_corte:q('#jf-corte').value || null,
+    const corpo = { id:j?.id, canal_id:q('#jf-canal').value, cnpj_id:q('#jf-loja').value || null, sequencia:Number(q('#jf-seq').value), corte_dias:Number(q('#jf-cdia').value), hora_corte:q('#jf-corte').value || null,
       coleta_ini:q('#jf-ini').value, coleta_fim:q('#jf-fim').value || q('#jf-ini').value, tolerancia_min:Number(q('#jf-tol').value || 0), vigente_de:q('#jf-de').value, vigente_ate:q('#jf-ate').value || null,
       dias:[...dlg.querySelectorAll('[data-jdia]:checked')].map(x => Number(x.dataset.jdia)), observacao:q('#jf-obs').value.trim(), encerrar_anteriores:encerrar };
     try { await apiCross('/cross/janela', corpo); avisar(encerrar ? `Janela salva; a anterior foi encerrada em ${dataBR(addDias(corpo.vigente_de, -1))}` : 'Janela salva'); dlg.remove(); carregarJanelas(); }
@@ -5327,7 +5394,7 @@ function calcPontual(){
       else if (ch > fim + tol) { st = 'atrasada'; desvio = ch - fim; }
       else st = 'no_horario';
       const pac = c ? (loja === 'todos' ? c.total : (c.pacotes?.[loja] || 0)) : 0;
-      linhas.push({ d, seq, j, c, ch, sa, ini, fim, corte:minHM(c?.hora_corte || j?.hora_corte), corteJan:minHM(j?.hora_corte), st, desvio, pac, doca:ch != null && sa != null ? sa - ch : null });
+      linhas.push({ d, seq, j, c, ch, sa, ini, fim, corte:minHM(c?.hora_corte || j?.hora_corte), corteTxt:c?.hora_corte || corteTxt(j), corteJan:j?.corte_dias ? null : minHM(j?.hora_corte), st, desvio, pac, doca:ch != null && sa != null ? sa - ch : null });
     }); }
   const comJ = linhas.filter(x => x.j), feitas = comJ.filter(x => x.c && x.ch != null), atr = linhas.filter(x => x.st === 'atrasada');
   const R = { linhas, seqs:[...new Set(linhas.map(x => x.seq))].sort(), seqsGraf:[...new Set(linhas.filter(x => x.j).map(x => x.seq))].sort(), combinadas:comJ.filter(x => x.st !== 'aguardando').length, realizadas:linhas.filter(x => x.c).length,
@@ -5384,7 +5451,7 @@ function renderPontual(){
     ${R.seqsGraf.map(seq => `<div class="painel"><h3 class="cs-sub">${R.seqsGraf.length > 1 || seq > 1 ? `${seq}ª coleta · ` : ''}Combinado x efetivo <span class="info">${esc(R.canal)} · ${R.loja === 'todos' ? 'todas as lojas' : esc(nomeLoja(R.loja))}</span></h3>${graficoPontual(R, seq)}${legPontual()}</div>`).join('')}
     <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full pt-tab"><thead><tr><th style="text-align:left">Data</th><th>Coleta</th><th>Corte</th><th>Janela combinada</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th style="text-align:left">Placa</th><th style="text-align:left">Motorista</th><th>Pacotes</th><th>Situação</th></tr></thead><tbody>
       ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st];
-        return `<tr><td style="text-align:left"><b>${dataBR(l.d).slice(0, 5)}</b> <span class="info">${DOW_ISO[isoDowDe(l.d)]}</span></td><td>${l.seq}ª</td><td>${hmMin(l.corte) || '–'}</td><td>${combTxt(l)}</td>
+        return `<tr><td style="text-align:left"><b>${dataBR(l.d).slice(0, 5)}</b> <span class="info">${DOW_ISO[isoDowDe(l.d)]}</span></td><td>${l.seq}ª</td><td>${l.corteTxt && l.corteTxt !== '–' ? l.corteTxt : '–'}</td><td>${combTxt(l)}</td>
           <td><b>${l.c?.hora_chegada || '–'}</b></td><td>${l.c?.hora_saida || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td>
           <td style="text-align:left">${l.c?.placa ? fmtPlaca(l.c.placa) : '–'}</td><td style="text-align:left">${esc(l.c?.motorista || '–')}</td><td>${l.c ? fmtN(l.pac) : '–'}</td>
           <td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}
@@ -5423,14 +5490,14 @@ function impressoPontual(R){
       <div><span>Pacotes coletados</span><b>${fmtN(R.pacotes)}</b><em>${R.docaMedia != null ? `média na doca ${fmtHoras(R.docaMedia)}` : ''}</em></div>`,
     graf:R.seqsGraf.map(seq => `<h3>${R.seqsGraf.length > 1 || seq > 1 ? `${seq}ª coleta · ` : ''}Combinado x efetivo</h3><div class="graf">${graficoPontual(R, seq, true)}${legPontual()}</div>`).join(''),
     tab:`<table><thead><tr><th class="l">Data</th><th>Coleta</th><th>Corte</th><th>Janela combinada</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th class="l">Placa</th><th class="l">Motorista</th><th>Pacotes</th><th>Situação</th></tr></thead><tbody>
-      ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st]; return `<tr><td class="l"><b>${dataBR(l.d)}</b> ${DOW_ISO[isoDowDe(l.d)]}</td><td>${l.seq}ª</td><td>${hmMin(l.corte) || '–'}</td><td>${combTxt(l)}${l.j ? ` <small>±${l.j.tolerancia_min} min</small>` : ''}</td>
+      ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st]; return `<tr><td class="l"><b>${dataBR(l.d)}</b> ${DOW_ISO[isoDowDe(l.d)]}</td><td>${l.seq}ª</td><td>${l.corteTxt && l.corteTxt !== '–' ? l.corteTxt : '–'}</td><td>${combTxt(l)}${l.j ? ` <small>±${l.j.tolerancia_min} min</small>` : ''}</td>
         <td><b>${l.c?.hora_chegada || '–'}</b></td><td>${l.c?.hora_saida || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td><td class="l">${l.c?.placa ? fmtPlaca(l.c.placa) : '–'}</td><td class="l">${esc(l.c?.motorista || '–')}</td>
         <td>${l.c ? fmtN(l.pac) : '–'}</td><td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>` });
 }
 function csvPontual(R){
   const sep = ';', cab = ['Data', 'Dia', 'Coleta', 'Corte', 'Janela inicio', 'Janela fim', 'Tolerancia min', 'Chegada', 'Saida', 'Na doca min', 'Placa', 'Motorista', 'Pacotes', 'Situacao', 'Desvio min'];
   const q = v => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-  const L = R.linhas.map(l => [dataBR(l.d), DOW_ISO[isoDowDe(l.d)], l.seq, hmMin(l.corte), l.j?.coleta_ini || '', l.j?.coleta_fim || '', l.j?.tolerancia_min ?? '', l.c?.hora_chegada || '', l.c?.hora_saida || '', l.doca ?? '',
+  const L = R.linhas.map(l => [dataBR(l.d), DOW_ISO[isoDowDe(l.d)], l.seq, l.corteTxt === '–' ? '' : l.corteTxt, l.j?.coleta_ini || '', l.j?.coleta_fim || '', l.j?.tolerancia_min ?? '', l.c?.hora_chegada || '', l.c?.hora_saida || '', l.doca ?? '',
     l.c?.placa || '', l.c?.motorista || '', l.c ? l.pac : '', ST_PONT[l.st][0], l.desvio ?? ''].map(q).join(sep));
   const blob = new Blob(['﻿' + [cab.join(sep), ...L].join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `pontualidade_${R.canal.replace(/\W+/g, '_').toLowerCase()}_${R.ini}_${R.fim}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5e3);
@@ -5440,6 +5507,8 @@ const CSS_JANELAS = `
   .jn-cab{display:flex;align-items:center;gap:10px;margin-bottom:6px} .jn-cab b{font-size:15px;color:#02285a}
   .jn-tab td,.jn-tab th{padding:6px 8px;text-align:center} .jn-tab td small{color:#566074} .jn-tab tr.jn-off td{color:#a0a8b8}
   .jn-d{display:inline-block;font-size:10.5px;padding:0 4px;margin-right:2px;border-radius:4px;color:#b0b7c4;background:#f4f5f8} .jn-d.on{color:#fff;background:#02285a;font-weight:700}
+  .jn-corte{display:flex;gap:6px} .al-mod .jn-corte select{flex:1 1 auto;width:auto !important;min-width:0;max-width:260px} .al-mod .jn-corte input{width:130px !important;flex:none}
+  .jn-ex{margin-top:8px;background:#f6f8fb;border-radius:8px;padding:8px 10px} .jn-tab td small{display:block;font-size:10.5px}
   .pt-tab td,.pt-tab th{padding:6px 8px;text-align:center} .pt-tab td small{display:block;font-size:10.5px;color:#566074}
   .pt-leg i{display:inline-block;width:16px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
   .pt-pill{display:inline-block;border-radius:9px;padding:0 8px;font-size:11px;font-weight:700;white-space:nowrap}
@@ -5454,6 +5523,7 @@ function telaPontualFull(){
   const s = state.full; s.pfIni ||= addDias(hojeBRT(), -14); s.pfFim ||= hojeBRT(); s.pfLoja ||= 'todos';
   $app.innerHTML = `
     <div class="barra"><h2>Gestão - FULL</h2>${abasVistaFull(s)}<span style="flex:1"></span>
+      <select id="pf-plat">${Object.entries(PLAT_FULL).map(([k, v]) => `<option value="${k}" ${(s.pfPlat || 'meli') === k ? 'selected' : ''}>${esc(v.nome)}</option>`).join('')}</select>
       <select id="pf-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.pfLoja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
       <span class="datas"><input type="date" id="pf-ini" value="${s.pfIni}" max="${hojeBRT()}"> até <input type="date" id="pf-fim" value="${s.pfFim}" max="${hojeBRT()}"></span>
       ${pode('full', 'gerir') ? '<button class="btn" id="pf-jan">⏰ Janela padrão</button>' : ''}
@@ -5462,6 +5532,7 @@ function telaPontualFull(){
   ligarAbasVista();
   const $ = k => document.getElementById(k);
   $('pf-loja').onchange = () => { s.pfLoja = $('pf-loja').value; renderPontualFull(); };
+  $('pf-plat').onchange = () => { s.pfPlat = $('pf-plat').value; renderPontualFull(); };
   const datas = () => { let a = $('pf-ini').value, b = $('pf-fim').value; if (!a || !b) return; if (b < a) [a, b] = [b, a]; if (difDias(a, b) > 92) return avisar('Período máximo de 93 dias', true); s.pfIni = a; s.pfFim = b; carregarPontualFull(); };
   $('pf-ini').onchange = datas; $('pf-fim').onchange = datas;
   const jb = $('pf-jan'); if (jb) jb.onclick = editarJanelaFull;
@@ -5480,7 +5551,8 @@ function calcPontualFull(){
   const env = Object.fromEntries((r.envios || []).map(e => [e.id, e]));
   const rs = r.romaneios.filter(x => x.status !== 'cancelado' && x.data >= s.pfIni && x.data <= s.pfFim && x.data <= hoje)
     .map(x => { const es = x.envio_ids.map(id => env[id]).filter(Boolean), daLoja = es.filter(e => loja === 'todos' || e.cnpj_id === loja);
-      return { x, es:daLoja, todos:es }; })
+      return { x, es:daLoja, todos:es, plat:es[0]?.plataforma || 'meli' }; })
+    .filter(o => o.plat === (s.pfPlat || 'meli'))
     .filter(o => loja === 'todos' || o.es.length || (!o.todos.length && o.x.pares_demo));
   const porDia = {}; rs.forEach(o => (porDia[o.x.data] ||= []).push(o));
   const linhas = [];
@@ -5499,7 +5571,7 @@ function calcPontualFull(){
       pares, envios:o.es.length, doca:ch != null && sa != null ? sa - ch : null });
   }));
   const feitas = linhas.filter(l => l.ch != null && l.j), atr = linhas.filter(l => l.st === 'atrasada');
-  const R = { linhas, seqsGraf:[...new Set(linhas.filter(l => l.j).map(l => l.seq))].sort(), ini:s.pfIni, fim:s.pfFim, loja,
+  const R = { linhas, seqsGraf:[...new Set(linhas.filter(l => l.j).map(l => l.seq))].sort(), ini:s.pfIni, fim:s.pfFim, loja, plat:s.pfPlat || 'meli',
     romaneios:linhas.length, naoVeio:linhas.filter(l => l.st === 'nao_veio').length, semRegistro:linhas.filter(l => l.st === 'sem_registro').length,
     noHorario:feitas.filter(l => l.st === 'no_horario').length, feitas:feitas.length, atrasadas:atr.length,
     atrasoMedio:atr.length ? atr.reduce((t, l) => t + l.desvio, 0) / atr.length : null, atrasoMax:atr.length ? Math.max(...atr.map(l => l.desvio)) : null,
@@ -5522,7 +5594,7 @@ function renderPontualFull(){
       <div class="rr-tile" style="--c:#c62828"><span>Atrasos</span><b>${R.atrasadas}</b><small>${R.atrasadas ? `média ${fmtHoras(R.atrasoMedio)} · máx. ${fmtHoras(R.atrasoMax)}` : 'nenhum'}</small></div>
       <div class="rr-tile" style="--c:#6b3fa0"><span>Pares coletados</span><b>${fmtN(R.pares)}</b><small>${R.docaMedia != null ? `tempo médio na doca ${fmtHoras(R.docaMedia)}` : ''}</small></div>
     </div>
-    ${R.seqsGraf.map(seq => `<div class="painel"><h3 class="cs-sub">${R.seqsGraf.length > 1 ? `${seq}º veículo do dia · ` : ''}Janela x efetivo <span class="info">FULL · ${R.loja === 'todos' ? 'todas as lojas' : esc(nomeLoja(R.loja))}</span></h3>${graficoPontual(R, seq)}${legPontual(true)}</div>`).join('')}
+    ${R.seqsGraf.map(seq => `<div class="painel"><h3 class="cs-sub">${R.seqsGraf.length > 1 ? `${seq}º veículo do dia · ` : ''}Janela x efetivo <span class="info">${esc(nomePlat(R.plat))} FULL · ${R.loja === 'todos' ? 'todas as lojas' : esc(nomeLoja(R.loja))}</span></h3>${graficoPontual(R, seq)}${legPontual(true)}</div>`).join('')}
     <div class="painel" style="padding:0;overflow-x:auto"><table class="tab-full pt-tab"><thead><tr><th style="text-align:left">Data</th><th>Romaneio</th><th>Janela</th><th>Chegada</th><th>Saída</th><th>Na doca</th><th style="text-align:left">Placa</th><th style="text-align:left">Motorista</th><th style="text-align:left">Veículo</th><th>Envios</th><th>Pares</th><th>Situação</th></tr></thead><tbody>
       ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st], x = l.x;
         return `<tr data-rom-ir="${x.id}" style="cursor:pointer"><td style="text-align:left"><b>${dataBR(l.d).slice(0, 5)}</b> <span class="info">${DOW_ISO[isoDowDe(l.d)]}</span></td><td>${nRom(x.id)}</td>
@@ -5558,7 +5630,7 @@ function impressoPontualFull(R){
     ${R.linhas.map(l => { const [rot, cor, fundo] = ST_PONT[l.st], x = l.x; return `<tr><td class="l"><b>${dataBR(l.d)}</b> ${DOW_ISO[isoDowDe(l.d)]}</td><td>${nRom(x.id)}</td><td>${janTxtFull(l)}${l.j ? ` <small>±${l.j.tolerancia_min} min${l.padrao ? ' · padrão' : ''}</small>` : ''}</td>
       <td><b>${hmDeIso(x.chegada_em) || '–'}</b></td><td>${hmDeIso(x.saida_em) || '–'}</td><td>${l.doca != null ? fmtHoras(l.doca) : '–'}</td><td class="l">${x.placa ? fmtPlaca(x.placa) : '–'}</td><td class="l">${esc(x.motorista || '–')}</td>
       <td class="l">${esc(veicRom(x) || '–')}</td><td>${l.envios || '–'}</td><td>${fmtN(l.pares)}</td><td><span class="pt-pill" style="color:${cor};background:${fundo}">${rot}</span>${l.desvio != null ? `<small>${desvioTxt(l)}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>`;
-  return impressoPontualBase({ titulo:`Pontualidade FULL ${dataBR(R.ini)} a ${dataBR(R.fim)}`, t2:`MERCADO LIVRE FULL · ${R.loja === 'todos' ? 'TODAS AS LOJAS' : esc(nomeLoja(R.loja).toUpperCase())}`, ini:R.ini, fim:R.fim,
+  return impressoPontualBase({ titulo:`Pontualidade FULL ${dataBR(R.ini)} a ${dataBR(R.fim)}`, t2:`${esc(nomePlat(R.plat).toUpperCase())} FULL · ${R.loja === 'todos' ? 'TODAS AS LOJAS' : esc(nomeLoja(R.loja).toUpperCase())}`, ini:R.ini, fim:R.fim,
     sub:'Janela de coleta agendada x horário efetivo de chegada e saída do veículo, por romaneio.', kpi, graf, tab, compacto:R.linhas.length > 22, quem });
 }
 function csvPontualFull(R){
