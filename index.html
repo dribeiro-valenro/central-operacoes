@@ -428,7 +428,7 @@
   .rd-add{display:flex;gap:6px;margin-top:8px} .rd-add select{flex:1;min-width:0;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
   .lnk{font:inherit;font-weight:700;background:none;border:0;padding:0;color:var(--pri);cursor:pointer;text-decoration:underline}
   .tab-hist{width:100%;border-collapse:collapse;font-size:12.5px} .tab-hist td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top} .tab-hist td:first-child{white-space:nowrap;color:var(--mute)}
-  .kanban{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr)) minmax(110px,.8fr);gap:10px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+  .kanban{display:grid;grid-template-columns:repeat(7,minmax(118px,1fr)) minmax(100px,.8fr);gap:10px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
   .kb{position:relative;font:inherit;text-align:left;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;box-shadow:var(--sombra);color:var(--ink);min-width:0}
   .kb:hover{background:var(--f)} .kb.on{background:var(--f);outline:2px solid var(--c)}
   .kb-cab{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column}
@@ -455,7 +455,7 @@
   .per input{font:inherit;font-size:14px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;min-width:0;width:100%}
   .per-n{width:22px;height:22px;border-radius:50%;background:var(--pri);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;margin-bottom:7px}
   @media (max-width:560px){ .per{grid-template-columns:22px minmax(0,1fr) auto} .per label:nth-of-type(2){grid-column:2} .res-col{grid-template-columns:1fr 1fr} }
-  @media (max-width:900px){ .kanban{grid-template-columns:repeat(7,150px)} }
+  @media (max-width:900px){ .kanban{grid-template-columns:repeat(8,150px)} }
   .marca-loja{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
   .prev{color:#b07a00;font-style:italic} .dif{color:var(--bad)} .atraso{color:var(--bad);font-weight:600}
   .mini-barra{display:inline-block;width:42px;height:6px;border-radius:3px;background:#e8ebf0;margin-right:6px;vertical-align:middle;overflow:hidden}
@@ -1067,15 +1067,16 @@ function renderHistorico($p, r){
 const ST_FULL = {
   programado:       { rot:'Programado',       cor:'#566074', fundo:'#eef0f4' },
   separacao:        { rot:'Separação',        cor:'#0b4fa8', fundo:'#e3eefc' },
-  conferencia:      { rot:'Conferência',      cor:'#6b3fa0', fundo:'#efe7fa' },
+  ag_conferencia:   { rot:'Ag. conferência',  cor:'#9a3b8f', fundo:'#fbeaf7' },
+  conferencia:      { rot:'Em conferência',   cor:'#6b3fa0', fundo:'#efe7fa' },
   etiquetagem:      { rot:'Etiquetagem',      cor:'#9a5b00', fundo:'#fff1d6' },
   aguardando_envio: { rot:'Aguardando envio', cor:'#0f6e66', fundo:'#dff5f1' },
   expedido:         { rot:'Expedido',         cor:'#1a7a3e', fundo:'#e2f5e8' },
   cancelado:        { rot:'Cancelado',        cor:'#8a1f1f', fundo:'#fbe9e9' },
 };
 const ORDEM_FULL = Object.keys(ST_FULL);
-const ABERTOS_FULL = ['programado', 'separacao', 'conferencia', 'etiquetagem', 'aguardando_envio'];
-const PREVISTO_FULL = ['programado', 'separacao', 'conferencia'];   // pares, caixas e m³ ainda são previsão
+const ABERTOS_FULL = ['programado', 'separacao', 'ag_conferencia', 'conferencia', 'etiquetagem', 'aguardando_envio'];
+const PREVISTO_FULL = ['programado', 'separacao', 'ag_conferencia', 'conferencia'];   // pares, caixas e m³ ainda são previsão
 const pillFull = st => `<span class="st-full" style="color:${ST_FULL[st]?.cor};background:${ST_FULL[st]?.fundo}">${esc(ST_FULL[st]?.rot || st)}</span>`;
 const fmtM3 = n => n === null || n === undefined || n === '' ? '–' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits:3, maximumFractionDigits:3 });
 const fmtDur = min => min < 60 ? `${Math.round(min)} min` : `${Math.floor(min / 60)}h${String(Math.round(min % 60)).padStart(2, '0')}`;
@@ -1101,7 +1102,7 @@ const DEMO_FULL = (() => {
     ['DIGOS','79681253','2026-10-21','079','davi',533,414,'expedido',100,28,2.898], ['DIGOS','79984317','2026-10-21','150','arthur',746,425,'expedido',100,35,2.975],
     ['CACAL','79752029','2026-10-21','030','arthur',806,505,'expedido',100,42,3.535], ['CACAL','79776220','2026-10-21','099','arthur',652,516,'expedido',100,45,3.612],
     ['CACAL','79532441','2026-10-21','096','arthur',830,610,'expedido',100,52,4.27], ['CACAL','80060314','2026-10-23','105/100','arthur',1059,990,'conferencia',100,83,6.93],
-    ['DROSA','80065106','2026-10-23','057','vitor',472,472,'aguardando_envio',100,40,3.304], ['DIGOS','80055010','2026-10-23','155',null,1127,902,'separacao',53,76,6.314],
+    ['DROSA','80065106','2026-10-23','057','vitor',472,472,'aguardando_envio',100,40,3.304], ['DIGOS','80055010','2026-10-23','155','davi',1127,902,'ag_conferencia',100,76,6.314],
     ['DROSA','79762770','2026-10-23','057','davi',533,313,'aguardando_envio',100,26,2.191], ['DROSA','79541319','2026-10-23','056','vini',497,347,'aguardando_envio',100,29,2.429],
     ['DIGOS','79981921','2026-10-26','154','arthur',1045,900,'aguardando_envio',100,73,6.3], ['DIGOS','80084449','2026-10-26','154',null,824,660,'separacao',17,55,4.62],
     ['DIGOS','80279586','2026-10-26',null,null,1122,null,'programado',0,75,6.286],
@@ -1118,9 +1119,9 @@ const DEMO_FULL = (() => {
       coletas.push({ id:String(i + 1), envio_id:String(i + 1), etapa:'separacao', coletadores:[l[4]], cesto:l[3], pares:l[6], caixas:null,
         periodos: fase >= 2 ? [{ inicio:hm(0, ini), fim:hm(0, ini + d) }] : [{ inicio:hm(0, ini), fim:null }] }); }
     const conf = [['nathan marques', 'tiago santos', 'davi duarte'], ['nathan marques', 'tiago santos'], ['tiago santos', 'davi duarte', 'vitor']][i % 3];
-    if (fase >= 3) { const ini = 13 * 60 + (i % 4) * 15, d = dur(l[6], (130 + (i * 23) % 60) * conf.length);
+    if (fase >= 4) { const ini = 13 * 60 + (i % 4) * 15, d = dur(l[6], (130 + (i * 23) % 60) * conf.length);
       coletas.push({ id:String(200 + i), envio_id:String(i + 1), etapa:'conferencia', coletadores:conf, cesto:null, pares:null, caixas:null, periodos:[{ inicio:hm(0, ini), fim:hm(0, ini + d) }] }); }
-    if (fase >= 4) { const ini = 15 * 60 + (i % 3) * 20, eq = i % 2 ? ['vitor'] : ['vitor', 'guilherme'], d = dur(l[6], (420 + (i * 31) % 150) * eq.length);
+    if (fase >= 5) { const ini = 15 * 60 + (i % 3) * 20, eq = i % 2 ? ['vitor'] : ['vitor', 'guilherme'], d = dur(l[6], (420 + (i * 31) % 150) * eq.length);
       coletas.push({ id:String(300 + i), envio_id:String(i + 1), etapa:'etiquetagem', coletadores:eq, cesto:null, pares:null, caixas:null, periodos:[{ inicio:hm(0, ini), fim:hm(0, ini + d) }] }); }
   });
   return { envios, coletas, eventos:[], seq:1000 };
@@ -1607,7 +1608,7 @@ function folhaRostoHtml(e){
         const iAtual = ORDEM_FULL.indexOf(e.status), i = ORDEM_FULL.indexOf(st);
         const feita = e.status !== 'cancelado' && i < iAtual, atual = st === e.status;
         return `<tr class="${feita ? 'feita' : ''} ${atual ? 'atual' : ''}"><td class="ck"><span class="cx">${feita ? '✓' : ''}</span></td>
-          <td class="nm">${esc(ST_FULL[st].rot.toUpperCase())}${feita ? '<small>no sistema</small>' : atual ? '<small>etapa atual</small>' : ''}</td>
+          <td class="nm">${esc((st === 'conferencia' ? 'Conferência' : ST_FULL[st].rot).toUpperCase())}${feita ? '<small>no sistema</small>' : atual ? '<small>etapa atual</small>' : ''}</td>
           <td class="lin" style="width:36mm"></td><td class="lin" style="width:18mm"></td><td class="lin" style="width:15mm"></td></tr>`;
       }).join('')}
       </tbody></table>
@@ -2430,7 +2431,7 @@ function demoDivRecIni(){
     proc_inicio_em:`${addDias(e2.data_expedicao, 2)}T16:54:00.000Z`, proc_fim_em:`${addDias(e2.data_expedicao, 3)}T11:23:00.000Z`, custo_coleta:189.4, volume_m3:3.1, distancia_km:32.78, tarifas_extras:null, tarifas_obs:null,
     itens:[lin('DEMO-300-PT-33', '1000000003', 'Preto | 33 BR', 8, 6), lin('DEMO-300-BG-40', '1000000004', 'Bege | 40 BR', 7, 4), lin('DEMO-300-PT-34', '1000000004', 'Preto | 34 BR', 14, 12), lin('DEMO-400-CR-35', '1000000005', 'Creme | 35 BR', 160, 160, 2), lin('DEMO-400-CR-36', '1000000005', 'Creme | 36 BR', 306, 306)], atualizado_em:new Date().toISOString(), atualizado_por:'demonstracao' };
   Object.values(D.recebimentos).forEach(somaRec);
-  const ab = D.envios.find(e => ['separacao', 'conferencia'].includes(e.status));
+  const ab = D.envios.find(e => ['separacao', 'ag_conferencia', 'conferencia'].includes(e.status));
   if (ab) D.divergencias.push({ id:String(++D.divSeq), envio_id:ab.id, plano_id:null, produto:'TÊNIS CASUAL', cor:'PRETO', mlb:'', tamanho:'37', qtd_plan:12, qtd_real:8, motivo:'Não localizado no estoque', observacao:'Endereço vazio no WMS',
     status:'aberta', meli_em:null, meli_por:null, wms_em:null, wms_por:null, criado_em:new Date().toISOString(), criado_por:'davi duarte', atualizado_em:new Date().toISOString(), atualizado_por:'davi duarte' });
 }
@@ -3577,7 +3578,7 @@ async function apiAloc(path, corpo){
   const ag = new Date().toISOString();
   if (path.startsWith('/alocacao?')) { const data = new URLSearchParams(path.split('?')[1]).get('data');
     const sepPor = id => DEMO_FULL.coletas.filter(c => c.envio_id === id && (c.etapa || 'separacao') === 'separacao').reduce((t, c) => t + (Number(c.pares) || 0), 0);
-    const envios = DEMO_FULL.envios.filter(e => ['programado', 'separacao', 'conferencia', 'etiquetagem', 'aguardando_envio'].includes(e.status)).map(e => ({ id:e.id, cnpj_id:e.cnpj_id, pedido:e.pedido, status:e.status,
+    const envios = DEMO_FULL.envios.filter(e => ['programado', 'separacao', 'ag_conferencia', 'conferencia', 'etiquetagem', 'aguardando_envio'].includes(e.status)).map(e => ({ id:e.id, cnpj_id:e.cnpj_id, pedido:e.pedido, status:e.status,
       pares_plan:e.pares_plan, pares_envio:e.pares_envio, data_expedicao:e.data_expedicao, hora_expedicao:e.hora_expedicao, data_limite:e.data_limite || null, separados: sepPor(e.id) }));
     const d = DEMO_ALOC.docs[data];
     return { data, doc: d ? JSON.parse(JSON.stringify(d.doc)) : null, versao: d?.versao || null, atualizado_por: d?.por || null, envios,
@@ -3641,7 +3642,7 @@ function analisarAloc(r){
   d.pessoas.forEach(p => (porPessoa[p.nome] || []).forEach(b => { if (hm2m(b.ini) < hm2m(p.ini || d.jornada.ini) || hm2m(b.fim) > hm2m(p.fim || d.jornada.fim)) alertas.push(`${nomeWms(p.nome)} tem atividade fora do horário dela (${p.ini}–${p.fim})`); }));
   // demanda do FULL ainda sem plano
   const planejado = (id, tipo) => d.blocos.filter(b => String(b.envio_id) === String(id) && b.tipo === tipo).reduce((t, b) => t + (Number(b.pares) || 0), 0);
-  const dem = r.envios.filter(e => ['programado', 'separacao', 'conferencia'].includes(e.status)).map(e => {
+  const dem = r.envios.filter(e => ['programado', 'separacao', 'ag_conferencia', 'conferencia'].includes(e.status)).map(e => {
     const total = Number(e.pares_envio ?? e.pares_plan) || 0, falta = Math.max(0, (Number(e.pares_plan) || 0) - (Number(e.separados) || 0));
     return { e, total, falta, sep:planejado(e.id, 'separacao'), conf:planejado(e.id, 'conferencia') }; });
   // ocupação a cada 15 min
