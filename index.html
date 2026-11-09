@@ -864,11 +864,12 @@ function telaPessoas(){
       <div class="abas">
         <button data-aba="acessos" class="${s.aba==='acessos'?'on':''}">Acesso ao portal</button>
         <button data-aba="wms" class="${s.aba==='wms'?'on':''}">Colaboradores do WMS</button>
+        <button data-aba="crachas" class="${s.aba==='crachas'?'on':''}">🪪 Crachás</button>
         <button data-aba="hist" class="${s.aba==='hist'?'on':''}">Histórico</button>
       </div>
     </div>
     <div id="pes"><div class="carregando">Carregando…</div></div>`;
-  $app.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; s.editando = null; telaPessoas(); });
+  $app.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; s.editando = null; if (s.aba === 'crachas') state.crachas = null; telaPessoas(); });
   carregarPessoas();
 }
 async function carregarPessoas(){
@@ -886,6 +887,7 @@ function renderPessoas(){
   const s = state.pes, r = state.pesDados, $p = document.getElementById('pes');
   if (!$p || !r) return;
   if (s.aba === 'wms') return renderColaboradores($p, r);
+  if (s.aba === 'crachas') return renderCrachas($p);
   if (s.aba === 'hist') return renderHistorico($p, r);
   const edita = pode('pessoas', 'editar');
   const resumo = u => r.telas.map(t => {
@@ -2793,6 +2795,9 @@ const MODELOS_IMPRESSO = [
   { id:'qr_portal', nome:'QR code do portal', desc:'Para colar na parede: o time escaneia e abre a Central de Operações no celular.', ico:'📱',
     html: () => placaQrHtml({ titulo:'Central de Operações', chamada:'Acesse pelo celular', sub:'Aponte a câmera do celular para o código e entre com o seu usuário.', url:PORTAL_URL_PUBLICADO,
       passo1:'Abra a câmera e aponte para o código', passo2:'Toque no link que aparecer', passo3:'Entre com o seu usuário e senha. Não compartilhe o seu acesso.' }) },
+  { id:'kit_lousa', nome:'Lousa · modelo Colunas', desc:'Cada frente é uma coluna e o ímã com foto muda de coluna. O mais simples de manter. Inclui o guia de montagem das 3 lousas.', ico:'🧲', html: () => kitLousaHtml('colunas') },
+  { id:'kit_lousa_hist', nome:'Lousa · modelo Histograma', desc:'Manhã e tarde como a Alocação do dia: frentes nas linhas, horas nas colunas. Guia de montagem, rótulos, horas e etiquetas.', ico:'📊', html: () => kitLousaHtml('histograma') },
+  { id:'kit_lousa_corrida', nome:'Lousa · modelo Corrida da meta', desc:'Uma pista por frente com ímãs META e NÓS: o time vê o ritmo em 3 segundos. Recomendado para time júnior.', ico:'🏁', html: () => kitLousaHtml('corrida') },
 ];
 
 function telaImpressos(){
@@ -2816,6 +2821,280 @@ function telaImpressos(){
   desenha();
 }
 
+
+/* =================== CRACHÁS (carrinho e ímã da lousa) e KIT DA LOUSA =================== */
+// Carrinho: 54 x 85 mm (tamanho de cartão), 9 por folha A4, com marca do furo para o mosquetão.
+// Lousa: 40 x 50 mm, 20 por folha A4 (plastificar a folha inteira, colar na manta magnética e recortar).
+const FAIXA_CRACHA_PADRAO = 'LOGÍSTICA';
+const nomeCracha = p => (p.nome_exibir || '').trim() || String(p.nome || '').trim().split(/\s+/)[0] || '';
+const sobrenomeCracha = p => { const t = String(p.nome || '').trim().split(/\s+/); return p.nome_exibir ? p.nome : t.length > 1 ? t.slice(1).join(' ') : ''; };
+const iniciaisCracha = p => String(p.nome || '?').trim().split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
+const CSS_CRACHA = `
+  @page{size:A4 portrait;margin:8mm} *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#1b2333}
+  .folha{display:grid;justify-content:center;align-content:start;page-break-after:always;break-after:page} .folha:last-child{page-break-after:auto;break-after:auto}
+  .car-f{grid-template-columns:repeat(3,54mm);grid-auto-rows:85mm;gap:5mm 6mm}
+  .lou-f{grid-template-columns:repeat(4,40mm);grid-auto-rows:50mm;gap:4mm 6mm}
+  .cr{position:relative;overflow:hidden;border:0.2mm dashed #9aa3b2;border-radius:3mm;background:#fff;display:flex;flex-direction:column;align-items:center}
+  .cr .topo{width:100%;background:#02285a;display:flex;align-items:center;justify-content:center;gap:2mm;color:#fff;font-weight:800;letter-spacing:.6pt}
+  .cr .topo img{background:#fff;border-radius:1.2mm;object-fit:contain}
+  .car .topo{height:15mm;padding-top:5mm;font-size:7.5pt} .car .topo img{width:7mm;height:7mm;padding:.6mm}
+  .car .furo{position:absolute;top:2mm;left:50%;width:4.5mm;height:4.5mm;margin-left:-2.25mm;border-radius:50%;border:0.3mm solid #fff;background:rgba(255,255,255,.25)}
+  .car .ft{margin-top:4mm;width:40mm;height:40mm;border-radius:3mm;border:1mm solid #f1c300;overflow:hidden;background:#e9edf3;display:flex;align-items:center;justify-content:center;font-size:30pt;font-weight:800;color:#02285a}
+  .cr .ft img{width:100%;height:100%;object-fit:cover}
+  .car .nm{margin-top:2.5mm;font-weight:900;color:#02285a;text-transform:uppercase;line-height:1;text-align:center;padding:0 2mm;white-space:nowrap}
+  .car .sb{margin-top:1mm;font-size:7.5pt;color:#566074;text-align:center;padding:0 3mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .cr .fx{position:absolute;bottom:0;left:0;right:0;background:#f1c300;color:#02285a;font-weight:900;text-align:center;letter-spacing:1.2pt}
+  .car .fx{height:8mm;line-height:8mm;font-size:8.5pt}
+  .lou .ft{margin-top:2.5mm;width:31mm;height:31mm;border-radius:2mm;border:0.8mm solid #02285a;overflow:hidden;background:#e9edf3;display:flex;align-items:center;justify-content:center;font-size:22pt;font-weight:800;color:#02285a}
+  .lou .nm{margin-top:1.5mm;font-weight:900;color:#02285a;text-transform:uppercase;line-height:1;white-space:nowrap}
+  .lou .fx{height:3mm}
+  .rod{text-align:center;font-size:7pt;color:#8a93a5;margin-top:3mm;grid-column:1/-1}
+`;
+// tamanho da letra do nome para caber na largura
+const tamNome = (t, larguraMm, max) => Math.max(8, Math.min(max, Math.floor(larguraMm / Math.max(1, t.length) * 4.6)));
+function crachaCarrinhoHtml(p){
+  const n = nomeCracha(p);
+  return `<div class="cr car"><div class="topo"><span class="furo"></span><img src="${LOGOS.VALENRO}" alt="">VALENRO</div>
+    <div class="ft">${p.foto ? `<img src="${p.foto}" alt="">` : esc(iniciaisCracha(p))}</div>
+    <div class="nm" style="font-size:${tamNome(n, 48, 22)}pt">${esc(n)}</div><div class="sb">${esc(sobrenomeCracha(p))}</div>
+    <div class="fx">${esc((p.faixa || FAIXA_CRACHA_PADRAO).toUpperCase())}</div></div>`;
+}
+function crachaLousaHtml(p){
+  const n = nomeCracha(p);
+  return `<div class="cr lou"><div class="ft">${p.foto ? `<img src="${p.foto}" alt="">` : esc(iniciaisCracha(p))}</div>
+    <div class="nm" style="font-size:${tamNome(n, 36, 13)}pt">${esc(n)}</div><div class="fx"></div></div>`;
+}
+// lista [{p, n}] → folhas A4
+function folhasCrachas(lista, tipo){
+  const um = tipo === 'carrinho' ? crachaCarrinhoHtml : crachaLousaHtml, porFolha = tipo === 'carrinho' ? 9 : 20, cards = [];
+  // cada pessoa começa numa folha nova (a folha não mistura colaboradores)
+  const folhas = [];
+  lista.forEach(({ p, n }) => { const c = []; for (let i = 0; i < n; i++) c.push(um(p)); for (let i = 0; i < c.length; i += porFolha) folhas.push(c.slice(i, i + porFolha)); });
+  if (tipo !== 'carrinho') { const todos = folhas.flat(); folhas.length = 0; for (let i = 0; i < todos.length; i += porFolha) folhas.push(todos.slice(i, i + porFolha)); }
+  const dica = tipo === 'carrinho' ? 'Recorte na linha tracejada · plastifique · fure no círculo do topo para o mosquetão (ou cole ímã atrás)' : 'Plastifique a folha inteira · cole na manta magnética adesiva · recorte na linha tracejada';
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Crachás · ${tipo === 'carrinho' ? 'carrinho' : 'lousa'}</title><style>${CSS_CRACHA}</style></head><body>
+    ${folhas.map(f => `<div class="folha ${tipo === 'carrinho' ? 'car-f' : 'lou-f'}">${f.join('')}<div class="rod">${dica}</div></div>`).join('')}</body></html>`;
+}
+
+// ---- demonstração
+function demoCrachas(path, corpo){
+  const D = (DEMO_PESSOAS.crachas ||= { extra:{}, avulsos:[], seq:0 });
+  if (path === '/crachas') {
+    const oo = DEMO_OO.pessoas.filter(p => p.ativo).map(p => ({ chave:'oo:' + p.id, nome:p.nome, funcao:p.funcao, foto:p.foto || null, origem:'equipe' }));
+    const us = DEMO_PESSOAS.usuarios.filter(u => u.ativo && !DEMO_OO.pessoas.some(p => p.usuario_login === u.login)).map(u => ({ chave:'u:' + u.login, nome:u.nome, funcao:u.perfil, foto:u.foto || null, origem:'portal' }));
+    const av = D.avulsos.filter(a => a.ativo).map(a => ({ ...a, origem:'avulso' }));
+    return { pessoas:[...oo, ...us, ...av].map(p => ({ ...p, ...(D.extra[p.chave] || {}) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')) };
+  }
+  if (path === '/crachas/salvar') { if (!corpo.chave) { if (!corpo.nome) throw new Error('Informe o nome'); const chave = 'x:' + (++D.seq); D.avulsos.push({ chave, nome:corpo.nome, foto:null, ativo:true }); D.extra[chave] = { nome_exibir:corpo.nome_exibir || null, faixa:corpo.faixa || null }; return { ok:true, chave }; }
+    D.extra[corpo.chave] = { nome_exibir:corpo.nome_exibir || null, faixa:corpo.faixa || null }; return { ok:true }; }
+  if (path === '/crachas/foto') { const c = corpo.chave;
+    if (c.startsWith('oo:')) sincronizarFotoDemo(null, c.slice(3), corpo.foto, corpo.foto_mini);
+    else if (c.startsWith('u:')) sincronizarFotoDemo(c.slice(2), null, corpo.foto, corpo.foto_mini);
+    else { const a = D.avulsos.find(x => x.chave === c); if (a) a.foto = corpo.foto; }
+    return { ok:true }; }
+  if (path === '/crachas/excluir') { const a = D.avulsos.find(x => x.chave === corpo.chave); if (a) a.ativo = false; return { ok:true }; }
+}
+async function apiCrachas(path, corpo){ return DEMO ? demoCrachas(path, corpo) : api(path, corpo ? { metodo:'POST', corpo } : {}); }
+
+// ---- aba "Crachás" em Pessoas e acessos
+async function renderCrachas($p){
+  const s = state.pes, edita = pode('pessoas', 'editar');
+  if (!state.crachas) { $p.innerHTML = '<div class="carregando">Carregando…</div>'; try { state.crachas = (await apiCrachas('/crachas')).pessoas; } catch (e) { if (e instanceof SemSessao) throw e; $p.innerHTML = `<div class="erro">${esc(e.message)}</div>`; return; } }
+  const L = state.crachas, q = (s.crQtd ||= {}), termo = (s.crBusca || '').trim().toLowerCase();
+  L.forEach(p => { q[p.chave] ||= { car:9, lou:4, sel:p.origem !== 'portal' }; });
+  const vis = L.filter(p => !termo || p.nome.toLowerCase().includes(termo) || nomeCracha(p).toLowerCase().includes(termo));
+  const semFoto = L.filter(p => q[p.chave].sel && !p.foto).length;
+  $p.innerHTML = `
+    <div class="painel">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <h3 style="margin:0">Crachás</h3><span class="info">carrinho 5,4 × 8,5 cm (folha de 9 da mesma pessoa) · ímã da lousa 4 × 5 cm (20 por folha, todo o time junto)</span><span style="flex:1"></span>
+        <input id="cr-busca" class="campo" placeholder="Buscar nome" value="${esc(s.crBusca || '')}">
+        ${edita ? '<button class="btn" id="cr-avulso">+ Crachá avulso</button>' : ''}
+        <button class="btn" id="cr-imp-lou">🧲 Imprimir ímãs da lousa</button><button class="btn pri" id="cr-imp-car">🪪 Imprimir crachás de carrinho</button>
+      </div>
+      <div class="leg">Marque quem entra na impressão e quantos de cada. Nome e foto vêm do One-on-One (equipe) ou do acesso ao portal; o "nome no crachá" é só para o crachá (ex.: Beto).
+        ${semFoto ? `<b style="color:#9a5b00">${semFoto} marcado(s) sem foto: o crachá sai com as iniciais.</b>` : ''}</div>
+      <div style="overflow-x:auto"><table class="cr-tab">
+        <thead><tr><th><input type="checkbox" id="cr-todos" title="Marcar todos" ${vis.every(p => q[p.chave].sel) ? 'checked' : ''}></th><th>Pessoa</th><th>Nome no crachá</th><th>Faixa</th><th class="n">Carrinho</th><th class="n">Lousa</th><th></th></tr></thead>
+        <tbody>${vis.map(p => `<tr class="${q[p.chave].sel ? '' : 'cr-off'}">
+          <td><input type="checkbox" data-crsel="${esc(p.chave)}" ${q[p.chave].sel ? 'checked' : ''}></td>
+          <td><span class="nome-av">${avatar(p.nome, p.foto, 34)}<span><b>${esc(p.nome)}</b><small class="info" style="display:block">${p.origem === 'equipe' ? 'equipe' : p.origem === 'avulso' ? 'avulso' : 'acesso ao portal'}${p.funcao ? ' · ' + esc(ROT_PERFIL[p.funcao] || p.funcao) : ''}</small></span></span></td>
+          <td><input class="campo" data-crnome="${esc(p.chave)}" value="${esc(p.nome_exibir || '')}" placeholder="${esc(nomeCracha({ nome:p.nome }))}" maxlength="30" ${edita ? '' : 'disabled'} style="width:130px"></td>
+          <td><input class="campo" data-crfx="${esc(p.chave)}" value="${esc(p.faixa || '')}" placeholder="${FAIXA_CRACHA_PADRAO}" maxlength="24" ${edita ? '' : 'disabled'} style="width:120px"></td>
+          <td class="n"><input class="campo cr-n" data-crcar="${esc(p.chave)}" inputmode="numeric" value="${q[p.chave].car}"></td>
+          <td class="n"><input class="campo cr-n" data-crlou="${esc(p.chave)}" inputmode="numeric" value="${q[p.chave].lou}"></td>
+          <td style="white-space:nowrap">${edita ? `<button class="btn mini" data-crfoto="${esc(p.chave)}">📷 Foto</button>` : ''}
+            <button class="btn mini" data-crum="${esc(p.chave)}" title="Imprime os crachás de carrinho só desta pessoa (9 = uma folha inteira)">🖨 ${q[p.chave].car || 9}</button>
+            ${edita && p.origem === 'avulso' ? `<button class="btn mini" data-crdel="${esc(p.chave)}">Excluir</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="vazio">Ninguém encontrado.</td></tr>'}
+        </tbody></table></div>
+      <div class="info" style="margin-top:8px">💡 Plastificação: polaseal tamanho <b>cartão (65 × 95 mm)</b> para o crachá de carrinho. Fure <b>depois</b> de plastificar, no círculo do topo, com margem de plástico em volta. Para os ímãs da lousa, plastifique a folha A4 inteira e cole na manta magnética adesiva antes de recortar.</div>
+    </div>`;
+  const $ = k => document.getElementById(k), P = k => L.find(p => p.chave === k);
+  const b = $('cr-busca'); b.oninput = () => { s.crBusca = b.value; clearTimeout(s._ct); s._ct = setTimeout(() => { renderCrachas($p).then(() => { const n = $('cr-busca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }); }, 250); };
+  $('cr-todos').onchange = e => { vis.forEach(p => { q[p.chave].sel = e.target.checked; }); renderCrachas($p); };
+  $p.querySelectorAll('[data-crsel]').forEach(c => c.onchange = () => { q[c.dataset.crsel].sel = c.checked; c.closest('tr').classList.toggle('cr-off', !c.checked); });
+  const n = v => Math.max(0, Math.min(40, parseInt(v, 10) || 0));
+  $p.querySelectorAll('[data-crcar]').forEach(i => i.onchange = () => { q[i.dataset.crcar].car = n(i.value); i.value = q[i.dataset.crcar].car; const bt = $p.querySelector(`[data-crum="${CSS.escape(i.dataset.crcar)}"]`); if (bt) bt.textContent = `🖨 ${q[i.dataset.crcar].car || 9}`; });
+  $p.querySelectorAll('[data-crlou]').forEach(i => i.onchange = () => { q[i.dataset.crlou].lou = n(i.value); i.value = q[i.dataset.crlou].lou; });
+  const salvar = async ch => { const p = P(ch), nm = $p.querySelector(`[data-crnome="${CSS.escape(ch)}"]`).value.trim(), fx = $p.querySelector(`[data-crfx="${CSS.escape(ch)}"]`).value.trim();
+    if ((p.nome_exibir || '') === nm && (p.faixa || '') === fx) return;
+    try { await apiCrachas('/crachas/salvar', { chave:ch, nome_exibir:nm || null, faixa:fx || null }); p.nome_exibir = nm || null; p.faixa = fx || null; avisar(`Crachá de ${p.nome} atualizado`); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  $p.querySelectorAll('[data-crnome]').forEach(i => i.onchange = () => salvar(i.dataset.crnome));
+  $p.querySelectorAll('[data-crfx]').forEach(i => i.onchange = () => salvar(i.dataset.crfx));
+  $p.querySelectorAll('[data-crfoto]').forEach(bt => bt.onclick = () => { const p = P(bt.dataset.crfoto);
+    editarFoto({ titulo:`Foto · ${p.nome}`, nome:p.nome, foto:p.foto, salvar: async (f, m) => { await apiCrachas('/crachas/foto', { chave:p.chave, foto:f, foto_mini:m }); p.foto = f; state.ooDados = null; state.pesDados = null; renderCrachas($p); } }); });
+  $p.querySelectorAll('[data-crum]').forEach(bt => bt.onclick = () => { const p = P(bt.dataset.crum); imprimirHtml(folhasCrachas([{ p, n:q[p.chave].car || 9 }], 'carrinho')); });
+  $p.querySelectorAll('[data-crdel]').forEach(bt => bt.onclick = async () => { if (!confirmaDupla(bt, 'Confirmar')) return;
+    try { await apiCrachas('/crachas/excluir', { chave:bt.dataset.crdel }); state.crachas = null; renderCrachas($p); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
+  const lote = tipo => { const k = tipo === 'carrinho' ? 'car' : 'lou', l = L.filter(p => q[p.chave].sel && q[p.chave][k] > 0).map(p => ({ p, n:q[p.chave][k] }));
+    if (!l.length) return avisar('Marque ao menos uma pessoa com quantidade', true); imprimirHtml(folhasCrachas(l, tipo)); };
+  $('cr-imp-car').onclick = () => lote('carrinho'); $('cr-imp-lou').onclick = () => lote('lousa');
+  const av = $('cr-avulso'); if (av) av.onclick = async () => { const nome = prompt('Nome do crachá avulso (ex.: temporário, diarista):'); if (!nome || !nome.trim()) return;
+    try { await apiCrachas('/crachas/salvar', { nome:nome.trim() }); state.crachas = null; await renderCrachas($p); avisar('Crachá avulso criado: coloque a foto em 📷'); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+}
+
+// ---- kit da lousa: 3 modelos (colunas · histograma · corrida da meta)
+// Cada modelo: página 1 = como montar as 3 lousas (90 x 60 cm, em escala); depois as peças para imprimir, plastificar e colocar ímã.
+const COR_FRENTE = { cross:'#c2185b', fsep:'#0b4fa8', fconf:'#2e7d32', est:'#6b3fa0', apoio:'#566074', fora:'#8a1f1f', prob:'#c62828', azul:'#02285a', ok:'#1a7a3e' };
+const FRENTES_LOUSA = [['CROSS', COR_FRENTE.cross, 'separação · embalagem · coleta'], ['FULL · SEPARAÇÃO', COR_FRENTE.fsep, ''], ['FULL · CONFERÊNCIA E EXPEDIÇÃO', COR_FRENTE.fconf, ''], ['ESTOQUE', COR_FRENTE.est, 'recebimento · ressuprimento · inventário']];
+const MODELOS_LOUSA = {
+  colunas:{ nome:'Colunas (quem está onde)', resumo:'Cada frente é uma coluna; os ímãs com foto mudam de coluna. O mais simples de manter.',
+    passos:['Na reunião da manhã, cada pessoa coloca o próprio ímã na frente em que vai trabalhar; o líder escreve meta e horário de término no cabeçalho de cada coluna.', 'Mudou alguém de frente durante o dia? Move o ímã na hora: a lousa tem que mostrar a realidade.', 'Na reunião pós-almoço, revise o hora a hora da lousa 1 e redistribua os ímãs para a tarde.', 'Problemas vão para a lousa 3 com dono e prazo; o que não tiver dono não sai do lugar.'],
+    lousas:[
+      { t:'PLANO DO DIA', s:'meta · hora a hora · coletas', r:[[1, 9, 27, 6, 'azul', 'PRESENTES __/__'], [29, 9, 27, 6, 'azul', 'PRECISA __ PESSOAS'], [1, 16, 56, 42, 'grade', 'HORA A HORA · previsto x real (CROSS · FULL)'], [58, 9, 31, 24, 'azul', 'META DO DIA'], [58, 34, 31, 24, 'cross', 'HORÁRIOS DE COLETA']] },
+      { t:'QUEM ESTÁ ONDE', s:'ímã de cada pessoa na sua frente', r:[[1, 9, 17, 36, 'cross', 'CROSS', 1], [18.5, 9, 17, 36, 'fsep', 'FULL SEP.', 1], [36, 9, 17, 36, 'fconf', 'FULL CONF.', 1], [53.5, 9, 17, 36, 'est', 'ESTOQUE', 1], [71, 9, 18, 36, 'apoio', 'APOIO', 1], [1, 47, 43, 12, 'fora', 'FORA HOJE'], [45, 47, 44, 12, 'fsep', 'À TARDE MUDA PARA…']] },
+      { t:'ESTOQUE & MELHORIAS', s:'tarefas · andamento · problemas', r:[[1, 9, 28, 30, 'apoio', 'A FAZER', 1], [30.5, 9, 28, 30, 'fsep', 'FAZENDO', 1], [60, 9, 29, 30, 'ok', 'FEITO ✓', 1], [1, 41, 88, 18, 'prob', 'PROBLEMAS / PRECISO DE AJUDA · dono · prazo']] } ] },
+  histograma:{ nome:'Histograma (manhã e tarde)', resumo:'Igual à Alocação do dia do portal: frentes nas linhas, horas nas colunas, blocos com as pessoas. Mais detalhe, mais manutenção.',
+    passos:['Na reunião da manhã, monte os blocos de cada frente na lousa MANHÃ (até quando cada um fica ali) e cole a etiqueta "fim ___:___" no final do bloco.', 'Na reunião pós-almoço, monte a lousa TARDE do zero, com quem está presente.', 'De hora em hora, anote previsto x real na lousa 3.', 'Cuidado: é o modelo que mais dá trabalho para manter. Se a lousa ficar desatualizada, o time para de olhar para ela.'],
+    lousas:[
+      { t:'MANHÃ', s:'07h às 12h', h:['7h', '8h', '9h', '10h', '11h', '12h'], r:[[1, 12, 11, 9, 'cross', 'CROSS'], [1, 21.5, 11, 9, 'fsep', 'FULL SEP.'], [1, 31, 11, 9, 'fconf', 'FULL CONF.'], [1, 40.5, 11, 9, 'est', 'ESTOQUE'], [1, 51, 88, 8, 'fora', 'FORA HOJE'],
+        [16, 12.5, 27, 8, 'bloco-cross', 'bloco: fim 10h30'], [16, 22, 33, 8, 'bloco-fsep', 'bloco: 579 + 601'], [16, 31.5, 25, 8, 'bloco-fconf', 'bloco: caminhão 9h–11h']] },
+      { t:'TARDE', s:'13h às 17h', h:['13h', '14h', '15h', '16h', '17h'], r:[[1, 12, 11, 9, 'cross', 'CROSS'], [1, 21.5, 11, 9, 'fsep', 'FULL SEP.'], [1, 31, 11, 9, 'fconf', 'FULL CONF.'], [1, 40.5, 11, 9, 'est', 'ESTOQUE'], [1, 51, 88, 8, 'fora', 'FORA / SAIU CEDO'],
+        [12.5, 22, 30, 8, 'bloco-fsep', 'bloco: 685'], [12.5, 31.5, 60, 8, 'bloco-fconf', 'bloco: fim 16h30']] },
+      { t:'NÚMEROS & PROBLEMAS', s:'hora a hora · o que travou', r:[[1, 9, 56, 28, 'grade', 'HORA A HORA · previsto x real'], [58, 9, 31, 13, 'azul', 'META · PRESENTES'], [58, 23, 31, 14, 'est', 'TAREFAS DE ESTOQUE'], [1, 39, 88, 20, 'prob', 'PROBLEMAS / PRECISO DE AJUDA']] } ] },
+  corrida:{ nome:'Corrida da meta', resumo:'Uma pista por frente: o ímã META anda para onde deveríamos estar e o ímã NÓS para onde estamos. O ritmo fica visível em 3 segundos.',
+    passos:['Na reunião da manhã, escreva em cada casa da pista o acumulado esperado até aquela hora (meta do dia ÷ horas de trabalho; a aba Time necessário x Meta dá o ritmo).', 'De hora em hora, o líder move o ímã 🏁 META para a casa da hora atual e o 🚚 NÓS para a última casa cujo número já alcançamos.', 'NÓS atrás da META: escreva o motivo em "por que ficou atrás?" e decidam a ação ali mesmo (reforçar a frente, tirar o bloqueio). Não espere o fim do dia.', 'A pista é do time, não de pessoa: não use para comparar quem produziu mais.'],
+    lousas:[
+      { t:'QUEM ESTÁ ONDE', s:'ímã de cada pessoa na sua frente', r:[[1, 9, 17, 36, 'cross', 'CROSS', 1], [18.5, 9, 17, 36, 'fsep', 'FULL SEP.', 1], [36, 9, 17, 36, 'fconf', 'FULL CONF.', 1], [53.5, 9, 17, 36, 'est', 'ESTOQUE', 1], [71, 9, 18, 36, 'apoio', 'APOIO', 1], [1, 47, 88, 12, 'fora', 'FORA HOJE']] },
+      { t:'CORRIDA DA META', s:'acumulado: onde deveríamos estar x onde estamos', pista:true, r:[] },
+      { t:'PROBLEMAS & ESTOQUE', s:'o que travou · tarefas', r:[[1, 9, 88, 26, 'prob', 'PROBLEMAS / PRECISO DE AJUDA · dono · prazo'], [1, 37, 28, 22, 'apoio', 'A FAZER', 1], [30.5, 37, 28, 22, 'fsep', 'FAZENDO', 1], [60, 37, 29, 22, 'ok', 'FEITO ✓', 1]] } ] },
+};
+// desenho das 3 lousas em escala (cm → mm na folha)
+function guiaLousasHtml(m){
+  const E = 0.94;   // mm na folha por cm da lousa
+  const cor = k => COR_FRENTE[String(k).replace('bloco-', '')] || '#566074';
+  const rect = ([x, y, w, h, k, t, coluna]) => { const bloco = String(k).startsWith('bloco-'), grade = k === 'grade';
+    const st = `left:${x * E}mm;top:${y * E}mm;width:${w * E}mm;height:${h * E}mm;`;
+    if (grade) return `<div class="gr" style="${st}"><b>${esc(t)}</b>${'<i></i>'.repeat(8)}</div>`;
+    if (bloco) return `<div class="bl" style="${st}border-color:${cor(k)};background:${cor(k)}22"><span style="color:${cor(k)}">${esc(t)}</span><em></em><em></em><em></em></div>`;
+    return `<div class="${coluna ? 'cl' : 'bx'}" style="${st}--c:${cor(k)}"><b>${esc(t)}</b>${coluna ? '<em></em><em></em><em></em>' : ''}</div>`; };
+  const pista = () => { const fr = [['CROSS', 'cross'], ['FULL SEP.', 'fsep'], ['FULL CONF.', 'fconf']], hs = [7, 8, 9, 10, 11, 13, 14, 15, 16, 17];
+    return fr.map(([t, k], i) => { const y = 12 + i * 16, n = hs.length, w = 76 / n, meta = 3.5, nos = [2.5, 3.5, 4.5][i];
+      return `<div class="bx" style="left:${1 * E}mm;top:${y * E}mm;width:${11 * E}mm;height:${11 * E}mm;--c:${cor(k)}"><b>${t}</b></div>
+        ${Array.from({ length:n }, (_, j) => `<div class="tl" style="left:${(13 + j * w) * E}mm;top:${y * E}mm;width:${w * E - 0.6}mm;height:${11 * E}mm;border-color:${cor(k)}"><b>${hs[j]}h</b><span>____</span></div>`).join('')}
+        <div class="mg meta" style="left:${(13 + meta * w) * E}mm;top:${(y - 4.3) * E}mm">META</div><div class="mg nos" style="left:${(13 + nos * w) * E}mm;top:${(y + 8.6) * E}mm;background:${cor(k)}">NÓS</div>
+        <div class="pq" style="left:${13 * E}mm;top:${(y + 12) * E}mm;width:${76 * E}mm">por que ficou atrás? ____________________</div>`; }).join(''); };
+  return `<div class="guia"><div class="g-cab"><b>Kit da lousa · modelo ${esc(m.nome)}</b><span>${esc(m.resumo)}</span></div>
+    <div class="g-row">${m.lousas.map((l, i) => `<div><div class="lb" style="width:${90 * E}mm;height:${60 * E}mm">
+        <div class="lt" style="height:${7 * E}mm"><b>${esc(l.t)}</b><small>${esc(l.s)}</small></div>
+        ${l.h ? `<div class="hr" style="left:${12.5 * E}mm;top:${8 * E}mm;width:${76 * E}mm">${l.h.map(x => `<span>${x}</span>`).join('')}</div>` : ''}
+        ${l.pista ? pista() : ''}${l.r.map(rect).join('')}</div><div class="g-n">Lousa ${i + 1}</div></div>`).join('')}</div>
+    ${m.passos ? `<div class="g-passos"><b>Como usar no dia a dia</b><ol>${m.passos.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
+    <div class="g-dica">Escala: 1 cm da lousa ≈ ${E} mm aqui. Ímãs de pessoa 4 × 5 cm · cartões de tarefa 6 × 4 cm. Recorte as peças das próximas páginas na linha tracejada, plastifique e cole ímã (ou manta magnética) atrás.</div></div>`;
+}
+function kitLousaHtml(modelo = 'colunas'){
+  const m = MODELOS_LOUSA[modelo] || MODELOS_LOUSA.colunas;
+  const titulo = (t, sub) => `<div class="tt"><img src="${LOGOS.VALENRO}" alt=""><div><b>${t}</b><small>${sub}</small></div></div>`;
+  const col = (t, cor, sub = '') => `<div class="col" style="--c:${cor}"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}<span class="lin">meta ______ · fim ___:___</span></div>`;
+  const colS = (t, cor) => `<div class="col s" style="--c:${cor}"><b>${t}</b></div>`;
+  const tarefa = (t, cor) => `<div class="tf" style="--c:${cor}"><div class="tfc">${t || '&nbsp;'}</div><div class="tfl">Resp.: ____________</div><div class="tfl">Prazo: ___/___ · ___:___</div></div>`;
+  const tarefas = ['Organização BL-4', 'Inventário', 'Reversa / Transferência', 'Ressuprimento', 'Mesanino', 'Área de recebimento'];
+  const pgTarefas = `<div class="pg"><div class="grid3">${tarefas.map(t => tarefa(t, COR_FRENTE.est)).join('')}${[1, 2, 3, 4, 5, 6].map(() => tarefa('', COR_FRENTE.est)).join('')}</div>
+    <div class="nota">Cartões de tarefa (6 × 4 cm) · os em branco você escreve com caneta de quadro e reaproveita</div></div>`;
+  const colunasFrentes = `${FRENTES_LOUSA.map(([t, c, s]) => col(t, c, s)).join('')}${col('APOIO / OUTRAS', COR_FRENTE.apoio)}${colS('FORA HOJE', COR_FRENTE.fora)}`;
+  let paginas = '';
+  if (modelo === 'histograma') {
+    paginas = `<div class="pg">${titulo('MANHÃ', '07h às 12h · quem faz o quê e até quando')}${titulo('TARDE', '13h às 17h · montada na reunião pós-almoço')}${titulo('NÚMEROS & PROBLEMAS', 'Hora a hora · meta · o que travou')}
+        <div class="grid2">${colS('PRESENTES ___ / ___', COR_FRENTE.azul)}${colS('PRECISA ___ PESSOAS', COR_FRENTE.azul)}</div><div class="nota">Títulos das lousas (topo)</div></div>
+      <div class="pg"><div class="grid4">${[0, 1].map(() => FRENTES_LOUSA.map(([t, c]) => `<div class="rl" style="--c:${c}"><b>${t}</b><span>meta ______</span></div>`).join('')).join('')}</div>
+        <div class="grid2" style="margin-top:4mm">${colS('FORA HOJE', COR_FRENTE.fora)}${colS('FORA / SAIU CEDO', COR_FRENTE.fora)}</div>
+        <div class="nota">Rótulos das linhas (11 × 8,5 cm): um jogo para a lousa da manhã e outro para a da tarde</div></div>
+      <div class="pg"><div class="horas">${['7h', '8h', '9h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h'].map(h => `<div class="hh">${h}</div>`).join('')}</div>
+        <div class="nota">Marcadores de hora (para o topo da grade) · manhã: 7h a 12h · tarde: 13h a 17h</div>
+        <div class="grid3" style="margin-top:5mm">${['fim ___:___', 'fim ___:___', 'fim ___:___', 'fim ___:___', 'fim ___:___', 'fim ___:___'].map(t => `<div class="tag">${t}</div>`).join('')}</div>
+        <div class="nota">Etiquetas de término para colocar no fim de cada bloco (escreva com caneta de quadro)</div>
+        <div class="grid2" style="margin-top:5mm">${colS('HORA A HORA', COR_FRENTE.azul)}${colS('PROBLEMAS / AJUDA', COR_FRENTE.prob)}</div></div>${pgTarefas}`;
+  } else if (modelo === 'corrida') {
+    const fr = FRENTES_LOUSA.slice(0, 3);
+    paginas = `<div class="pg">${titulo('QUEM ESTÁ ONDE', 'Alocação do time por frente')}${titulo('CORRIDA DA META', 'Acumulado: onde deveríamos estar x onde estamos')}${titulo('PROBLEMAS & ESTOQUE', 'O que travou · tarefas')}
+        <div class="grid2">${colS('PRESENTES ___ / ___', COR_FRENTE.azul)}${colS('PRECISA ___ PESSOAS', COR_FRENTE.azul)}</div><div class="nota">Títulos das lousas (topo)</div></div>
+      <div class="pg"><div class="grid2">${colunasFrentes}${colS('PROBLEMAS / AJUDA', COR_FRENTE.prob)}${colS('A FAZER', COR_FRENTE.apoio)}${colS('FAZENDO', COR_FRENTE.fsep)}${colS('FEITO ✓', COR_FRENTE.ok)}</div>
+        <div class="nota">Cabeçalhos da lousa "Quem está onde" e da lousa de problemas e estoque</div></div>
+      ${fr.map(([t, c]) => `<div class="pg"><div class="pista-cab" style="--c:${c}"><b>${t}</b><span>meta do dia ________ · termina às ___:___</span></div>
+        <div class="trilha">${['7h', '8h', '9h', '10h', '11h', '13h', '14h', '15h', '16h', '17h'].map(h => `<div class="tl2" style="--c:${c}"><b>${h}</b><small>deveríamos ter</small><span>______</span></div>`).join('')}</div>
+        <div class="pq2" style="--c:${c}">POR QUE FICOU ATRÁS? <span>(só quando o NÓS está atrás da META)</span></div>
+        <div class="nota">Pista ${esc(t)}: 1 rótulo + 10 casas de hora (7,5 × 4 cm). Escreva o acumulado esperado de cada hora com caneta de quadro na reunião da manhã.</div></div>`).join('')}
+      <div class="pg"><div class="mags">${fr.map(([t, c]) => `<div class="mg2 meta">🏁<b>META</b><small>${t}</small></div><div class="mg2 nos" style="--c:${c}">🚚<b>NÓS</b><small>${t}</small></div>`).join('')}
+        <div class="mg2 meta">🏁<b>META</b><small>reserva</small></div><div class="mg2 nos" style="--c:${COR_FRENTE.est}">🚚<b>NÓS</b><small>reserva</small></div></div>
+        <div class="nota">Ímãs META (o líder move a cada hora para o acumulado esperado) e NÓS (vai para o acumulado real). NÓS atrás da META = atrasados.</div></div>${pgTarefas}`;
+  } else {
+    paginas = `<div class="pg">${titulo('PLANO DO DIA', 'Meta · ritmo hora a hora · horários de coleta')}${titulo('QUEM ESTÁ ONDE', 'Alocação do time por frente')}${titulo('ESTOQUE & MELHORIAS', 'Tarefas · andamento · problemas')}
+        <div class="grid2">${colS('PRESENTES ___ / ___', COR_FRENTE.azul)}${colS('PRECISA ___ PESSOAS', COR_FRENTE.azul)}</div><div class="nota">Títulos das lousas (topo)</div></div>
+      <div class="pg"><div class="grid2">${colunasFrentes}${colS('A FAZER', COR_FRENTE.apoio)}${colS('FAZENDO', COR_FRENTE.fsep)}${colS('FEITO ✓', COR_FRENTE.ok)}${colS('PROBLEMAS / AJUDA', COR_FRENTE.prob)}</div>
+        <div class="nota">Cabeçalhos das colunas (9,2 cm) · escreva meta e horário de término com caneta de quadro branco por cima do plástico</div></div>${pgTarefas}`;
+  }
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Kit da lousa · ${esc(m.nome)}</title><style>
+    @page{size:A4 portrait;margin:8mm} @page guia{size:A4 landscape;margin:7mm}
+    *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#1b2333}
+    .guia{page:guia;page-break-after:always;break-after:page} .g-cab b{display:block;font-size:15pt;color:#02285a} .g-cab span{font-size:9.5pt;color:#566074}
+    .g-row{display:flex;gap:4mm;margin-top:4mm} .g-n{text-align:center;font-size:8pt;color:#566074;margin-top:1mm}
+    .lb{position:relative;border:1.6mm solid #b8bec9;border-radius:1mm;background:#fff;box-sizing:content-box}
+    .lt{position:absolute;left:.9mm;right:.9mm;top:.9mm;background:#02285a;color:#fff;border-bottom:.8mm solid #f1c300;border-radius:.8mm;display:flex;align-items:center;gap:2mm;padding:0 2mm}
+    .lt b{font-size:8pt;letter-spacing:.3pt} .lt small{font-size:5.5pt;opacity:.85}
+    .bx,.cl{position:absolute;border:.35mm solid var(--c);border-radius:.8mm;overflow:hidden} .bx b,.cl b{display:block;background:var(--c);color:#fff;font-size:5pt;padding:.4mm .8mm;white-space:nowrap;overflow:hidden}
+    .cl em,.bl em{display:inline-block;width:3.6mm;height:4.5mm;margin:.6mm .3mm 0;border:.25mm solid #02285a;border-radius:.4mm;background:#dfe7f3;vertical-align:top}
+    .bl{position:absolute;border:.45mm solid;border-radius:1mm;padding:.3mm .6mm} .bl span{display:block;font-size:4.5pt;font-weight:700}
+    .gr{position:absolute;border:.3mm solid #566074;border-radius:.6mm} .gr b{display:block;background:#566074;color:#fff;font-size:5pt;padding:.4mm .8mm} .gr i{display:block;height:3.2mm;border-bottom:.2mm solid #c9cfda}
+    .hr{position:absolute;display:flex;justify-content:space-between;font-size:5.5pt;font-weight:800;color:#02285a} .hr span{border-left:.4mm solid #02285a;padding-left:.6mm;flex:1}
+    .tl{position:absolute;border:.3mm solid;border-radius:.6mm;text-align:center;font-size:5pt} .tl b{display:block;font-size:6pt;color:#02285a} .tl span{color:#8a93a5;font-size:4.5pt}
+    .mg{position:absolute;width:6.5mm;height:4mm;border-radius:1mm;font-size:4.2pt;font-weight:900;display:flex;align-items:center;justify-content:center;margin-left:-3.2mm}
+    .mg.meta{background:#f1c300;color:#02285a;border:.3mm solid #02285a} .mg.nos{color:#fff}
+    .pq{position:absolute;font-size:4.6pt;color:#c62828;font-weight:700}
+    .g-dica{font-size:8pt;color:#566074;margin-top:4mm}
+    .g-passos{margin-top:5mm;border:.4mm solid #dfe3ea;border-left:2mm solid #f1c300;border-radius:2mm;padding:3mm 5mm;font-size:9.5pt}
+    .g-passos b{color:#02285a;font-size:11pt} .g-passos ol{margin:1.5mm 0 0;padding-left:5mm} .g-passos li{margin:1mm 0}
+    .pg{display:flex;flex-direction:column;gap:3.5mm;page-break-after:always;break-after:page} .pg:last-child{page-break-after:auto}
+    .tt{height:34mm;border:0.3mm dashed #9aa3b2;border-radius:3mm;background:#02285a;color:#fff;display:flex;align-items:center;gap:6mm;padding:0 8mm;border-bottom:3mm solid #f1c300}
+    .tt img{width:18mm;height:18mm;background:#fff;border-radius:2.5mm;padding:1.2mm;object-fit:contain} .tt b{display:block;font-size:28pt;letter-spacing:1pt} .tt small{display:block;font-size:11pt;opacity:.85;margin-top:1mm}
+    .grid2{display:grid;grid-template-columns:repeat(2,92mm);gap:4mm;justify-content:center} .grid3{display:grid;grid-template-columns:repeat(3,60mm);gap:4mm;justify-content:center}
+    .grid4{display:grid;grid-template-columns:repeat(2,110mm);gap:4mm;justify-content:center}
+    .col{height:30mm;border:0.3mm dashed #9aa3b2;border-radius:2.5mm;background:var(--c);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 3mm}
+    .col b{font-size:17pt;letter-spacing:.6pt;line-height:1.05} .col small{font-size:8.5pt;opacity:.9} .col .lin{margin-top:1.5mm;font-size:8pt;background:rgba(255,255,255,.92);color:#1b2333;border-radius:1.5mm;padding:.6mm 2mm}
+    .col.s{height:20mm} .col.s b{font-size:15pt}
+    .rl{height:62mm;border:0.3mm dashed #9aa3b2;border-radius:2.5mm;background:var(--c);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 4mm}
+    .rl{height:58mm} .rl b{font-size:19pt;line-height:1.05} .rl span{margin-top:3mm;font-size:10pt;background:rgba(255,255,255,.92);color:#1b2333;border-radius:1.5mm;padding:1mm 3mm}
+    .horas{display:grid;grid-template-columns:repeat(6,30mm);gap:3mm;justify-content:center} .hh{height:18mm;border:0.3mm dashed #9aa3b2;border-radius:2mm;background:#02285a;color:#fff;font-size:22pt;font-weight:900;display:flex;align-items:center;justify-content:center}
+    .tag{height:14mm;border:0.3mm dashed #9aa3b2;border-radius:2mm;background:#fff8d6;border-left:3mm solid #f1c300;font-size:14pt;font-weight:800;color:#02285a;display:flex;align-items:center;justify-content:center}
+    .tf{height:40mm;border:0.3mm dashed #9aa3b2;border-radius:2.5mm;background:#fff;border-top:5mm solid var(--c);padding:2mm 3mm;display:flex;flex-direction:column;gap:1.5mm}
+    .tfc{font-size:13pt;font-weight:800;color:#02285a;min-height:12mm;border-bottom:0.3mm solid #dfe3ea} .tfl{font-size:8.5pt;color:#566074}
+    .pista-cab{height:26mm;border:0.3mm dashed #9aa3b2;border-radius:3mm;background:var(--c);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center}
+    .pista-cab b{font-size:22pt} .pista-cab span{margin-top:1.5mm;font-size:11pt;background:rgba(255,255,255,.92);color:#1b2333;border-radius:1.5mm;padding:1mm 4mm}
+    .trilha{display:grid;grid-template-columns:repeat(2,75mm);gap:3mm 6mm;justify-content:center}
+    .tl2{height:40mm;border:0.3mm dashed #9aa3b2;border-radius:2.5mm;border-top:6mm solid var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff}
+    .tl2 b{font-size:22pt;color:#02285a;line-height:1} .tl2 small{font-size:8pt;color:#566074;margin-top:1mm} .tl2 span{font-size:16pt;color:#9aa3b2;margin-top:1mm}
+    .pq2{height:14mm;border:0.3mm dashed #9aa3b2;border-radius:2mm;background:#fbe9e9;border-left:4mm solid var(--c);color:#c62828;font-weight:900;font-size:13pt;display:flex;align-items:center;gap:3mm;padding:0 5mm}
+    .pq2 span{font-weight:400;font-size:9pt;color:#566074}
+    .mags{display:grid;grid-template-columns:repeat(2,60mm);gap:6mm 10mm;justify-content:center}
+    .mg2{height:40mm;border:0.3mm dashed #9aa3b2;border-radius:6mm;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20pt}
+    .mg2 b{font-size:22pt;letter-spacing:1pt} .mg2 small{font-size:8.5pt;margin-top:1mm} .mg2.meta{background:#f1c300;color:#02285a;border:1.2mm solid #02285a} .mg2.nos{background:var(--c);color:#fff}
+    .nota{font-size:7.5pt;color:#8a93a5;text-align:center}
+  </style></head><body>${guiaLousasHtml(m)}${paginas}</body></html>`;
+}
+const CSS_CRACHAS_TELA = `
+  .cr-tab td,.cr-tab th{padding:6px 8px;vertical-align:middle} .cr-tab .n{text-align:center} .cr-n{width:52px;text-align:center}
+  .cr-tab tr.cr-off td{opacity:.5} .cr-tab tr.cr-off td:first-child{opacity:1}
+`;
+document.head.insertAdjacentHTML('beforeend', `<style id="css-crachas">${CSS_CRACHAS_TELA}</style>`);
 
 /* =================== PRODUÇÃO DO TIME (consolidado do dia ou do período) =================== */
 // FULL: pares por etapa (separação, conferência...), tempo de operação (relógio), horas-pessoa, pares/h e pares/h-pessoa.
