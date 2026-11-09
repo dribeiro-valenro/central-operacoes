@@ -829,8 +829,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'editar', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'gerir', alocacao:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'ver', cross:'gerir', abandono:'gerir', motoristas:'editar', ponto:'editar', alocacao:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', full_comercial:'nenhum', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', full_comercial:'nenhum', cross:'editar', abandono:'editar', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', full_comercial:'nenhum', cross:'nenhum', abandono:'nenhum', motoristas:'nenhum', ponto:'gerir', alocacao:'nenhum', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'layout', nome:'Layout do galpão', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'editar', cross:'gerir', abandono:'gerir', layout:'editar', motoristas:'editar', ponto:'gerir', alocacao:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'ver', cross:'gerir', abandono:'gerir', layout:'ver', motoristas:'editar', ponto:'editar', alocacao:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', full_comercial:'nenhum', cross:'nenhum', abandono:'nenhum', layout:'nenhum', motoristas:'nenhum', ponto:'gerir', alocacao:'nenhum', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -8017,6 +8017,630 @@ function folhaPdiHtml(p, conv, metas, acomps, rodada){
   </div></body></html>`;
 }
 
+/* =================== LAYOUT DO GALPÃO =================== */
+// Blocos em escala (metros), catálogo de objetos com medida real e cor, versões (Atual, Proposta A...).
+// x = distância da parede esquerda, y = distância da parede de cima (eixos do desenho).
+const CAT_LAYOUT = {
+  movel:     { rot:'Móvel / equipamento', curto:'Móvel', colide:true },
+  estrutura: { rot:'Estrutura fixa (pilar, parede, escada, rampa)', curto:'Estrutura', colide:true },
+  zona:      { rot:'Zona / área (translúcida, não colide)', curto:'Zona', colide:false },
+  marcacao:  { rot:'Marcação (porta, vão, faixa de piso)', curto:'Marcação', colide:false },
+};
+const ORDEM_CAT_LAYOUT = ['zona', 'marcacao', 'estrutura', 'movel'];   // ordem de desenho (de baixo para cima)
+const CORES_LAYOUT = ['#9aa7b3', '#c9a46a', '#d58b5e', '#a7b78a', '#7fb0d6', '#b59ac4', '#6ec2b0', '#e08aa8', '#f1c300', '#1f5fa8', '#c62828', '#1f2a33'];
+const r2 = v => Math.round(v * 100) / 100;
+const fmtM = (v, c = 2) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits:c, maximumFractionDigits:c });
+const fmtM2 = v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits:1 });
+const numBR = v => { const n = Number(String(v ?? '').trim().replace(',', '.')); return Number.isFinite(n) ? n : NaN; };
+const uidLay = () => Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 6);
+
+// ---- demonstração (mesma carga inicial do 42_layout_galpao.sql)
+let DEMO_LAYOUT = null;
+function demoLayoutBase(){
+  const ag = new Date().toISOString(), it = (id, nome, x, y, w, d, cor, cat, trava) => ({ id, nome, x, y, w, d, cor, cat, ...(trava ? { trava:true } : {}) });
+  const tipos = [['Esteira de roletes', 3, .87, null, '#9aa7b3', 'movel'], ['Mesa Cross', 2.2, .7, null, '#d58b5e', 'movel'], ['Mesa', 1.2, .6, null, '#c9a46a', 'movel'], ['Gaiola', .8, .5, 2, '#b59ac4', 'movel'],
+    ['Palete PBR', 1, 1.2, null, '#a7b78a', 'movel'], ['Paleteira', 1.55, .55, null, '#7fb0d6', 'movel'], ['Mesa de escritório', 1.5, .6, null, '#d9c8a3', 'movel'], ['Pilar 0,51', .51, .51, null, '#1f2a33', 'estrutura'],
+    ['Pilar do mezanino', .2, .2, null, '#1f2a33', 'estrutura'], ['Escada', 3.2, 1, null, '#5f6b74', 'estrutura'], ['Rampa', 1.7, 3, null, '#8a93a5', 'estrutura'], ['Porta / vão', 2, .15, null, '#1f5fa8', 'marcacao'],
+    ['Faixa de piso', 3, .1, null, '#f1c300', 'marcacao'], ['Corredor', 1.8, 6, null, '#f1c300', 'zona'], ['Zona', 4, 3, null, '#6ec2b0', 'zona']]
+    .map(([nome, l, p, a, cor, cat], i) => ({ id:String(i + 1), nome, largura_m:l, profundidade_m:p, altura_m:a, cor, categoria:cat, obs:null }));
+  const blocos = [
+    { id:'1', nome:'Planta geral', largura_m:67, profundidade_m:56, lados:{ topo:'Fundo do terreno', base:'Rua Wanda Bueno Coelho (saída)', dir:'Rua Neusa Coelho' }, obs:'Croqui de 04/11. Medidas parcialmente estimadas pela proporção do desenho: confirmar no levantamento.', ordem:1 },
+    { id:'2', nome:'Bloco do estacionamento', largura_m:29, profundidade_m:12, lados:{ topo:'Estacionamento', base:'BL-1', esq:'Mezanino', dir:'Rampa' }, obs:'Croqui de 04/11. Pendências: orientação do bloco, vãos (portão ou parede?), pilar de 3,46, posição da rampa e da porta do BL-1.', ordem:2 },
+  ];
+  const versoes = [
+    { id:'1', bloco_id:'1', nome:'Atual (croqui 04/11)', principal:true, atualizado_em:ag, atualizado_por:'carga inicial', doc:{ itens:[
+      it('pg1', "Faixa caixa d'água", 0, 0, 2.7, 10, '#8a93a5', 'zona'), it('pg2', 'Pulmão', 2.7, 0, 64.3, 10, '#6ec2b0', 'zona'), it('pg3', 'Piso Abaixo', 0, 10, 33, 14, '#7fb0d6', 'zona'),
+      it('pg4', 'Passagem 3,00', 33.5, 9.9, 3, .2, '#1f5fa8', 'marcacao'), it('pg5', 'Piso Elevado (≈22)', 33, 10, 22, 14, '#c9a46a', 'zona'), it('pg6', 'Bloco do estacionamento', 55, 10, 12, 29, '#d58b5e', 'zona'),
+      it('pg7', 'Mini porta-paletes', 23, 24, 8, 12, '#a7b78a', 'zona'), it('pg8', 'Sala de Marketing (≈4)', 31, 24, 4, 12, '#b59ac4', 'zona'), it('pg9', 'Área Crossdocking', 21, 36, 14, 20, '#e08aa8', 'zona'),
+      it('pg10', 'Pátio', 35, 24, 20, 32, '#d9dde3', 'zona'), it('pg11', 'Portas 1–3 (posição a medir)', 36, 23.9, 16, .2, '#1f5fa8', 'marcacao')] } },
+    { id:'2', bloco_id:'2', nome:'Atual', principal:true, atualizado_em:ag, atualizado_por:'carga inicial', doc:{ itens:[
+      it('be1', 'Projeção do mezanino', 0, 0, 6.18, 12, '#b0412e', 'zona'), it('be2', 'Vão ?', 6.22, 0, 5.51, .15, '#1f5fa8', 'marcacao'), it('be3', 'Pilar 0,51', 11.73, 0, .51, .51, '#1f2a33', 'estrutura', 1),
+      it('be4', 'Vão ?', 12.24, 0, 5.49, .15, '#1f5fa8', 'marcacao'), it('be5', 'Pilar 0,51', 17.73, 0, .51, .51, '#1f2a33', 'estrutura', 1), it('be6', 'Vão ?', 18.24, 0, 5.25, .15, '#1f5fa8', 'marcacao'),
+      it('be7', 'Pilar 0,51', 23.49, 0, .51, .51, '#1f2a33', 'estrutura', 1), it('be8', 'Porta BL-1 (posição ?)', 24.11, 11.85, 4.89, .15, '#1f5fa8', 'marcacao'),
+      it('be9', 'Rampa (a confirmar)', 28.4, 2.2, .6, 1.7, '#8a93a5', 'estrutura', 1), it('be10', 'Escada · sala logística', 25.6, .6, 3.2, 1, '#5f6b74', 'estrutura', 1),
+      ...[[5.98, 3.15], [5.98, 6.15], [5.98, 9.15], [3.07, 3.15], [3.07, 9.15]].map(([x, y], i) => it(`be${11 + i}`, 'Pilar mez.', x, y, .2, .2, '#1f2a33', 'estrutura', 1)),
+      { ...it('be16', 'Mesa', 27.9, 8.6, .6, 1.2, '#c9a46a', 'movel'), tipo_id:'3' }] } },
+  ];
+  return { tipos, blocos, versoes, eventos:[], seq:100 };
+}
+async function apiLayout(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_LAYOUT ||= demoLayoutBase(), ag = new Date().toISOString(), cp = o => JSON.parse(JSON.stringify(o)), ev = (bloco_id, resumo) => D.eventos.unshift({ bloco_id, em:ag, por:'demonstracao', resumo });
+  const nomeDup = (lista, nome, id) => lista.some(x => x.nome.toLowerCase() === String(nome).trim().toLowerCase() && x.id !== id);
+  if (path === '/layout') return cp({ tipos:D.tipos, blocos:[...D.blocos].sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome)).map(b => ({ ...b,
+    versoes:D.versoes.filter(v => v.bloco_id === b.id).sort((a, b2) => (b2.principal - a.principal) || (a.id - b2.id)).map(v => ({ id:v.id, bloco_id:v.bloco_id, nome:v.nome, principal:v.principal, atualizado_em:v.atualizado_em, atualizado_por:v.atualizado_por, n_itens:v.doc.itens.length })) })) });
+  if (path.startsWith('/layout/versao?')) { const id = new URLSearchParams(path.split('?')[1]).get('id'), v = D.versoes.find(x => x.id === id); if (!v) throw new Error('Versão não encontrada');
+    return cp({ versao:v, eventos:D.eventos.filter(e => e.bloco_id === v.bloco_id).slice(0, 30) }); }
+  if (path === '/layout/bloco') { if (!String(corpo.nome || '').trim()) throw new Error('Informe o nome do bloco'); if (nomeDup(D.blocos, corpo.nome, corpo.id)) throw new Error('Já existe um bloco com esse nome');
+    const l = numBR(corpo.largura_m), p = numBR(corpo.profundidade_m); if (!(l >= .5 && l <= 500) || !(p >= .5 && p <= 500)) throw new Error('Medidas do bloco inválidas (0,5 a 500 m)');
+    if (corpo.id) { Object.assign(D.blocos.find(b => b.id === corpo.id), { nome:corpo.nome.trim(), largura_m:r2(l), profundidade_m:r2(p), lados:corpo.lados || {}, obs:corpo.obs || null, ordem:Number(corpo.ordem) || 0 }); ev(corpo.id, `alterou o bloco ${corpo.nome}`); return { ok:true, id:corpo.id }; }
+    const id = String(++D.seq), vid = String(++D.seq); D.blocos.push({ id, nome:corpo.nome.trim(), largura_m:r2(l), profundidade_m:r2(p), lados:corpo.lados || {}, obs:corpo.obs || null, ordem:Number(corpo.ordem) || 0 });
+    D.versoes.push({ id:vid, bloco_id:id, nome:'Atual', principal:true, doc:{ itens:[] }, atualizado_em:ag, atualizado_por:'demonstracao' }); ev(id, `criou o bloco ${corpo.nome}`); return { ok:true, id, versao_id:vid }; }
+  if (path === '/layout/bloco/excluir') { D.blocos = D.blocos.filter(b => b.id !== corpo.id); D.versoes = D.versoes.filter(v => v.bloco_id !== corpo.id); return { ok:true }; }
+  if (path === '/layout/tipo') { if (!String(corpo.nome || '').trim()) throw new Error('Informe o nome do objeto'); if (nomeDup(D.tipos, corpo.nome, corpo.id)) throw new Error('Já existe um objeto com esse nome no catálogo');
+    const l = numBR(corpo.largura_m), p = numBR(corpo.profundidade_m); if (!(l >= .05) || !(p >= .05)) throw new Error('Medidas inválidas');
+    const t = { nome:corpo.nome.trim(), largura_m:r2(l), profundidade_m:r2(p), altura_m:corpo.altura_m === '' || corpo.altura_m == null ? null : r2(numBR(corpo.altura_m)), cor:corpo.cor, categoria:corpo.categoria, obs:corpo.obs || null };
+    if (!corpo.id) { const id = String(++D.seq); D.tipos.push({ id, ...t }); return { ok:true, id, atualizados:0 }; }
+    const ant = D.tipos.find(x => x.id === corpo.id); let n = 0;
+    if (corpo.propagar) D.versoes.forEach(v => { v.doc.itens = v.doc.itens.map(x => { if (x.tipo_id !== corpo.id) return x; n++;
+      const gir = Math.abs(x.w - ant.profundidade_m) < .005 && Math.abs(x.d - ant.largura_m) < .005 && ant.largura_m !== ant.profundidade_m;
+      return { ...x, nome:x.nome === ant.nome ? t.nome : x.nome, w:gir ? t.profundidade_m : t.largura_m, d:gir ? t.largura_m : t.profundidade_m, cor:t.cor, cat:t.categoria }; }); if (n) v.atualizado_em = ag; });
+    Object.assign(ant, t); return { ok:true, id:corpo.id, atualizados:n }; }
+  if (path === '/layout/tipo/excluir') { D.tipos = D.tipos.filter(t => t.id !== corpo.id); return { ok:true }; }
+  if (path === '/layout/versao/salvar') { const v = D.versoes.find(x => x.id === corpo.id); if (corpo.versao !== v.atualizado_em) throw new Error('Alguém alterou esta planta enquanto você editava. Recarregue.');
+    v.doc = cp(corpo.doc); v.atualizado_em = ag; v.atualizado_por = 'demonstracao'; ev(v.bloco_id, corpo.resumo || 'alterou a planta'); return { ok:true, versao:ag }; }
+  if (path === '/layout/versao/nova') { const o = D.versoes.find(x => x.id === corpo.copiar_de), id = String(++D.seq), irmas = D.versoes.filter(v => v.bloco_id === corpo.bloco_id);
+    D.versoes.push({ id, bloco_id:corpo.bloco_id, nome:corpo.nome, principal:!irmas.length, doc:o ? cp(o.doc) : { itens:[] }, atualizado_em:ag, atualizado_por:'demonstracao' }); ev(corpo.bloco_id, `criou a versão ${corpo.nome}`); return { ok:true, id }; }
+  if (path === '/layout/versao/acao') { const v = D.versoes.find(x => x.id === corpo.id);
+    if (corpo.acao === 'renomear') v.nome = corpo.nome;
+    if (corpo.acao === 'principal') { D.versoes.filter(x => x.bloco_id === v.bloco_id).forEach(x => x.principal = false); v.principal = true; }
+    if (corpo.acao === 'excluir') { if (v.principal) throw new Error('Esta é a versão vigente: marque outra como vigente antes de excluir'); D.versoes = D.versoes.filter(x => x !== v); }
+    return { ok:true }; }
+  throw new Error('Rota de demonstração não encontrada');
+}
+
+// ---- geometria
+const dentroLay = (o, B) => o.x >= -0.001 && o.y >= -0.001 && o.x + o.w <= B.largura_m + 0.001 && o.y + o.d <= B.profundidade_m + 0.001;
+const cruzaLay = (a, b) => a.x < b.x + b.w - 0.001 && b.x < a.x + a.w - 0.001 && a.y < b.y + b.d - 0.001 && b.y < a.y + a.d - 0.001;
+const colideCat = o => CAT_LAYOUT[o.cat]?.colide;
+function conflitosLay(itens, B){
+  const ruins = new Set(), sol = itens.filter(colideCat);
+  for (const o of itens) if (!dentroLay(o, B)) ruins.add(o.id);
+  for (let i = 0; i < sol.length; i++) for (let j = i + 1; j < sol.length; j++) {
+    const a = sol[i], b = sol[j]; if (a.cat === 'estrutura' && b.cat === 'estrutura') continue;
+    if (cruzaLay(a, b)) { if (a.cat !== 'estrutura') ruins.add(a.id); if (b.cat !== 'estrutura') ruins.add(b.id); } }
+  return ruins;
+}
+// espaço livre em volta do objeto (até a parede ou o obstáculo mais próximo) — serve para conferir corredor
+function folgasLay(o, itens, B){
+  const obs = itens.filter(x => x.id !== o.id && colideCat(x));
+  const sobreY = x => x.y < o.y + o.d - 0.001 && o.y < x.y + x.d - 0.001, sobreX = x => x.x < o.x + o.w - 0.001 && o.x < x.x + x.w - 0.001;
+  const esq = Math.min(o.x, ...obs.filter(x => sobreY(x) && x.x + x.w <= o.x + 0.001).map(x => o.x - (x.x + x.w)));
+  const dir = Math.min(B.largura_m - o.x - o.w, ...obs.filter(x => sobreY(x) && x.x >= o.x + o.w - 0.001).map(x => x.x - o.x - o.w));
+  const cima = Math.min(o.y, ...obs.filter(x => sobreX(x) && x.y + x.d <= o.y + 0.001).map(x => o.y - (x.y + x.d)));
+  const baixo = Math.min(B.profundidade_m - o.y - o.d, ...obs.filter(x => sobreX(x) && x.y >= o.y + o.d - 0.001).map(x => x.y - o.y - o.d));
+  return { esq, dir, cima, baixo };
+}
+function lugarLivreLay(w, d, itens, B, cat){
+  if (!CAT_LAYOUT[cat]?.colide) return { x:r2(Math.max(0, (B.largura_m - w) / 2)), y:r2(Math.max(0, (B.profundidade_m - d) / 2)) };
+  const sol = itens.filter(colideCat), passo = B.largura_m > 80 ? 1 : 0.5;
+  for (let y = 0.5; y + d <= B.profundidade_m; y += passo) for (let x = 0.5; x + w <= B.largura_m; x += passo) {
+    const c = { x, y, w, d }; if (!sol.some(s => cruzaLay(c, s))) return { x:r2(x), y:r2(y) }; }
+  return { x:0, y:0 };
+}
+
+// ---- desenho (SVG em metros). Usado na tela e na impressão.
+function svgLayout(B, itens, o = {}){
+  const L = B.largura_m, W = B.profundidade_m, ppm = o.ppm || 30, M = margemLay(B, ppm, o.fonte || 12);
+  const px = n => n / ppm, fs = px(o.fonte || 12), ruins = o.ruins || new Set(), sel = o.sel;
+  const vb = `${-M} ${-M} ${L + 2 * M} ${W + 2 * M}`;
+  let g = '';
+  // grade
+  if (o.grade !== false) { const passo = Math.max(L, W) > 120 ? 5 : 1;
+    for (let x = 0; x <= L + 0.001; x += passo) g += `<line x1="${x}" y1="0" x2="${x}" y2="${W}" class="ly-gr${Math.round(x) % 5 ? '' : ' f'}"/>`;
+    for (let y = 0; y <= W + 0.001; y += passo) g += `<line x1="0" y1="${y}" x2="${L}" y2="${y}" class="ly-gr${Math.round(y) % 5 ? '' : ' f'}"/>`; }
+  g += `<rect x="0" y="0" width="${L}" height="${W}" class="ly-parede" style="stroke-width:${px(4)}"/>`;
+  // lados (o que fica em cada parede)
+  const ld = B.lados || {}, ts = `font-size:${fs}px`;
+  if (ld.topo) g += `<text x="${L / 2}" y="${-M * 0.62}" class="ly-lado" text-anchor="middle" style="${ts}">▲ ${esc(ld.topo)}</text>`;
+  if (ld.base) g += `<text x="${L / 2}" y="${W + M * 0.78}" class="ly-lado" text-anchor="middle" style="${ts}">▼ ${esc(ld.base)}</text>`;
+  if (ld.esq) g += `<text x="${-M * 0.6}" y="${W / 2}" class="ly-lado" text-anchor="middle" transform="rotate(-90 ${-M * 0.6} ${W / 2})" style="${ts}">◀ ${esc(ld.esq)}</text>`;
+  if (ld.dir) g += `<text x="${L + M * 0.78}" y="${W / 2}" class="ly-lado" text-anchor="middle" transform="rotate(90 ${L + M * 0.78} ${W / 2})" style="${ts}">${esc(ld.dir)} ▶</text>`;
+  // cotas gerais
+  if (o.cotas !== false) {
+    const yc = -M * 0.25, xc = L + M * 0.16, t = px(4);
+    g += `<g class="ly-cota" style="stroke-width:${px(1)}"><line x1="0" y1="${yc}" x2="${L}" y2="${yc}"/><line x1="0" y1="${yc - t}" x2="0" y2="${yc + t}"/><line x1="${L}" y1="${yc - t}" x2="${L}" y2="${yc + t}"/>
+      <line x1="${xc}" y1="0" x2="${xc}" y2="${W}"/><line x1="${xc - t}" y1="0" x2="${xc + t}" y2="0"/><line x1="${xc - t}" y1="${W}" x2="${xc + t}" y2="${W}"/></g>
+      <text x="${L / 2}" y="${yc - px(4)}" text-anchor="middle" class="ly-ct" style="${ts}">${fmtM(L)} m</text>
+      <text x="${xc + px(5)}" y="${W / 2}" text-anchor="middle" class="ly-ct" transform="rotate(90 ${xc + px(5)} ${W / 2})" style="${ts}">${fmtM(W)} m</text>`; }
+  // versão de comparação (contorno tracejado)
+  (o.fantasma || []).forEach(f => { g += `<rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.d}" class="ly-fant" style="stroke-width:${px(1.5)};stroke-dasharray:${px(5)} ${px(3)}"/>`; });
+  // objetos
+  const ord = [...itens].sort((a, b) => ORDEM_CAT_LAYOUT.indexOf(a.cat) - ORDEM_CAT_LAYOUT.indexOf(b.cat));
+  for (const it of ord) {
+    const ruim = ruins.has(it.id), z = it.cat === 'zona', mk = it.cat === 'marcacao';
+    const cls = `ly-obj ${z ? 'zona' : ''} ${it.id === sel ? 'sel' : ''} ${ruim ? 'ruim' : ''} ${it.trava ? 'trava' : ''}`;
+    const sw = px(it.id === sel ? 2.6 : ruim ? 2.2 : z ? 1.2 : 0.8);
+    g += `<g class="${cls}" data-id="${esc(it.id)}"><rect x="${it.x}" y="${it.y}" width="${it.w}" height="${it.d}" fill="${it.cor}" fill-opacity="${z ? 0.2 : mk ? 0.85 : 0.92}" style="stroke-width:${sw};${z ? `stroke:${it.cor};stroke-dasharray:${px(6)} ${px(3)};` : ''}"/>`;
+    // rótulo: cabe no lado maior? (zona: canto de cima, com a área)
+    const maior = Math.max(it.w, it.d), cw = fs * 0.56, vert = it.d > it.w * 1.3;
+    if (z) { const f2 = Math.min(fs, (it.w - px(8)) / Math.max(4, it.nome.length) / 0.58), area = `${fmtM2(it.w * it.d)} m²`;
+      if (f2 > fs * 0.5 && it.d > f2 * 2.6) g += `<text x="${it.x + px(4)}" y="${it.y + f2 + px(3)}" class="ly-zt" style="font-size:${f2}px;fill:${luminLay(it.cor) > 0.8 ? '#566074' : it.cor}">${esc(it.nome)}<tspan class="ly-za" x="${it.x + px(4)}" dy="${f2 * 1.15}" style="font-size:${f2 * 0.85}px">${area}</tspan></text>`;
+      else if (it.w > fs * 2 && it.d > fs * 2) g += `<title>${esc(it.nome)} · ${area}</title>`; }
+    else if (maior * 0.92 > cw * 3 && Math.min(it.w, it.d) > fs * 0.9) {
+      const cabe = Math.floor(maior * 0.92 / cw), txt = it.nome.length > cabe ? it.nome.slice(0, Math.max(1, cabe - 1)) + '…' : it.nome;
+      const cx = it.x + it.w / 2, cy = it.y + it.d / 2, f3 = Math.min(fs, Math.min(it.w, it.d) * 0.7);
+      g += `<text x="${cx}" y="${cy + f3 * 0.35}" text-anchor="middle" class="ly-ot${luminLay(it.cor) < 0.45 ? ' cl' : ''}" style="font-size:${f3}px" ${vert ? `transform="rotate(-90 ${cx} ${cy})"` : ''}>${esc(txt)}</text>`; }
+    g += `</g>`;
+  }
+  // folgas do selecionado (até a parede ou o obstáculo mais próximo)
+  const s = itens.find(x => x.id === sel);
+  if (s && s.cat !== 'zona' && o.folgas !== false) { const f = folgasLay(s, itens, B), cx = s.x + s.w / 2, cy = s.y + s.d / 2, sw = px(1.2);
+    const seg = (x1, y1, x2, y2, v) => { if (!(v > 0.005) || !isFinite(v)) return '';
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, cor = v < 1.8 ? 'ly-fg ap' : 'ly-fg';
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cor}" style="stroke-width:${sw};stroke-dasharray:${px(4)} ${px(2)}"/><text x="${mx + (x1 === x2 ? px(4) : 0)}" y="${my - (x1 === x2 ? 0 : px(4))}" class="${cor} t" style="font-size:${fs * 0.9}px" ${x1 === x2 ? '' : 'text-anchor="middle"'}>${fmtM(v)}</text>`; };
+    g += seg(s.x - f.esq, cy, s.x, cy, f.esq) + seg(s.x + s.w, cy, s.x + s.w + f.dir, cy, f.dir) + seg(cx, s.y - f.cima, cx, s.y, f.cima) + seg(cx, s.y + s.d, cx, s.y + s.d + f.baixo, f.baixo); }
+  // escala gráfica
+  const esc5 = Math.max(L, W) > 60 ? 10 : 5;
+  g += `<g class="ly-esc"><rect x="0" y="${W + M * 0.25}" width="${esc5}" height="${px(5)}"/><rect x="0" y="${W + M * 0.25}" width="${esc5 / 2}" height="${px(5)}" class="p"/>
+    <text x="${esc5 + px(4)}" y="${W + M * 0.25 + px(5)}" style="font-size:${fs * 0.85}px">${esc5} m</text></g>`;
+  const largPx = (L + 2 * M) * ppm, altPx = (W + 2 * M) * ppm;
+  return `<svg class="ly-svg" viewBox="${vb}" width="${o.largura || largPx}" height="${o.largura ? o.largura * (W + 2 * M) / (L + 2 * M) : altPx}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+const margemLay = (B, ppm, fonte = 12) => Math.max(1.6, Math.max(B.largura_m, B.profundidade_m) * 0.06, fonte * 3.4 / ppm);
+function luminLay(hex){ const n = parseInt(String(hex).slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+const CSS_LAYOUT_SVG = `
+  .ly-gr{stroke:#e3e7ec;stroke-width:.02} .ly-gr.f{stroke:#cdd3db;stroke-width:.04}
+  .ly-parede{fill:#fff;fill-opacity:.5;stroke:#1f2a33}
+  .ly-lado{fill:#566074;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .ly-cota line{stroke:#1f2a33} .ly-ct{fill:#1f2a33;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .ly-fant{fill:none;stroke:#8a93a5}
+  .ly-obj rect{stroke:#1f2a33} .ly-obj.zona rect{stroke-opacity:.9}
+  .ly-obj.ruim rect{stroke:#c62828 !important} .ly-obj.sel rect{stroke:#0b6bcb !important}
+  .ly-ot{fill:#1b2333;font-weight:700;pointer-events:none} .ly-ot.cl{fill:#fff}
+  .ly-zt{font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:.06} .ly-za{font-weight:600;fill:#566074}
+  .ly-fg{stroke:#0b6bcb;fill:#0b6bcb} .ly-fg.t{stroke:none;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;paint-order:stroke} .ly-fg.ap{stroke:#c62828;fill:#c62828}
+  .ly-fg.t.ap{stroke:none}
+  .ly-esc rect{fill:#fff;stroke:#1f2a33;stroke-width:.03} .ly-esc rect.p{fill:#1f2a33} .ly-esc text{fill:#1f2a33}`;
+const CSS_LAYOUT = `
+  .ly-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
+  @media (max-width:1100px){ .ly-grid{grid-template-columns:minmax(0,1fr)} }
+  .ly-vers{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+  .ly-ver{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+  .ly-ver.on{background:var(--pri);color:#fff;border-color:transparent} .ly-ver small{opacity:.75;margin-left:4px}
+  .ly-board{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .ly-tools{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px}
+  .ly-tools label{display:flex;align-items:center;gap:5px;white-space:nowrap} .ly-tools select{padding:4px 6px}
+  .ly-box{overflow:auto;max-height:72vh;background:#f6f7f9} .ly-box svg{display:block;margin:0 auto;touch-action:pan-x pan-y} .ly-box .ly-obj{touch-action:none}
+  .ly-box .ly-obj{cursor:grab} .ly-box.ro .ly-obj,.ly-box .ly-obj.trava{cursor:pointer}
+  .ly-side{display:grid;gap:12px;min-width:0}
+  .ly-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .ly-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+  .ly-cat{display:grid;gap:4px;max-height:330px;overflow:auto} #ly-busca{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+  .ly-tp{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;font-size:13px;text-align:left;cursor:pointer;color:var(--ink)}
+  .ly-tp:hover{border-color:#0b6bcb} .ly-tp b{flex:1;font-weight:600} .ly-tp small{color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ly-tp .ed{border:0;background:none;cursor:pointer;padding:0 2px;font-size:13px}
+  .ly-sw{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.25);flex:none}
+  .ly-sw.zona{opacity:.55;border-style:dashed}
+  .ly-gcat{font-size:11px;color:var(--mute);margin:6px 0 2px;text-transform:uppercase;letter-spacing:.05em}
+  .ly-form{display:grid;grid-template-columns:1fr 1fr;gap:8px} .ly-form label{display:grid;gap:3px;font-size:12px;color:var(--mute)} .ly-form .full{grid-column:1/-1}
+  .ly-form input,.ly-form select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box}
+  .ly-form input[type=color]{padding:2px;height:34px} .ly-form .chk{display:flex;align-items:center;gap:6px;color:var(--ink)}
+  .ly-form .chk input{width:auto}
+  .ly-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .ly-folga{font-size:12px;color:var(--mute);margin-top:8px;font-variant-numeric:tabular-nums} .ly-folga b{color:var(--ink)} .ly-folga .ap{color:#c62828}
+  .ly-res td{padding:4px 2px;border-top:1px solid #eef0f4;font-size:13px} .ly-res td.n{text-align:right;font-variant-numeric:tabular-nums}
+  .ly-res tr.t td{font-weight:700;border-top:1px solid var(--line)}
+  .ly-alerta{color:#c62828;font-weight:600;font-size:13px;margin-top:6px}
+  .ly-cores{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px} .ly-cores button{width:22px;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.2);cursor:pointer;padding:0}
+  .ly-hist{font-size:12px;color:var(--mute);display:grid;gap:4px;max-height:200px;overflow:auto}
+  .ly-obs{font-size:12.5px;color:#7a5a00;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:6px 10px;margin:0 0 10px}
+  ${CSS_LAYOUT_SVG}`;
+
+// ---- tela
+function telaLayout(){
+  if (!document.getElementById('css-layout')) { const st = document.createElement('style'); st.id = 'css-layout'; st.textContent = CSS_LAYOUT; document.head.appendChild(st); }
+  state.lay ||= { bloco:null, versao:null, zoom:1, grade:true, cotas:true, snap:0.1, comparar:'', sel:null, busca:'' };
+  $app.innerHTML = `<div class="barra"><h2>Layout do galpão</h2><select id="ly-bloco"></select>
+      ${pode('layout', 'editar') ? '<button class="btn" id="ly-ebloco" title="Nome, medidas e lados do bloco">✎ Bloco</button><button class="btn" id="ly-nbloco">+ Bloco</button>' : ''}
+      <span style="flex:1"></span><span class="info" id="ly-salvo"></span></div>
+    <div id="ly"><div class="carregando">Carregando o layout…</div></div>`;
+  carregarLayout();
+}
+async function carregarLayout(manterVersao){
+  const s = state.lay;
+  try {
+    await flushLay();
+    const g = await apiLayout('/layout'); state.layGeral = g;
+    if (!g.blocos.length) { s.bloco = null; return renderLayout(); }
+    if (!g.blocos.some(b => b.id === s.bloco)) s.bloco = g.blocos[0].id;
+    const B = g.blocos.find(b => b.id === s.bloco);
+    if (!manterVersao || !B.versoes.some(v => v.id === s.versao)) s.versao = (B.versoes.find(v => v.principal) || B.versoes[0])?.id || null;
+    state.layV = s.versao ? await apiLayout(`/layout/versao?id=${s.versao}`) : null;
+    state.layFant = null;
+    if (s.comparar && s.comparar !== s.versao && B.versoes.some(v => v.id === s.comparar)) state.layFant = (await apiLayout(`/layout/versao?id=${s.comparar}`)).versao.doc.itens;
+    else s.comparar = '';
+    renderLayout();
+  } catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('ly'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+const blocoLay = () => state.layGeral?.blocos.find(b => b.id === state.lay.bloco);
+const itensLay = () => state.layV?.versao.doc.itens || [];
+// salva em seguida a cada mudança (agrupa movimentos rápidos)
+let filaLay = Promise.resolve(), timerLay = null, resumoLay = [], pendLayV = null;
+function salvarLay(resumo){
+  if (!pode('layout', 'editar') || !state.layV) return;
+  if (pendLayV && pendLayV !== state.layV.versao) flushLay();   // trocou de versão com alteração pendente: grava a anterior antes
+  if (resumo && !resumoLay.includes(resumo)) resumoLay.push(resumo);
+  pendLayV = state.layV.versao;
+  const el = document.getElementById('ly-salvo'); if (el) el.textContent = 'alterado…';
+  clearTimeout(timerLay); timerLay = setTimeout(enviarLay, 700);
+}
+function enviarLay(){
+  timerLay = null; const V = pendLayV; pendLayV = null; if (!V) return filaLay;
+  const txt = resumoLay.slice(0, 6).join('; ') || 'alterou a planta'; resumoLay = [];
+  filaLay = filaLay.then(async () => {
+    const e1 = document.getElementById('ly-salvo'); if (e1) e1.textContent = 'salvando…';
+    try { const x = await apiLayout('/layout/versao/salvar', { id:V.id, doc:V.doc, versao:V.atualizado_em, resumo:txt }); V.atualizado_em = x.versao;
+      if (state.layV?.versao.id === V.id) state.layV.versao.atualizado_em = x.versao;
+      const e2 = document.getElementById('ly-salvo'); if (e2) e2.textContent = `salvo ${new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}`; }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); const e2 = document.getElementById('ly-salvo'); if (e2) e2.innerHTML = '<b style="color:#c62828">não salvo</b>'; }
+  });
+  return filaLay;
+}
+// grava já o que estiver pendente (antes de trocar de bloco/versão ou mexer no catálogo)
+function flushLay(){ if (timerLay) { clearTimeout(timerLay); return enviarLay(); } return filaLay; }
+function renderLayout(){
+  const s = state.lay, g = state.layGeral, $c = document.getElementById('ly'); if (!$c) return;
+  const editar = pode('layout', 'editar'), selB = document.getElementById('ly-bloco');
+  selB.innerHTML = (g?.blocos || []).map(b => `<option value="${b.id}" ${b.id === s.bloco ? 'selected' : ''}>${esc(b.nome)} · ${fmtM(b.largura_m)} × ${fmtM(b.profundidade_m)} m</option>`).join('') || '<option>Nenhum bloco</option>';
+  selB.onchange = () => { s.bloco = selB.value; s.versao = null; s.sel = null; s.comparar = ''; carregarLayout(); };
+  const nb = document.getElementById('ly-nbloco'); if (nb) nb.onclick = () => editarBlocoLay(null);
+  const eb = document.getElementById('ly-ebloco'); if (eb) { eb.disabled = !s.bloco; eb.onclick = () => editarBlocoLay(blocoLay()); }
+  const B = blocoLay();
+  if (!B) { $c.innerHTML = `<div class="painel"><h3>Nenhum bloco cadastrado</h3><p class="info">Cadastre um bloco com as medidas reais (largura × profundidade) e comece a montar a planta.</p>${editar ? '<button class="btn pri" id="ly-prim">+ Cadastrar bloco</button>' : ''}</div>`;
+    const p = document.getElementById('ly-prim'); if (p) p.onclick = () => editarBlocoLay(null); return; }
+  const V = state.layV?.versao;
+  $c.innerHTML = `
+    ${B.obs ? `<div class="ly-obs">📝 ${esc(B.obs)}</div>` : ''}
+    <div class="ly-vers">${B.versoes.map(v => `<button class="ly-ver ${v.id === s.versao ? 'on' : ''}" data-ver="${v.id}" title="${v.principal ? 'Layout vigente' : 'Versão de estudo'} · ${v.n_itens} objeto(s)">${v.principal ? '★ ' : ''}${esc(v.nome)}</button>`).join('')}
+      ${editar ? `<button class="btn" id="ly-nver">+ Versão</button>${V ? `<button class="btn" id="ly-aver" title="Renomear, marcar como vigente ou excluir">⋯</button>` : ''}` : ''}</div>
+    <div class="ly-grid">
+      <section class="ly-board">
+        <div class="ly-tools">
+          <span><button class="btn" id="ly-zm" title="Diminuir">−</button> <b id="ly-zv">${Math.round(s.zoom * 100)}%</b> <button class="btn" id="ly-zp" title="Aumentar">+</button> <button class="btn" id="ly-zf" title="Ajustar à tela">Ajustar</button></span>
+          <label><input type="checkbox" id="ly-grade" ${s.grade ? 'checked' : ''}> Grade</label>
+          <label><input type="checkbox" id="ly-cotas" ${s.cotas ? 'checked' : ''}> Cotas</label>
+          <label>Encaixe <select id="ly-snap">${[[0.01, '1 cm'], [0.05, '5 cm'], [0.1, '10 cm'], [0.5, '50 cm']].map(([v, t]) => `<option value="${v}" ${s.snap === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+          <label>Comparar com <select id="ly-comp"><option value="">—</option>${B.versoes.filter(v => v.id !== s.versao).map(v => `<option value="${v.id}" ${s.comparar === v.id ? 'selected' : ''}>${esc(v.nome)}</option>`).join('')}</select></label>
+          <span style="flex:1"></span>
+          <button class="btn" id="ly-imp">🖨 Imprimir</button><button class="btn" id="ly-copiar" title="Copia a planta em texto para mandar ao Claude ou guardar">⧉ Copiar</button>${editar ? '<button class="btn" id="ly-importar" title="Colar uma planta copiada (inclusive do editor antigo)">⇩ Colar</button>' : ''}
+        </div>
+        <div class="ly-box ${editar ? '' : 'ro'}" id="ly-box"></div>
+        <div class="info" style="padding:6px 10px;border-top:1px solid var(--line)">${editar ? 'Arraste os objetos. Setas movem 10 cm (Shift: 1 m), R gira, Delete exclui. ' : ''}Contorno <b style="color:#c62828">vermelho</b> = fora do bloco ou batendo em outro objeto. Selecionado: as linhas azuis mostram o espaço livre até a parede ou o obstáculo (vermelho = menos de 1,80 m, pouco para paleteira com palete).</div>
+      </section>
+      <aside class="ly-side">
+        <div class="ly-card" id="ly-selc"></div>
+        <div class="ly-card"><h4>Catálogo de objetos</h4>
+          <input id="ly-busca" placeholder="Buscar objeto" value="${esc(s.busca)}" style="width:100%;box-sizing:border-box;margin-bottom:6px">
+          <div class="ly-cat" id="ly-cat"></div>
+          ${editar ? '<div class="ly-acts"><button class="btn" id="ly-ntipo">+ Novo objeto</button></div>' : ''}
+          <div class="info" style="margin-top:6px">${editar ? 'Toque no objeto para colocar na planta.' : 'Somente leitura.'}</div></div>
+        <div class="ly-card" id="ly-res"></div>
+        <details class="ly-card"><summary><b style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)">Histórico do bloco</b></summary>
+          <div class="ly-hist">${(state.layV?.eventos || []).map(e => `<div>${quando(e.em)} · <b>${esc(String(e.por).split('@')[0])}</b> ${esc(e.resumo || '')}</div>`).join('') || 'Nada registrado.'}</div></details>
+      </aside>
+    </div>`;
+  const q = k => document.getElementById(k);
+  $c.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => { s.versao = b.dataset.ver; s.sel = null; if (s.comparar === s.versao) s.comparar = ''; carregarLayout(true); });
+  if (q('ly-nver')) q('ly-nver').onclick = () => novaVersaoLay(B);
+  if (q('ly-aver')) q('ly-aver').onclick = () => acoesVersaoLay(B, V);
+  q('ly-zm').onclick = () => { s.zoom = Math.max(0.25, r2(s.zoom / 1.25)); desenharLay(); };
+  q('ly-zp').onclick = () => { s.zoom = Math.min(8, r2(s.zoom * 1.25)); desenharLay(); };
+  q('ly-zf').onclick = () => { s.zoom = 1; const B = blocoLay(), box = q('ly-box'), M = Math.max(1.6, Math.max(B.largura_m, B.profundidade_m) * 0.06); const svg = box.querySelector('svg');
+    if (svg) { const alt = Number(svg.getAttribute('height')), cab = box.clientHeight - 8; if (alt > cab) s.zoom = r2(Math.max(0.25, cab / alt)); } desenharLay(); };
+  q('ly-grade').onchange = e => { s.grade = e.target.checked; desenharLay(); };
+  q('ly-cotas').onchange = e => { s.cotas = e.target.checked; desenharLay(); };
+  q('ly-snap').onchange = e => { s.snap = Number(e.target.value); };
+  q('ly-comp').onchange = e => { s.comparar = e.target.value; carregarLayout(true); };
+  q('ly-imp').onclick = () => imprimirLayout();
+  q('ly-copiar').onclick = () => copiarLayout();
+  if (q('ly-importar')) q('ly-importar').onclick = () => importarLayout();
+  if (q('ly-ntipo')) q('ly-ntipo').onclick = () => editarTipoLay(null);
+  q('ly-busca').oninput = e => { s.busca = e.target.value; renderCatalogoLay(); };
+  renderCatalogoLay(); desenharLay(); renderSelLay(); renderResumoLay();
+  if (!V) q('ly-box').innerHTML = '<div class="info" style="padding:20px">Este bloco ainda não tem versão. Crie uma em “+ Versão”.</div>';
+}
+function renderCatalogoLay(){
+  const $l = document.getElementById('ly-cat'); if (!$l) return;
+  const editar = pode('layout', 'editar'), b = (state.lay.busca || '').trim().toLowerCase();
+  const tipos = (state.layGeral?.tipos || []).filter(t => !b || t.nome.toLowerCase().includes(b));
+  $l.innerHTML = ORDEM_CAT_LAYOUT.slice().reverse().map(c => { const l = tipos.filter(t => t.categoria === c); if (!l.length) return '';
+    return `<div class="ly-gcat">${CAT_LAYOUT[c].curto}</div>${l.map(t => `<div class="ly-tp" data-tipo="${t.id}" role="button" tabindex="0"><span class="ly-sw ${c === 'zona' ? 'zona' : ''}" style="background:${t.cor}"></span><b>${esc(t.nome)}</b>
+      <small>${fmtM(t.largura_m)} × ${fmtM(t.profundidade_m)}${t.altura_m ? ` · h ${fmtM(t.altura_m)}` : ''}</small>${editar ? `<button class="ed" data-etipo="${t.id}" title="Editar no catálogo">✎</button>` : ''}</div>`).join('')}`; }).join('') || '<div class="info">Nenhum objeto.</div>';
+  $l.querySelectorAll('[data-etipo]').forEach(x => x.onclick = ev => { ev.stopPropagation(); editarTipoLay(state.layGeral.tipos.find(t => t.id === x.dataset.etipo)); });
+  if (editar) $l.querySelectorAll('[data-tipo]').forEach(x => { const add = () => colocarTipoLay(state.layGeral.tipos.find(t => t.id === x.dataset.tipo));
+    x.onclick = add; x.onkeydown = ev => { if (ev.key === 'Enter') add(); }; });
+}
+function colocarTipoLay(t){
+  const B = blocoLay(), V = state.layV?.versao; if (!B || !V || !t) return;
+  const p = lugarLivreLay(t.largura_m, t.profundidade_m, V.doc.itens, B, t.categoria);
+  const it = { id:uidLay(), tipo_id:t.id, nome:t.nome, x:p.x, y:p.y, w:t.largura_m, d:t.profundidade_m, cor:t.cor, cat:t.categoria, ...(t.categoria === 'estrutura' ? { trava:true } : {}) };
+  V.doc.itens.push(it); state.lay.sel = it.id; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`colocou ${t.nome}`);
+}
+function desenharLay(){
+  const s = state.lay, B = blocoLay(), V = state.layV?.versao, box = document.getElementById('ly-box'); if (!box || !B || !V) return;
+  const zv = document.getElementById('ly-zv'); if (zv) zv.textContent = `${Math.round(s.zoom * 100)}%`;
+  const cw = Math.max(300, box.clientWidth - 4), ajuste = M => Math.min(cw / (B.largura_m + 2 * M), (window.innerHeight * 0.68) / (B.profundidade_m + 2 * M) * 1.6);
+  let base = ajuste(Math.max(1.6, Math.max(B.largura_m, B.profundidade_m) * 0.06)); base = ajuste(margemLay(B, base)); base = ajuste(margemLay(B, base));
+  const ppm = base * s.zoom;
+  const ruins = conflitosLay(V.doc.itens, B);
+  box.innerHTML = svgLayout(B, V.doc.itens, { ppm, grade:s.grade, cotas:s.cotas, sel:s.sel, ruins, fantasma:state.layFant || [], fonte:12 });
+  const svg = box.querySelector('svg'), editar = pode('layout', 'editar');
+  const pt = ev => { const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+  svg.addEventListener('pointerdown', ev => {
+    const gEl = ev.target.closest('.ly-obj');
+    if (!gEl) { if (s.sel) { s.sel = null; desenharLay(); renderSelLay(); } return; }
+    const it = V.doc.itens.find(x => x.id === gEl.dataset.id); if (!it) return;
+    const mudou = s.sel !== it.id; s.sel = it.id;
+    if (!editar || it.trava) { if (mudou) { desenharLay(); renderSelLay(); } return; }
+    ev.preventDefault(); svg.setPointerCapture(ev.pointerId);
+    const p0 = pt(ev), x0 = it.x, y0 = it.y; let moveu = false;
+    gEl.parentNode.appendChild(gEl); gEl.classList.add('sel');
+    const mv = e => { const p = pt(e), q = s.snap; const nx = r2(Math.round((x0 + p.x - p0.x) / q) * q), ny = r2(Math.round((y0 + p.y - p0.y) / q) * q);
+      if (nx !== it.x || ny !== it.y) { moveu = true; it.x = nx; it.y = ny; gEl.setAttribute('transform', `translate(${r2(it.x - x0)} ${r2(it.y - y0)})`); } };
+    const up = () => { svg.removeEventListener('pointermove', mv); svg.removeEventListener('pointerup', up); svg.removeEventListener('pointercancel', up);
+      desenharLay(); renderSelLay(); if (moveu) { renderResumoLay(); salvarLay(`moveu ${it.nome}`); } };
+    svg.addEventListener('pointermove', mv); svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+  });
+}
+// teclado: setas, R, Delete (fora de campos de texto)
+document.addEventListener('keydown', e => {
+  if (state.view !== 'layout' || !state.lay?.sel || !pode('layout', 'editar') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || document.querySelector('.pl-modal')) return;
+  const it = itensLay().find(x => x.id === state.lay.sel); if (!it) return;
+  const d = e.shiftKey ? 1 : 0.1, m = { ArrowLeft:[-d, 0], ArrowRight:[d, 0], ArrowUp:[0, -d], ArrowDown:[0, d] }[e.key];
+  if (m) { if (it.trava) return avisar('Objeto travado: destrave no painel para mover', true); e.preventDefault(); it.x = r2(it.x + m[0]); it.y = r2(it.y + m[1]); desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`moveu ${it.nome}`); }
+  else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); girarLay(it); }
+  else if (e.key === 'Delete') { e.preventDefault(); excluirItemLay(it); }
+});
+function girarLay(it){ if (it.trava) return avisar('Objeto travado: destrave no painel para girar', true);
+  const B = blocoLay(), dentro = dentroLay(it, B), cx = it.x + it.w / 2, cy = it.y + it.d / 2; [it.w, it.d] = [it.d, it.w]; it.x = r2(cx - it.w / 2); it.y = r2(cy - it.d / 2);
+  if (dentro) { it.x = r2(Math.min(Math.max(0, it.x), B.largura_m - it.w)); it.y = r2(Math.min(Math.max(0, it.y), B.profundidade_m - it.d)); }
+  desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`girou ${it.nome}`); }
+function excluirItemLay(it){ const V = state.layV.versao; V.doc.itens = V.doc.itens.filter(x => x !== it); state.lay.sel = null; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`excluiu ${it.nome}`); }
+function renderSelLay(){
+  const $s = document.getElementById('ly-selc'); if (!$s) return;
+  const B = blocoLay(), it = itensLay().find(x => x.id === state.lay.sel), editar = pode('layout', 'editar'), dis = editar ? '' : 'disabled';
+  if (!it) { $s.innerHTML = `<h4>Objeto selecionado</h4><div class="info">Toque em um objeto da planta para ver medidas, posição e espaço livre em volta.</div>`; return; }
+  const f = it.cat !== 'zona' ? folgasLay(it, itensLay(), B) : null, fg = v => !isFinite(v) ? '–' : `<b class="${v < 1.8 ? 'ap' : ''}">${fmtM(v)} m</b>`;
+  const tipo = it.tipo_id ? state.layGeral.tipos.find(t => t.id === it.tipo_id) : null;
+  $s.innerHTML = `<h4>Objeto selecionado</h4>
+    <div class="ly-form">
+      <label class="full">Nome<input id="lo-nome" maxlength="60" value="${esc(it.nome)}" ${dis}></label>
+      <label>Largura (m) ↔<input id="lo-w" inputmode="decimal" value="${fmtM(it.w)}" ${dis}></label>
+      <label>Profundidade (m) ↕<input id="lo-d" inputmode="decimal" value="${fmtM(it.d)}" ${dis}></label>
+      <label>X: da parede esquerda<input id="lo-x" inputmode="decimal" value="${fmtM(it.x)}" ${dis || (it.trava ? 'disabled' : '')}></label>
+      <label>Y: da parede de cima<input id="lo-y" inputmode="decimal" value="${fmtM(it.y)}" ${dis || (it.trava ? 'disabled' : '')}></label>
+      <label>Cor<input id="lo-cor" type="color" value="${it.cor}" ${dis}></label>
+      <label>Tipo<select id="lo-cat" ${dis}>${Object.entries(CAT_LAYOUT).map(([k, c]) => `<option value="${k}" ${it.cat === k ? 'selected' : ''}>${c.curto}</option>`).join('')}</select></label>
+      <label class="chk full"><input type="checkbox" id="lo-trava" ${it.trava ? 'checked' : ''} ${dis}> Travado (não arrasta sem querer)</label>
+    </div>
+    ${f ? `<div class="ly-folga">Espaço livre · ← ${fg(f.esq)} · → ${fg(f.dir)} · ↑ ${fg(f.cima)} · ↓ ${fg(f.baixo)}</div>` : `<div class="ly-folga">Área da zona: <b>${fmtM2(it.w * it.d)} m²</b></div>`}
+    ${conflitosLay(itensLay(), B).has(it.id) ? '<div class="ly-alerta">⚠ Fora do bloco ou batendo em outro objeto</div>' : ''}
+    <div class="info" style="margin-top:4px">${tipo ? `Do catálogo: ${esc(tipo.nome)} (${fmtM(tipo.largura_m)} × ${fmtM(tipo.profundidade_m)})` : 'Objeto avulso (não está no catálogo)'}</div>
+    ${editar ? `<div class="ly-acts"><button class="btn" id="lo-gir">⟳ Girar 90°</button><button class="btn" id="lo-dup">⧉ Duplicar</button><button class="btn" id="lo-rep" title="Fileira de objetos iguais">▦ Repetir…</button>
+      ${tipo ? '' : '<button class="btn" id="lo-cat-salvar" title="Cadastra este objeto no catálogo para reusar">+ Catálogo</button>'}<button class="btn perigo" id="lo-del">Excluir</button></div>` : ''}`;
+  if (!editar) return;
+  const q = k => document.getElementById(k);
+  const aplicar = (campo, v, resumo) => { it[campo] = v; desenharLay(); renderResumoLay(); salvarLay(resumo); const fx = document.querySelector('.ly-folga'); if (fx && it.cat !== 'zona') { const f2 = folgasLay(it, itensLay(), B); fx.innerHTML = `Espaço livre · ← ${fg(f2.esq)} · → ${fg(f2.dir)} · ↑ ${fg(f2.cima)} · ↓ ${fg(f2.baixo)}`; } };
+  q('lo-nome').onchange = e => { const v = e.target.value.trim(); if (v) aplicar('nome', v.slice(0, 60), `renomeou para ${v}`); };
+  [['lo-w', 'w', 0.05], ['lo-d', 'd', 0.05], ['lo-x', 'x', -50], ['lo-y', 'y', -50]].forEach(([id, k, min]) => q(id).onchange = e => { const v = numBR(e.target.value);
+    if (!(v >= min) || v > 500) { avisar('Medida inválida', true); e.target.value = fmtM(it[k]); return; } e.target.value = fmtM(r2(v)); aplicar(k, r2(v), `ajustou ${it.nome}`); });
+  q('lo-cor').onchange = e => aplicar('cor', e.target.value, `mudou a cor de ${it.nome}`);
+  q('lo-cat').onchange = e => { aplicar('cat', e.target.value, `mudou o tipo de ${it.nome}`); renderSelLay(); };
+  q('lo-trava').onchange = e => { if (e.target.checked) it.trava = true; else delete it.trava; salvarLay(`${e.target.checked ? 'travou' : 'destravou'} ${it.nome}`); renderSelLay(); desenharLay(); };
+  q('lo-gir').onclick = () => girarLay(it);
+  q('lo-dup').onclick = () => { const V = state.layV.versao, n = { ...it, id:uidLay(), x:r2(it.x + it.w + 0.2) }; delete n.trava;
+    if (!dentroLay(n, B)) { n.x = it.x; n.y = r2(it.y + it.d + 0.2); } V.doc.itens.push(n); state.lay.sel = n.id; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`duplicou ${it.nome}`); };
+  q('lo-rep').onclick = () => repetirLay(it);
+  q('lo-del').onclick = () => excluirItemLay(it);
+  const cs = q('lo-cat-salvar'); if (cs) cs.onclick = () => editarTipoLay(null, { nome:it.nome, largura_m:it.w, profundidade_m:it.d, cor:it.cor, categoria:it.cat }, novo => { it.tipo_id = novo; salvarLay(`ligou ${it.nome} ao catálogo`); renderSelLay(); });
+}
+function renderResumoLay(){
+  const $r = document.getElementById('ly-res'); if (!$r) return;
+  const B = blocoLay(), it = itensLay(), area = B.largura_m * B.profundidade_m, ruins = conflitosLay(it, B);
+  const soma = c => it.filter(x => x.cat === c && dentroLay(x, B)).reduce((t, x) => t + x.w * x.d, 0);
+  const mov = soma('movel'), est = soma('estrutura'), livre = Math.max(0, area - mov - est);
+  const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0 }); grupos[k].n++; grupos[k].a += x.w * x.d; });
+  const lin = Object.values(grupos).sort((a, b) => ORDEM_CAT_LAYOUT.indexOf(b.cat) - ORDEM_CAT_LAYOUT.indexOf(a.cat) || b.a - a.a);
+  const pct = v => `${Math.round(v / area * 100)}%`;
+  $r.innerHTML = `<h4>Resumo · ${esc(state.layV?.versao.nome || '')}</h4>
+    <table class="ly-res" style="width:100%;border-collapse:collapse"><tbody>
+      <tr><td>Área do bloco</td><td class="n">${fmtM2(area)} m²</td><td class="n"></td></tr>
+      <tr><td>Móveis e equipamentos</td><td class="n">${fmtM2(mov)} m²</td><td class="n">${pct(mov)}</td></tr>
+      <tr><td>Estrutura (pilares, escada…)</td><td class="n">${fmtM2(est)} m²</td><td class="n">${pct(est)}</td></tr>
+      <tr class="t"><td>Piso livre</td><td class="n">${fmtM2(livre)} m²</td><td class="n">${pct(livre)}</td></tr>
+    </tbody></table>
+    ${ruins.size ? `<div class="ly-alerta">⚠ ${ruins.size} objeto(s) fora do bloco ou batendo em outro</div>` : ''}
+    <table class="ly-res" style="width:100%;border-collapse:collapse;margin-top:8px"><tbody>
+      ${lin.map(g => `<tr><td><span class="ly-sw ${g.cat === 'zona' ? 'zona' : ''}" style="display:inline-block;vertical-align:-2px;margin-right:6px;background:${g.cor}"></span>${esc(g.nome)}</td><td class="n">${g.n}</td><td class="n">${fmtM2(g.a)} m²</td></tr>`).join('') || '<tr><td class="info">Nenhum objeto na planta.</td></tr>'}
+    </tbody></table>
+    <div class="info" style="margin-top:6px">Zonas e marcações não ocupam piso no cálculo; a área delas aparece na lista.</div>`;
+}
+function repetirLay(it){
+  const B = blocoLay(), dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel"><h3 style="margin:0 0 6px">Repetir ${esc(it.nome)}</h3><p class="info" style="margin:0 0 10px">Monta uma fileira de cópias iguais (ex.: porta-paletes, mesas da linha de conferência).</p>
+    <div class="ly-form"><label>Quantas cópias a mais<input id="rp-n" inputmode="numeric" value="3"></label>
+      <label>Direção<select id="rp-dir"><option value="x">→ para a direita</option><option value="y">↓ para baixo</option></select></label>
+      <label class="full">Espaço entre um e outro (m)<input id="rp-esp" inputmode="decimal" value="0,10"></label></div>
+    <div class="gv-acoes"><span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="rp-ok">Repetir</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
+  q('[data-x]').onclick = () => dlg.remove();
+  q('#rp-ok').onclick = () => { const n = Math.round(numBR(q('#rp-n').value)), esp = numBR(q('#rp-esp').value), dir = q('#rp-dir').value;
+    if (!(n >= 1 && n <= 100)) return avisar('Informe de 1 a 100 cópias', true); if (!(esp >= 0)) return avisar('Espaço inválido', true);
+    const V = state.layV.versao; let fora = 0;
+    for (let i = 1; i <= n; i++) { const c = { ...it, id:uidLay(), x:dir === 'x' ? r2(it.x + i * (it.w + esp)) : it.x, y:dir === 'y' ? r2(it.y + i * (it.d + esp)) : it.y }; delete c.trava; if (!dentroLay(c, B)) fora++; V.doc.itens.push(c); }
+    dlg.remove(); desenharLay(); renderResumoLay(); salvarLay(`repetiu ${it.nome} (${n} cópias)`);
+    if (fora) avisar(`${fora} cópia(s) ficaram fora do bloco: ajuste a quantidade ou o espaço`, true); };
+}
+function editarBlocoLay(b){
+  const novo = !b, v = b || { nome:'', largura_m:'', profundidade_m:'', lados:{}, obs:'', ordem:(state.layGeral?.blocos.length || 0) + 1 };
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel al-mod"><h3 style="margin:0 0 8px">${novo ? 'Novo bloco' : 'Editar bloco'}</h3>
+    <div class="ly-form">
+      <label class="full">Nome<input id="bf-nome" maxlength="80" value="${esc(v.nome)}" placeholder="ex.: Bloco do estacionamento, Piso Abaixo"></label>
+      <label>Largura (m) ↔ <span class="info">eixo horizontal</span><input id="bf-l" inputmode="decimal" value="${v.largura_m === '' ? '' : fmtM(v.largura_m)}" placeholder="29,00"></label>
+      <label>Profundidade (m) ↕ <span class="info">eixo vertical</span><input id="bf-p" inputmode="decimal" value="${v.profundidade_m === '' ? '' : fmtM(v.profundidade_m)}" placeholder="12,00"></label>
+      <div class="full info">O que fica em cada parede (só para orientar quem lê a planta):</div>
+      <label>▲ Em cima<input id="bf-topo" maxlength="50" value="${esc(v.lados?.topo || '')}" placeholder="ex.: Estacionamento"></label>
+      <label>▼ Embaixo<input id="bf-base" maxlength="50" value="${esc(v.lados?.base || '')}"></label>
+      <label>◀ Esquerda<input id="bf-esq" maxlength="50" value="${esc(v.lados?.esq || '')}"></label>
+      <label>▶ Direita<input id="bf-dir" maxlength="50" value="${esc(v.lados?.dir || '')}"></label>
+      <label class="full">Observações / pendências de medida<input id="bf-obs" maxlength="1000" value="${esc(v.obs || '')}"></label>
+      <label>Ordem na lista<input id="bf-ordem" inputmode="numeric" value="${v.ordem ?? 0}"></label>
+    </div>
+    <div class="gv-acoes">${novo ? '' : '<button class="btn perigo" id="bf-del">Excluir bloco</button>'}<span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="bf-ok">Salvar</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
+  q('[data-x]').onclick = () => dlg.remove();
+  q('#bf-ok').onclick = async () => {
+    const corpo = { id:b?.id, nome:q('#bf-nome').value.trim(), largura_m:numBR(q('#bf-l').value), profundidade_m:numBR(q('#bf-p').value),
+      lados:{ topo:q('#bf-topo').value.trim(), base:q('#bf-base').value.trim(), esq:q('#bf-esq').value.trim(), dir:q('#bf-dir').value.trim() }, obs:q('#bf-obs').value.trim(), ordem:Number(q('#bf-ordem').value) || 0 };
+    if (!corpo.nome) return avisar('Informe o nome do bloco', true);
+    if (!(corpo.largura_m >= 0.5) || !(corpo.profundidade_m >= 0.5)) return avisar('Informe largura e profundidade em metros (ex.: 29,00)', true);
+    if (b && b.id === state.lay.bloco && (corpo.largura_m < b.largura_m || corpo.profundidade_m < b.profundidade_m)) {
+      const fora = itensLay().filter(x => !dentroLay(x, { largura_m:corpo.largura_m, profundidade_m:corpo.profundidade_m })).length;
+      if (fora && !confirm(`${fora} objeto(s) desta versão vão ficar fora do bloco com a medida nova. Salvar mesmo assim?`)) return; }
+    try { await flushLay(); const r = await apiLayout('/layout/bloco', corpo); dlg.remove(); state.lay.bloco = r.id; avisar(novo ? 'Bloco criado: comece colocando objetos do catálogo' : 'Bloco salvo'); carregarLayout(!novo); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  const del = q('#bf-del'); if (del) del.onclick = async () => { if (!confirmaDupla(del, 'Clique de novo: some com o bloco e todas as versões')) return;
+    try { await apiLayout('/layout/bloco/excluir', { id:b.id }); dlg.remove(); state.lay.bloco = null; avisar('Bloco excluído'); carregarLayout(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  setTimeout(() => q('#bf-nome').focus(), 50);
+}
+function editarTipoLay(t, base, depois){
+  const novo = !t, v = t || { nome:'', largura_m:'', profundidade_m:'', altura_m:null, cor:'#9aa7b3', categoria:'movel', obs:'', ...(base || {}) };
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel al-mod"><h3 style="margin:0 0 8px">${novo ? 'Novo objeto no catálogo' : 'Editar objeto do catálogo'}</h3>
+    <div class="ly-form">
+      <label class="full">Nome<input id="tf-nome" maxlength="60" value="${esc(v.nome)}" placeholder="ex.: Mini porta-palete 3 níveis"></label>
+      <label>Largura (m)<input id="tf-l" inputmode="decimal" value="${v.largura_m === '' ? '' : fmtM(v.largura_m)}"></label>
+      <label>Profundidade (m)<input id="tf-p" inputmode="decimal" value="${v.profundidade_m === '' ? '' : fmtM(v.profundidade_m)}"></label>
+      <label>Altura (m) <span class="info">opcional</span><input id="tf-a" inputmode="decimal" value="${v.altura_m == null ? '' : fmtM(v.altura_m)}"></label>
+      <label>Tipo<select id="tf-cat">${Object.entries(CAT_LAYOUT).map(([k, c]) => `<option value="${k}" ${v.categoria === k ? 'selected' : ''}>${c.rot}</option>`).join('')}</select></label>
+      <label class="full">Cor<span style="display:flex;gap:8px;align-items:center"><input id="tf-cor" type="color" value="${v.cor}" style="width:60px"><span class="ly-cores">${CORES_LAYOUT.map(c => `<button type="button" data-cor="${c}" style="background:${c}" title="${c}"></button>`).join('')}</span></span></label>
+      <label class="full">Observação<input id="tf-obs" maxlength="300" value="${esc(v.obs || '')}" placeholder="ex.: medido em 04/11; carga 500 kg por nível"></label>
+      ${novo ? '' : `<label class="chk full"><input type="checkbox" id="tf-prop" checked> Atualizar nome, medida e cor dos que já estão nas plantas (todas as versões)</label>`}
+    </div>
+    <div class="gv-acoes">${novo ? '' : '<button class="btn perigo" id="tf-del">Tirar do catálogo</button>'}<span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="tf-ok">Salvar</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
+  dlg.querySelectorAll('[data-cor]').forEach(b => b.onclick = () => { q('#tf-cor').value = b.dataset.cor; });
+  q('[data-x]').onclick = () => dlg.remove();
+  q('#tf-ok').onclick = async () => {
+    const corpo = { id:t?.id, nome:q('#tf-nome').value.trim(), largura_m:numBR(q('#tf-l').value), profundidade_m:numBR(q('#tf-p').value), altura_m:q('#tf-a').value.trim() === '' ? null : numBR(q('#tf-a').value),
+      cor:q('#tf-cor').value, categoria:q('#tf-cat').value, obs:q('#tf-obs').value.trim(), propagar:!!q('#tf-prop')?.checked };
+    if (!corpo.nome) return avisar('Informe o nome', true);
+    if (!(corpo.largura_m >= 0.05) || !(corpo.profundidade_m >= 0.05)) return avisar('Informe largura e profundidade em metros (ex.: 1,20)', true);
+    try { if (corpo.propagar) await flushLay(); const r = await apiLayout('/layout/tipo', corpo); dlg.remove();
+      avisar(novo ? 'Objeto cadastrado' : `Objeto salvo${r.atualizados ? ` · ${r.atualizados} atualizado(s) nas plantas` : ''}`);
+      if (depois) depois(r.id);
+      if (r.atualizados) carregarLayout(true); else { state.layGeral = await apiLayout('/layout'); renderCatalogoLay(); } }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  const del = q('#tf-del'); if (del) del.onclick = async () => { if (!confirmaDupla(del, 'Clique de novo (os já colocados continuam nas plantas)')) return;
+    try { await apiLayout('/layout/tipo/excluir', { id:t.id }); dlg.remove(); avisar('Objeto tirado do catálogo'); state.layGeral = await apiLayout('/layout'); renderCatalogoLay(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+}
+function novaVersaoLay(B){
+  const dlg = document.createElement('div'), vig = B.versoes.find(v => v.principal); dlg.className = 'pl-modal';
+  const sug = `Proposta ${String.fromCharCode(65 + Math.max(0, B.versoes.filter(v => /^Proposta /.test(v.nome)).length))}`;
+  dlg.innerHTML = `<div class="painel"><h3 style="margin:0 0 8px">Nova versão</h3>
+    <div class="ly-form"><label class="full">Nome<input id="nv-nome" maxlength="60" value="${sug}"></label>
+      <label class="full">Começar com<select id="nv-de">${B.versoes.map(v => `<option value="${v.id}" ${v.id === state.lay.versao ? 'selected' : ''}>cópia de ${esc(v.nome)}${v.principal ? ' (vigente)' : ''}</option>`).join('')}<option value="">planta vazia</option></select></label></div>
+    <div class="info" style="margin-top:6px">Dica: mexa sempre numa cópia e deixe a vigente (★) como está. Quando a proposta for implantada, marque-a como vigente.</div>
+    <div class="gv-acoes"><span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="nv-ok">Criar</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
+  q('[data-x]').onclick = () => dlg.remove();
+  q('#nv-ok').onclick = async () => { const nome = q('#nv-nome').value.trim(); if (!nome) return avisar('Informe o nome', true);
+    try { await flushLay(); const r = await apiLayout('/layout/versao/nova', { bloco_id:B.id, nome, copiar_de:q('#nv-de').value || null }); dlg.remove(); state.lay.versao = r.id; state.lay.sel = null;
+      if (vig && !state.lay.comparar) state.lay.comparar = vig.id; carregarLayout(true); avisar(`Versão ${nome} criada${vig ? ' · comparando com a vigente (contorno tracejado)' : ''}`); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+}
+function acoesVersaoLay(B, V){
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel"><h3 style="margin:0 0 8px">Versão “${esc(V.nome)}”</h3>
+    <div class="ly-form"><label class="full">Nome<input id="av-nome" maxlength="60" value="${esc(V.nome)}"></label></div>
+    <div class="info" style="margin-top:6px">Atualizada por ${esc(String(V.atualizado_por).split('@')[0])} em ${quando(V.atualizado_em)}.</div>
+    <div class="gv-acoes" style="flex-wrap:wrap">${V.principal ? '<span class="info">★ É o layout vigente</span>' : '<button class="btn perigo" id="av-del">Excluir</button><button class="btn" id="av-prin">★ Marcar como vigente</button>'}
+      <span style="flex:1"></span><button class="btn" data-x>Fechar</button><button class="btn pri" id="av-ren">Renomear</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
+  const acao = async (corpo, msg) => { try { await flushLay(); await apiLayout('/layout/versao/acao', { id:V.id, ...corpo }); dlg.remove(); avisar(msg); carregarLayout(corpo.acao !== 'excluir'); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  q('[data-x]').onclick = () => dlg.remove();
+  q('#av-ren').onclick = () => { const nome = q('#av-nome').value.trim(); if (nome) acao({ acao:'renomear', nome }, 'Versão renomeada'); };
+  const p = q('#av-prin'); if (p) p.onclick = () => acao({ acao:'principal' }, `${V.nome} agora é o layout vigente`);
+  const d = q('#av-del'); if (d) d.onclick = () => { if (confirmaDupla(d, 'Clique de novo para excluir')) { state.lay.versao = null; acao({ acao:'excluir' }, 'Versão excluída'); } };
+}
+// texto da planta (para guardar, mandar ao Claude ou colar em outra versão)
+function textoLayout(){
+  const B = blocoLay(), V = state.layV.versao;
+  return JSON.stringify({ bloco:B.nome, largura_m:B.largura_m, profundidade_m:B.profundidade_m, lados:B.lados || {}, versao:V.nome,
+    eixos:'x = da parede esquerda, y = da parede de cima, em metros', itens:V.doc.itens.map(({ id, ...x }) => x) });
+}
+function copiarLayout(){
+  const t = textoLayout(), fb = () => { const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+    dlg.innerHTML = `<div class="painel"><h3 style="margin:0 0 8px">Copiar planta</h3><textarea style="width:100%;height:200px;font:12px ui-monospace,monospace">${esc(t)}</textarea><div class="gv-acoes"><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div></div>`;
+    document.body.appendChild(dlg); dlg.querySelector('textarea').select(); dlg.querySelector('[data-x]').onclick = () => dlg.remove(); };
+  try { navigator.clipboard.writeText(t).then(() => avisar('Planta copiada: cole numa mensagem para o Claude ou guarde')).catch(fb); } catch (e) { fb(); }
+}
+// lê o texto do "Copiar" deste portal ou do editor antigo (artifact: { atual:[...], proposta:[...] })
+const CORES_EDITOR_ANTIGO = { esteira:'#9aa7b3', mcross:'#d58b5e', mesa:'#c9a46a', gaiola:'#b59ac4', pal:'#a7b78a', paleteira:'#7fb0d6', escr:'#d9c8a3', i130:'#bdbdbd', i100:'#bdbdbd', zona:'#6ec2b0' };
+function lerTextoLayout(txt, qual, B){
+  const d = JSON.parse(txt), tipos = state.layGeral?.tipos || [];
+  const ligar = x => { const t = tipos.find(t => t.nome.toLowerCase() === String(x.nome).toLowerCase()); return t ? { ...x, tipo_id:t.id } : x; };
+  if (Array.isArray(d.itens)) return d.itens.map(x => ligar({ id:uidLay(), nome:String(x.nome || 'Objeto').slice(0, 60), x:r2(+x.x), y:r2(+x.y), w:r2(+x.w), d:r2(+x.d), cor:/^#[0-9a-f]{6}$/i.test(x.cor) ? x.cor : '#9aa7b3', cat:CAT_LAYOUT[x.cat] ? x.cat : 'movel', ...(x.trava ? { trava:true } : {}) }))
+    .filter(x => [x.x, x.y, x.w, x.d].every(Number.isFinite) && x.w > 0 && x.d > 0);
+  const lista = d[qual] || d.atual;
+  if (!Array.isArray(lista)) throw new Error('Texto não reconhecido');
+  return lista.filter(x => x.y <= B.profundidade_m + 0.5).map(x => ligar({ id:uidLay(), nome:String(x.label || x.t || 'Objeto').slice(0, 60), x:r2(+x.x), y:r2(+x.y), w:r2(+x.w), d:r2(+x.d),
+    cor:CORES_EDITOR_ANTIGO[x.t] || '#9aa7b3', cat:x.t === 'zona' ? 'zona' : 'movel' }));
+}
+function importarLayout(){
+  const B = blocoLay(), V = state.layV?.versao; if (!V) return;
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel" style="width:min(620px,100%)"><h3 style="margin:0 0 6px">Colar planta</h3>
+    <p class="info" style="margin:0 0 8px">Cole o texto do botão “Copiar” (desta tela ou do editor antigo “Layout Bloco Estacionamento”). Os objetos entram na versão <b>${esc(V.nome)}</b>.</p>
+    <textarea id="im-txt" style="width:100%;height:160px;font:12px ui-monospace,monospace" placeholder='{"atual":[...]} ou {"itens":[...]}'></textarea>
+    <div class="ly-form" style="margin-top:8px"><label>Do editor antigo, usar<select id="im-qual"><option value="atual">a versão Atual</option><option value="proposta">a versão Proposta</option></select></label>
+      <label>O que fazer<select id="im-modo"><option value="somar">Somar aos objetos que já estão</option><option value="trocar">Substituir tudo desta versão</option></select></label></div>
+    <div class="gv-acoes"><span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="im-ok">Colar</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
+  q('[data-x]').onclick = () => dlg.remove();
+  q('#im-ok').onclick = () => { let novos;
+    try { novos = lerTextoLayout(q('#im-txt').value, q('#im-qual').value, B); } catch (e) { return avisar('Texto inválido: cole exatamente o que foi copiado', true); }
+    if (!novos.length) return avisar('Nenhum objeto encontrado no texto', true);
+    if (q('#im-modo').value === 'trocar') V.doc.itens = novos; else V.doc.itens.push(...novos);
+    dlg.remove(); state.lay.sel = null; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`colou ${novos.length} objeto(s)`); avisar(`${novos.length} objeto(s) colados`); };
+}
+function imprimirLayout(){
+  const B = blocoLay(), V = state.layV?.versao; if (!B || !V) return;
+  const it = V.doc.itens, ruins = conflitosLay(it, B), area = B.largura_m * B.profundidade_m;
+  const svg = svgLayout(B, it, { ppm:20, largura:1000, grade:state.lay.grade, cotas:true, ruins, fantasma:state.layFant || [], folgas:false, fonte:Math.max(9, Math.min(14, Math.max(B.largura_m, B.profundidade_m) / 4)) })
+    .replace('width="1000"', 'width="100%"').replace(/height="[\d.]+"/, '');
+  const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0, w:x.w, d:x.d }); grupos[k].n++; grupos[k].a += x.w * x.d; });
+  const soma = c => it.filter(x => x.cat === c).reduce((t, x) => t + x.w * x.d, 0);
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Layout ${esc(B.nome)} · ${esc(V.nome)}</title><style>${CSS_IMPRESSO}
+    @page{size:A4 landscape;margin:8mm} body{font-family:'Segoe UI',Arial,sans-serif;color:#1b2333;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .cab{display:flex;align-items:center;gap:10px;border-bottom:1mm solid #f1c300;padding-bottom:2mm;margin-bottom:3mm} .cab img{height:12mm} .cab b{font-size:15pt;color:#02285a;display:block} .cab span{font-size:9pt;color:#566074}
+    .pl{display:grid;grid-template-columns:1fr 62mm;gap:4mm;align-items:start} .pl svg{width:100%;height:auto;max-height:170mm}
+    table{width:100%;border-collapse:collapse;font-size:8pt} td{padding:1mm .5mm;border-top:.2mm solid #dfe3ea} td.n{text-align:right} .sw{display:inline-block;width:3mm;height:3mm;border:.2mm solid #555;margin-right:1mm;vertical-align:-.4mm}
+    h4{font-size:8.5pt;margin:2mm 0 1mm;color:#566074;text-transform:uppercase} .obs{font-size:8pt;color:#7a5a00;margin-top:2mm}
+    ${CSS_LAYOUT_SVG}</style></head><body>
+    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><b>${esc(B.nome)} · ${esc(V.nome)}${V.principal ? ' (vigente)' : ''}</b>
+      <span>${fmtM(B.largura_m)} × ${fmtM(B.profundidade_m)} m · ${fmtM2(area)} m² · grade de ${Math.max(B.largura_m, B.profundidade_m) > 120 ? 5 : 1} m · impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}${state.layFant ? ' · tracejado: versão de comparação' : ''}</span></div></div>
+    <div class="pl"><div>${svg}</div><div>
+      <h4>Ocupação</h4><table><tr><td>Móveis e equipamentos</td><td class="n">${fmtM2(soma('movel'))} m²</td></tr><tr><td>Estrutura</td><td class="n">${fmtM2(soma('estrutura'))} m²</td></tr>
+        <tr><td><b>Piso livre</b></td><td class="n"><b>${fmtM2(Math.max(0, area - soma('movel') - soma('estrutura')))} m²</b></td></tr></table>
+      ${ruins.size ? `<div class="obs" style="color:#c62828">⚠ ${ruins.size} objeto(s) fora do bloco ou em conflito (contorno vermelho)</div>` : ''}
+      <h4>Objetos</h4><table>${Object.values(grupos).sort((a, b) => ORDEM_CAT_LAYOUT.indexOf(b.cat) - ORDEM_CAT_LAYOUT.indexOf(a.cat)).map(g => `<tr><td><span class="sw" style="background:${g.cor}"></span>${esc(g.nome)}<br><small style="color:#8a93a5">${g.cat === 'zona' ? `${fmtM2(g.a)} m²` : `${fmtM(g.w)} × ${fmtM(g.d)} m`}</small></td><td class="n">${g.n}</td></tr>`).join('')}</table>
+      ${B.obs ? `<div class="obs">📝 ${esc(B.obs)}</div>` : ''}</div></div></body></html>`;
+  imprimirHtml(html);
+}
+
 /* =================== MENU LATERAL =================== */
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
@@ -8024,6 +8648,7 @@ const MENU = [
       { view:'full', titulo:'Gestão - FULL', tela:'full' },
       { view:'cross', titulo:'Gestão - CROSS', tela:'cross' },
       { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
+      { view:'layout', titulo:'Layout do galpão', tela:'layout' },
     ]},
     { id:'cadastros', titulo:'Cadastros', filhos:[
       { view:'motoristas', titulo:'Motoristas', tela:'motoristas' },
@@ -8051,7 +8676,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -8098,7 +8723,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -8118,6 +8743,7 @@ function irPara(view){
   if (view === 'consolidado') return telaConsolidado();
   if (view === 'alocacao') return telaAlocacao();
   if (view === 'dimensionamento') return telaDimensionamento();
+  if (view === 'layout') return telaLayout();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
