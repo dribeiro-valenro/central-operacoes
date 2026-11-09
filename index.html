@@ -8121,19 +8121,23 @@ function folgasLay(o, itens, B){
   const baixo = Math.min(B.profundidade_m - o.y - o.d, ...obs.filter(x => sobreX(x) && x.y >= o.y + o.d - 0.001).map(x => x.y - o.y - o.d));
   return { esq, dir, cima, baixo };
 }
-function lugarLivreLay(w, d, itens, B, cat){
-  if (!CAT_LAYOUT[cat]?.colide) return { x:r2(Math.max(0, (B.largura_m - w) / 2)), y:r2(Math.max(0, (B.profundidade_m - d) / 2)) };
-  const sol = itens.filter(colideCat), passo = B.largura_m > 80 ? 1 : 0.5;
-  for (let y = 0.5; y + d <= B.profundidade_m; y += passo) for (let x = 0.5; x + w <= B.largura_m; x += passo) {
+// procura um lugar livre dentro da área (o bloco inteiro ou a zona em foco)
+function lugarLivreLay(w, d, itens, B, cat, area){
+  const A = area || { x:0, y:0, w:B.largura_m, d:B.profundidade_m };
+  if (!CAT_LAYOUT[cat]?.colide) return { x:r2(A.x + Math.max(0, (A.w - w) / 2)), y:r2(A.y + Math.max(0, (A.d - d) / 2)) };
+  const sol = itens.filter(colideCat), passo = A.w > 80 ? 1 : A.w > 15 ? 0.5 : 0.1, borda = Math.min(0.5, A.w / 20);
+  for (let y = A.y + borda; y + d <= A.y + A.d + 0.001; y += passo) for (let x = A.x + borda; x + w <= A.x + A.w + 0.001; x += passo) {
     const c = { x, y, w, d }; if (!sol.some(s => cruzaLay(c, s))) return { x:r2(x), y:r2(y) }; }
-  return { x:0, y:0 };
+  return { x:r2(A.x), y:r2(A.y) };
 }
 
 // ---- desenho (SVG em metros). Usado na tela e na impressão.
 function svgLayout(B, itens, o = {}){
   const L = B.largura_m, W = B.profundidade_m, ppm = o.ppm || 30, M = margemLay(B, ppm, o.fonte || 12);
   const px = n => n / ppm, fs = px(o.fonte || 12), ruins = o.ruins || new Set(), sel = o.sel;
-  const vb = `${-M} ${-M} ${L + 2 * M} ${W + 2 * M}`;
+  // recorte (modo foco numa zona): só a área da zona, ampliada
+  const R = o.recorte, Mr = R ? margemRecLay(R, ppm, o.fonte || 12) : 0;
+  const vb = R ? `${R.x - Mr} ${R.y - Mr} ${R.w + 2 * Mr} ${R.d + 2 * Mr}` : `${-M} ${-M} ${L + 2 * M} ${W + 2 * M}`;
   let g = '';
   // grade
   if (o.grade !== false) { const passo = Math.max(L, W) > 120 ? 5 : 1;
@@ -8142,12 +8146,18 @@ function svgLayout(B, itens, o = {}){
   g += `<rect x="0" y="0" width="${L}" height="${W}" class="ly-parede" style="stroke-width:${px(4)}"/>`;
   // lados (o que fica em cada parede)
   const ld = B.lados || {}, ts = `font-size:${fs}px`;
-  if (ld.topo) g += `<text x="${L / 2}" y="${-M * 0.62}" class="ly-lado" text-anchor="middle" style="${ts}">▲ ${esc(ld.topo)}</text>`;
-  if (ld.base) g += `<text x="${L / 2}" y="${W + M * 0.78}" class="ly-lado" text-anchor="middle" style="${ts}">▼ ${esc(ld.base)}</text>`;
-  if (ld.esq) g += `<text x="${-M * 0.6}" y="${W / 2}" class="ly-lado" text-anchor="middle" transform="rotate(-90 ${-M * 0.6} ${W / 2})" style="${ts}">◀ ${esc(ld.esq)}</text>`;
-  if (ld.dir) g += `<text x="${L + M * 0.78}" y="${W / 2}" class="ly-lado" text-anchor="middle" transform="rotate(90 ${L + M * 0.78} ${W / 2})" style="${ts}">${esc(ld.dir)} ▶</text>`;
+  if (!R && ld.topo) g += `<text x="${L / 2}" y="${-M * 0.62}" class="ly-lado" text-anchor="middle" style="${ts}">▲ ${esc(ld.topo)}</text>`;
+  if (!R && ld.base) g += `<text x="${L / 2}" y="${W + M * 0.78}" class="ly-lado" text-anchor="middle" style="${ts}">▼ ${esc(ld.base)}</text>`;
+  if (!R && ld.esq) g += `<text x="${-M * 0.6}" y="${W / 2}" class="ly-lado" text-anchor="middle" transform="rotate(-90 ${-M * 0.6} ${W / 2})" style="${ts}">◀ ${esc(ld.esq)}</text>`;
+  if (!R && ld.dir) g += `<text x="${L + M * 0.78}" y="${W / 2}" class="ly-lado" text-anchor="middle" transform="rotate(90 ${L + M * 0.78} ${W / 2})" style="${ts}">${esc(ld.dir)} ▶</text>`;
   // cotas gerais
-  if (o.cotas !== false) {
+  if (R && o.cotas !== false) {   // cotas da zona em foco
+    const yc = R.y - Mr * 0.35, xc = R.x + R.w + Mr * 0.3, t = px(4);
+    g += `<g class="ly-cota" style="stroke-width:${px(1)}"><line x1="${R.x}" y1="${yc}" x2="${R.x + R.w}" y2="${yc}"/><line x1="${R.x}" y1="${yc - t}" x2="${R.x}" y2="${yc + t}"/><line x1="${R.x + R.w}" y1="${yc - t}" x2="${R.x + R.w}" y2="${yc + t}"/>
+      <line x1="${xc}" y1="${R.y}" x2="${xc}" y2="${R.y + R.d}"/><line x1="${xc - t}" y1="${R.y}" x2="${xc + t}" y2="${R.y}"/><line x1="${xc - t}" y1="${R.y + R.d}" x2="${xc + t}" y2="${R.y + R.d}"/></g>
+      <text x="${R.x + R.w / 2}" y="${yc - px(4)}" text-anchor="middle" class="ly-ct" style="${ts}">${fmtM(R.w)} m</text>
+      <text x="${xc + px(5)}" y="${R.y + R.d / 2}" text-anchor="middle" class="ly-ct" transform="rotate(90 ${xc + px(5)} ${R.y + R.d / 2})" style="${ts}">${fmtM(R.d)} m</text>`; }
+  if (!R && o.cotas !== false) {
     const yc = -M * 0.25, xc = L + M * 0.16, t = px(4);
     g += `<g class="ly-cota" style="stroke-width:${px(1)}"><line x1="0" y1="${yc}" x2="${L}" y2="${yc}"/><line x1="0" y1="${yc - t}" x2="0" y2="${yc + t}"/><line x1="${L}" y1="${yc - t}" x2="${L}" y2="${yc + t}"/>
       <line x1="${xc}" y1="0" x2="${xc}" y2="${W}"/><line x1="${xc - t}" y1="0" x2="${xc + t}" y2="0"/><line x1="${xc - t}" y1="${W}" x2="${xc + t}" y2="${W}"/></g>
@@ -8159,12 +8169,14 @@ function svgLayout(B, itens, o = {}){
   const ord = [...itens].sort((a, b) => ORDEM_CAT_LAYOUT.indexOf(a.cat) - ORDEM_CAT_LAYOUT.indexOf(b.cat));
   for (const it of ord) {
     const ruim = ruins.has(it.id), z = it.cat === 'zona', mk = it.cat === 'marcacao';
-    const cls = `ly-obj ${z ? 'zona' : ''} ${it.id === sel ? 'sel' : ''} ${ruim ? 'ruim' : ''} ${it.trava ? 'trava' : ''}`;
+    const fora = R && it.id !== o.focoId && !cruzaLay(it, R), foco = R && it.id === o.focoId;
+    const cls = `ly-obj ${z ? 'zona' : ''} ${it.id === sel ? 'sel' : ''} ${ruim ? 'ruim' : ''} ${it.trava ? 'trava' : ''} ${fora ? 'fora' : ''} ${foco ? 'foco' : ''}`;
     const sw = px(it.id === sel ? 2.6 : ruim ? 2.2 : z ? 1.2 : 0.8);
     g += `<g class="${cls}" data-id="${esc(it.id)}"><rect x="${it.x}" y="${it.y}" width="${it.w}" height="${it.d}" fill="${it.cor}" fill-opacity="${z ? 0.2 : mk ? 0.85 : 0.92}" style="stroke-width:${sw};${z ? `stroke:${it.cor};stroke-dasharray:${px(6)} ${px(3)};` : ''}"/>`;
     // rótulo: cabe no lado maior? (zona: canto de cima, com a área)
     const maior = Math.max(it.w, it.d), cw = fs * 0.56, vert = it.d > it.w * 1.3;
-    if (z) { const f2 = Math.min(fs, (it.w - px(8)) / Math.max(4, it.nome.length) / 0.58), area = `${fmtM2(it.w * it.d)} m²`;
+    if (z && foco) { /* nome da zona em foco já aparece na barra */ }
+    else if (z) { const f2 = Math.min(fs, (it.w - px(8)) / Math.max(4, it.nome.length) / 0.58), area = `${fmtM2(it.w * it.d)} m²`;
       if (f2 > fs * 0.5 && it.d > f2 * 2.6) g += `<text x="${it.x + px(4)}" y="${it.y + f2 + px(3)}" class="ly-zt" style="font-size:${f2}px;fill:${luminLay(it.cor) > 0.8 ? '#566074' : it.cor}">${esc(it.nome)}<tspan class="ly-za" x="${it.x + px(4)}" dy="${f2 * 1.15}" style="font-size:${f2 * 0.85}px">${area}</tspan></text>`;
       else if (it.w > fs * 2 && it.d > fs * 2) g += `<title>${esc(it.nome)} · ${area}</title>`; }
     else if (maior * 0.92 > cw * 3 && Math.min(it.w, it.d) > fs * 0.9) {
@@ -8181,12 +8193,13 @@ function svgLayout(B, itens, o = {}){
       return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cor}" style="stroke-width:${sw};stroke-dasharray:${px(4)} ${px(2)}"/><text x="${mx + (x1 === x2 ? px(4) : 0)}" y="${my - (x1 === x2 ? 0 : px(4))}" class="${cor} t" style="font-size:${fs * 0.9}px" ${x1 === x2 ? '' : 'text-anchor="middle"'}>${fmtM(v)}</text>`; };
     g += seg(s.x - f.esq, cy, s.x, cy, f.esq) + seg(s.x + s.w, cy, s.x + s.w + f.dir, cy, f.dir) + seg(cx, s.y - f.cima, cx, s.y, f.cima) + seg(cx, s.y + s.d, cx, s.y + s.d + f.baixo, f.baixo); }
   // escala gráfica
-  const esc5 = Math.max(L, W) > 60 ? 10 : 5;
-  g += `<g class="ly-esc"><rect x="0" y="${W + M * 0.25}" width="${esc5}" height="${px(5)}"/><rect x="0" y="${W + M * 0.25}" width="${esc5 / 2}" height="${px(5)}" class="p"/>
-    <text x="${esc5 + px(4)}" y="${W + M * 0.25 + px(5)}" style="font-size:${fs * 0.85}px">${esc5} m</text></g>`;
-  const largPx = (L + 2 * M) * ppm, altPx = (W + 2 * M) * ppm;
-  return `<svg class="ly-svg" viewBox="${vb}" width="${o.largura || largPx}" height="${o.largura ? o.largura * (W + 2 * M) / (L + 2 * M) : altPx}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+  const dimMax = R ? Math.max(R.w, R.d) : Math.max(L, W), esc5 = dimMax > 60 ? 10 : dimMax > 12 ? 5 : 1, ex = R ? R.x : 0, ey = R ? R.y + R.d + Mr * 0.3 : W + M * 0.25;
+  g += `<g class="ly-esc"><rect x="${ex}" y="${ey}" width="${esc5}" height="${px(5)}"/><rect x="${ex}" y="${ey}" width="${esc5 / 2}" height="${px(5)}" class="p"/>
+    <text x="${ex + esc5 + px(4)}" y="${ey + px(5)}" style="font-size:${fs * 0.85}px">${esc5} m</text></g>`;
+  const VW = R ? R.w + 2 * Mr : L + 2 * M, VH = R ? R.d + 2 * Mr : W + 2 * M;
+  return `<svg class="ly-svg" viewBox="${vb}" width="${o.largura || VW * ppm}" height="${o.largura ? o.largura * VH / VW : VH * ppm}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
+const margemRecLay = (R, ppm, fonte = 12) => Math.max(0.4, Math.max(R.w, R.d) * 0.08, fonte * 2.8 / ppm);
 const margemLay = (B, ppm, fonte = 12) => Math.max(1.6, Math.max(B.largura_m, B.profundidade_m) * 0.06, fonte * 3.4 / ppm);
 function luminLay(hex){ const n = parseInt(String(hex).slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
 const CSS_LAYOUT_SVG = `
@@ -8201,6 +8214,7 @@ const CSS_LAYOUT_SVG = `
   .ly-zt{font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:.06} .ly-za{font-weight:600;fill:#566074}
   .ly-fg{stroke:#0b6bcb;fill:#0b6bcb} .ly-fg.t{stroke:none;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;paint-order:stroke} .ly-fg.ap{stroke:#c62828;fill:#c62828}
   .ly-fg.t.ap{stroke:none}
+  .ly-obj.fora{opacity:.28;pointer-events:none} .ly-obj.foco{pointer-events:none}
   .ly-esc rect{fill:#fff;stroke:#1f2a33;stroke-width:.03} .ly-esc rect.p{fill:#1f2a33} .ly-esc text{fill:#1f2a33}`;
 const CSS_LAYOUT = `
   .ly-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
@@ -8234,6 +8248,8 @@ const CSS_LAYOUT = `
   .ly-alerta{color:#c62828;font-weight:600;font-size:13px;margin-top:6px}
   .ly-cores{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px} .ly-cores button{width:22px;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.2);cursor:pointer;padding:0}
   .ly-hist{font-size:12px;color:var(--mute);display:grid;gap:4px;max-height:200px;overflow:auto}
+  .ly-foco-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#e8f1fc;border-bottom:1px solid #c7dcf5;font-size:13px;color:#0b3a78}
+  .ly-foco-bar[hidden]{display:none}
   .ly-obs{font-size:12.5px;color:#7a5a00;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:6px 10px;margin:0 0 10px}
   ${CSS_LAYOUT_SVG}`;
 
@@ -8293,7 +8309,7 @@ function renderLayout(){
   const s = state.lay, g = state.layGeral, $c = document.getElementById('ly'); if (!$c) return;
   const editar = pode('layout', 'editar'), selB = document.getElementById('ly-bloco');
   selB.innerHTML = (g?.blocos || []).map(b => `<option value="${b.id}" ${b.id === s.bloco ? 'selected' : ''}>${esc(b.nome)} · ${fmtM(b.largura_m)} × ${fmtM(b.profundidade_m)} m</option>`).join('') || '<option>Nenhum bloco</option>';
-  selB.onchange = () => { s.bloco = selB.value; s.versao = null; s.sel = null; s.comparar = ''; carregarLayout(); };
+  selB.onchange = () => { s.bloco = selB.value; s.versao = null; s.sel = null; s.comparar = ''; s.foco = null; carregarLayout(); };
   const nb = document.getElementById('ly-nbloco'); if (nb) nb.onclick = () => editarBlocoLay(null);
   const eb = document.getElementById('ly-ebloco'); if (eb) { eb.disabled = !s.bloco; eb.onclick = () => editarBlocoLay(blocoLay()); }
   const B = blocoLay();
@@ -8307,6 +8323,7 @@ function renderLayout(){
     <div class="ly-grid">
       <section class="ly-board">
         <div class="ly-tools">
+          <label>Ver <select id="ly-foco"><option value="">Bloco inteiro</option>${(V?.doc.itens || []).filter(x => x.cat === 'zona').sort((a, b) => a.nome.localeCompare(b.nome)).map(z => `<option value="${esc(z.id)}" ${s.foco === z.id ? 'selected' : ''}>🔍 ${esc(z.nome)} · ${fmtM(z.w)} × ${fmtM(z.d)}</option>`).join('')}</select></label>
           <span><button class="btn" id="ly-zm" title="Diminuir">−</button> <b id="ly-zv">${Math.round(s.zoom * 100)}%</b> <button class="btn" id="ly-zp" title="Aumentar">+</button> <button class="btn" id="ly-zf" title="Ajustar à tela">Ajustar</button></span>
           <label><input type="checkbox" id="ly-grade" ${s.grade ? 'checked' : ''}> Grade</label>
           <label><input type="checkbox" id="ly-cotas" ${s.cotas ? 'checked' : ''}> Cotas</label>
@@ -8315,6 +8332,7 @@ function renderLayout(){
           <span style="flex:1"></span>
           <button class="btn" id="ly-imp">🖨 Imprimir</button><button class="btn" id="ly-copiar" title="Copia a planta em texto para mandar ao Claude ou guardar">⧉ Copiar</button>${editar ? '<button class="btn" id="ly-importar" title="Colar uma planta copiada (inclusive do editor antigo)">⇩ Colar</button>' : ''}
         </div>
+        <div class="ly-foco-bar" id="ly-foco-bar" hidden></div>
         <div class="ly-box ${editar ? '' : 'ro'}" id="ly-box"></div>
         <div class="info" style="padding:6px 10px;border-top:1px solid var(--line)">${editar ? 'Arraste os objetos. Setas movem 10 cm (Shift: 1 m), R gira, Delete exclui. ' : ''}Contorno <b style="color:#c62828">vermelho</b> = fora do bloco ou batendo em outro objeto. Selecionado: as linhas azuis mostram o espaço livre até a parede ou o obstáculo (vermelho = menos de 1,80 m, pouco para paleteira com palete).</div>
       </section>
@@ -8342,12 +8360,14 @@ function renderLayout(){
   q('ly-cotas').onchange = e => { s.cotas = e.target.checked; desenharLay(); };
   q('ly-snap').onchange = e => { s.snap = Number(e.target.value); };
   q('ly-comp').onchange = e => { s.comparar = e.target.value; carregarLayout(true); };
+  q('ly-foco').onchange = e => focarZonaLay(e.target.value);
   q('ly-imp').onclick = () => imprimirLayout();
   q('ly-copiar').onclick = () => copiarLayout();
   if (q('ly-importar')) q('ly-importar').onclick = () => importarLayout();
   if (q('ly-ntipo')) q('ly-ntipo').onclick = () => editarTipoLay(null);
   q('ly-busca').oninput = e => { s.busca = e.target.value; renderCatalogoLay(); };
-  renderCatalogoLay(); desenharLay(); renderSelLay(); renderResumoLay();
+  if (s.foco && !zonaFocoLay()) s.foco = null;
+  barraFocoLay(); renderCatalogoLay(); desenharLay(); renderSelLay(); renderResumoLay();
   if (!V) q('ly-box').innerHTML = '<div class="info" style="padding:20px">Este bloco ainda não tem versão. Crie uma em “+ Versão”.</div>';
 }
 function renderCatalogoLay(){
@@ -8361,20 +8381,36 @@ function renderCatalogoLay(){
   if (editar) $l.querySelectorAll('[data-tipo]').forEach(x => { const add = () => colocarTipoLay(state.layGeral.tipos.find(t => t.id === x.dataset.tipo));
     x.onclick = add; x.onkeydown = ev => { if (ev.key === 'Enter') add(); }; });
 }
+// modo foco: mostra só a área de uma zona, ampliada (os objetos continuam na mesma planta)
+function zonaFocoLay(){ const s = state.lay; if (!s?.foco) return null; return itensLay().find(x => x.id === s.foco && x.cat === 'zona') || null; }
+function focarZonaLay(id){
+  const s = state.lay; s.foco = id || null; s.zoom = 1;
+  if (id && s.sel === id) s.sel = null;
+  const sel = document.getElementById('ly-foco'); if (sel) sel.value = id || '';
+  barraFocoLay(); desenharLay(); renderSelLay(); renderResumoLay();
+}
+function barraFocoLay(){
+  const bar = document.getElementById('ly-foco-bar'); if (!bar) return; const Z = zonaFocoLay();
+  bar.hidden = !Z; if (!Z) return;
+  bar.innerHTML = `🔍 Vendo só a zona <b>${esc(Z.nome)}</b> (${fmtM(Z.w)} × ${fmtM(Z.d)} m · ${fmtM2(Z.w * Z.d)} m²). Objetos do catálogo entram dentro dela; o resto do bloco fica apagado.<span style="flex:1"></span><button class="btn" id="ly-foco-sair">✕ Ver o bloco inteiro</button>`;
+  document.getElementById('ly-foco-sair').onclick = () => focarZonaLay(null);
+}
 function colocarTipoLay(t){
   const B = blocoLay(), V = state.layV?.versao; if (!B || !V || !t) return;
-  const p = lugarLivreLay(t.largura_m, t.profundidade_m, V.doc.itens, B, t.categoria);
+  const Z = zonaFocoLay(), p = lugarLivreLay(t.largura_m, t.profundidade_m, V.doc.itens, B, t.categoria, Z ? { x:Z.x, y:Z.y, w:Z.w, d:Z.d } : null);
   const it = { id:uidLay(), tipo_id:t.id, nome:t.nome, x:p.x, y:p.y, w:t.largura_m, d:t.profundidade_m, cor:t.cor, cat:t.categoria, ...(t.categoria === 'estrutura' ? { trava:true } : {}) };
   V.doc.itens.push(it); state.lay.sel = it.id; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`colocou ${t.nome}`);
 }
 function desenharLay(){
   const s = state.lay, B = blocoLay(), V = state.layV?.versao, box = document.getElementById('ly-box'); if (!box || !B || !V) return;
   const zv = document.getElementById('ly-zv'); if (zv) zv.textContent = `${Math.round(s.zoom * 100)}%`;
-  const cw = Math.max(300, box.clientWidth - 4), ajuste = M => Math.min(cw / (B.largura_m + 2 * M), (window.innerHeight * 0.68) / (B.profundidade_m + 2 * M) * 1.6);
-  let base = ajuste(Math.max(1.6, Math.max(B.largura_m, B.profundidade_m) * 0.06)); base = ajuste(margemLay(B, base)); base = ajuste(margemLay(B, base));
+  const Z = zonaFocoLay(), R = Z ? { x:Z.x, y:Z.y, w:Z.w, d:Z.d } : null;
+  const cw = Math.max(300, box.clientWidth - 4), L0 = R ? R.w : B.largura_m, W0 = R ? R.d : B.profundidade_m, marg = b => R ? margemRecLay(R, b) : margemLay(B, b);
+  const ajuste = M => Math.min(cw / (L0 + 2 * M), (window.innerHeight * 0.68) / (W0 + 2 * M) * 1.6);
+  let base = ajuste(R ? Math.max(0.4, Math.max(L0, W0) * 0.08) : Math.max(1.6, Math.max(L0, W0) * 0.06)); base = ajuste(marg(base)); base = ajuste(marg(base));
   const ppm = base * s.zoom;
   const ruins = conflitosLay(V.doc.itens, B);
-  box.innerHTML = svgLayout(B, V.doc.itens, { ppm, grade:s.grade, cotas:s.cotas, sel:s.sel, ruins, fantasma:state.layFant || [], fonte:12 });
+  box.innerHTML = svgLayout(B, V.doc.itens, { ppm, grade:s.grade, cotas:s.cotas, sel:s.sel, ruins, fantasma:state.layFant || [], fonte:12, recorte:R, focoId:Z?.id });
   const svg = box.querySelector('svg'), editar = pode('layout', 'editar');
   const pt = ev => { const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
   svg.addEventListener('pointerdown', ev => {
@@ -8425,10 +8461,13 @@ function renderSelLay(){
       <label class="chk full"><input type="checkbox" id="lo-trava" ${it.trava ? 'checked' : ''} ${dis}> Travado (não arrasta sem querer)</label>
     </div>
     ${f ? `<div class="ly-folga">Espaço livre · ← ${fg(f.esq)} · → ${fg(f.dir)} · ↑ ${fg(f.cima)} · ↓ ${fg(f.baixo)}</div>` : `<div class="ly-folga">Área da zona: <b>${fmtM2(it.w * it.d)} m²</b></div>`}
+    ${it.cat !== 'zona' && zonaFocoLay() ? `<div class="ly-folga">Dentro de ${esc(zonaFocoLay().nome)}: <b>${fmtM(it.x - zonaFocoLay().x)} m</b> da borda esquerda · <b>${fmtM(it.y - zonaFocoLay().y)} m</b> da borda de cima</div>` : ''}
+    ${it.cat === 'zona' ? `<div class="ly-acts"><button class="btn pri" id="lo-focar">🔍 Ver só esta zona</button></div>` : ''}
     ${conflitosLay(itensLay(), B).has(it.id) ? '<div class="ly-alerta">⚠ Fora do bloco ou batendo em outro objeto</div>' : ''}
     <div class="info" style="margin-top:4px">${tipo ? `Do catálogo: ${esc(tipo.nome)} (${fmtM(tipo.largura_m)} × ${fmtM(tipo.profundidade_m)})` : 'Objeto avulso (não está no catálogo)'}</div>
     ${editar ? `<div class="ly-acts"><button class="btn" id="lo-gir">⟳ Girar 90°</button><button class="btn" id="lo-dup">⧉ Duplicar</button><button class="btn" id="lo-rep" title="Fileira de objetos iguais">▦ Repetir…</button>
       ${tipo ? '' : '<button class="btn" id="lo-cat-salvar" title="Cadastra este objeto no catálogo para reusar">+ Catálogo</button>'}<button class="btn perigo" id="lo-del">Excluir</button></div>` : ''}`;
+  const fz = document.getElementById('lo-focar'); if (fz) fz.onclick = () => focarZonaLay(it.id);
   if (!editar) return;
   const q = k => document.getElementById(k);
   const aplicar = (campo, v, resumo) => { it[campo] = v; desenharLay(); renderResumoLay(); salvarLay(resumo); const fx = document.querySelector('.ly-folga'); if (fx && it.cat !== 'zona') { const f2 = folgasLay(it, itensLay(), B); fx.innerHTML = `Espaço livre · ← ${fg(f2.esq)} · → ${fg(f2.dir)} · ↑ ${fg(f2.cima)} · ↓ ${fg(f2.baixo)}`; } };
@@ -8447,20 +8486,21 @@ function renderSelLay(){
 }
 function renderResumoLay(){
   const $r = document.getElementById('ly-res'); if (!$r) return;
-  const B = blocoLay(), it = itensLay(), area = B.largura_m * B.profundidade_m, ruins = conflitosLay(it, B);
+  const B = blocoLay(), Z = zonaFocoLay(), ruins = conflitosLay(itensLay(), B);
+  const it = Z ? itensLay().filter(x => x.id !== Z.id && cruzaLay(x, Z)) : itensLay(), area = Z ? Z.w * Z.d : B.largura_m * B.profundidade_m;
   const soma = c => it.filter(x => x.cat === c && dentroLay(x, B)).reduce((t, x) => t + x.w * x.d, 0);
   const mov = soma('movel'), est = soma('estrutura'), livre = Math.max(0, area - mov - est);
   const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0 }); grupos[k].n++; grupos[k].a += x.w * x.d; });
   const lin = Object.values(grupos).sort((a, b) => ORDEM_CAT_LAYOUT.indexOf(b.cat) - ORDEM_CAT_LAYOUT.indexOf(a.cat) || b.a - a.a);
   const pct = v => `${Math.round(v / area * 100)}%`;
-  $r.innerHTML = `<h4>Resumo · ${esc(state.layV?.versao.nome || '')}</h4>
+  $r.innerHTML = `<h4>Resumo · ${Z ? `zona ${esc(Z.nome)}` : esc(state.layV?.versao.nome || '')}</h4>
     <table class="ly-res" style="width:100%;border-collapse:collapse"><tbody>
-      <tr><td>Área do bloco</td><td class="n">${fmtM2(area)} m²</td><td class="n"></td></tr>
+      <tr><td>Área ${Z ? 'da zona' : 'do bloco'}</td><td class="n">${fmtM2(area)} m²</td><td class="n"></td></tr>
       <tr><td>Móveis e equipamentos</td><td class="n">${fmtM2(mov)} m²</td><td class="n">${pct(mov)}</td></tr>
       <tr><td>Estrutura (pilares, escada…)</td><td class="n">${fmtM2(est)} m²</td><td class="n">${pct(est)}</td></tr>
       <tr class="t"><td>Piso livre</td><td class="n">${fmtM2(livre)} m²</td><td class="n">${pct(livre)}</td></tr>
     </tbody></table>
-    ${ruins.size ? `<div class="ly-alerta">⚠ ${ruins.size} objeto(s) fora do bloco ou batendo em outro</div>` : ''}
+    ${(Z ? it.filter(x => ruins.has(x.id)).length : ruins.size) ? `<div class="ly-alerta">⚠ ${Z ? it.filter(x => ruins.has(x.id)).length : ruins.size} objeto(s) fora do bloco ou batendo em outro</div>` : ''}
     <table class="ly-res" style="width:100%;border-collapse:collapse;margin-top:8px"><tbody>
       ${lin.map(g => `<tr><td><span class="ly-sw ${g.cat === 'zona' ? 'zona' : ''}" style="display:inline-block;vertical-align:-2px;margin-right:6px;background:${g.cor}"></span>${esc(g.nome)}</td><td class="n">${g.n}</td><td class="n">${fmtM2(g.a)} m²</td></tr>`).join('') || '<tr><td class="info">Nenhum objeto na planta.</td></tr>'}
     </tbody></table>
@@ -8618,8 +8658,11 @@ function importarLayout(){
 }
 function imprimirLayout(){
   const B = blocoLay(), V = state.layV?.versao; if (!B || !V) return;
-  const it = V.doc.itens, ruins = conflitosLay(it, B), area = B.largura_m * B.profundidade_m;
-  const svg = svgLayout(B, it, { ppm:20, largura:1000, grade:state.lay.grade, cotas:true, ruins, fantasma:state.layFant || [], folgas:false, fonte:Math.max(9, Math.min(14, Math.max(B.largura_m, B.profundidade_m) / 4)) })
+  const Z = zonaFocoLay(), R = Z ? { x:Z.x, y:Z.y, w:Z.w, d:Z.d } : null;
+  const tudo = V.doc.itens, ruins = conflitosLay(tudo, B), area = R ? R.w * R.d : B.largura_m * B.profundidade_m, dm = R ? Math.max(R.w, R.d) : Math.max(B.largura_m, B.profundidade_m);
+  const it = R ? tudo.filter(x => x.id !== Z.id && cruzaLay(x, R)) : tudo;
+  const ppmI = 1000 / ((R ? R.w : B.largura_m) * 1.15);
+  const svg = svgLayout(B, tudo, { ppm:ppmI, largura:1000, grade:state.lay.grade, cotas:true, ruins, fantasma:state.layFant || [], folgas:false, fonte:Math.max(9, Math.min(14, dm / 4)) * ppmI / 20, recorte:R, focoId:Z?.id })
     .replace('width="1000"', 'width="100%"').replace(/height="[\d.]+"/, '');
   const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0, w:x.w, d:x.d }); grupos[k].n++; grupos[k].a += x.w * x.d; });
   const soma = c => it.filter(x => x.cat === c).reduce((t, x) => t + x.w * x.d, 0);
@@ -8630,12 +8673,12 @@ function imprimirLayout(){
     table{width:100%;border-collapse:collapse;font-size:8pt} td{padding:1mm .5mm;border-top:.2mm solid #dfe3ea} td.n{text-align:right} .sw{display:inline-block;width:3mm;height:3mm;border:.2mm solid #555;margin-right:1mm;vertical-align:-.4mm}
     h4{font-size:8.5pt;margin:2mm 0 1mm;color:#566074;text-transform:uppercase} .obs{font-size:8pt;color:#7a5a00;margin-top:2mm}
     ${CSS_LAYOUT_SVG}</style></head><body>
-    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><b>${esc(B.nome)} · ${esc(V.nome)}${V.principal ? ' (vigente)' : ''}</b>
-      <span>${fmtM(B.largura_m)} × ${fmtM(B.profundidade_m)} m · ${fmtM2(area)} m² · grade de ${Math.max(B.largura_m, B.profundidade_m) > 120 ? 5 : 1} m · impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}${state.layFant ? ' · tracejado: versão de comparação' : ''}</span></div></div>
+    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><b>${esc(B.nome)}${Z ? ` › ${esc(Z.nome)}` : ''} · ${esc(V.nome)}${V.principal ? ' (vigente)' : ''}</b>
+      <span>${R ? `zona ${fmtM(R.w)} × ${fmtM(R.d)} m` : `${fmtM(B.largura_m)} × ${fmtM(B.profundidade_m)} m`} · ${fmtM2(area)} m² · grade de ${Math.max(B.largura_m, B.profundidade_m) > 120 ? 5 : 1} m · impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}${state.layFant ? ' · tracejado: versão de comparação' : ''}</span></div></div>
     <div class="pl"><div>${svg}</div><div>
       <h4>Ocupação</h4><table><tr><td>Móveis e equipamentos</td><td class="n">${fmtM2(soma('movel'))} m²</td></tr><tr><td>Estrutura</td><td class="n">${fmtM2(soma('estrutura'))} m²</td></tr>
         <tr><td><b>Piso livre</b></td><td class="n"><b>${fmtM2(Math.max(0, area - soma('movel') - soma('estrutura')))} m²</b></td></tr></table>
-      ${ruins.size ? `<div class="obs" style="color:#c62828">⚠ ${ruins.size} objeto(s) fora do bloco ou em conflito (contorno vermelho)</div>` : ''}
+      ${it.filter(x => ruins.has(x.id)).length ? `<div class="obs" style="color:#c62828">⚠ ${it.filter(x => ruins.has(x.id)).length} objeto(s) fora do bloco ou em conflito (contorno vermelho)</div>` : ''}
       <h4>Objetos</h4><table>${Object.values(grupos).sort((a, b) => ORDEM_CAT_LAYOUT.indexOf(b.cat) - ORDEM_CAT_LAYOUT.indexOf(a.cat)).map(g => `<tr><td><span class="sw" style="background:${g.cor}"></span>${esc(g.nome)}<br><small style="color:#8a93a5">${g.cat === 'zona' ? `${fmtM2(g.a)} m²` : `${fmtM(g.w)} × ${fmtM(g.d)} m`}</small></td><td class="n">${g.n}</td></tr>`).join('')}</table>
       ${B.obs ? `<div class="obs">📝 ${esc(B.obs)}</div>` : ''}</div></div></body></html>`;
   imprimirHtml(html);
