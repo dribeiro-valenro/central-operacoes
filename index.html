@@ -829,7 +829,7 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'layout', nome:'Layout do galpão', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'seenc', nome:'Dados do Seenc (upload)', grupo:'Logística · Indicadores', niveis:['ver','editar'] }, { id:'mkt', nome:'Pares do Marketing', grupo:'Marketing', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'layout', nome:'Layout do galpão', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'seenc', nome:'Dados do Seenc (upload)', grupo:'Logística · Indicadores', niveis:['ver','editar'] }, { id:'mkt', nome:'Marketing (Solicitações)', grupo:'Marketing', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
   modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'editar', cross:'gerir', abandono:'gerir', layout:'editar', seenc:'editar', mkt:'gerir', motoristas:'editar', ponto:'gerir', alocacao:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'ver', cross:'gerir', abandono:'gerir', layout:'ver', seenc:'ver', mkt:'gerir', motoristas:'editar', ponto:'editar', alocacao:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', mkt:'ver', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', mkt:'gerir', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', full_comercial:'nenhum', cross:'nenhum', abandono:'nenhum', layout:'nenhum', seenc:'nenhum', mkt:'nenhum', motoristas:'nenhum', ponto:'gerir', alocacao:'nenhum', pessoas:'nenhum' } , marketing:{ mkt:'editar' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
   perfis: [{ id:'admin', nome:'Admin', descricao:'Acesso total; único que cria e edita perfis', sistema:true }, { id:'lider', nome:'Líder', descricao:'Gestão da operação e do time', sistema:true },
@@ -9164,7 +9164,7 @@ function renderCargasSeenc(){
     try { const r = await apiSeenc('/seenc/carga/excluir', { carga_id:b.dataset.exc }); avisar(`Carga excluída (${fmtN(r.linhas)} linhas apagadas)`); carregarSeenc(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
 }
 
-/* =================== PARES DO MARKETING (foto/vídeo) =================== */
+/* =================== MARKETING (SOLICITAÇÕES DE PARES PARA FOTO/VÍDEO) =================== */
 // Solicitado → Separado (movido para o prédio MKT no Seenc) → Entregue (ficha assinada) → Devolvido → Realocado (de volta ao estoque no Seenc)
 const ETAPAS_MK = [
   { id:'solicitado', rot:'Solicitado', cor:'#566074' },
@@ -9188,7 +9188,11 @@ const CSS_MK = `
   @media (max-width:640px){ .mk-linha{grid-template-columns:1fr 1fr} }
   .mk-tl{display:grid;gap:4px;font-size:12.5px;margin-top:8px} .mk-tl div{display:flex;gap:8px} .mk-tl b{min-width:120px}
   .mk-conf{display:flex;gap:8px;align-items:flex-start;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}
-  .mk-conf input{margin-top:3px}`;
+  .mk-conf input{margin-top:3px}
+  .mk-ret{font-size:12px} .mk-ret.atr{color:#a11d1d;font-weight:700}
+  .mk-col h4 small{font-weight:600;opacity:.8}
+  .mk-form input.cx{text-transform:uppercase}
+  .mk-hint{font-size:12px;color:#7a5a00;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:5px 9px;margin:6px 0}`;
 const diasDesde = (ini, fim) => ini ? Math.max(0, Math.floor(((fim ? new Date(fim) : new Date()) - new Date(ini)) / 86400000)) : 0;
 const paresMk = s => s.itens.reduce((t, i) => t + i.qtd, 0), devMk = s => s.itens.reduce((t, i) => t + i.qtd_devolvida, 0);
 const linkMk = id => `${urlPortal()}?tela=mkt&mkt=${encodeURIComponent(id)}`;
@@ -9201,7 +9205,8 @@ function demoMkBase(){
     separado_em:['separado', 'entregue', 'devolvido', 'realocado'].includes(st) ? d(dias - 0.1) : null, separado_por:'guilherme.porto',
     entregue_em:['entregue', 'devolvido', 'realocado'].includes(st) ? d(dias - 0.2) : null, entregue_por:'guilherme.porto', recebido_por:['entregue', 'devolvido', 'realocado'].includes(st) ? sol : null,
     devolvido_em:['devolvido', 'realocado'].includes(st) ? d(Math.max(0, dias - 3)) : null, devolvido_por:['devolvido', 'realocado'].includes(st) ? sol : null, conferido_por:'guilherme.porto',
-    realocado_em:st === 'realocado' ? d(Math.max(0, dias - 3.5)) : null, realocado_por:'guilherme.porto', cancelado_em:null, cancelado_por:null, motivo_cancelamento:null, atualizado_em:d(0), atualizado_por:'demonstracao',
+    realocado_em:st === 'realocado' ? d(Math.max(0, dias - 3.5)) : null, realocado_por:'guilherme.porto',
+    retirada_prevista:addDias(hojeBRT(), Math.round(1 - dias)), separado_operador:st !== 'solicitado' ? 'Arthur Magdaleno' : null, realocado_operador:st === 'realocado' ? 'Davi Duarte' : null, cancelado_em:null, cancelado_por:null, motivo_cancelamento:null, atualizado_em:d(0), atualizado_por:'demonstracao',
     itens:itens.map((i, k) => ({ id:`${id}-${k}`, cnpj_id:i[0], produto:i[1], cor:i[2], tamanho:i[3], qtd:i[4], qtd_devolvida:st === 'devolvido' || st === 'realocado' ? i[4] : (i[5] || 0) })), ...x });
   return { seq:20, eventos:[], lista:[
     S(14, 'Juliana Prado', 'Fotos coleção verão', 'solicitado', 0, [['DIGOS', '6371-367-7286', 'PRETO', '36', 1], ['CACAL', '1478-100-31404', 'BEGE', '35', 1]]),
@@ -9215,20 +9220,24 @@ function demoMkBase(){
 async function apiMkt(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_MK ||= demoMkBase(), ag = new Date().toISOString(), cp = o => JSON.parse(JSON.stringify(o)), ev = (id, acao) => D.eventos.unshift({ id, em:ag, por:'demonstracao', acao, detalhe:null });
-  if (path.startsWith('/mkt?')) return cp({ solicitacoes:D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() });
+  if (path.startsWith('/mkt?')) return cp({ solicitacoes:D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], operadores:['Arthur Magdaleno', 'Davi Duarte', 'Nathan Marques', 'Rafael Batista', 'Tiago Santos'], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() });
   if (path.startsWith('/mkt/detalhe')) { const id = new URLSearchParams(path.split('?')[1]).get('id'), s = D.lista.find(x => x.id === id); if (!s) throw new Error('Solicitação não encontrada'); return cp({ solicitacao:s, eventos:D.eventos.filter(e => e.id === id) }); }
   if (path === '/mkt/solicitacao') { if (!String(corpo.solicitante || '').trim()) throw new Error('Informe o solicitante'); const itens = (corpo.itens || []).filter(i => i.produto);
     if (!itens.length) throw new Error('Inclua pelo menos um par'); if (itens.some(i => !i.cnpj_id)) throw new Error('Escolha a loja de cada item'); if (itens.some(i => !(i.qtd >= 1))) throw new Error('Quantidade inválida');
     const its = id => itens.map((i, k) => ({ id:`${id}-${k}-${Date.now()}`, cnpj_id:i.cnpj_id, produto:caixaAltaTxt(i.produto), cor:caixaAltaTxt(i.cor || ''), tamanho:i.tamanho || '', qtd:Number(i.qtd), qtd_devolvida:0 }));
-    if (corpo.id) { const s = D.lista.find(x => x.id === corpo.id); if (s.status !== 'solicitado') throw new Error('Só dá para alterar enquanto está "Solicitado"'); Object.assign(s, { solicitante:corpo.solicitante, finalidade:corpo.finalidade, observacao:corpo.observacao, itens:its(s.id) }); ev(s.id, 'alterou'); return { ok:true, id:s.id }; }
-    const id = String(++D.seq); D.lista.unshift({ id, solicitante:corpo.solicitante.trim(), finalidade:corpo.finalidade || null, observacao:corpo.observacao || null, status:'solicitado', solicitado_em:ag, solicitado_por:'demonstracao', itens:its(id) }); ev(id, 'solicitou'); return { ok:true, id }; }
+    if (!corpo.retirada_prevista) throw new Error('Informe a data em que precisa retirar os pares');
+    if (corpo.id) { const s = D.lista.find(x => x.id === corpo.id); if (s.status !== 'solicitado') throw new Error('Só dá para alterar enquanto está "Solicitado"'); Object.assign(s, { solicitante:corpo.solicitante, finalidade:corpo.finalidade, observacao:corpo.observacao, retirada_prevista:corpo.retirada_prevista, solicitado_em:corpo.solicitado_em || s.solicitado_em, itens:its(s.id) }); ev(s.id, 'alterou'); return { ok:true, id:s.id }; }
+    const id = String(++D.seq); D.lista.unshift({ id, solicitante:corpo.solicitante.trim(), finalidade:corpo.finalidade || null, observacao:corpo.observacao || null, retirada_prevista:corpo.retirada_prevista, status:'solicitado', solicitado_em:corpo.solicitado_em || ag, solicitado_por:'demonstracao', itens:its(id) }); ev(id, 'solicitou'); return { ok:true, id }; }
   if (path === '/mkt/acao') { const s = D.lista.find(x => x.id === corpo.id), a = corpo.acao, precisa = st => { if (!st.includes(s.status)) throw new Error('Essa ação não vale nesta etapa'); };
+    const em = corpo.em || ag;
     if (['separar', 'realocar'].includes(a) && corpo.seenc !== true) throw new Error('Confirme a movimentação no Seenc antes de avançar');
-    if (a === 'separar') { precisa(['solicitado']); Object.assign(s, { status:'separado', separado_em:ag, separado_por:'demonstracao' }); }
-    else if (a === 'entregar') { precisa(['separado']); Object.assign(s, { status:'entregue', entregue_em:ag, entregue_por:'demonstracao', recebido_por:corpo.recebido_por || s.solicitante }); }
+    if (['separar', 'realocar'].includes(a) && !String(corpo.operador || '').trim()) throw new Error(`Informe o operador que ${a === 'separar' ? 'separou' : 'realocou'}`);
+    if (a === 'datas') { Object.entries(corpo.datas || {}).forEach(([k, v]) => { if (s[k] && v) s[k] = v; }); if (corpo.separado_operador !== undefined && s.separado_em) s.separado_operador = corpo.separado_operador; if (corpo.realocado_operador !== undefined && s.realocado_em) s.realocado_operador = corpo.realocado_operador; ev(s.id, 'corrigiu datas'); return { ok:true }; }
+    if (a === 'separar') { precisa(['solicitado']); Object.assign(s, { status:'separado', separado_em:em, separado_por:'demonstracao', separado_operador:corpo.operador }); }
+    else if (a === 'entregar') { precisa(['separado']); Object.assign(s, { status:'entregue', entregue_em:em, entregue_por:'demonstracao', recebido_por:corpo.recebido_por || s.solicitante }); }
     else if (a === 'devolver') { precisa(['entregue']); let t = 0; (corpo.itens || []).forEach(d => { const i = s.itens.find(x => x.id === d.id); if (i && d.qtd > 0) { if (i.qtd_devolvida + d.qtd > i.qtd) throw new Error(`${i.produto}: devolvendo mais do que foi entregue`); i.qtd_devolvida += d.qtd; t += d.qtd; } });
-      if (!t) throw new Error('Informe quantos pares voltaram'); const tudo = s.itens.every(i => i.qtd_devolvida >= i.qtd); Object.assign(s, { devolvido_por:corpo.devolvido_por || s.solicitante, conferido_por:'demonstracao', status:tudo ? 'devolvido' : 'entregue', devolvido_em:tudo ? ag : null }); ev(s.id, tudo ? 'devolveu tudo' : 'devolveu parte'); return { ok:true, status:s.status }; }
-    else if (a === 'realocar') { precisa(['devolvido']); Object.assign(s, { status:'realocado', realocado_em:ag, realocado_por:'demonstracao' }); }
+      if (!t) throw new Error('Informe quantos pares voltaram'); const tudo = s.itens.every(i => i.qtd_devolvida >= i.qtd); Object.assign(s, { devolvido_por:corpo.devolvido_por || s.solicitante, conferido_por:'demonstracao', status:tudo ? 'devolvido' : 'entregue', devolvido_em:tudo ? em : null }); ev(s.id, tudo ? 'devolveu tudo' : 'devolveu parte'); return { ok:true, status:s.status }; }
+    else if (a === 'realocar') { precisa(['devolvido']); Object.assign(s, { status:'realocado', realocado_em:em, realocado_por:'demonstracao', realocado_operador:corpo.operador }); }
     else if (a === 'cancelar') { precisa(['solicitado', 'separado']); if (!corpo.motivo) throw new Error('Informe o motivo do cancelamento'); if (s.status === 'separado' && corpo.seenc !== true) throw new Error('Confirme que os pares voltaram do prédio MKT no Seenc'); Object.assign(s, { status:'cancelado', cancelado_em:ag, cancelado_por:'demonstracao', motivo_cancelamento:corpo.motivo }); }
     else if (a === 'voltar') { const i = ETAPAS_MK.findIndex(e => e.id === s.status); if (i <= 0) throw new Error('Não há etapa para desfazer'); if (['entregue', 'devolvido'].includes(s.status)) s.itens.forEach(x => x.qtd_devolvida = 0); s.status = ETAPAS_MK[i - 1].id; }
     ev(s.id, a); return { ok:true }; }
@@ -9238,7 +9247,7 @@ async function apiMkt(path, corpo){
 function telaMkt(){
   if (!document.getElementById('css-mk')) { const st = document.createElement('style'); st.id = 'css-mk'; st.textContent = CSS_MK; document.head.appendChild(st); }
   const s = state.mk ||= { dias:30, busca:'' };
-  $app.innerHTML = `<div class="barra"><h2>Pares do Marketing</h2><input class="campo" id="mk-busca" placeholder="Buscar nº, solicitante, produto" value="${esc(s.busca)}" style="max-width:260px">
+  $app.innerHTML = `<div class="barra"><h2>Marketing (Solicitações)</h2><input class="campo" id="mk-busca" placeholder="Buscar nº, solicitante, produto" value="${esc(s.busca)}" style="max-width:260px">
       <select id="mk-dias" title="Realocados e cancelados aparecem por este período">${[7, 30, 90].map(d => `<option value="${d}" ${s.dias === d ? 'selected' : ''}>finalizados: ${d} dias</option>`).join('')}</select>
       <span style="flex:1"></span>${pode('mkt', 'editar') ? '<button class="btn pri" id="mk-nova">+ Nova solicitação</button>' : ''}</div>
     <div id="mk"><div class="carregando">Carregando…</div></div>`;
@@ -9260,17 +9269,19 @@ function renderMkt(){
     let tempo = '';
     if (x.status === 'entregue') { const d = diasDesde(x.entregue_em); tempo = `<span class="mk-dias ${d >= 7 ? 'd7' : d >= 3 ? 'd3' : ''}" title="Dias com o Marketing desde a entrega">${d} dia${d === 1 ? '' : 's'} com o MKT</span>`; }
     else if (x.status === 'devolvido' || x.status === 'realocado') tempo = `<small>ficou ${diasDesde(x.entregue_em, x.devolvido_em)} dia(s) com o MKT</small>`;
-    else tempo = `<small>${x.status === 'solicitado' ? 'pedido' : 'separado'} ${quando(x.status === 'solicitado' ? x.solicitado_em : x.separado_em)}</small>`;
+    else { const atr = x.retirada_prevista && x.retirada_prevista < D.hoje;
+      tempo = `<small>${x.status === 'solicitado' ? 'pedido' : 'separado'} ${quando(x.status === 'solicitado' ? x.solicitado_em : x.separado_em)}</small>${x.retirada_prevista ? `<div class="mk-ret ${atr ? 'atr' : ''}">📅 retirar ${x.retirada_prevista === D.hoje ? 'hoje' : `em ${dataBR(x.retirada_prevista).slice(0, 5)}`}${atr ? ' (atrasado)' : ''}</div>` : ''}`; }
     return `<div class="mk-card" data-mk="${x.id}"><div class="t"><b>#${x.id} · ${esc(x.solicitante)}</b><span>${fmtN(pares)} par${pares === 1 ? '' : 'es'}</span></div>
       ${x.finalidade ? `<small>${esc(x.finalidade)}</small>` : ''}<div>${lojas.map(l => tagLoja(l)).join(' ')}</div>
       ${x.status === 'entregue' && dev ? `<small><b>${dev}</b> de ${pares} já devolvido(s)</small>` : ''}<div>${tempo}</div></div>`; };
   const canc = L.filter(x => x.status === 'cancelado');
+  const em = st => D.solicitacoes.filter(x => x.status === st), pp = l => l.reduce((t, x) => t + paresMk(x), 0);
   $c.innerHTML = `<div class="mk-kpis"><div class="mk-kpi"><span class="info">Com o Marketing agora</span><b>${fmtN(paresFora)} pares</b><span class="info">${comMk.length} solicitação(ões)</span></div>
       <div class="mk-kpi"><span class="info">Há mais tempo</span><b>${comMk.length ? `${maisAntigo} dias` : '–'}</b></div>
-      <div class="mk-kpi"><span class="info">A separar</span><b>${D.solicitacoes.filter(x => x.status === 'solicitado').length}</b></div>
-      <div class="mk-kpi"><span class="info">A realocar no Seenc</span><b>${D.solicitacoes.filter(x => x.status === 'devolvido').length}</b></div></div>
+      <div class="mk-kpi"><span class="info">A separar</span><b>${fmtN(pp(em('solicitado')))} pares</b><span class="info">${em('solicitado').length} solicitação(ões)</span></div>
+      <div class="mk-kpi"><span class="info">A realocar no Seenc</span><b>${fmtN(pp(em('devolvido')))} pares</b><span class="info">${em('devolvido').length} solicitação(ões)</span></div></div>
     <div class="mk-kan">${ETAPAS_MK.map(e => { const it = L.filter(x => x.status === e.id).sort((a, b) => e.id === 'entregue' ? new Date(a.entregue_em) - new Date(b.entregue_em) : new Date(b.atualizado_em || b.solicitado_em) - new Date(a.atualizado_em || a.solicitado_em));
-      return `<div class="mk-col" style="--c:${e.cor}"><h4><span>${e.rot}</span><span>${it.length}</span></h4>${it.map(card).join('') || '<div class="info" style="padding:4px">—</div>'}</div>`; }).join('')}</div>
+      return `<div class="mk-col" style="--c:${e.cor}"><h4><span>${e.rot}</span><span>${it.length} <small>· ${fmtN(it.reduce((t, x) => t + paresMk(x), 0))} pares</small></span></h4>${it.map(card).join('') || '<div class="info" style="padding:4px">—</div>'}</div>`; }).join('')}</div>
     ${canc.length ? `<details style="margin-top:10px"><summary class="info">Cancelados (${canc.length})</summary><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">${canc.map(card).join('')}</div></details>` : ''}`;
   $c.querySelectorAll('[data-mk]').forEach(el => el.onclick = () => abrirMkt(el.dataset.mk));
 }
@@ -9283,18 +9294,19 @@ async function abrirMkt(id){
   dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)">
     <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">#${x.id} · ${esc(x.solicitante)}</h3><span class="mk-dias" style="background:${et ? et.cor : '#8a1f1f'};color:#fff">${et ? et.rot : 'Cancelado'}</span>
       ${x.status === 'entregue' ? `<span class="mk-dias ${diasDesde(x.entregue_em) >= 7 ? 'd7' : diasDesde(x.entregue_em) >= 3 ? 'd3' : ''}">${diasDesde(x.entregue_em)} dia(s) com o MKT</span>` : ''}<span style="flex:1"></span><button class="btn" data-x>✕</button></div>
-    ${x.finalidade ? `<div class="info">Finalidade: ${esc(x.finalidade)}</div>` : ''}${x.observacao ? `<div class="info">Obs.: ${esc(x.observacao)}</div>` : ''}
-    <table class="mk-itens" style="margin-top:8px"><thead><tr><th>Loja</th><th>Produto / SKU</th><th>Cor</th><th>Nº</th><th class="n">Qtd</th><th class="n">Devolvido</th></tr></thead><tbody>
+    ${x.finalidade ? `<div class="info">Finalidade: ${esc(x.finalidade)}</div>` : ''}${x.retirada_prevista ? `<div class="info">📅 Retirada necessária: <b>${dataBR(x.retirada_prevista)}</b></div>` : ''}${x.observacao ? `<div class="info">Obs.: ${esc(x.observacao)}</div>` : ''}
+    <table class="mk-itens" style="margin-top:8px"><thead><tr><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Qtd. entregue</th><th class="n">Qtd. devolvida</th></tr></thead><tbody>
       ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `${i.qtd_devolvida}${i.qtd_devolvida < i.qtd ? ` <span class="info">(faltam ${i.qtd - i.qtd_devolvida})</span>` : ' ✓'}` : '–'}</td></tr>`).join('')}
       <tr><td colspan="4"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table>
-    <div class="mk-tl">${passo('Solicitado', x.solicitado_em, x.solicitado_por)}${passo('Separado', x.separado_em, x.separado_por, ' · movido ao prédio MKT')}${passo('Entregue', x.entregue_em, x.entregue_por, x.recebido_por ? ` · retirado por ${esc(x.recebido_por)}` : '')}
-      ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, ' · de volta ao estoque')}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
+    <div class="mk-tl">${passo('Solicitado', x.solicitado_em, x.solicitado_por)}${passo('Separado', x.separado_em, x.separado_por, `${x.separado_operador ? ` · separado por <b>${esc(x.separado_operador)}</b>` : ''} · movido ao prédio MKT`)}${passo('Entregue', x.entregue_em, x.entregue_por, x.recebido_por ? ` · retirado por ${esc(x.recebido_por)}` : '')}
+      ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, `${x.realocado_operador ? ` · realocado por <b>${esc(x.realocado_operador)}</b>` : ''} · de volta ao estoque`)}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
     <div id="mk-acao"></div>
     <div class="gv-acoes" style="flex-wrap:wrap">
       <button class="btn" id="mk-ficha">🖨 Ficha</button>
       ${x.status === 'solicitado' && (meu || gerir) && pode('mkt', 'editar') ? '<button class="btn" id="mk-edit">Editar</button>' : ''}
       ${['solicitado', 'separado'].includes(x.status) && (meu || gerir) && pode('mkt', 'editar') ? '<button class="btn perigo" id="mk-canc">Cancelar</button>' : ''}
       ${gerir && !['solicitado', 'cancelado'].includes(x.status) ? '<button class="btn" id="mk-volta" title="Desfaz a última etapa (lançamento errado)">↩ Voltar etapa</button>' : ''}
+      ${gerir && x.status !== 'cancelado' ? '<button class="btn" id="mk-datas" title="Corrigir data/hora das etapas e operadores (lançamento de solicitações antigas)">✎ Datas</button>' : ''}
       <span style="flex:1"></span>
       ${gerir ? { solicitado:'<button class="btn pri" data-pr="separar">Separado ›</button>', separado:'<button class="btn pri" data-pr="entregar">Entregue ›</button>',
         entregue:'<button class="btn pri" data-pr="devolver">Registrar devolução ›</button>', devolvido:'<button class="btn pri" data-pr="realocar">Realocado ›</button>' }[x.status] || '' : ''}</div>
@@ -9306,23 +9318,36 @@ async function abrirMkt(id){
   q('#mk-ficha').onclick = () => imprimirHtml(fichaMkt(x));
   const ed = q('#mk-edit'); if (ed) ed.onclick = () => { fechar(); formMkt(x); };
   const vo = q('#mk-volta'); if (vo) vo.onclick = () => { if (confirmaDupla(vo, 'Clique de novo para desfazer a etapa')) enviar({ acao:'voltar' }, 'Etapa desfeita'); };
-  const conf = (txt, ok) => `<label class="mk-conf"><input type="checkbox" id="mk-seenc"><span>${txt}</span></label><div style="text-align:right"><button class="btn pri" id="mk-ok">${ok}</button></div>`;
+  // data/hora da etapa (padrão: agora; quem gerencia pode informar outra, para lançar solicitações antigas) e operador do galpão
+  const opsList = `<datalist id="mk-ops">${(state.mkDados?.operadores || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+  const campoEm = () => gerir ? `<label>Data/hora<input type="datetime-local" id="mk-em" value="${agoraLocal()}" max="${agoraLocal()}"></label>` : '';
+  const campoOp = rot => `<label>${rot}<input id="mk-op" list="mk-ops" maxlength="80" placeholder="nome do operador">${opsList}</label>`;
+  const emVal = () => { const v = q('#mk-em')?.value; return v && v !== agoraLocal() ? deLocal(v) : null; };
+  const conf = (txt, ok, campos = '') => `<div class="grade-form g2" style="margin-top:8px">${campos}${campoEm()}</div><label class="mk-conf"><input type="checkbox" id="mk-seenc"><span>${txt}</span></label><div style="text-align:right"><button class="btn pri" id="mk-ok">${ok}</button></div>`;
+  const dt = q('#mk-datas'); if (dt) dt.onclick = () => { const cps = [['solicitado_em', 'Solicitado'], ['separado_em', 'Separado'], ['entregue_em', 'Entregue'], ['devolvido_em', 'Devolvido'], ['realocado_em', 'Realocado']].filter(([k]) => x[k]);
+    $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px">${cps.map(([k, r]) => `<label>${r}<input type="datetime-local" data-dt="${k}" value="${isoLocal(x[k])}" max="${agoraLocal()}"></label>`).join('')}
+      ${x.separado_em ? `<label>Separado por (operador)<input id="mk-sop" list="mk-ops" value="${esc(x.separado_operador || '')}"></label>` : ''}${x.realocado_em ? `<label>Realocado por (operador)<input id="mk-rop" list="mk-ops" value="${esc(x.realocado_operador || '')}"></label>` : ''}${opsList}</div>
+      <div class="info">Uma etapa não pode ficar antes da anterior. A correção fica no histórico.</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Salvar datas</button></div>`;
+    q('#mk-ok').onclick = () => enviar({ acao:'datas', datas:Object.fromEntries([...dlg.querySelectorAll('[data-dt]')].map(i => [i.dataset.dt, deLocal(i.value)])),
+      ...(q('#mk-sop') ? { separado_operador:q('#mk-sop').value.trim() } : {}), ...(q('#mk-rop') ? { realocado_operador:q('#mk-rop').value.trim() } : {}) }, 'Datas corrigidas'); };
   const ca = q('#mk-canc'); if (ca) ca.onclick = () => { $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label style="grid-column:1/-1">Motivo do cancelamento<input id="mk-mot" maxlength="200"></label></div>
       ${x.status === 'separado' ? conf('Os pares já voltaram do prédio MKT para o estoque físico no Seenc.', 'Cancelar solicitação') : '<div style="text-align:right"><button class="btn perigo" id="mk-ok">Cancelar solicitação</button></div>'}`;
     q('#mk-ok').onclick = () => enviar({ acao:'cancelar', motivo:q('#mk-mot').value.trim(), seenc:!!q('#mk-seenc')?.checked }, 'Solicitação cancelada'); };
   const pr = q('[data-pr]'); if (pr) pr.onclick = () => { const a = pr.dataset.pr;
-    if (a === 'separar') { $a.innerHTML = conf(`Separei os ${pares} par(es) e <b>movi para o prédio MKT no Seenc</b>.`, 'Confirmar: Separado'); q('#mk-ok').onclick = () => enviar({ acao:'separar', seenc:q('#mk-seenc').checked }, 'Separado: imprima a ficha para a assinatura'); }
-    if (a === 'realocar') { $a.innerHTML = conf('Os pares voltaram para o endereço físico: <b>movi do prédio MKT de volta ao estoque no Seenc</b>.', 'Confirmar: Realocado'); q('#mk-ok').onclick = () => enviar({ acao:'realocar', seenc:q('#mk-seenc').checked }, 'Realocado: ciclo encerrado'); }
-    if (a === 'entregar') { $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label>Quem retirou (assina a ficha)<input id="mk-quem" value="${esc(x.solicitante)}" maxlength="80"></label></div>
+    if (a === 'separar') { $a.innerHTML = conf(`${pares === 1 ? 'O par foi separado e <b>movido' : `Os ${pares} pares foram separados e <b>movidos`} para o prédio MKT no Seenc</b>.`, 'Confirmar: Separado', campoOp('Operador que separou'));
+      q('#mk-ok').onclick = () => enviar({ acao:'separar', seenc:q('#mk-seenc').checked, operador:q('#mk-op').value.trim(), em:emVal() }, 'Separado: imprima a ficha para a assinatura'); }
+    if (a === 'realocar') { $a.innerHTML = conf('Os pares voltaram para o endereço físico: <b>movidos do prédio MKT de volta ao estoque no Seenc</b>.', 'Confirmar: Realocado', campoOp('Operador que realocou'));
+      q('#mk-ok').onclick = () => enviar({ acao:'realocar', seenc:q('#mk-seenc').checked, operador:q('#mk-op').value.trim(), em:emVal() }, 'Realocado: ciclo encerrado'); }
+    if (a === 'entregar') { $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label>Quem retirou (assina a ficha)<input id="mk-quem" value="${esc(x.solicitante)}" maxlength="80"></label>${campoEm()}</div>
         <div class="info">A ficha precisa estar assinada por quem retirou.</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Confirmar: Entregue</button></div>`;
-      q('#mk-ok').onclick = () => enviar({ acao:'entregar', recebido_por:q('#mk-quem').value.trim() }, 'Entregue: começou a contar os dias com o MKT'); }
+      q('#mk-ok').onclick = () => enviar({ acao:'entregar', recebido_por:q('#mk-quem').value.trim(), em:emVal() }, 'Entregue: começou a contar os dias com o MKT'); }
     if (a === 'devolver') { const pend = x.itens.filter(i => i.qtd_devolvida < i.qtd);
       $a.innerHTML = `<div class="info" style="margin-top:8px">Quantos pares voltaram agora? (se voltar só parte, o restante continua contando os dias)</div>
-        <table class="mk-itens"><thead><tr><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Pendente</th><th class="n" style="width:90px">Voltou</th></tr></thead><tbody>
+        <table class="mk-itens"><thead><tr><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Pendente</th><th class="n" style="width:90px">Voltou</th></tr></thead><tbody>
         ${pend.map(i => `<tr><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd - i.qtd_devolvida}</td><td><input type="number" min="0" max="${i.qtd - i.qtd_devolvida}" value="${i.qtd - i.qtd_devolvida}" data-dv="${i.id}"></td></tr>`).join('')}</tbody></table>
-        <div class="grade-form g2" style="margin-top:8px"><label>Quem devolveu<input id="mk-quem" value="${esc(x.recebido_por || x.solicitante)}" maxlength="80"></label></div>
+        <div class="grade-form g2" style="margin-top:8px"><label>Quem devolveu<input id="mk-quem" value="${esc(x.recebido_por || x.solicitante)}" maxlength="80"></label>${campoEm()}</div>
         <div style="text-align:right"><button class="btn pri" id="mk-ok">Confirmar devolução</button></div>`;
-      q('#mk-ok').onclick = () => enviar({ acao:'devolver', devolvido_por:q('#mk-quem').value.trim(), itens:[...dlg.querySelectorAll('[data-dv]')].map(i => ({ id:i.dataset.dv, qtd:Math.round(Number(i.value) || 0) })) }, 'Devolução registrada: falta realocar no Seenc'); }
+      q('#mk-ok').onclick = () => enviar({ acao:'devolver', em:emVal(), devolvido_por:q('#mk-quem').value.trim(), itens:[...dlg.querySelectorAll('[data-dv]')].map(i => ({ id:i.dataset.dv, qtd:Math.round(Number(i.value) || 0) })) }, 'Devolução registrada: falta realocar no Seenc'); }
     pr.disabled = true; };
 }
 function formMkt(x){
@@ -9330,10 +9355,14 @@ function formMkt(x){
   const itens = x ? x.itens.map(i => ({ ...i })) : [{ cnpj_id:'', produto:'', cor:'', tamanho:'', qtd:1 }];
   const solPad = x ? x.solicitante : (eu?.perfil === 'marketing' ? eu.nome : '');
   const dlg = document.createElement('div'); dlg.className = 'pl-modal';
-  dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)"><h3 style="margin:0 0 8px">${novo ? 'Nova solicitação de pares' : `Editar solicitação #${x.id}`}</h3>
+  const gerir = pode('mkt', 'gerir');
+  dlg.innerHTML = `<div class="painel mk-form" style="width:min(780px,100%)"><h3 style="margin:0 0 8px">${novo ? 'Nova solicitação de pares' : `Editar solicitação #${x.id}`}</h3>
     <div class="grade-form g2"><label>Solicitante (quem pede e assina a retirada)<input id="mf-sol" list="mf-sols" maxlength="80" value="${esc(solPad)}"><datalist id="mf-sols">${(D?.solicitantes || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist></label>
-      <label>Finalidade<input id="mf-fin" maxlength="200" value="${esc(x?.finalidade || '')}" placeholder="ex.: fotos da coleção verão"></label></div>
-    <div class="info" style="margin:10px 0 4px">Pares (loja · produto/SKU · cor · numeração · quantidade)</div><div id="mf-itens"></div>
+      <label>Retirada necessária em<input type="date" id="mf-ret" value="${esc(x?.retirada_prevista || '')}"></label>
+      <label>Finalidade<input id="mf-fin" maxlength="200" value="${esc(x?.finalidade || '')}" placeholder="ex.: fotos da coleção verão"></label>
+      ${gerir ? `<label>Data/hora da solicitação <span class="info">(para lançar antigas)</span><input type="datetime-local" id="mf-em" value="${isoLocal(x?.solicitado_em || new Date().toISOString())}" max="${agoraLocal()}"></label>` : ''}</div>
+    <div class="mk-hint">Use o <b>mesmo código de SKU</b> que aparece na Weesu / Seenc (ex.: 6371-367-7286). SKU e cor ficam em maiúsculas.</div>
+    <div class="info" style="margin:6px 0 4px">Pares (loja · SKU · cor · numeração · quantidade)</div><div id="mf-itens"></div>
     <button class="btn" id="mf-mais">+ Item</button>
     <div class="grade-form g2" style="margin-top:8px"><label style="grid-column:1/-1">Observação<input id="mf-obs" maxlength="500" value="${esc(x?.observacao || '')}"></label></div>
     <div class="gv-acoes"><span class="info" id="mf-tot"></span><span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="mf-ok">${novo ? 'Solicitar' : 'Salvar'}</button></div></div>`;
@@ -9341,47 +9370,63 @@ function formMkt(x){
   const lojas = D?.cnpjs || ['DIGOS', 'CACAL', 'DROSA'];
   const desenha = () => { q('#mf-itens').innerHTML = itens.map((i, k) => `<div class="mk-linha">
       <select data-k="${k}" data-c="cnpj_id"><option value="">Loja</option>${lojas.map(l => `<option ${i.cnpj_id === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
-      <input data-k="${k}" data-c="produto" placeholder="Produto / SKU" value="${esc(i.produto)}"><input data-k="${k}" data-c="cor" placeholder="Cor" value="${esc(i.cor || '')}">
+      <input class="cx" data-k="${k}" data-c="produto" placeholder="SKU (igual Weesu/Seenc)" value="${esc(i.produto)}"><input class="cx" data-k="${k}" data-c="cor" placeholder="Cor" value="${esc(i.cor || '')}">
       <input data-k="${k}" data-c="tamanho" placeholder="Nº" value="${esc(i.tamanho || '')}"><input data-k="${k}" data-c="qtd" type="number" min="1" value="${i.qtd}">
       <button class="btn" data-rm="${k}" title="Tirar" ${itens.length === 1 ? 'disabled' : ''}>✕</button></div>`).join('');
     q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`;
-    dlg.querySelectorAll('[data-k]').forEach(el => el.oninput = el.onchange = () => { const i = itens[el.dataset.k]; i[el.dataset.c] = el.dataset.c === 'qtd' ? Number(el.value) : el.value; q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`; });
+    dlg.querySelectorAll('[data-k]').forEach(el => el.oninput = el.onchange = () => { const i = itens[el.dataset.k]; i[el.dataset.c] = el.dataset.c === 'qtd' ? Number(el.value) : ['produto', 'cor'].includes(el.dataset.c) ? caixaAltaTxt(el.value).trim() : el.value; q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`; });
     dlg.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { itens.splice(Number(b.dataset.rm), 1); desenha(); }); };
   desenha();
   q('#mf-mais').onclick = () => { const u = itens.at(-1); itens.push({ cnpj_id:u?.cnpj_id || '', produto:'', cor:'', tamanho:'', qtd:1 }); desenha(); dlg.querySelectorAll('[data-c="produto"]').at?.(-1)?.focus?.(); };
   q('[data-x]').onclick = () => dlg.remove();
   q('#mf-ok').onclick = async () => {
-    const corpo = { id:x?.id, solicitante:q('#mf-sol').value.trim(), finalidade:q('#mf-fin').value.trim(), observacao:q('#mf-obs').value.trim(), itens:itens.filter(i => String(i.produto).trim()) };
+    const corpo = { id:x?.id, solicitante:q('#mf-sol').value.trim(), finalidade:q('#mf-fin').value.trim(), observacao:q('#mf-obs').value.trim(), retirada_prevista:q('#mf-ret').value,
+      itens:itens.filter(i => String(i.produto).trim()).map(i => ({ ...i, produto:caixaAltaTxt(i.produto).trim(), cor:caixaAltaTxt(i.cor || '').trim() })) };
+    const emF = q('#mf-em')?.value; if (emF && (!x || isoLocal(x.solicitado_em) !== emF) && (x || emF !== agoraLocal())) corpo.solicitado_em = deLocal(emF);
     if (!corpo.solicitante) return avisar('Informe o solicitante', true);
+    if (!corpo.retirada_prevista) return avisar('Informe a data em que precisa retirar os pares', true);
     if (!corpo.itens.length) return avisar('Inclua pelo menos um par', true);
     if (corpo.itens.some(i => !i.cnpj_id)) return avisar('Escolha a loja de cada item', true);
     try { const r = await apiMkt('/mkt/solicitacao', corpo); dlg.remove(); avisar(novo ? `Solicitação #${r.id} enviada para a logística` : 'Solicitação salva'); carregarMkt(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
 }
-// ficha A4 (uma via): retirada e devolução assinadas
+// ficha A4 (uma via): retirada e devolução assinadas. Compacta; as assinaturas nunca se separam da tabela em páginas diferentes sem necessidade
 function fichaMkt(x){
-  const pares = paresMk(x), dt = iso => iso ? new Date(iso).toLocaleDateString('pt-BR', { timeZone:'America/Sao_Paulo' }) : '___/___/______';
+  const pares = paresMk(x), dev = devMk(x), dt = iso => iso ? new Date(iso).toLocaleDateString('pt-BR', { timeZone:'America/Sao_Paulo' }) : '___/___/______';
   const ass = (rot, nome) => `<div class="as"><div class="ln"></div><b>${rot}</b><span>${nome ? esc(nome) : 'Nome: ______________________'}</span><span>Data: ____/____/______ &nbsp; Hora: ____:____</span></div>`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Ficha MKT #${x.id}</title><style>
-    @page{size:A4 portrait;margin:12mm} *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Arial,sans-serif;color:#1b2333;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:11pt}
-    .cab{display:flex;align-items:center;gap:12px;border-bottom:1.2mm solid #f1c300;padding-bottom:3mm} .cab img{height:14mm} .cab h1{font-size:16pt;margin:0;color:#02285a} .cab .n{margin-left:auto;text-align:right}
-    .cab .n b{display:block;font-size:22pt;color:#02285a} .qr svg{width:26mm;height:26mm;display:block}
-    .dados{display:grid;grid-template-columns:1fr 1fr;gap:2mm 8mm;margin:4mm 0} .dados div{border-bottom:.3mm solid #dfe3ea;padding:1mm 0} .dados span{display:block;font-size:8pt;color:#566074;text-transform:uppercase}
-    table{width:100%;border-collapse:collapse;margin-top:3mm} th,td{border:.3mm solid #b8bec9;padding:2mm;text-align:left} th{background:#eef1f6;font-size:9pt;text-transform:uppercase} td.n,th.n{text-align:center}
-    .bloco{margin-top:6mm;border:.4mm solid #02285a;border-radius:2mm;padding:3mm 4mm} .bloco h3{margin:0 0 2mm;font-size:11pt;color:#02285a;text-transform:uppercase}
-    .ass2{display:grid;grid-template-columns:1fr 1fr;gap:10mm} .as{display:grid;gap:1mm;font-size:9.5pt} .as .ln{border-bottom:.3mm solid #1b2333;height:14mm} .as span{color:#566074}
-    .nota{font-size:8.5pt;color:#566074;margin-top:4mm}</style></head><body>
-    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Retirada de pares · Marketing</h1><span style="color:#566074">foto e vídeo · uso interno</span></div>
-      <div class="n"><span style="font-size:9pt;color:#566074">FICHA Nº</span><b>${x.id}</b></div><div class="qr">${QR.svg(linkMk(x.id))}</div></div>
+    @page{size:A4 portrait;margin:10mm} *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Arial,sans-serif;color:#1b2333;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:9pt}
+    .cab{display:flex;align-items:center;gap:8px;border-bottom:.8mm solid #f1c300;padding-bottom:2mm} .cab img{height:9mm} .cab h1{font-size:12pt;margin:0;color:#02285a} .cab .sub{font-size:8pt;color:#566074}
+    .cab .n{margin-left:auto;text-align:right;line-height:1.05} .cab .n span{font-size:7pt;color:#566074} .cab .n b{display:block;font-size:15pt;color:#02285a} .qr svg{width:15mm;height:15mm;display:block}
+    .dados{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:1.5mm 5mm;margin:2.5mm 0} .dados div{border-bottom:.25mm solid #dfe3ea;padding:.5mm 0} .dados span{display:block;font-size:6.5pt;color:#566074;text-transform:uppercase}
+    .dados .w2{grid-column:span 2}
+    table{width:100%;border-collapse:collapse} thead{display:table-header-group} tr{break-inside:avoid;page-break-inside:avoid}
+    th,td{border:.25mm solid #c3c9d3;padding:.9mm 1.6mm;text-align:left;font-size:8.5pt} th{background:#eef1f6;font-size:7pt;text-transform:uppercase;letter-spacing:.02em} td.n,th.n{text-align:center}
+    td.sku{font-weight:700;font-family:Consolas,'Courier New',monospace;font-size:8.5pt} tr.tot td{font-weight:700;background:#f6f7f9}
+    .fim{break-inside:avoid;page-break-inside:avoid}
+    .blocos{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:4mm}
+    .bloco{border:.35mm solid #02285a;border-radius:1.5mm;padding:2mm 3mm} .bloco h3{margin:0 0 1mm;font-size:8.5pt;color:#02285a;text-transform:uppercase}
+    .as{display:grid;gap:.4mm;font-size:7.5pt;margin-top:1mm} .as .ln{border-bottom:.25mm solid #1b2333;height:9mm} .as span{color:#566074} .as + .as{margin-top:2mm}
+    .nota{font-size:7pt;color:#566074;margin-top:2.5mm}
+    .bloco h3 small{font-weight:400;text-transform:none;color:#566074;font-size:7pt} table.dv td{height:9mm} table.dv th{background:#f6f7f9}
+    .parc{font-size:8pt;background:#fff4d6;border:.25mm solid #f1e3a0;border-radius:1mm;padding:1mm 2mm;margin-bottom:2mm}</style></head><body>
+    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Retirada de pares · Marketing</h1><div class="sub">foto e vídeo · uso interno · 1 via</div></div>
+      <div class="n"><span>FICHA Nº</span><b>${x.id}</b></div><div class="qr">${QR.svg(linkMk(x.id))}</div></div>
     <div class="dados"><div><span>Solicitante (assina a retirada)</span><b>${esc(x.solicitante)}</b></div><div><span>Solicitado em</span>${dt(x.solicitado_em)}</div>
-      <div><span>Finalidade</span>${esc(x.finalidade || '—')}</div><div><span>Total</span><b>${pares} par${pares === 1 ? '' : 'es'}</b></div></div>
-    <table><thead><tr><th>Loja</th><th>Produto / SKU</th><th>Cor</th><th class="n">Nº</th><th class="n">Qtd</th><th class="n">Devolvido (qtd)</th></tr></thead><tbody>
-      ${x.itens.map(i => `<tr><td>${esc(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n"></td></tr>`).join('')}</tbody></table>
-    ${x.observacao ? `<div class="nota">Obs.: ${esc(x.observacao)}</div>` : ''}
-    <div class="bloco"><h3>Retirada</h3><div class="ass2">${ass('Entregue por (logística)')}${ass('Recebido por (solicitante)', x.solicitante)}</div></div>
-    <div class="bloco"><h3>Devolução</h3><div class="ass2">${ass('Devolvido por')}${ass('Conferido por (logística)')}</div></div>
-    <div class="nota">Enquanto estiverem com o Marketing, os pares ficam no prédio MKT do Seenc. Na devolução, confira quantidade e numeração e realoque no estoque físico.
-      Escaneie o QR para registrar a entrega e a devolução no portal. Impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}.</div></body></html>`;
+      <div><span>Retirada necessária</span><b>${x.retirada_prevista ? dataBR(x.retirada_prevista) : '—'}</b></div><div><span>Total</span><b>${pares} par${pares === 1 ? '' : 'es'}</b></div>
+      <div class="w2"><span>Finalidade</span>${esc(x.finalidade || '—')}</div><div class="w2"><span>Separado por (operador)</span>${x.separado_operador ? esc(x.separado_operador) : '&nbsp;'}</div></div>
+    ${dev ? `<div class="parc">Devolução parcial já registrada no portal: <b>${dev}</b> de ${pares} par(es) devolvido(s), faltam <b>${pares - dev}</b>.</div>` : ''}
+    <table><thead><tr><th style="width:9%">Loja</th><th>SKU</th><th style="width:19%">Cor</th><th class="n" style="width:6%">Nº</th><th class="n" style="width:11%">Qtd. entregue</th><th class="n" style="width:11%">Qtd. devolvida</th></tr></thead><tbody>
+      ${x.itens.map(i => `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
+      <tr class="tot"><td colspan="4">Total</td><td class="n">${pares}</td><td class="n">${dev || ''}</td></tr></tbody></table>
+    <div class="fim">
+      ${x.observacao ? `<div class="nota">Obs.: ${esc(x.observacao)}</div>` : ''}
+      <div class="bloco" style="margin-top:4mm"><h3>Retirada</h3><div class="blocos" style="margin-top:0">${ass('Entregue por (logística)')}${ass('Recebido por (solicitante)', x.solicitante)}</div></div>
+      <div class="bloco" style="margin-top:3mm"><h3>Devoluções <small>(uma linha por devolução; parcial: anote os pares que voltaram e some na coluna “Qtd. devolvida”)</small></h3>
+        <table class="dv"><thead><tr><th style="width:17%">Data / hora</th><th class="n" style="width:10%">Pares</th><th>Devolvido por (nome e assinatura)</th><th>Conferido por (logística)</th></tr></thead>
+          <tbody>${'<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>'.repeat(3)}</tbody></table></div>
+      <div class="nota">Com o Marketing, os pares ficam no prédio MKT do Seenc. Na devolução, confira quantidade e numeração e realoque no estoque físico (anote quem realocou: ______________________).
+        QR: registra entrega e devolução no portal. Impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}.</div></div></body></html>`;
 }
 
 /* =================== MENU LATERAL =================== */
@@ -9392,7 +9437,7 @@ const MENU = [
       { view:'cross', titulo:'Gestão - CROSS', tela:'cross' },
       { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
       { view:'layout', titulo:'Layout do galpão', tela:'layout' },
-      { view:'mkt', titulo:'Pares do Marketing', tela:'mkt' },
+      { view:'mkt', titulo:'Marketing (Solicitações)', tela:'mkt' },
     ]},
     { id:'cadastros', titulo:'Cadastros', filhos:[
       { view:'motoristas', titulo:'Motoristas', tela:'motoristas' },
