@@ -829,8 +829,8 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'layout', nome:'Layout do galpão', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'editar', cross:'gerir', abandono:'gerir', layout:'editar', motoristas:'editar', ponto:'gerir', alocacao:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'ver', cross:'gerir', abandono:'gerir', layout:'ver', motoristas:'editar', ponto:'editar', alocacao:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', full_comercial:'nenhum', cross:'nenhum', abandono:'nenhum', layout:'nenhum', motoristas:'nenhum', ponto:'gerir', alocacao:'nenhum', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'layout', nome:'Layout do galpão', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'seenc', nome:'Dados do Seenc (upload)', grupo:'Logística · Indicadores', niveis:['ver','editar'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'editar', cross:'gerir', abandono:'gerir', layout:'editar', seenc:'editar', motoristas:'editar', ponto:'gerir', alocacao:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'ver', cross:'gerir', abandono:'gerir', layout:'ver', seenc:'ver', motoristas:'editar', ponto:'editar', alocacao:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', full_comercial:'nenhum', cross:'nenhum', abandono:'nenhum', layout:'nenhum', seenc:'nenhum', motoristas:'nenhum', ponto:'gerir', alocacao:'nenhum', pessoas:'nenhum' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
 };
 async function apiPessoas(path, corpo){
@@ -8042,7 +8042,9 @@ function demoLayoutBase(){
     ['Palete PBR', 1, 1.2, null, '#a7b78a', 'movel'], ['Paleteira', 1.55, .55, null, '#7fb0d6', 'movel'], ['Mesa de escritório', 1.5, .6, null, '#d9c8a3', 'movel'], ['Pilar 0,51', .51, .51, null, '#1f2a33', 'estrutura'],
     ['Pilar do mezanino', .2, .2, null, '#1f2a33', 'estrutura'], ['Escada', 3.2, 1, null, '#5f6b74', 'estrutura'], ['Rampa', 1.7, 3, null, '#8a93a5', 'estrutura'], ['Porta / vão', 2, .15, null, '#1f5fa8', 'marcacao'],
     ['Faixa de piso', 3, .1, null, '#f1c300', 'marcacao'], ['Corredor', 1.8, 6, null, '#f1c300', 'zona'], ['Zona', 4, 3, null, '#6ec2b0', 'zona']]
-    .map(([nome, l, p, a, cor, cat], i) => ({ id:String(i + 1), nome, largura_m:l, profundidade_m:p, altura_m:a, cor, categoria:cat, obs:null }));
+    .map(([nome, l, p, a, cor, cat], i) => ({ id:String(i + 1), nome, largura_m:l, profundidade_m:p, altura_m:a, cor, categoria:cat, obs:null, forma:'ret', corte:null }));
+  tipos.push({ id:'16', nome:'Mesa redonda', largura_m:1.2, profundidade_m:1.2, altura_m:null, cor:'#c9a46a', categoria:'movel', obs:null, forma:'circ', corte:null },
+    { id:'17', nome:'Bancada em L', largura_m:2.4, profundidade_m:1.6, altura_m:null, cor:'#d58b5e', categoria:'movel', obs:null, forma:'L', corte:{ canto:'se', w:1.7, d:0.9 } });
   const blocos = [
     { id:'1', nome:'Planta geral', largura_m:67, profundidade_m:56, lados:{ topo:'Fundo do terreno', base:'Rua Wanda Bueno Coelho (saída)', dir:'Rua Neusa Coelho' }, obs:'Croqui de 04/11. Medidas parcialmente estimadas pela proporção do desenho: confirmar no levantamento.', ordem:1 },
     { id:'2', nome:'Bloco do estacionamento', largura_m:29, profundidade_m:12, lados:{ topo:'Estacionamento', base:'BL-1', esq:'Mezanino', dir:'Rampa' }, obs:'Croqui de 04/11. Pendências: orientação do bloco, vãos (portão ou parede?), pilar de 3,46, posição da rampa e da porta do BL-1.', ordem:2 },
@@ -8079,12 +8081,14 @@ async function apiLayout(path, corpo){
   if (path === '/layout/bloco/excluir') { D.blocos = D.blocos.filter(b => b.id !== corpo.id); D.versoes = D.versoes.filter(v => v.bloco_id !== corpo.id); return { ok:true }; }
   if (path === '/layout/tipo') { if (!String(corpo.nome || '').trim()) throw new Error('Informe o nome do objeto'); if (nomeDup(D.tipos, corpo.nome, corpo.id)) throw new Error('Já existe um objeto com esse nome no catálogo');
     const l = numBR(corpo.largura_m), p = numBR(corpo.profundidade_m); if (!(l >= .05) || !(p >= .05)) throw new Error('Medidas inválidas');
-    const t = { nome:corpo.nome.trim(), largura_m:r2(l), profundidade_m:r2(p), altura_m:corpo.altura_m === '' || corpo.altura_m == null ? null : r2(numBR(corpo.altura_m)), cor:corpo.cor, categoria:corpo.categoria, obs:corpo.obs || null };
+    const t = { nome:corpo.nome.trim(), largura_m:r2(l), profundidade_m:r2(p), altura_m:corpo.altura_m === '' || corpo.altura_m == null ? null : r2(numBR(corpo.altura_m)), cor:corpo.cor, categoria:corpo.categoria, obs:corpo.obs || null,
+      forma:['circ', 'L'].includes(corpo.forma) ? corpo.forma : 'ret', corte:corpo.forma === 'L' && corpo.corte ? { canto:corpo.corte.canto, w:r2(corpo.corte.w), d:r2(corpo.corte.d) } : null };
     if (!corpo.id) { const id = String(++D.seq); D.tipos.push({ id, ...t }); return { ok:true, id, atualizados:0 }; }
     const ant = D.tipos.find(x => x.id === corpo.id); let n = 0;
     if (corpo.propagar) D.versoes.forEach(v => { v.doc.itens = v.doc.itens.map(x => { if (x.tipo_id !== corpo.id) return x; n++;
       const gir = Math.abs(x.w - ant.profundidade_m) < .005 && Math.abs(x.d - ant.largura_m) < .005 && ant.largura_m !== ant.profundidade_m;
-      return { ...x, nome:x.nome === ant.nome ? t.nome : x.nome, w:gir ? t.profundidade_m : t.largura_m, d:gir ? t.largura_m : t.profundidade_m, cor:t.cor, cat:t.categoria }; }); if (n) v.atualizado_em = ag; });
+      const y = { ...x, nome:x.nome === ant.nome ? t.nome : x.nome, w:gir ? t.profundidade_m : t.largura_m, d:gir ? t.largura_m : t.profundidade_m, cor:t.cor, cat:t.categoria }; delete y.forma; delete y.corte;
+      if (t.forma !== 'ret') y.forma = t.forma; if (t.corte) y.corte = gir ? { canto:GIRA_CANTO[t.corte.canto], w:t.corte.d, d:t.corte.w } : { ...t.corte }; return y; }); if (n) v.atualizado_em = ag; });
     Object.assign(ant, t); return { ok:true, id:corpo.id, atualizados:n }; }
   if (path === '/layout/tipo/excluir') { D.tipos = D.tipos.filter(t => t.id !== corpo.id); return { ok:true }; }
   if (path === '/layout/versao/salvar') { const v = D.versoes.find(x => x.id === corpo.id); if (corpo.versao !== v.atualizado_em) throw new Error('Alguém alterou esta planta enquanto você editava. Recarregue.');
@@ -8103,31 +8107,63 @@ async function apiLayout(path, corpo){
 const dentroLay = (o, B) => o.x >= -0.001 && o.y >= -0.001 && o.x + o.w <= B.largura_m + 0.001 && o.y + o.d <= B.profundidade_m + 0.001;
 const cruzaLay = (a, b) => a.x < b.x + b.w - 0.001 && b.x < a.x + a.w - 0.001 && a.y < b.y + b.d - 0.001 && b.y < a.y + a.d - 0.001;
 const colideCat = o => CAT_LAYOUT[o.cat]?.colide;
+// formas: ret (padrão) · circ (círculo/oval dentro da medida) · L (retângulo com um canto recortado)
+const FORMAS_LAY = { ret:'Retângulo', circ:'Círculo / oval', L:'Em L (canto recortado)' };
+const CANTOS_L = { nw:'↖ em cima, à esquerda', ne:'↗ em cima, à direita', sw:'↙ embaixo, à esquerda', se:'↘ embaixo, à direita' };
+const GIRA_CANTO = { nw:'ne', ne:'se', se:'sw', sw:'nw' };   // giro de 90° no sentido horário
+function corteLay(o){
+  if (o.forma !== 'L' || !o.corte) return null; const c = o.corte, cw = Math.min(Math.max(0.05, c.w), o.w - 0.05), cd = Math.min(Math.max(0.05, c.d), o.d - 0.05);
+  return { x:c.canto[1] === 'e' ? o.x + o.w - cw : o.x, y:c.canto[0] === 's' ? o.y + o.d - cd : o.y, w:cw, d:cd };
+}
+function partesLay(o){   // retângulos que formam o objeto (o L vira dois)
+  const k = corteLay(o); if (!k) return [{ x:o.x, y:o.y, w:o.w, d:o.d }];
+  const topo = o.corte.canto[0] === 'n', esq = o.corte.canto[1] === 'w';
+  return [{ x:o.x, y:topo ? o.y + k.d : o.y, w:o.w, d:o.d - k.d }, { x:esq ? o.x + k.w : o.x, y:topo ? o.y : o.y + o.d - k.d, w:o.w - k.w, d:k.d }];
+}
+const areaLay = o => o.forma === 'circ' ? Math.PI * o.w * o.d / 4 : o.w * o.d - ((k => k ? k.w * k.d : 0)(corteLay(o)));
+const ehCirculo = o => o.forma === 'circ' && Math.abs(o.w - o.d) < 0.01;
+function circRet(c, r){ const cx = c.x + c.w / 2, cy = c.y + c.d / 2, rr = c.w / 2 - 0.001, nx = Math.max(r.x, Math.min(cx, r.x + r.w)), ny = Math.max(r.y, Math.min(cy, r.y + r.d)); return (cx - nx) ** 2 + (cy - ny) ** 2 < rr * rr; }
+function batemLay(a, b){   // oval (largura ≠ profundidade) conta pelo retângulo em volta
+  if (!cruzaLay(a, b)) return false;
+  if (ehCirculo(a) && ehCirculo(b)) return Math.hypot(a.x + a.w / 2 - b.x - b.w / 2, a.y + a.d / 2 - b.y - b.d / 2) < (a.w + b.w) / 2 - 0.001;
+  if (ehCirculo(a)) return partesLay(b).some(p => circRet(a, p));
+  if (ehCirculo(b)) return partesLay(a).some(p => circRet(b, p));
+  return partesLay(a).some(p => partesLay(b).some(q => cruzaLay(p, q)));
+}
 function conflitosLay(itens, B){
   const ruins = new Set(), sol = itens.filter(colideCat);
   for (const o of itens) if (!dentroLay(o, B)) ruins.add(o.id);
   for (let i = 0; i < sol.length; i++) for (let j = i + 1; j < sol.length; j++) {
     const a = sol[i], b = sol[j]; if (a.cat === 'estrutura' && b.cat === 'estrutura') continue;
-    if (cruzaLay(a, b)) { if (a.cat !== 'estrutura') ruins.add(a.id); if (b.cat !== 'estrutura') ruins.add(b.id); } }
+    if (batemLay(a, b)) { if (a.cat !== 'estrutura') ruins.add(a.id); if (b.cat !== 'estrutura') ruins.add(b.id); } }
   return ruins;
 }
-// espaço livre em volta do objeto (até a parede ou o obstáculo mais próximo) — serve para conferir corredor
-function folgasLay(o, itens, B){
-  const obs = itens.filter(x => x.id !== o.id && colideCat(x));
+// espaço livre em volta do objeto, nas 4 direções, até o limite A ou o obstáculo mais próximo (lista de retângulos)
+function folgasRet(o, obs, A){
   const sobreY = x => x.y < o.y + o.d - 0.001 && o.y < x.y + x.d - 0.001, sobreX = x => x.x < o.x + o.w - 0.001 && o.x < x.x + x.w - 0.001;
-  const esq = Math.min(o.x, ...obs.filter(x => sobreY(x) && x.x + x.w <= o.x + 0.001).map(x => o.x - (x.x + x.w)));
-  const dir = Math.min(B.largura_m - o.x - o.w, ...obs.filter(x => sobreY(x) && x.x >= o.x + o.w - 0.001).map(x => x.x - o.x - o.w));
-  const cima = Math.min(o.y, ...obs.filter(x => sobreX(x) && x.y + x.d <= o.y + 0.001).map(x => o.y - (x.y + x.d)));
-  const baixo = Math.min(B.profundidade_m - o.y - o.d, ...obs.filter(x => sobreX(x) && x.y >= o.y + o.d - 0.001).map(x => x.y - o.y - o.d));
-  return { esq, dir, cima, baixo };
+  return {
+    esq:Math.min(o.x - A.x, ...obs.filter(x => sobreY(x) && x.x + x.w <= o.x + 0.001).map(x => o.x - (x.x + x.w))),
+    dir:Math.min(A.x + A.w - o.x - o.w, ...obs.filter(x => sobreY(x) && x.x >= o.x + o.w - 0.001).map(x => x.x - o.x - o.w)),
+    cima:Math.min(o.y - A.y, ...obs.filter(x => sobreX(x) && x.y + x.d <= o.y + 0.001).map(x => o.y - (x.y + x.d))),
+    baixo:Math.min(A.y + A.d - o.y - o.d, ...obs.filter(x => sobreX(x) && x.y >= o.y + o.d - 0.001).map(x => x.y - o.y - o.d)) };
 }
+// até a parede do bloco ou o obstáculo mais próximo — serve para conferir corredor
+function folgasLay(o, itens, B){ return folgasRet(o, itens.filter(x => x.id !== o.id && colideCat(x)).flatMap(partesLay), { x:0, y:0, w:B.largura_m, d:B.profundidade_m }); }
+// zona onde o objeto está (a zona em foco tem prioridade; senão a menor que o contém)
+function zonaDoLay(o, itens){
+  const cabe = z => o.x >= z.x - 0.001 && o.y >= z.y - 0.001 && o.x + o.w <= z.x + z.w + 0.001 && o.y + o.d <= z.y + z.d + 0.001 && !((k => k && cruzaLay(o, k))(corteLay(z)));
+  const zs = itens.filter(z => z.cat === 'zona' && z.id !== o.id && cabe(z)), f = zonaFocoLay();
+  return f && zs.includes(f) ? f : zs.sort((a, b) => areaLay(a) - areaLay(b))[0] || null;
+}
+// até a borda da zona (o recorte do L conta como borda)
+function folgasZonaLay(o, z){ const k = corteLay(z); return folgasRet(o, k ? [k] : [], z); }
 // procura um lugar livre dentro da área (o bloco inteiro ou a zona em foco)
 function lugarLivreLay(w, d, itens, B, cat, area){
   const A = area || { x:0, y:0, w:B.largura_m, d:B.profundidade_m };
   if (!CAT_LAYOUT[cat]?.colide) return { x:r2(A.x + Math.max(0, (A.w - w) / 2)), y:r2(A.y + Math.max(0, (A.d - d) / 2)) };
   const sol = itens.filter(colideCat), passo = A.w > 80 ? 1 : A.w > 15 ? 0.5 : 0.1, borda = Math.min(0.5, A.w / 20);
   for (let y = A.y + borda; y + d <= A.y + A.d + 0.001; y += passo) for (let x = A.x + borda; x + w <= A.x + A.w + 0.001; x += passo) {
-    const c = { x, y, w, d }; if (!sol.some(s => cruzaLay(c, s))) return { x:r2(x), y:r2(y) }; }
+    const c = { x, y, w, d }; if (!sol.some(s => batemLay(c, s))) return { x:r2(x), y:r2(y) }; }
   return { x:r2(A.x), y:r2(A.y) };
 }
 
@@ -8172,32 +8208,48 @@ function svgLayout(B, itens, o = {}){
     const fora = R && it.id !== o.focoId && !cruzaLay(it, R), foco = R && it.id === o.focoId;
     const cls = `ly-obj ${z ? 'zona' : ''} ${it.id === sel ? 'sel' : ''} ${ruim ? 'ruim' : ''} ${it.trava ? 'trava' : ''} ${fora ? 'fora' : ''} ${foco ? 'foco' : ''}`;
     const sw = px(it.id === sel ? 2.6 : ruim ? 2.2 : z ? 1.2 : 0.8);
-    g += `<g class="${cls}" data-id="${esc(it.id)}"><rect x="${it.x}" y="${it.y}" width="${it.w}" height="${it.d}" fill="${it.cor}" fill-opacity="${z ? 0.2 : mk ? 0.85 : 0.92}" style="stroke-width:${sw};${z ? `stroke:${it.cor};stroke-dasharray:${px(6)} ${px(3)};` : ''}"/>`;
-    // rótulo: cabe no lado maior? (zona: canto de cima, com a área)
-    const maior = Math.max(it.w, it.d), cw = fs * 0.56, vert = it.d > it.w * 1.3;
+    g += `<g class="${cls}" data-id="${esc(it.id)}">${formaSvgLay(it, `fill="${it.cor}" fill-opacity="${z ? 0.2 : mk ? 0.85 : 0.92}" style="stroke-width:${sw};${z ? `stroke:${it.cor};stroke-dasharray:${px(6)} ${px(3)};` : ''}"`)}`;
+    // rótulo: no maior pedaço do objeto (no L, fora do recorte); zona: canto de cima, com a área
+    const P = partesLay(it).sort((a, b) => b.w * b.d - a.w * a.d)[0], it0 = it; { const it = { ...it0, x:P.x, y:P.y, w:P.w, d:P.d };
+    const maior = Math.max(it.w, it.d) * (it0.forma === 'circ' ? 0.75 : 1), cw = fs * 0.56, vert = it.d > it.w * 1.3;
     if (z && foco) { /* nome da zona em foco já aparece na barra */ }
-    else if (z) { const f2 = Math.min(fs, (it.w - px(8)) / Math.max(4, it.nome.length) / 0.58), area = `${fmtM2(it.w * it.d)} m²`;
+    else if (z) { const f2 = Math.min(fs, (it.w - px(8)) / Math.max(4, it.nome.length) / 0.58), area = `${fmtM2(areaLay(it0))} m²`;
       if (f2 > fs * 0.5 && it.d > f2 * 2.6) g += `<text x="${it.x + px(4)}" y="${it.y + f2 + px(3)}" class="ly-zt" style="font-size:${f2}px;fill:${luminLay(it.cor) > 0.8 ? '#566074' : it.cor}">${esc(it.nome)}<tspan class="ly-za" x="${it.x + px(4)}" dy="${f2 * 1.15}" style="font-size:${f2 * 0.85}px">${area}</tspan></text>`;
       else if (it.w > fs * 2 && it.d > fs * 2) g += `<title>${esc(it.nome)} · ${area}</title>`; }
     else if (maior * 0.92 > cw * 3 && Math.min(it.w, it.d) > fs * 0.9) {
       const cabe = Math.floor(maior * 0.92 / cw), txt = it.nome.length > cabe ? it.nome.slice(0, Math.max(1, cabe - 1)) + '…' : it.nome;
       const cx = it.x + it.w / 2, cy = it.y + it.d / 2, f3 = Math.min(fs, Math.min(it.w, it.d) * 0.7);
       g += `<text x="${cx}" y="${cy + f3 * 0.35}" text-anchor="middle" class="ly-ot${luminLay(it.cor) < 0.45 ? ' cl' : ''}" style="font-size:${f3}px" ${vert ? `transform="rotate(-90 ${cx} ${cy})"` : ''}>${esc(txt)}</text>`; }
+    }
     g += `</g>`;
   }
   // folgas do selecionado (até a parede ou o obstáculo mais próximo)
   const s = itens.find(x => x.id === sel);
-  if (s && s.cat !== 'zona' && o.folgas !== false) { const f = folgasLay(s, itens, B), cx = s.x + s.w / 2, cy = s.y + s.d / 2, sw = px(1.2);
-    const seg = (x1, y1, x2, y2, v) => { if (!(v > 0.005) || !isFinite(v)) return '';
-      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, cor = v < 1.8 ? 'ly-fg ap' : 'ly-fg';
+  if (s && s.cat !== 'zona' && o.folgas !== false) { const f = folgasLay(s, itens, B), cx0 = s.x + s.w / 2, cy0 = s.y + s.d / 2, sw = px(1.2);
+    const seg = (x1, y1, x2, y2, v, zn) => { if (!(v > 0.005) || !isFinite(v)) return '';
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, cor = zn ? 'ly-fg zn' : v < 1.8 ? 'ly-fg ap' : 'ly-fg';
       return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cor}" style="stroke-width:${sw};stroke-dasharray:${px(4)} ${px(2)}"/><text x="${mx + (x1 === x2 ? px(4) : 0)}" y="${my - (x1 === x2 ? 0 : px(4))}" class="${cor} t" style="font-size:${fs * 0.9}px" ${x1 === x2 ? '' : 'text-anchor="middle"'}>${fmtM(v)}</text>`; };
-    g += seg(s.x - f.esq, cy, s.x, cy, f.esq) + seg(s.x + s.w, cy, s.x + s.w + f.dir, cy, f.dir) + seg(cx, s.y - f.cima, cx, s.y, f.cima) + seg(cx, s.y + s.d, cx, s.y + s.d + f.baixo, f.baixo); }
+    let cx = cx0, cy = cy0;
+    g += seg(s.x - f.esq, cy, s.x, cy, f.esq) + seg(s.x + s.w, cy, s.x + s.w + f.dir, cy, f.dir) + seg(cx, s.y - f.cima, cx, s.y, f.cima) + seg(cx, s.y + s.d, cx, s.y + s.d + f.baixo, f.baixo);
+    const zz = zonaDoLay(s, itens);
+    if (zz) { const fz = folgasZonaLay(s, zz), dif = (a, b) => Math.abs(a - b) > 0.01 ? a : NaN; cx = cx0 + Math.min(s.w / 4, px(14)); cy = cy0 + Math.min(s.d / 4, px(14));
+      g += seg(s.x - fz.esq, cy, s.x, cy, dif(fz.esq, f.esq), 1) + seg(s.x + s.w, cy, s.x + s.w + fz.dir, cy, dif(fz.dir, f.dir), 1)
+        + seg(cx, s.y - fz.cima, cx, s.y, dif(fz.cima, f.cima), 1) + seg(cx, s.y + s.d, cx, s.y + s.d + fz.baixo, dif(fz.baixo, f.baixo), 1); } }
   // escala gráfica
   const dimMax = R ? Math.max(R.w, R.d) : Math.max(L, W), esc5 = dimMax > 60 ? 10 : dimMax > 12 ? 5 : 1, ex = R ? R.x : 0, ey = R ? R.y + R.d + Mr * 0.3 : W + M * 0.25;
   g += `<g class="ly-esc"><rect x="${ex}" y="${ey}" width="${esc5}" height="${px(5)}"/><rect x="${ex}" y="${ey}" width="${esc5 / 2}" height="${px(5)}" class="p"/>
     <text x="${ex + esc5 + px(4)}" y="${ey + px(5)}" style="font-size:${fs * 0.85}px">${esc5} m</text></g>`;
   const VW = R ? R.w + 2 * Mr : L + 2 * M, VH = R ? R.d + 2 * Mr : W + 2 * M;
   return `<svg class="ly-svg" viewBox="${vb}" width="${o.largura || VW * ppm}" height="${o.largura ? o.largura * VH / VW : VH * ppm}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+function formaSvgLay(it, attr){
+  if (it.forma === 'circ') return `<ellipse class="fm" cx="${it.x + it.w / 2}" cy="${it.y + it.d / 2}" rx="${it.w / 2}" ry="${it.d / 2}" ${attr}/>`;
+  const k = corteLay(it);
+  if (!k) return `<rect class="fm" x="${it.x}" y="${it.y}" width="${it.w}" height="${it.d}" ${attr}/>`;
+  const { x, y, w, d } = it, kw = k.w, kd = k.d, c = it.corte.canto;
+  const pts = [...(c === 'nw' ? [[x, y + kd], [x + kw, y + kd], [x + kw, y]] : [[x, y]]), ...(c === 'ne' ? [[x + w - kw, y], [x + w - kw, y + kd], [x + w, y + kd]] : [[x + w, y]]),
+    ...(c === 'se' ? [[x + w, y + d - kd], [x + w - kw, y + d - kd], [x + w - kw, y + d]] : [[x + w, y + d]]), ...(c === 'sw' ? [[x + kw, y + d], [x + kw, y + d - kd], [x, y + d - kd]] : [[x, y + d]])];
+  return `<path class="fm" d="M${pts.map(p => p.map(n => r2(n * 1000) / 1000).join(' ')).join('L')}Z" ${attr}/>`;
 }
 const margemRecLay = (R, ppm, fonte = 12) => Math.max(0.4, Math.max(R.w, R.d) * 0.08, fonte * 2.8 / ppm);
 const margemLay = (B, ppm, fonte = 12) => Math.max(1.6, Math.max(B.largura_m, B.profundidade_m) * 0.06, fonte * 3.4 / ppm);
@@ -8208,11 +8260,11 @@ const CSS_LAYOUT_SVG = `
   .ly-lado{fill:#566074;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
   .ly-cota line{stroke:#1f2a33} .ly-ct{fill:#1f2a33;font-family:ui-monospace,Menlo,Consolas,monospace}
   .ly-fant{fill:none;stroke:#8a93a5}
-  .ly-obj rect{stroke:#1f2a33} .ly-obj.zona rect{stroke-opacity:.9}
-  .ly-obj.ruim rect{stroke:#c62828 !important} .ly-obj.sel rect{stroke:#0b6bcb !important}
+  .ly-obj .fm{stroke:#1f2a33} .ly-obj.zona .fm{stroke-opacity:.9}
+  .ly-obj.ruim .fm{stroke:#c62828 !important} .ly-obj.sel .fm{stroke:#0b6bcb !important}
   .ly-ot{fill:#1b2333;font-weight:700;pointer-events:none} .ly-ot.cl{fill:#fff}
   .ly-zt{font-weight:800;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:.06} .ly-za{font-weight:600;fill:#566074}
-  .ly-fg{stroke:#0b6bcb;fill:#0b6bcb} .ly-fg.t{stroke:none;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;paint-order:stroke} .ly-fg.ap{stroke:#c62828;fill:#c62828}
+  .ly-fg{stroke:#0b6bcb;fill:#0b6bcb} .ly-fg.t{stroke:none;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;paint-order:stroke} .ly-fg.ap{stroke:#c62828;fill:#c62828} .ly-fg.zn{stroke:#1a7a3e;fill:#1a7a3e} .ly-fg.t.zn{stroke:none}
   .ly-fg.t.ap{stroke:none}
   .ly-obj.fora{opacity:.28;pointer-events:none} .ly-obj.foco{pointer-events:none}
   .ly-esc rect{fill:#fff;stroke:#1f2a33;stroke-width:.03} .ly-esc rect.p{fill:#1f2a33} .ly-esc text{fill:#1f2a33}`;
@@ -8240,7 +8292,7 @@ const CSS_LAYOUT = `
   .ly-form{display:grid;grid-template-columns:1fr 1fr;gap:8px} .ly-form label{display:grid;gap:3px;font-size:12px;color:var(--mute)} .ly-form .full{grid-column:1/-1}
   .ly-form input,.ly-form select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box}
   .ly-form input[type=color]{padding:2px;height:34px} .ly-form .chk{display:flex;align-items:center;gap:6px;color:var(--ink)}
-  .ly-form .chk input{width:auto}
+  .ly-form .chk input{width:auto} #tf-L[hidden]{display:none}
   .ly-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .ly-folga{font-size:12px;color:var(--mute);margin-top:8px;font-variant-numeric:tabular-nums} .ly-folga b{color:var(--ink)} .ly-folga .ap{color:#c62828}
   .ly-res td{padding:4px 2px;border-top:1px solid #eef0f4;font-size:13px} .ly-res td.n{text-align:right;font-variant-numeric:tabular-nums}
@@ -8334,7 +8386,7 @@ function renderLayout(){
         </div>
         <div class="ly-foco-bar" id="ly-foco-bar" hidden></div>
         <div class="ly-box ${editar ? '' : 'ro'}" id="ly-box"></div>
-        <div class="info" style="padding:6px 10px;border-top:1px solid var(--line)">${editar ? 'Arraste os objetos. Setas movem 10 cm (Shift: 1 m), R gira, Delete exclui. ' : ''}Contorno <b style="color:#c62828">vermelho</b> = fora do bloco ou batendo em outro objeto. Selecionado: as linhas azuis mostram o espaço livre até a parede ou o obstáculo (vermelho = menos de 1,80 m, pouco para paleteira com palete).</div>
+        <div class="info" style="padding:6px 10px;border-top:1px solid var(--line)">${editar ? 'Arraste os objetos. Setas movem 10 cm (Shift: 1 m), R gira, Delete exclui. ' : ''}Contorno <b style="color:#c62828">vermelho</b> = fora do bloco ou batendo em outro objeto. Selecionado: linhas azuis = espaço livre até a parede ou o obstáculo (vermelho = menos de 1,80 m, pouco para paleteira com palete); verdes = até a borda da zona onde ele está.</div>
       </section>
       <aside class="ly-side">
         <div class="ly-card" id="ly-selc"></div>
@@ -8375,7 +8427,7 @@ function renderCatalogoLay(){
   const editar = pode('layout', 'editar'), b = (state.lay.busca || '').trim().toLowerCase();
   const tipos = (state.layGeral?.tipos || []).filter(t => !b || t.nome.toLowerCase().includes(b));
   $l.innerHTML = ORDEM_CAT_LAYOUT.slice().reverse().map(c => { const l = tipos.filter(t => t.categoria === c); if (!l.length) return '';
-    return `<div class="ly-gcat">${CAT_LAYOUT[c].curto}</div>${l.map(t => `<div class="ly-tp" data-tipo="${t.id}" role="button" tabindex="0"><span class="ly-sw ${c === 'zona' ? 'zona' : ''}" style="background:${t.cor}"></span><b>${esc(t.nome)}</b>
+    return `<div class="ly-gcat">${CAT_LAYOUT[c].curto}</div>${l.map(t => `<div class="ly-tp" data-tipo="${t.id}" role="button" tabindex="0"><span class="ly-sw ${c === 'zona' ? 'zona' : ''}" style="background:${t.cor};${t.forma === 'circ' ? 'border-radius:50%' : ''}"></span><b>${esc(t.nome)}${t.forma === 'L' ? ' <small>(L)</small>' : ''}</b>
       <small>${fmtM(t.largura_m)} × ${fmtM(t.profundidade_m)}${t.altura_m ? ` · h ${fmtM(t.altura_m)}` : ''}</small>${editar ? `<button class="ed" data-etipo="${t.id}" title="Editar no catálogo">✎</button>` : ''}</div>`).join('')}`; }).join('') || '<div class="info">Nenhum objeto.</div>';
   $l.querySelectorAll('[data-etipo]').forEach(x => x.onclick = ev => { ev.stopPropagation(); editarTipoLay(state.layGeral.tipos.find(t => t.id === x.dataset.etipo)); });
   if (editar) $l.querySelectorAll('[data-tipo]').forEach(x => { const add = () => colocarTipoLay(state.layGeral.tipos.find(t => t.id === x.dataset.tipo));
@@ -8392,18 +8444,22 @@ function focarZonaLay(id){
 function barraFocoLay(){
   const bar = document.getElementById('ly-foco-bar'); if (!bar) return; const Z = zonaFocoLay();
   bar.hidden = !Z; if (!Z) return;
-  bar.innerHTML = `🔍 Vendo só a zona <b>${esc(Z.nome)}</b> (${fmtM(Z.w)} × ${fmtM(Z.d)} m · ${fmtM2(Z.w * Z.d)} m²). Objetos do catálogo entram dentro dela; o resto do bloco fica apagado.<span style="flex:1"></span><button class="btn" id="ly-foco-sair">✕ Ver o bloco inteiro</button>`;
+  bar.innerHTML = `🔍 Vendo só a zona <b>${esc(Z.nome)}</b> (${fmtM(Z.w)} × ${fmtM(Z.d)} m · ${fmtM2(areaLay(Z))} m²). Objetos do catálogo entram dentro dela; o resto do bloco fica apagado.<span style="flex:1"></span><button class="btn" id="ly-foco-sair">✕ Ver o bloco inteiro</button>`;
   document.getElementById('ly-foco-sair').onclick = () => focarZonaLay(null);
 }
 function colocarTipoLay(t){
   const B = blocoLay(), V = state.layV?.versao; if (!B || !V || !t) return;
   const Z = zonaFocoLay(), p = lugarLivreLay(t.largura_m, t.profundidade_m, V.doc.itens, B, t.categoria, Z ? { x:Z.x, y:Z.y, w:Z.w, d:Z.d } : null);
-  const it = { id:uidLay(), tipo_id:t.id, nome:t.nome, x:p.x, y:p.y, w:t.largura_m, d:t.profundidade_m, cor:t.cor, cat:t.categoria, ...(t.categoria === 'estrutura' ? { trava:true } : {}) };
+  const it = { id:uidLay(), tipo_id:t.id, nome:t.nome, x:p.x, y:p.y, w:t.largura_m, d:t.profundidade_m, cor:t.cor, cat:t.categoria, ...(t.categoria === 'estrutura' ? { trava:true } : {}),
+    ...(t.forma && t.forma !== 'ret' ? { forma:t.forma } : {}), ...(t.forma === 'L' && t.corte ? { corte:{ ...t.corte } } : {}) };
   V.doc.itens.push(it); state.lay.sel = it.id; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`colocou ${t.nome}`);
 }
 function desenharLay(){
   const s = state.lay, B = blocoLay(), V = state.layV?.versao, box = document.getElementById('ly-box'); if (!box || !B || !V) return;
   const zv = document.getElementById('ly-zv'); if (zv) zv.textContent = `${Math.round(s.zoom * 100)}%`;
+  // lista "Ver" acompanha as zonas criadas/renomeadas
+  const selV = document.getElementById('ly-foco'), zs = V.doc.itens.filter(x => x.cat === 'zona').sort((a, b) => a.nome.localeCompare(b.nome)), sig = zs.map(z => `${z.id}|${z.nome}|${z.w}|${z.d}`).join(';');
+  if (selV && selV.dataset.sig !== sig) { selV.dataset.sig = sig; selV.innerHTML = `<option value="">Bloco inteiro</option>${zs.map(z => `<option value="${esc(z.id)}">🔍 ${esc(z.nome)} · ${fmtM(z.w)} × ${fmtM(z.d)}</option>`).join('')}`; selV.value = s.foco || ''; }
   const Z = zonaFocoLay(), R = Z ? { x:Z.x, y:Z.y, w:Z.w, d:Z.d } : null;
   const cw = Math.max(300, box.clientWidth - 4), L0 = R ? R.w : B.largura_m, W0 = R ? R.d : B.profundidade_m, marg = b => R ? margemRecLay(R, b) : margemLay(B, b);
   const ajuste = M => Math.min(cw / (L0 + 2 * M), (window.innerHeight * 0.68) / (W0 + 2 * M) * 1.6);
@@ -8439,7 +8495,8 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Delete') { e.preventDefault(); excluirItemLay(it); }
 });
 function girarLay(it){ if (it.trava) return avisar('Objeto travado: destrave no painel para girar', true);
-  const B = blocoLay(), dentro = dentroLay(it, B), cx = it.x + it.w / 2, cy = it.y + it.d / 2; [it.w, it.d] = [it.d, it.w]; it.x = r2(cx - it.w / 2); it.y = r2(cy - it.d / 2);
+  const B = blocoLay(), dentro = dentroLay(it, B), cx = it.x + it.w / 2, cy = it.y + it.d / 2; [it.w, it.d] = [it.d, it.w];
+  if (it.corte) it.corte = { canto:GIRA_CANTO[it.corte.canto] || 'ne', w:it.corte.d, d:it.corte.w }; it.x = r2(cx - it.w / 2); it.y = r2(cy - it.d / 2);
   if (dentro) { it.x = r2(Math.min(Math.max(0, it.x), B.largura_m - it.w)); it.y = r2(Math.min(Math.max(0, it.y), B.profundidade_m - it.d)); }
   desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`girou ${it.nome}`); }
 function excluirItemLay(it){ const V = state.layV.versao; V.doc.itens = V.doc.itens.filter(x => x !== it); state.lay.sel = null; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`excluiu ${it.nome}`); }
@@ -8447,7 +8504,7 @@ function renderSelLay(){
   const $s = document.getElementById('ly-selc'); if (!$s) return;
   const B = blocoLay(), it = itensLay().find(x => x.id === state.lay.sel), editar = pode('layout', 'editar'), dis = editar ? '' : 'disabled';
   if (!it) { $s.innerHTML = `<h4>Objeto selecionado</h4><div class="info">Toque em um objeto da planta para ver medidas, posição e espaço livre em volta.</div>`; return; }
-  const f = it.cat !== 'zona' ? folgasLay(it, itensLay(), B) : null, fg = v => !isFinite(v) ? '–' : `<b class="${v < 1.8 ? 'ap' : ''}">${fmtM(v)} m</b>`;
+  const f = it.cat !== 'zona' ? folgasLay(it, itensLay(), B) : null, fg = fgLay, fg0 = v => !isFinite(v) ? '–' : `<b class="${v < 1.8 ? 'ap' : ''}">${fmtM(v)} m</b>`;
   const tipo = it.tipo_id ? state.layGeral.tipos.find(t => t.id === it.tipo_id) : null;
   $s.innerHTML = `<h4>Objeto selecionado</h4>
     <div class="ly-form">
@@ -8458,10 +8515,13 @@ function renderSelLay(){
       <label>Y: da parede de cima<input id="lo-y" inputmode="decimal" value="${fmtM(it.y)}" ${dis || (it.trava ? 'disabled' : '')}></label>
       <label>Cor<input id="lo-cor" type="color" value="${it.cor}" ${dis}></label>
       <label>Tipo<select id="lo-cat" ${dis}>${Object.entries(CAT_LAYOUT).map(([k, c]) => `<option value="${k}" ${it.cat === k ? 'selected' : ''}>${c.curto}</option>`).join('')}</select></label>
+      <label class="full">Forma<select id="lo-forma" ${dis}>${Object.entries(FORMAS_LAY).map(([k, t]) => `<option value="${k}" ${(it.forma || 'ret') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      ${it.forma === 'L' ? `<label class="full">Canto recortado<select id="lo-canto" ${dis}>${Object.entries(CANTOS_L).map(([k, t]) => `<option value="${k}" ${it.corte?.canto === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        <label>Recorte: largura (m)<input id="lo-cw" inputmode="decimal" value="${fmtM(it.corte?.w || 0)}" ${dis}></label><label>Recorte: profundidade (m)<input id="lo-cd" inputmode="decimal" value="${fmtM(it.corte?.d || 0)}" ${dis}></label>` : ''}
       <label class="chk full"><input type="checkbox" id="lo-trava" ${it.trava ? 'checked' : ''} ${dis}> Travado (não arrasta sem querer)</label>
     </div>
-    ${f ? `<div class="ly-folga">Espaço livre · ← ${fg(f.esq)} · → ${fg(f.dir)} · ↑ ${fg(f.cima)} · ↓ ${fg(f.baixo)}</div>` : `<div class="ly-folga">Área da zona: <b>${fmtM2(it.w * it.d)} m²</b></div>`}
-    ${it.cat !== 'zona' && zonaFocoLay() ? `<div class="ly-folga">Dentro de ${esc(zonaFocoLay().nome)}: <b>${fmtM(it.x - zonaFocoLay().x)} m</b> da borda esquerda · <b>${fmtM(it.y - zonaFocoLay().y)} m</b> da borda de cima</div>` : ''}
+    ${f ? `<div class="ly-folga">Espaço livre · ← ${fg(f.esq)} · → ${fg(f.dir)} · ↑ ${fg(f.cima)} · ↓ ${fg(f.baixo)}</div>` : `<div class="ly-folga">Área da zona: <b>${fmtM2(areaLay(it))} m²</b></div>`}
+    <div id="lo-fz">${linhaZonaLay(it)}</div>
     ${it.cat === 'zona' ? `<div class="ly-acts"><button class="btn pri" id="lo-focar">🔍 Ver só esta zona</button></div>` : ''}
     ${conflitosLay(itensLay(), B).has(it.id) ? '<div class="ly-alerta">⚠ Fora do bloco ou batendo em outro objeto</div>' : ''}
     <div class="info" style="margin-top:4px">${tipo ? `Do catálogo: ${esc(tipo.nome)} (${fmtM(tipo.largura_m)} × ${fmtM(tipo.profundidade_m)})` : 'Objeto avulso (não está no catálogo)'}</div>
@@ -8470,10 +8530,19 @@ function renderSelLay(){
   const fz = document.getElementById('lo-focar'); if (fz) fz.onclick = () => focarZonaLay(it.id);
   if (!editar) return;
   const q = k => document.getElementById(k);
-  const aplicar = (campo, v, resumo) => { it[campo] = v; desenharLay(); renderResumoLay(); salvarLay(resumo); const fx = document.querySelector('.ly-folga'); if (fx && it.cat !== 'zona') { const f2 = folgasLay(it, itensLay(), B); fx.innerHTML = `Espaço livre · ← ${fg(f2.esq)} · → ${fg(f2.dir)} · ↑ ${fg(f2.cima)} · ↓ ${fg(f2.baixo)}`; } };
+  const aplicar = (campo, v, resumo) => { it[campo] = v; desenharLay(); renderResumoLay(); salvarLay(resumo); const fx = document.querySelector('.ly-folga'); if (fx && it.cat !== 'zona') { const f2 = folgasLay(it, itensLay(), B); fx.innerHTML = `Espaço livre · ← ${fg(f2.esq)} · → ${fg(f2.dir)} · ↑ ${fg(f2.cima)} · ↓ ${fg(f2.baixo)}`; }
+    const fzEl = document.getElementById('lo-fz'); if (fzEl) fzEl.innerHTML = linhaZonaLay(it); };
+  q('lo-forma').onchange = e => { const v = e.target.value; if (v === 'ret') { delete it.forma; delete it.corte; } else { it.forma = v; if (v === 'L') it.corte ||= { canto:'ne', w:r2(it.w / 2), d:r2(it.d / 2) }; else delete it.corte; }
+    desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`mudou a forma de ${it.nome}`); };
+  if (q('lo-canto')) { q('lo-canto').onchange = e => { it.corte.canto = e.target.value; aplicar('corte', it.corte, `ajustou o recorte de ${it.nome}`); };
+    [['lo-cw', 'w', 'w'], ['lo-cd', 'd', 'd']].forEach(([id, k, lim]) => q(id).onchange = e => { const v = numBR(e.target.value);
+      if (!(v >= 0.05) || v >= it[lim] - 0.04) { avisar(`O recorte precisa ser menor que a ${lim === 'w' ? 'largura' : 'profundidade'} do objeto`, true); e.target.value = fmtM(it.corte[k]); return; }
+      e.target.value = fmtM(r2(v)); it.corte[k] = r2(v); aplicar('corte', it.corte, `ajustou o recorte de ${it.nome}`); }); }
   q('lo-nome').onchange = e => { const v = e.target.value.trim(); if (v) aplicar('nome', v.slice(0, 60), `renomeou para ${v}`); };
   [['lo-w', 'w', 0.05], ['lo-d', 'd', 0.05], ['lo-x', 'x', -50], ['lo-y', 'y', -50]].forEach(([id, k, min]) => q(id).onchange = e => { const v = numBR(e.target.value);
-    if (!(v >= min) || v > 500) { avisar('Medida inválida', true); e.target.value = fmtM(it[k]); return; } e.target.value = fmtM(r2(v)); aplicar(k, r2(v), `ajustou ${it.nome}`); });
+    if (!(v >= min) || v > 500) { avisar('Medida inválida', true); e.target.value = fmtM(it[k]); return; } e.target.value = fmtM(r2(v));
+    if (it.corte && (k === 'w' || k === 'd') && it.corte[k] >= r2(v) - 0.04) { it.corte[k] = r2(Math.max(0.05, v / 2)); avisar('O recorte do L foi reduzido para caber na medida nova'); }
+    aplicar(k, r2(v), `ajustou ${it.nome}`); if (it.corte) renderSelLay(); });
   q('lo-cor').onchange = e => aplicar('cor', e.target.value, `mudou a cor de ${it.nome}`);
   q('lo-cat').onchange = e => { aplicar('cat', e.target.value, `mudou o tipo de ${it.nome}`); renderSelLay(); };
   q('lo-trava').onchange = e => { if (e.target.checked) it.trava = true; else delete it.trava; salvarLay(`${e.target.checked ? 'travou' : 'destravou'} ${it.nome}`); renderSelLay(); desenharLay(); };
@@ -8482,15 +8551,22 @@ function renderSelLay(){
     if (!dentroLay(n, B)) { n.x = it.x; n.y = r2(it.y + it.d + 0.2); } V.doc.itens.push(n); state.lay.sel = n.id; desenharLay(); renderSelLay(); renderResumoLay(); salvarLay(`duplicou ${it.nome}`); };
   q('lo-rep').onclick = () => repetirLay(it);
   q('lo-del').onclick = () => excluirItemLay(it);
-  const cs = q('lo-cat-salvar'); if (cs) cs.onclick = () => editarTipoLay(null, { nome:it.nome, largura_m:it.w, profundidade_m:it.d, cor:it.cor, categoria:it.cat }, novo => { it.tipo_id = novo; salvarLay(`ligou ${it.nome} ao catálogo`); renderSelLay(); });
+  const cs = q('lo-cat-salvar'); if (cs) cs.onclick = () => editarTipoLay(null, { nome:it.nome, largura_m:it.w, profundidade_m:it.d, cor:it.cor, categoria:it.cat, forma:it.forma || 'ret', corte:it.corte || null }, novo => { it.tipo_id = novo; salvarLay(`ligou ${it.nome} ao catálogo`); renderSelLay(); });
+}
+const fgLay = v => !isFinite(v) ? '–' : `<b class="${v < 1.8 ? 'ap' : ''}">${fmtM(v)} m</b>`;
+// linha "até a borda da zona" do objeto selecionado
+function linhaZonaLay(it){
+  if (it.cat === 'zona') return ''; const z = zonaDoLay(it, itensLay()); if (!z) return '';
+  const f = folgasZonaLay(it, z), g = v => !isFinite(v) ? '–' : `<b style="color:#1a7a3e">${fmtM(v)} m</b>`;
+  return `<div class="ly-folga">Até a borda da zona ${esc(z.nome)} · ← ${g(f.esq)} · → ${g(f.dir)} · ↑ ${g(f.cima)} · ↓ ${g(f.baixo)}</div>`;
 }
 function renderResumoLay(){
   const $r = document.getElementById('ly-res'); if (!$r) return;
   const B = blocoLay(), Z = zonaFocoLay(), ruins = conflitosLay(itensLay(), B);
-  const it = Z ? itensLay().filter(x => x.id !== Z.id && cruzaLay(x, Z)) : itensLay(), area = Z ? Z.w * Z.d : B.largura_m * B.profundidade_m;
-  const soma = c => it.filter(x => x.cat === c && dentroLay(x, B)).reduce((t, x) => t + x.w * x.d, 0);
+  const it = Z ? itensLay().filter(x => x.id !== Z.id && cruzaLay(x, Z)) : itensLay(), area = Z ? areaLay(Z) : B.largura_m * B.profundidade_m;
+  const soma = c => it.filter(x => x.cat === c && dentroLay(x, B)).reduce((t, x) => t + areaLay(x), 0);
   const mov = soma('movel'), est = soma('estrutura'), livre = Math.max(0, area - mov - est);
-  const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0 }); grupos[k].n++; grupos[k].a += x.w * x.d; });
+  const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0 }); grupos[k].n++; grupos[k].a += areaLay(x); });
   const lin = Object.values(grupos).sort((a, b) => ORDEM_CAT_LAYOUT.indexOf(b.cat) - ORDEM_CAT_LAYOUT.indexOf(a.cat) || b.a - a.a);
   const pct = v => `${Math.round(v / area * 100)}%`;
   $r.innerHTML = `<h4>Resumo · ${Z ? `zona ${esc(Z.nome)}` : esc(state.layV?.versao.nome || '')}</h4>
@@ -8565,6 +8641,11 @@ function editarTipoLay(t, base, depois){
       <label>Profundidade (m)<input id="tf-p" inputmode="decimal" value="${v.profundidade_m === '' ? '' : fmtM(v.profundidade_m)}"></label>
       <label>Altura (m) <span class="info">opcional</span><input id="tf-a" inputmode="decimal" value="${v.altura_m == null ? '' : fmtM(v.altura_m)}"></label>
       <label>Tipo<select id="tf-cat">${Object.entries(CAT_LAYOUT).map(([k, c]) => `<option value="${k}" ${v.categoria === k ? 'selected' : ''}>${c.rot}</option>`).join('')}</select></label>
+      <label class="full">Forma<select id="tf-forma">${Object.entries(FORMAS_LAY).map(([k, t]) => `<option value="${k}" ${(v.forma || 'ret') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      <div class="full ly-form" id="tf-L" ${v.forma === 'L' ? '' : 'hidden'} style="grid-column:1/-1">
+        <label class="full">Canto recortado<select id="tf-canto">${Object.entries(CANTOS_L).map(([k, t]) => `<option value="${k}" ${(v.corte?.canto || 'ne') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        <label>Recorte: largura (m)<input id="tf-cw" inputmode="decimal" value="${v.corte ? fmtM(v.corte.w) : ''}"></label><label>Recorte: profundidade (m)<input id="tf-cd" inputmode="decimal" value="${v.corte ? fmtM(v.corte.d) : ''}"></label></div>
+      <div class="full info">Círculo/oval: largura e profundidade são o diâmetro (iguais = círculo). Em L: a medida é o retângulo todo e o recorte é o pedaço que falta num canto.</div>
       <label class="full">Cor<span style="display:flex;gap:8px;align-items:center"><input id="tf-cor" type="color" value="${v.cor}" style="width:60px"><span class="ly-cores">${CORES_LAYOUT.map(c => `<button type="button" data-cor="${c}" style="background:${c}" title="${c}"></button>`).join('')}</span></span></label>
       <label class="full">Observação<input id="tf-obs" maxlength="300" value="${esc(v.obs || '')}" placeholder="ex.: medido em 04/11; carga 500 kg por nível"></label>
       ${novo ? '' : `<label class="chk full"><input type="checkbox" id="tf-prop" checked> Atualizar nome, medida e cor dos que já estão nas plantas (todas as versões)</label>`}
@@ -8572,10 +8653,13 @@ function editarTipoLay(t, base, depois){
     <div class="gv-acoes">${novo ? '' : '<button class="btn perigo" id="tf-del">Tirar do catálogo</button>'}<span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="tf-ok">Salvar</button></div></div>`;
   document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
   dlg.querySelectorAll('[data-cor]').forEach(b => b.onclick = () => { q('#tf-cor').value = b.dataset.cor; });
+  q('#tf-forma').onchange = () => { q('#tf-L').hidden = q('#tf-forma').value !== 'L'; };
   q('[data-x]').onclick = () => dlg.remove();
   q('#tf-ok').onclick = async () => {
     const corpo = { id:t?.id, nome:q('#tf-nome').value.trim(), largura_m:numBR(q('#tf-l').value), profundidade_m:numBR(q('#tf-p').value), altura_m:q('#tf-a').value.trim() === '' ? null : numBR(q('#tf-a').value),
-      cor:q('#tf-cor').value, categoria:q('#tf-cat').value, obs:q('#tf-obs').value.trim(), propagar:!!q('#tf-prop')?.checked };
+      cor:q('#tf-cor').value, categoria:q('#tf-cat').value, obs:q('#tf-obs').value.trim(), propagar:!!q('#tf-prop')?.checked, forma:q('#tf-forma').value, corte:null };
+    if (corpo.forma === 'L') { corpo.corte = { canto:q('#tf-canto').value, w:numBR(q('#tf-cw').value), d:numBR(q('#tf-cd').value) };
+      if (!(corpo.corte.w >= 0.05 && corpo.corte.w < corpo.largura_m - 0.04) || !(corpo.corte.d >= 0.05 && corpo.corte.d < corpo.profundidade_m - 0.04)) return avisar('O recorte do L precisa ser menor que a largura e a profundidade', true); }
     if (!corpo.nome) return avisar('Informe o nome', true);
     if (!(corpo.largura_m >= 0.05) || !(corpo.profundidade_m >= 0.05)) return avisar('Informe largura e profundidade em metros (ex.: 1,20)', true);
     try { if (corpo.propagar) await flushLay(); const r = await apiLayout('/layout/tipo', corpo); dlg.remove();
@@ -8632,7 +8716,7 @@ const CORES_EDITOR_ANTIGO = { esteira:'#9aa7b3', mcross:'#d58b5e', mesa:'#c9a46a
 function lerTextoLayout(txt, qual, B){
   const d = JSON.parse(txt), tipos = state.layGeral?.tipos || [];
   const ligar = x => { const t = tipos.find(t => t.nome.toLowerCase() === String(x.nome).toLowerCase()); return t ? { ...x, tipo_id:t.id } : x; };
-  if (Array.isArray(d.itens)) return d.itens.map(x => ligar({ id:uidLay(), nome:String(x.nome || 'Objeto').slice(0, 60), x:r2(+x.x), y:r2(+x.y), w:r2(+x.w), d:r2(+x.d), cor:/^#[0-9a-f]{6}$/i.test(x.cor) ? x.cor : '#9aa7b3', cat:CAT_LAYOUT[x.cat] ? x.cat : 'movel', ...(x.trava ? { trava:true } : {}) }))
+  if (Array.isArray(d.itens)) return d.itens.map(x => ligar({ id:uidLay(), nome:String(x.nome || 'Objeto').slice(0, 60), x:r2(+x.x), y:r2(+x.y), w:r2(+x.w), d:r2(+x.d), cor:/^#[0-9a-f]{6}$/i.test(x.cor) ? x.cor : '#9aa7b3', cat:CAT_LAYOUT[x.cat] ? x.cat : 'movel', ...(x.trava ? { trava:true } : {}), ...(['circ', 'L'].includes(x.forma) ? { forma:x.forma } : {}), ...(x.forma === 'L' && x.corte ? { corte:{ canto:CANTOS_L[x.corte.canto] ? x.corte.canto : 'ne', w:r2(+x.corte.w), d:r2(+x.corte.d) } } : {}) }))
     .filter(x => [x.x, x.y, x.w, x.d].every(Number.isFinite) && x.w > 0 && x.d > 0);
   const lista = d[qual] || d.atual;
   if (!Array.isArray(lista)) throw new Error('Texto não reconhecido');
@@ -8659,13 +8743,13 @@ function importarLayout(){
 function imprimirLayout(){
   const B = blocoLay(), V = state.layV?.versao; if (!B || !V) return;
   const Z = zonaFocoLay(), R = Z ? { x:Z.x, y:Z.y, w:Z.w, d:Z.d } : null;
-  const tudo = V.doc.itens, ruins = conflitosLay(tudo, B), area = R ? R.w * R.d : B.largura_m * B.profundidade_m, dm = R ? Math.max(R.w, R.d) : Math.max(B.largura_m, B.profundidade_m);
+  const tudo = V.doc.itens, ruins = conflitosLay(tudo, B), area = R ? areaLay(Z) : B.largura_m * B.profundidade_m, dm = R ? Math.max(R.w, R.d) : Math.max(B.largura_m, B.profundidade_m);
   const it = R ? tudo.filter(x => x.id !== Z.id && cruzaLay(x, R)) : tudo;
   const ppmI = 1000 / ((R ? R.w : B.largura_m) * 1.15);
   const svg = svgLayout(B, tudo, { ppm:ppmI, largura:1000, grade:state.lay.grade, cotas:true, ruins, fantasma:state.layFant || [], folgas:false, fonte:Math.max(9, Math.min(14, dm / 4)) * ppmI / 20, recorte:R, focoId:Z?.id })
     .replace('width="1000"', 'width="100%"').replace(/height="[\d.]+"/, '');
-  const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0, w:x.w, d:x.d }); grupos[k].n++; grupos[k].a += x.w * x.d; });
-  const soma = c => it.filter(x => x.cat === c).reduce((t, x) => t + x.w * x.d, 0);
+  const grupos = {}; it.forEach(x => { const k = `${x.cat}|${x.nome}`; (grupos[k] ||= { nome:x.nome, cat:x.cat, cor:x.cor, n:0, a:0, w:x.w, d:x.d }); grupos[k].n++; grupos[k].a += areaLay(x); });
+  const soma = c => it.filter(x => x.cat === c).reduce((t, x) => t + areaLay(x), 0);
   const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Layout ${esc(B.nome)} · ${esc(V.nome)}</title><style>${CSS_IMPRESSO}
     @page{size:A4 landscape;margin:8mm} body{font-family:'Segoe UI',Arial,sans-serif;color:#1b2333;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .cab{display:flex;align-items:center;gap:10px;border-bottom:1mm solid #f1c300;padding-bottom:2mm;margin-bottom:3mm} .cab img{height:12mm} .cab b{font-size:15pt;color:#02285a;display:block} .cab span{font-size:9pt;color:#566074}
@@ -8684,6 +8768,293 @@ function imprimirLayout(){
   imprimirHtml(html);
 }
 
+/* =================== DADOS DO SEENC (upload do relatório "Ações do usuário") =================== */
+// Enquanto a API do Seenc não é liberada: exporta o relatório por loja e período e sobe aqui.
+// O mesmo período subido de novo atualiza as linhas (não duplica). A cobertura mostra os dias/lojas que faltam.
+const TIPOS_SEENC = { separacao:'Separação', conferencia:'Conferência', movimentacao:'Movimentação', alocacao:'Alocação / endereçamento', inventario:'Inventário', recebimento:'Recebimento', expedicao:'Expedição', outro:'Outro' };
+const CSS_SEENC = `
+  .sn-grid{display:grid;gap:14px}
+  .sn-up{border:2px dashed var(--line);border-radius:12px;padding:14px;background:#fafbfc}
+  .sn-up input[type=file]{font:inherit}
+  .sn-arqs{display:grid;gap:6px;margin-top:10px} .sn-arq{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;display:grid;gap:5px}
+  .sn-arq select{font:inherit;font-size:13px;padding:3px 6px}
+  .sn-arq h4{margin:0;font-size:14px} .sn-arq .lin{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13px}
+  .sn-arq label{display:flex;align-items:center;gap:6px;font-size:13px} .sn-arq input[type=date]{font:inherit;padding:4px 6px}
+  .sn-av{font-size:12.5px;color:#7a5a00;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:5px 9px}
+  .sn-av.erro{color:#8a1f1f;background:#fbe9e9;border-color:#f1c4c4}
+  .sn-prog{height:8px;border-radius:99px;background:#eef0f4;overflow:hidden} .sn-prog i{display:block;height:100%;background:#0b6bcb;width:0;transition:width .2s}
+  .sn-cob{border-collapse:collapse;font-size:12.5px;width:100%} .sn-cob th,.sn-cob td{border:1px solid #eef0f4;padding:4px 6px;text-align:center;white-space:nowrap}
+  .sn-cob th{background:#f6f7f9;font-weight:700;position:sticky;top:0} .sn-cob td.d{text-align:left;font-variant-numeric:tabular-nums;color:var(--mute)}
+  .sn-ok{background:#e7f5ec;color:#1a5e33} .sn-zero{background:#f3f4f6;color:#8a93a5} .sn-falta{background:#fbe9e9;color:#a11d1d;font-weight:700} .sn-parc{background:#fff4d6;color:#7a5a00}
+  .sn-fds td.d{color:#b0b6c2}
+  .sn-op{border-collapse:collapse;font-size:12px} .sn-op th,.sn-op td{border:1px solid #eef0f4;padding:3px 6px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .sn-op th{background:#f6f7f9;position:sticky;top:0} .sn-op td:first-child,.sn-op th:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
+  .sn-op th:first-child{background:#f6f7f9;z-index:2} .sn-op td.z{color:#d0d4db} .sn-op tr.t td{font-weight:700;background:#f6f7f9}
+  .sn-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
+  .sn-res{font-size:13px;margin-top:6px}`;
+
+// CSV com aspas (o campo Produto tem ";" dentro: "Tênis X; Branco; 33 BR")
+function lerCsvAspas(txt, sep){
+  const out = []; let lin = [], cel = '', q = false;
+  for (let i = 0; i < txt.length; i++) {
+    const ch = txt[i];
+    if (q) { if (ch === '"') { if (txt[i + 1] === '"') { cel += '"'; i++; } else q = false; } else cel += ch; continue; }
+    if (ch === '"') q = true; else if (ch === sep) { lin.push(cel); cel = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && txt[i + 1] === '\n') i++; lin.push(cel); cel = ''; if (lin.some(c => c.trim() !== '')) out.push(lin); lin = []; }
+    else cel += ch;
+  }
+  lin.push(cel); if (lin.some(c => c.trim() !== '')) out.push(lin);
+  return out;
+}
+async function textoArquivo(arq){   // UTF-8; se vier acentuação quebrada, lê como Windows-1252 (Excel)
+  const buf = await arq.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal:true }).decode(buf); } catch (e) { return new TextDecoder('windows-1252').decode(buf); }
+}
+const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+// "09/11/2026 12:45" -> ISO (horário de Brasília)
+const tsSeenc = s => { const m = String(s || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/); if (!m) return null;
+  return new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] || '00'}:${m[5] || '00'}:${m[6] || '00'}-03:00`).toISOString(); };
+const diaSeenc = s => { const m = String(s || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : null; };
+// tipo pelo cabeçalho do relatório ("Separado por", "Movimentado por", "Inventariado por"...)
+function tipoPeloCabecalho(cab){
+  const t = cab.join(' | ');
+  if (/separad[oa] por|separacao iniciada/.test(t)) return 'separacao';
+  if (/conferid[oa] por|conferencia iniciada/.test(t)) return 'conferencia';
+  if (/inventariad[oa] por|inventario/.test(t)) return 'inventario';
+  if (/movimentad[oa] por|movimentacao/.test(t)) return 'movimentacao';
+  if (/alocad[oa] por|guardad[oa] por|enderecad[oa] por|alocacao/.test(t)) return 'alocacao';
+  if (/recebid[oa] por|recebimento/.test(t)) return 'recebimento';
+  if (/expedid[oa] por|expedicao/.test(t)) return 'expedicao';
+  return '';
+}
+const hashTxt = s => { let a = 0x811c9dc5, b = 0x01000193; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; } return a.toString(16).padStart(8, '0') + b.toString(16).padStart(8, '0'); };
+// lê qualquer relatório de ações do Seenc: separação tem modelo fixo; os outros tipos são lidos pelo nome das colunas
+// (operador = "... por"/usuário; data/hora = coluna com dd/mm/aaaa hh:mm; SKU, GTIN, produto, quantidade, endereço, destino)
+function lerRelatorioSeenc(txt, lojas, tipoEscolhido, lojaEscolhida){
+  const tab = lerCsvAspas(txt.replace(/^﻿/, ''), txt.replace(/^﻿/, '').split('\n')[0].includes(';') ? ';' : ',');
+  if (tab.length < 2) throw new Error('Arquivo vazio');
+  const orig = tab[0].map(c => c.trim()), cab = orig.map(semAcento), corpo = tab.slice(1);
+  const tipoDet = tipoPeloCabecalho(cab), tipo = tipoEscolhido || tipoDet;
+  if (!tipo) throw new Error('Não consegui identificar o tipo de movimento pelo cabeçalho: escolha o tipo antes de selecionar o arquivo.');
+  const achar = re => cab.findIndex(h => re.test(h));
+  const amostra = i => (corpo.find(x => String(x[i] ?? '').trim()) || [])[i] || '';
+  const ehDataHora = i => /^\d{2}\/\d{2}\/\d{4}/.test(String(amostra(i)).trim());
+  const tempos = cab.map((h, i) => i).filter(i => ehDataHora(i) && !/venda|pedido|nascimento|validade|fabricac/.test(cab[i]));
+  const C = {
+    op:achar(/( por|^usuario|^operador|^responsavel|^colaborador)$/), pedido:achar(/^pedido$|^numero do pedido$/), mkt:achar(/^pedido no marketplace$/), venda:achar(/^data da venda$/),
+    status:achar(/^status|^situacao/), conta:achar(/^conta/), canal:achar(/^canal$/), forma:achar(/^forma de entrega$/), perfil:achar(/^perfil/), motivo:achar(/^motivo/),
+    sku:achar(/sku/), gtin:achar(/gtin|^ean/), produto:achar(/^produto|^descricao/),
+    qsol:achar(/^quantidade solicitada|^qtd solicitada/), qend:achar(/quantidade .* no endereco/),
+    end:achar(/endereco.*origem|^origem|^endereco$|^local$|^posicao$/), dest:achar(/endereco.*destino|^destino/),
+    ini:tempos.find(i => /inici/.test(cab[i])) ?? -1, fim:tempos.find(i => /finaliz|termin|conclu/.test(cab[i])) ?? -1,
+  };
+  C.feito = tempos.find(i => / em$/.test(cab[i]) && i !== C.ini && i !== C.fim) ?? tempos.find(i => i !== C.ini && i !== C.fim) ?? -1;
+  const qtds = cab.map((h, i) => i).filter(i => /^(quantidade|qtd|qtde)/.test(cab[i]) && i !== C.qsol && i !== C.qend);
+  C.qtd = qtds.find(i => /separad|movimentad|contad|conferid|alocad|recebid|expedid|inventariad/.test(cab[i])) ?? qtds.at(-1) ?? -1;
+  if (C.end < 0) C.end = achar(/endereco/);
+  if (C.op < 0 || (C.feito < 0 && C.ini < 0 && C.fim < 0)) throw new Error(`Não achei a coluna do operador ("... por", "Usuário") ou de data/hora neste relatório. Colunas do arquivo: ${orig.join(', ')}. Me envie um exemplo para eu mapear.`);
+  const v = (x, i) => i >= 0 ? String(x[i] ?? '').trim() : '';
+  const fixo = tipo === 'separacao';
+  const linhas = [], contas = new Set(); let ignoradas = 0;
+  for (const x of corpo) {
+    const conta = v(x, C.conta), lojaConta = (conta.split('_').pop() || '').toUpperCase();
+    const dia = diaSeenc(v(x, C.feito)) || diaSeenc(v(x, C.fim)) || diaSeenc(v(x, C.ini)), operador = v(x, C.op);
+    if (!dia || !operador) { ignoradas++; continue; }
+    if (conta) contas.add(conta);
+    const loja = lojaEscolhida || (lojas.includes(lojaConta) ? lojaConta : '');
+    // chave: separação = pedido|SKU|endereço|início; outros = a linha inteira sem as colunas de status (status muda e não é outra ação)
+    const chave = fixo ? [v(x, C.pedido), v(x, C.sku), v(x, C.end), v(x, C.ini) || v(x, C.feito)].join('|')
+      : 'h' + hashTxt(orig.map((h, i) => /^status|^situacao/.test(cab[i]) ? '' : v(x, i)).join('\u0001'));
+    linhas.push({ cnpj_id:loja, chave, dia, operador, inicio_em:tsSeenc(v(x, C.ini)), fim_em:tsSeenc(v(x, C.fim)), feito_em:tsSeenc(v(x, C.feito)),
+      pedido:v(x, C.pedido), pedido_mkt:v(x, C.mkt), data_venda:diaSeenc(v(x, C.venda)), status_pedido:v(x, C.status), conta, canal:v(x, C.canal),
+      forma_entrega:v(x, C.forma), perfil:v(x, C.perfil), motivo_abandono:v(x, C.motivo), sku:v(x, C.sku), gtin:v(x, C.gtin), produto:v(x, C.produto),
+      qtd_solicitada:v(x, C.qsol), qtd:v(x, C.qtd), endereco:v(x, C.end), qtd_endereco:v(x, C.qend), endereco_destino:v(x, C.dest),
+      ...(fixo ? {} : { dados:Object.fromEntries(orig.map((h, i) => [h, v(x, i)]).filter(([, t]) => t)) }) });
+  }
+  const usadas = { operador:C.op, 'data/hora':C.feito >= 0 ? C.feito : C.fim >= 0 ? C.fim : C.ini, quantidade:C.qtd, SKU:C.sku, endereço:C.end, destino:C.dest };
+  const mapa = Object.entries(usadas).filter(([, i]) => i >= 0).map(([k, i]) => `${k} = “${orig[i]}”`).join(' · ');
+  return { tipo, tipoDetectado:tipoDet, linhas, ignoradas, contas:[...contas], mapa, fixo };
+}
+const apiSeenc = async (path, corpo) => {
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = (window.DEMO_SEENC ||= { cargas:[], acoes:new Map(), seq:0 }), ag = new Date().toISOString();
+  if (path.startsWith('/seenc/resumo')) {
+    const p = new URLSearchParams(path.split('?')[1]), mes = p.get('mes'), tipo = p.get('tipo') || 'separacao', ini = `${mes}-01`, fim = addDias(`${addDias(ini, 32).slice(0, 7)}-01`, -1);
+    const ac = [...D.acoes.values()].filter(a => a.tipo === tipo && a.dia >= ini && a.dia <= fim), g = {}, o = {};
+    ac.forEach(a => { const k = `${a.dia}|${a.cnpj_id}`; const x = g[k] ||= { dia:a.dia, cnpj_id:a.cnpj_id, linhas:0, ped:new Set(), itens:0, ops:new Set() }; x.linhas++; x.ped.add(a.pedido); x.itens += Number(String(a.qtd).replace(',', '.')) || 0; x.ops.add(a.operador.toLowerCase());
+      const ko = `${k}|${a.operador.toLowerCase()}`; const y = o[ko] ||= { dia:a.dia, cnpj_id:a.cnpj_id, operador:a.operador.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()), ped:new Set(), itens:0, linhas:0 }; y.ped.add(a.pedido); y.itens += Number(String(a.qtd).replace(',', '.')) || 0; y.linhas++; });
+    return { ini, fim, hoje:hojeBRT(), cnpjs:[{ id:'DIGOS', nome:'Digos', ativo:true }, { id:'CACAL', nome:'Cacal', ativo:true }, { id:'DROSA', nome:'Drosa', ativo:true }],
+      cargas:D.cargas.filter(c => c.tipo === tipo && c.periodo_ini <= fim && c.periodo_fim >= ini).slice().reverse(),
+      tipos:[...new Set(D.cargas.filter(c => c.periodo_ini <= fim && c.periodo_fim >= ini).map(c => c.tipo))].map(t => ({ tipo:t })),
+      dias:Object.values(g).map(x => ({ dia:x.dia, cnpj_id:x.cnpj_id, linhas:x.linhas, pedidos:x.ped.size, itens:x.itens, operadores:x.ops.size })),
+      operadores:Object.values(o).map(y => ({ dia:y.dia, cnpj_id:y.cnpj_id, operador:y.operador, pedidos:y.ped.size, itens:y.itens, linhas:y.linhas })) };
+  }
+  if (path === '/seenc/carga') { const id = String(++D.seq); D.cargas.push({ id, tipo:corpo.tipo, cnpj_id:corpo.cnpj_id, periodo_ini:corpo.periodo_ini, periodo_fim:corpo.periodo_fim, arquivo:corpo.arquivo, linhas_arquivo:corpo.linhas, novas:0, atualizadas:0, iguais:0, status:'enviando', criado_em:ag, criado_por:'demonstracao' }); return { ok:true, id }; }
+  if (path === '/seenc/carga/linhas') { const c = D.cargas.find(x => x.id === corpo.carga_id); let n = 0, a = 0, i = 0;
+    corpo.linhas.forEach(l => { const k = `${c.tipo}|${c.cnpj_id}|${l.chave}`, h = JSON.stringify(l), ant = D.acoes.get(k);
+      if (!ant) n++; else if (ant.h !== h) a++; else { i++; return; } D.acoes.set(k, { ...l, tipo:c.tipo, cnpj_id:c.cnpj_id, h, carga_id:c.id }); });
+    c.novas += n; c.atualizadas += a; c.iguais += i; return { novas:n, atualizadas:a, iguais:i }; }
+  if (path === '/seenc/carga/fim') { const c = D.cargas.find(x => x.id === corpo.carga_id); c.status = 'ok'; c.concluido_em = ag; return { ok:true, carga:c }; }
+  if (path === '/seenc/carga/excluir') { let n = 0; for (const [k, v] of D.acoes) if (v.carga_id === corpo.carga_id) { D.acoes.delete(k); n++; } D.cargas = D.cargas.filter(c => c.id !== corpo.carga_id); return { ok:true, linhas:n }; }
+  throw new Error('Rota de demonstração não encontrada');
+};
+
+function telaSeenc(){
+  if (!document.getElementById('css-seenc')) { const st = document.createElement('style'); st.id = 'css-seenc'; st.textContent = CSS_SEENC; document.head.appendChild(st); }
+  state.sn ||= { mes:hojeBRT().slice(0, 7), tipo:'separacao', loja:'todas', arquivos:[], upTipo:'', upLoja:'' };
+  const s = state.sn, opTipo = sel => Object.entries(TIPOS_SEENC).map(([k, t]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${t}</option>`).join('');
+  $app.innerHTML = `<div class="barra"><h2>Dados do Seenc</h2><span style="flex:1"></span>
+      <label class="info">Ver <select id="sn-tipo">${opTipo(s.tipo)}</select></label>
+      <input type="month" id="sn-mes" value="${s.mes}" max="${hojeBRT().slice(0, 7)}"></div>
+    <div class="sn-grid">
+      ${pode('seenc', 'editar') ? `<div class="painel"><h3 style="margin:0 0 4px">Subir relatório do Seenc</h3>
+        <p class="info" style="margin:0 0 10px">Relatório de ações do usuário, exportado em CSV, de qualquer tipo de movimento. Tipo e loja são lidos do arquivo; se não der, escolha abaixo.
+          Pode selecionar vários arquivos de uma vez. Subir o mesmo período de novo <b>não duplica</b>.</p>
+        <div class="sn-up"><div class="lin" style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center">
+          <label>Tipo de movimento <select id="sn-uptipo"><option value="">Detectar pelo arquivo</option>${opTipo(s.upTipo)}</select></label>
+          <label>Loja <select id="sn-uploja"><option value="">Detectar pelo arquivo</option>${lojasSeenc().map(l => `<option ${s.upLoja === l ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <input type="file" id="sn-arq" accept=".csv,text/csv" multiple></div></div>
+        <div id="sn-arqs"></div></div>` : ''}
+      <div class="painel" id="sn-cob"><div class="carregando">Carregando…</div></div>
+      <div class="painel" id="sn-ops"></div>
+      <div class="painel" id="sn-cargas"></div>
+    </div>`;
+  document.getElementById('sn-tipo').onchange = e => { s.tipo = e.target.value; carregarSeenc(); };
+  document.getElementById('sn-mes').onchange = e => { if (e.target.value) { s.mes = e.target.value; carregarSeenc(); } };
+  const ut = document.getElementById('sn-uptipo'); if (ut) ut.onchange = e => { s.upTipo = e.target.value; };
+  const ul = document.getElementById('sn-uploja'); if (ul) ul.onchange = e => { s.upLoja = e.target.value; };
+  const arq = document.getElementById('sn-arq'); if (arq) arq.onchange = () => prepararArquivosSeenc([...arq.files]);
+  renderArquivosSeenc(); carregarSeenc();
+}
+async function carregarSeenc(){
+  const s = state.sn;
+  try { state.snDados = await apiSeenc(`/seenc/resumo?mes=${s.mes}&tipo=${s.tipo}`);
+    // marca no "Ver" os tipos que têm upload neste mês
+    const st = document.getElementById('sn-tipo'), com = new Set((state.snDados.tipos || []).map(t => t.tipo));
+    if (st) [...st.options].forEach(o => { o.textContent = `${TIPOS_SEENC[o.value]}${com.has(o.value) ? ' ✓' : ''}`; });
+    renderCoberturaSeenc(); renderOperadoresSeenc(); renderCargasSeenc(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('sn-cob'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+const lojasSeenc = () => (state.snDados?.cnpjs || [{ id:'DIGOS' }, { id:'CACAL' }, { id:'DROSA' }]).map(c => c.id);
+async function prepararArquivosSeenc(files){
+  const s = state.sn, lojas = lojasSeenc();
+  for (const f of files) {
+    try { const r = lerRelatorioSeenc(await textoArquivo(f), lojas, s.upTipo, s.upLoja);
+      if (!r.linhas.length) { s.arquivos.push({ id:uidLay(), arquivo:f.name, erro:`Nenhuma ação com operador e data no arquivo (${r.ignoradas} linha(s) ignoradas)` }); continue; }
+      // um grupo por loja (normalmente o arquivo é de uma loja só)
+      const porLoja = {}; r.linhas.forEach(l => (porLoja[l.cnpj_id || ''] ||= []).push(l));
+      for (const [loja, ls] of Object.entries(porLoja)) { const dias = ls.map(l => l.dia).sort();
+        s.arquivos.push({ id:uidLay(), arquivo:f.name, tipo:r.tipo, tipoDetectado:r.tipoDetectado, loja, linhas:ls, ini:dias[0], fim:dias.at(-1), estado:'pronto', contas:r.contas, ignoradas:r.ignoradas, mapa:r.mapa, fixo:r.fixo }); }
+    } catch (e) { s.arquivos.push({ id:uidLay(), arquivo:f.name, erro:e.message }); }
+  }
+  const inp = document.getElementById('sn-arq'); if (inp) inp.value = '';
+  renderArquivosSeenc();
+}
+// um arquivo por linha: tipo, loja e período editáveis; alertas só quando existem
+function renderArquivosSeenc(){
+  const $a = document.getElementById('sn-arqs'); if (!$a) return; const s = state.sn, lojas = lojasSeenc(), hoje = hojeBRT();
+  if (!s.arquivos.length) { $a.innerHTML = ''; return; }
+  $a.innerHTML = `<div class="sn-arqs">${s.arquivos.map(g => {
+    if (g.erro) return `<div class="sn-arq"><div class="lin"><b>📄 ${esc(g.arquivo)}</b><span class="sn-av erro">${esc(g.erro)}</span><span style="flex:1"></span><button class="btn" data-tirar="${g.id}">✕</button></div></div>`;
+    const bloq = g.estado !== 'pronto' ? 'disabled' : '';
+    const itens = g.linhas.reduce((t, l) => t + (Number(String(l.qtd).replace(',', '.')) || 0), 0), ops = new Set(g.linhas.map(l => l.operador.toLowerCase())).size;
+    const zerado = g.linhas.filter(l => /-P0-A0$|BL0-RUA0/i.test(l.endereco)).length, foraPer = g.linhas.filter(l => l.dia < g.ini || l.dia > g.fim).length;
+    return `<div class="sn-arq"><div class="lin"><b>📄 ${esc(g.arquivo)}</b>
+        <select data-tipo="${g.id}" ${bloq}>${Object.entries(TIPOS_SEENC).map(([k, t]) => `<option value="${k}" ${g.tipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        <select data-loja="${g.id}" ${bloq}><option value="">Loja?</option>${lojas.map(l => `<option ${g.loja === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <span>período <input type="date" data-ini="${g.id}" value="${g.ini}" max="${hoje}" ${bloq}> a <input type="date" data-fim="${g.id}" value="${g.fim}" max="${hoje}" ${bloq}></span>
+        <span class="info">${fmtN(g.linhas.length)} ações · ${itens ? `${fmtN(itens)} itens · ` : ''}${ops} operador(es)</span>
+        <span style="flex:1"></span>
+        ${g.estado === 'feito' ? `<span class="sn-res">✅ ${fmtN(g.res.novas)} novas · ${fmtN(g.res.atualizadas)} atualizadas · ${fmtN(g.res.iguais)} iguais</span><button class="btn" data-tirar="${g.id}">✕</button>`
+          : g.estado === 'enviando' ? `<span class="info">enviando ${Math.round((g.prog || 0) * 100)}%</span>` : `<button class="btn pri" data-enviar="${g.id}">Enviar</button><button class="btn" data-tirar="${g.id}">✕</button>`}</div>
+      ${g.estado === 'enviando' ? `<div class="sn-prog"><i style="width:${Math.round((g.prog || 0) * 100)}%"></i></div>` : ''}
+      ${g.estado === 'pronto' && !g.fixo ? `<div class="info">Colunas usadas: ${esc(g.mapa)}. O resto da linha fica guardado para os indicadores.</div>` : ''}
+      ${g.estado === 'pronto' && g.tipoDetectado && g.tipo !== g.tipoDetectado ? `<div class="sn-av">O cabeçalho parece de ${esc(TIPOS_SEENC[g.tipoDetectado])}, mas está marcado como ${esc(TIPOS_SEENC[g.tipo])}.</div>` : ''}
+      ${!g.loja ? `<div class="sn-av erro">Escolha a loja (a conta do arquivo não indicou: ${esc(g.contas.join(', ') || 'sem coluna de conta')}).</div>` : ''}
+      ${foraPer ? `<div class="sn-av erro">${foraPer} ação(ões) fora do período: ajuste as datas.</div>` : ''}
+      ${g.estado === 'pronto' && zerado ? `<div class="sn-av">${zerado} ação(ões) em endereço zerado (BL0-RUA0 / P0-A0): produto sem endereço de verdade.</div>` : ''}
+      ${g.falha ? `<div class="sn-av erro">${esc(g.falha)}</div>` : ''}</div>`; }).join('')}</div>
+    <div class="info" style="margin-top:8px">Período = o filtro que você usou no Seenc. Dia dentro do período e sem ação conta como “sem movimento”; fora de qualquer período conta como “falta”.
+      ${s.arquivos.filter(g => !g.erro && g.estado === 'pronto').length > 1 ? '<button class="btn pri" id="sn-todos" style="margin-left:8px">Enviar todos</button>' : ''}</div>`;
+  const acha = id => s.arquivos.find(g => g.id === id);
+  $a.querySelectorAll('[data-tipo]').forEach(x => x.onchange = () => { acha(x.dataset.tipo).tipo = x.value; renderArquivosSeenc(); });
+  $a.querySelectorAll('[data-loja]').forEach(x => x.onchange = () => { acha(x.dataset.loja).loja = x.value; renderArquivosSeenc(); });
+  $a.querySelectorAll('[data-ini]').forEach(x => x.onchange = () => { acha(x.dataset.ini).ini = x.value; renderArquivosSeenc(); });
+  $a.querySelectorAll('[data-fim]').forEach(x => x.onchange = () => { acha(x.dataset.fim).fim = x.value; renderArquivosSeenc(); });
+  $a.querySelectorAll('[data-tirar]').forEach(x => x.onclick = () => { s.arquivos = s.arquivos.filter(g => g.id !== x.dataset.tirar); renderArquivosSeenc(); });
+  $a.querySelectorAll('[data-enviar]').forEach(x => x.onclick = () => enviarSeenc(acha(x.dataset.enviar)));
+  const t = document.getElementById('sn-todos'); if (t) t.onclick = async () => { for (const g of s.arquivos.filter(g => !g.erro && g.estado === 'pronto')) { if (!(await enviarSeenc(g))) break; } };
+}
+async function enviarSeenc(g){
+  if (!g.loja) { avisar(`${g.arquivo}: escolha a loja`, true); return false; }
+  if (!g.ini || !g.fim || g.fim < g.ini) { avisar(`${g.arquivo}: período inválido`, true); return false; }
+  const fora = g.linhas.filter(l => l.dia < g.ini || l.dia > g.fim).length; if (fora) { avisar(`${g.arquivo}: ${fora} ação(ões) fora do período`, true); return false; }
+  g.estado = 'enviando'; g.prog = 0; g.falha = null; renderArquivosSeenc();
+  try {
+    const c = await apiSeenc('/seenc/carga', { tipo:g.tipo, cnpj_id:g.loja, periodo_ini:g.ini, periodo_fim:g.fim, arquivo:g.arquivo, linhas:g.linhas.length });
+    const res = { novas:0, atualizadas:0, iguais:0 }, LOTE = 1000;
+    for (let i = 0; i < g.linhas.length; i += LOTE) {
+      const r = await apiSeenc('/seenc/carga/linhas', { carga_id:c.id, linhas:g.linhas.slice(i, i + LOTE).map(l => ({ ...l, cnpj_id:g.loja })) });
+      res.novas += r.novas; res.atualizadas += r.atualizadas; res.iguais += r.iguais; g.prog = Math.min(1, (i + LOTE) / g.linhas.length); renderArquivosSeenc();
+    }
+    await apiSeenc('/seenc/carga/fim', { carga_id:c.id });
+    g.estado = 'feito'; g.prog = 1; g.res = res; renderArquivosSeenc();
+    if (state.sn.tipo !== g.tipo) state.sn.tipo = g.tipo; const st = document.getElementById('sn-tipo'); if (st) st.value = g.tipo;
+    carregarSeenc(); return true;
+  } catch (e) { if (e instanceof SemSessao) throw e; g.estado = 'pronto'; g.falha = `Não enviado: ${e.message}. Pode tentar de novo (o que já entrou não duplica).`; renderArquivosSeenc(); return false; }
+}
+// dia x loja: ✓ tem dado · sem movimento (coberto por uma carga, sem linha) · falta (nenhuma carga cobre)
+function renderCoberturaSeenc(){
+  const $c = document.getElementById('sn-cob'), D = state.snDados; if (!$c || !D) return;
+  const lojas = D.cnpjs.filter(c => c.ativo).map(c => c.id), ok = D.cargas.filter(c => c.status === 'ok');
+  const dias = []; for (let d = D.ini; d <= D.fim; d = addDias(d, 1)) dias.push(d);
+  const cel = {}; D.dias.forEach(x => cel[`${x.dia}|${x.cnpj_id}`] = x);
+  const coberto = (d, l) => ok.some(c => c.cnpj_id === l && c.periodo_ini <= d && c.periodo_fim >= d);
+  const parcialHoje = (d, l) => d === D.hoje && ok.some(c => c.cnpj_id === l && c.periodo_fim === d);
+  const faltam = {}; let nf = 0;
+  const linhas = dias.map(d => { const dow = new Date(d + 'T12:00:00Z').getUTCDay(), futuro = d > D.hoje;
+    return `<tr class="${dow === 0 || dow === 6 ? 'sn-fds' : ''}"><td class="d">${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][dow]} ${dataBR(d).slice(0, 5)}</td>${lojas.map(l => {
+      if (futuro) return '<td></td>';
+      const x = cel[`${d}|${l}`], cob = coberto(d, l);
+      if (x) return `<td class="${parcialHoje(d, l) ? 'sn-parc' : cob ? 'sn-ok' : 'sn-parc'}" title="${x.pedidos} pedidos · ${x.linhas} ações · ${x.operadores} operador(es)${cob ? '' : ' · tem dado, mas nenhuma carga cobre o dia inteiro'}">${x.itens ? `${fmtN(x.itens)} itens` : `${fmtN(x.linhas)} ações`} · ${x.operadores} op.</td>`;
+      if (cob) return `<td class="sn-zero">sem movimento</td>`;
+      if (d < D.hoje) { (faltam[l] ||= []).push(dataBR(d).slice(0, 5)); nf++; }
+      return `<td class="${d < D.hoje ? 'sn-falta' : ''}">${d < D.hoje ? 'falta' : 'hoje'}</td>`; }).join('')}</tr>`; }).join('');
+  $c.innerHTML = `<h3 style="margin:0 0 4px">Cobertura de ${new Date(D.ini + 'T12:00:00Z').toLocaleDateString('pt-BR', { month:'long', year:'numeric', timeZone:'UTC' })} · ${esc(TIPOS_SEENC[state.sn.tipo])}</h3>
+    <p class="info" style="margin:0 0 8px">${nf ? `<b style="color:#a11d1d">Faltam ${nf} dia(s)/loja:</b> ${Object.entries(faltam).map(([l, ds]) => `<b>${l}</b> ${ds.length > 8 ? `${ds.slice(0, 8).join(', ')}… (+${ds.length - 8})` : ds.join(', ')}`).join(' · ')}` : '✅ Nenhum dia faltando até ontem.'}
+      <span style="margin-left:8px"><span class="sn-ok" style="padding:1px 6px;border-radius:4px">com dado</span> <span class="sn-zero" style="padding:1px 6px;border-radius:4px">sem movimento</span> <span class="sn-falta" style="padding:1px 6px;border-radius:4px">falta</span> <span class="sn-parc" style="padding:1px 6px;border-radius:4px">parcial (hoje)</span></span></p>
+    <div class="sn-scroll" style="max-height:60vh"><table class="sn-cob"><thead><tr><th>Dia</th>${lojas.map(l => `<th>${l}</th>`).join('')}</tr></thead><tbody>${linhas}</tbody></table></div>`;
+}
+// operador x dia (itens separados). Ordem alfabética: é dado de gestão, não ranking.
+function renderOperadoresSeenc(){
+  const $o = document.getElementById('sn-ops'), D = state.snDados, s = state.sn; if (!$o || !D) return;
+  const lojas = D.cnpjs.map(c => c.id), sel = D.operadores.filter(x => s.loja === 'todas' || x.cnpj_id === s.loja);
+  const dias = []; for (let d = D.ini; d <= (D.fim < D.hoje ? D.fim : D.hoje); d = addDias(d, 1)) dias.push(d);
+  const ops = [...new Set(sel.map(x => x.operador))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  // separação e afins: itens; tipos sem quantidade no relatório: número de ações
+  const comItens = sel.some(x => x.itens > 0), med = x => comItens ? x.itens : (x.linhas || 0), unid = comItens ? 'Itens' : 'Ações';
+  const v = {}; sel.forEach(x => { const k = `${x.operador}|${x.dia}`; v[k] = (v[k] || 0) + med(x); });
+  const tot = d => sel.filter(x => x.dia === d).reduce((t, x) => t + med(x), 0);
+  $o.innerHTML = `<div class="barra" style="margin:0 0 8px"><h3 style="margin:0">${unid} por operador e dia · ${esc(TIPOS_SEENC[s.tipo])}</h3>
+      <select id="sn-loja"><option value="todas">Todas as lojas</option>${lojas.map(l => `<option ${s.loja === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    ${ops.length ? `<div class="sn-scroll"><table class="sn-op"><thead><tr><th>Operador</th>${dias.map(d => `<th>${dataBR(d).slice(0, 2)}</th>`).join('')}<th>Total</th></tr></thead><tbody>
+      ${ops.map(o => { const t = dias.reduce((a, d) => a + (v[`${o}|${d}`] || 0), 0); return `<tr><td>${esc(o)}</td>${dias.map(d => v[`${o}|${d}`] ? `<td>${fmtN(v[`${o}|${d}`])}</td>` : '<td class="z">·</td>').join('')}<td><b>${fmtN(t)}</b></td></tr>`; }).join('')}
+      <tr class="t"><td>Total</td>${dias.map(d => `<td>${tot(d) ? fmtN(tot(d)) : ''}</td>`).join('')}<td>${fmtN(sel.reduce((t, x) => t + med(x), 0))}</td></tr></tbody></table></div>
+      <p class="info" style="margin:6px 0 0">Nomes como estão no Seenc (maiúsculas/minúsculas unificadas). Um operador escrito de dois jeitos aparece duas vezes: me avise para ligarmos aos cadastros de pessoas.</p>`
+      : '<div class="info">Nenhum dado neste mês.</div>'}`;
+  document.getElementById('sn-loja').onchange = e => { s.loja = e.target.value; renderOperadoresSeenc(); };
+}
+function renderCargasSeenc(){
+  const $c = document.getElementById('sn-cargas'), D = state.snDados; if (!$c || !D) return; const editar = pode('seenc', 'editar');
+  $c.innerHTML = `<h3 style="margin:0 0 8px">Uploads que tocam este mês</h3>${D.cargas.length ? `<div class="sn-scroll" style="max-height:40vh"><table class="sn-op" style="width:100%"><thead><tr><th>Quando</th><th>Loja</th><th>Período</th><th>Arquivo</th><th>Linhas</th><th>Novas</th><th>Atualizadas</th><th>Iguais</th><th>Por</th><th></th></tr></thead><tbody>
+    ${D.cargas.map(c => `<tr><td>${quando(c.criado_em)}</td><td>${esc(c.cnpj_id)}</td><td>${dataBR(c.periodo_ini)} a ${dataBR(c.periodo_fim)}</td><td style="text-align:left">${esc(c.arquivo || '')}</td>
+      <td>${fmtN(c.linhas_arquivo)}</td><td>${fmtN(c.novas)}</td><td>${fmtN(c.atualizadas)}</td><td>${fmtN(c.iguais)}</td><td>${esc(String(c.criado_por).split('@')[0])}</td>
+      <td>${c.status !== 'ok' ? '<span class="sn-av erro" title="O envio parou no meio: suba o arquivo de novo">incompleta</span> ' : ''}${editar ? `<button class="btn perigo" data-exc="${c.id}" title="Apaga as linhas que esta carga gravou">Excluir</button>` : ''}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="info">Nenhum upload neste mês.</div>'}`;
+  $c.querySelectorAll('[data-exc]').forEach(b => b.onclick = async () => { if (!confirmaDupla(b, 'Clique de novo: apaga as linhas desta carga')) return;
+    try { const r = await apiSeenc('/seenc/carga/excluir', { carga_id:b.dataset.exc }); avisar(`Carga excluída (${fmtN(r.linhas)} linhas apagadas)`); carregarSeenc(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
+}
+
 /* =================== MENU LATERAL =================== */
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
@@ -8700,6 +9071,7 @@ const MENU = [
     { id:'indicadores', titulo:'Indicadores', filhos:[
       { view:'consolidado', titulo:'Produção do time', tela:'produtividade' },
       { view:'separados', titulo:'Produtividade', tela:'produtividade' },
+      { view:'seenc', titulo:'Dados do Seenc', tela:'seenc' },
       { view:'volume',    titulo:'Volume de Pedidos', soDemo:true },
     ]},
   ]},
@@ -8719,7 +9091,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { seenc:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -8766,7 +9138,7 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
   if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -8787,6 +9159,7 @@ function irPara(view){
   if (view === 'alocacao') return telaAlocacao();
   if (view === 'dimensionamento') return telaDimensionamento();
   if (view === 'layout') return telaLayout();
+  if (view === 'seenc') return telaSeenc();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
