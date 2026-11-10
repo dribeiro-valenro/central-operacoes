@@ -2415,6 +2415,40 @@ async function itensPlanejadosEnvio(el, e){
 // Recebimento: o que o MELI conferiu (CSV "Baixar detalhe"), quando coletou/recebeu/processou e quanto cobrou.
 const MOTIVOS_DIV_PADRAO = ['Não localizado no estoque', 'Avariado', 'Em outro endereço / outra loja', 'Quantidade a mais', 'Produto, cor ou tamanho trocado', 'Outro'];
 const chipsEnvio = e => `${chipPlat(e.plataforma)}${e.div_abertas ? `<span class="chip-div" title="${e.div_abertas} divergência(s) esperando correção no MELI/Seenc">⚠ ${e.div_abertas} div.</span>` : ''}${e.meli ? (e.meli.dif < 0 ? `<span class="chip-meli neg" title="MELI processou ${-e.meli.dif} unidade(s) a menos que o declarado">MELI −${-e.meli.dif}</span>` : e.meli.fim ? '<span class="chip-meli" title="Processado pelo MELI sem diferença">MELI ✓</span>' : '') : ''}`;
+// ---- resumo do envio inteiro: plano x divergências (para bater com a tela do MELI / outro marketplace)
+const normDv = v => String(v || '').trim().toUpperCase().replace(/\s+/g, ' ');
+function calcResumoDiv(R){
+  if (!R) return null;
+  const itens = R.itens || [], somaQ = i => Object.values(i.q || {}).reduce((t, q) => t + (Number(q) || 0), 0);
+  const temPlano = itens.length > 0, planejado = temPlano ? itens.reduce((t, i) => t + somaQ(i), 0) : Number(R.plano_pares ?? R.pares_plan) || 0;
+  const skus = temPlano ? itens.reduce((t, i) => t + Object.values(i.q || {}).filter(q => Number(q) > 0).length, 0) : null;
+  const divs = R.divs || [], dif = divs.reduce((t, d) => t + (d.qtd_real - d.qtd_plan), 0);
+  const zerados = divs.filter(d => d.qtd_plan > 0 && d.qtd_real === 0).length, novos = divs.filter(d => d.qtd_plan === 0 && d.qtd_real > 0).length;
+  const prod = {};
+  divs.forEach(d => { const k = `${normDv(d.produto)}|${normDv(d.cor)}`; const x = prod[k] ||= { produto:d.produto, cor:d.cor, dif:0, tams:[], pend:0, plan:null };
+    x.dif += d.qtd_real - d.qtd_plan; x.tams.push(d); if (d.status === 'aberta') x.pend++; });
+  Object.values(prod).forEach(x => { const its = itens.filter(i => normDv(i.produto) === normDv(x.produto) && normDv(i.cor) === normDv(x.cor));
+    x.plan = its.length ? its.reduce((t, i) => t + somaQ(i), 0) : x.tams.reduce((t, d) => t + d.qtd_plan, 0); x.parcial = !its.length;
+    x.tams.sort((a, b) => Number(a.tamanho) - Number(b.tamanho)); });
+  return { temPlano, planejado, skus, dif, encontrado:planejado + dif, skusEnviar:skus == null ? null : skus - zerados + novos, zerados, novos, nDiv:divs.length,
+    pend:divs.filter(d => d.status === 'aberta').length, cadastro:R.pares_envio, plat:R.plataforma, produtos:Object.values(prod).sort((a, b) => a.dif - b.dif) };
+}
+function htmlResumoDiv(R){
+  const r = calcResumoDiv(R); if (!r) return '';
+  const cad = r.cadastro, confere = cad != null && Number(cad) === r.encontrado;
+  return `<div class="dv-res">
+      <div class="dv-kpi"><span>Planejado</span><b>${fmtN(r.planejado)}</b><small>pares${r.skus != null ? ` · ${fmtN(r.skus)} SKUs` : ''}${r.temPlano ? '' : ' (do cadastro: sem plano aprovado)'}</small></div>
+      <div class="dv-kpi ${r.dif < 0 ? 'neg' : r.dif > 0 ? 'pos' : ''}"><span>Diferença</span><b>${r.dif > 0 ? '+' : ''}${fmtN(r.dif)}</b><small>pares em ${r.nDiv} SKU(s)${r.zerados ? ` · ${r.zerados} zerado(s)` : ''}${r.pend ? ` · ${r.pend} pendente(s)` : ' · todas corrigidas'}</small></div>
+      <div class="dv-kpi alvo"><span>A enviar ao ${esc(nomePlat(r.plat))}</span><b>${fmtN(r.encontrado)}</b><small>pares${r.skusEnviar != null ? ` · ${fmtN(r.skusEnviar)} SKUs` : ''} · o envio no ${esc(nomePlat(r.plat))} tem que ficar assim</small></div>
+      <div class="dv-kpi ${cad == null ? '' : confere ? 'ok' : 'neg'}"><span>Pares no cadastro do envio</span><b>${cad == null ? '–' : fmtN(cad)}</b><small>${cad == null ? 'ainda não preenchido' : confere ? '✓ confere' : `⚠ ajustar para ${fmtN(r.encontrado)}`}</small></div>
+    </div>
+    ${r.produtos.length ? `<table class="tab-full dv-tab dv-prod"><thead><tr><th style="text-align:left">Produto com diferença</th><th>Planejado</th><th>Encontrado</th><th>Dif.</th><th style="text-align:left">Por numeração (planejado → encontrado)</th><th></th></tr></thead><tbody>
+      ${r.produtos.map(x => `<tr><td style="text-align:left"><b>${esc(x.produto)}</b>${x.cor ? `<small>${esc(x.cor)}</small>` : ''}</td><td>${fmtN(x.plan)}${x.parcial ? '<small title="Produto não achado no plano aprovado: soma só das numerações apontadas">só apontadas</small>' : ''}</td>
+        <td>${fmtN(x.plan + x.dif)}</td><td>${difTxt(x.plan, x.plan + x.dif)}</td>
+        <td style="text-align:left">${x.tams.map(d => `<span class="dv-tam ${d.qtd_real === 0 ? 'zero' : ''}">${esc(d.tamanho || '–')}: ${fmtN(d.qtd_plan)}→${fmtN(d.qtd_real)}${d.status === 'corrigida' ? ' ✓' : ''}</span>`).join(' ')}</td>
+        <td>${x.pend ? `<span class="dv-pend">${x.pend} pendente(s)</span>` : '<span class="dv-ok">✓ corrigido</span>'}</td></tr>`).join('')}
+      <tr class="dv-tot"><td style="text-align:left">Total do envio</td><td>${fmtN(r.planejado)}</td><td>${fmtN(r.encontrado)}</td><td>${difTxt(r.planejado, r.encontrado)}</td><td colspan="2"></td></tr></tbody></table>` : ''}`;
+}
 const difTxt = (p, r) => { const d = r - p; return `<b class="${d < 0 ? 'dif' : 'ok'}">${d > 0 ? '+' : ''}${fmtN(d)}</b>`; };
 
 // ---- demonstração
@@ -2440,7 +2474,9 @@ function demoDivRec(path, corpo){
   const D = DEMO_FULL; demoDivRecIni(); const q = new URLSearchParams(path.split('?')[1] || ''), ag = new Date().toISOString(), cp = x => JSON.parse(JSON.stringify(x));
   const comEnvio = d => { const e = D.envios.find(x => x.id === d.envio_id) || {}; return { ...cp(d), pedido:e.pedido, cnpj_id:e.cnpj_id, envio_status:e.status, data_expedicao:e.data_expedicao, data_limite:e.data_limite || null }; };
   if (path.startsWith('/full/divergencias')) { let L = D.divergencias; if (q.get('envio_id')) L = L.filter(d => d.envio_id === q.get('envio_id')); if (q.get('abertas') === '1') L = L.filter(d => d.status === 'aberta');
-    return { divergencias:L.map(comEnvio), motivos:MOTIVOS_DIV_PADRAO }; }
+    const resumos = {}; [...new Set(L.map(d => d.envio_id))].forEach(id => { const e = D.envios.find(x => x.id === id) || {}, p = (typeof DEMO_PLAN !== 'undefined' ? DEMO_PLAN.planos : []).find(x => x.envio_id === id && x.status === 'aprovado');
+      resumos[id] = { pares_plan:e.pares_plan, pares_envio:e.pares_envio ?? null, plataforma:e.plataforma || 'meli', plano_pares:p?.pares ?? null, itens:p ? cp(p.itens) : [], divs:D.divergencias.filter(d => d.envio_id === id && d.status !== 'cancelada').map(cp) }; });
+    return { divergencias:L.map(comEnvio), motivos:MOTIVOS_DIV_PADRAO, resumos }; }
   if (path === '/full/divergencia' && Array.isArray(corpo.itens)) { if (!corpo.produto) throw new Error('Informe o produto'); if (!corpo.motivo) throw new Error('Escolha o motivo');
     const ids = corpo.itens.filter(x => x.qtd_plan !== x.qtd_real).map(x => { const d = { id:String(++D.divSeq), envio_id:corpo.envio_id, plano_id:null, produto:caixaAltaTxt(corpo.produto).trim(), cor:caixaAltaTxt(corpo.cor || '').trim(), mlb:String(corpo.mlb || ''), tamanho:String(x.tamanho),
       qtd_plan:x.qtd_plan, qtd_real:x.qtd_real, motivo:corpo.motivo, observacao:corpo.observacao || null, status:'aberta', meli_em:null, meli_por:null, wms_em:null, wms_por:null, criado_em:ag, criado_por:'demonstracao', atualizado_em:ag, atualizado_por:'demonstracao' };
@@ -2483,6 +2519,7 @@ async function blocoDivergencias(el, e){
   const L = dados.divergencias.filter(d => d.status !== 'cancelada'), ab = L.filter(d => d.status === 'aberta');
   const desenha = () => {
     el.innerHTML = `<div class="gv-sec etapa-sec" style="--c:#c62828">Divergências da separação <span class="info">${L.length ? `${ab.length} aberta(s) de ${L.length}` : 'o que não bateu com o planejado'}</span></div>
+      ${L.length ? htmlResumoDiv((dados.resumos || {})[e.id]) : ''}
       ${ab.length ? `<div class="aviso-rom">⚠ O analista precisa corrigir ${ab.length === 1 ? 'esta divergência' : 'estas divergências'} no <b>MELI</b> e no <b>Seenc</b> antes da etiquetagem (as etiquetas saem do envio corrigido).</div>` : ''}
       <div class="dv-lista">${L.map(d => `<div class="dv-card ${d.status}">
         <div class="dv-top"><b>${esc(d.produto)}</b>${d.cor ? ` <span>${esc(d.cor)}</span>` : ''}${d.tamanho ? ` · nº <b>${esc(d.tamanho)}</b>` : ''}<span style="flex:1"></span>
@@ -2562,14 +2599,17 @@ async function painelCorrecoes(el){
   const L = r.divergencias, analista = pode('full_plan', 'editar');
   if (!L.length) { el.innerHTML = '<div class="info dv-zero">✓ Nenhuma correção pendente da separação.</div>'; return; }
   const porEnvio = {}; L.forEach(d => (porEnvio[d.envio_id] ||= []).push(d));
-  el.innerHTML = `<div class="painel dv-painel"><h3 class="cs-sub">🔧 Correções pendentes <span class="dv-n">${L.length}</span> <span class="info">a logística apontou diferença na separação: corrija no MELI e no Seenc e marque</span></h3>
-    <div style="overflow-x:auto"><table class="tab-full dv-tab"><thead><tr><th style="text-align:left">Envio</th><th style="text-align:left">Produto</th><th>Nº</th><th>Planejado</th><th>Encontrado</th><th>Dif.</th><th style="text-align:left">Motivo</th><th style="text-align:left">Apontado</th><th>MELI</th><th>Seenc</th></tr></thead><tbody>
-    ${Object.values(porEnvio).map(G => G.map((d, i) => `<tr>${i === 0 ? `<td rowspan="${G.length}" style="text-align:left;vertical-align:top"><b>#${esc(d.pedido)}</b> ${tagLoja(d.cnpj_id)}<small>${pillFull(d.envio_status)} coleta ${dataBR(d.data_expedicao).slice(0, 5)}${d.data_limite ? ` · separar até ${dataBR(d.data_limite).slice(0, 5)}` : ''}</small></td>` : ''}
+  el.innerHTML = `<div class="painel dv-painel"><h3 class="cs-sub">🔧 Correções pendentes <span class="dv-n">${L.length}</span> <span class="info">a logística apontou diferença na separação: corrija no marketplace e no Seenc e marque</span></h3>
+    ${Object.values(porEnvio).map(G => { const d0 = G[0]; return `<div class="dv-env">
+      <h4>#${esc(d0.pedido)} ${tagLoja(d0.cnpj_id)} ${pillFull(d0.envio_status)} <small class="info">coleta ${dataBR(d0.data_expedicao).slice(0, 5)}${d0.data_limite ? ` · separar até ${dataBR(d0.data_limite).slice(0, 5)}` : ''}</small></h4>
+      ${htmlResumoDiv((r.resumos || {})[d0.envio_id])}
+      <details ${G.length <= 8 ? 'open' : ''}><summary>Apontamentos pendentes (${G.length}): marque quando corrigir</summary>
+      <div style="overflow-x:auto"><table class="tab-full dv-tab"><thead><tr><th style="text-align:left">Produto</th><th>Nº</th><th>Planejado</th><th>Encontrado</th><th>Dif.</th><th style="text-align:left">Motivo</th><th style="text-align:left">Apontado</th><th>${esc(nomePlat((r.resumos || {})[d0.envio_id]?.plataforma)).toUpperCase()}</th><th>SEENC</th></tr></thead><tbody>
+      ${G.map(d => `<tr>
       <td style="text-align:left"><b>${esc(d.produto)}</b>${d.cor ? `<small>${esc(d.cor)}</small>` : ''}</td><td>${esc(d.tamanho || '–')}</td><td>${fmtN(d.qtd_plan)}</td><td>${fmtN(d.qtd_real)}</td><td>${difTxt(d.qtd_plan, d.qtd_real)}</td>
       <td style="text-align:left">${esc(d.motivo)}${d.observacao ? `<small>${esc(d.observacao)}</small>` : ''}</td><td style="text-align:left"><small style="color:inherit">${esc(quemTxt(d.criado_por))}<br>${quando(d.criado_em)}</small></td>
-      ${['meli', 'wms'].map(k => `<td>${d[k + '_em'] ? `<span class="dv-ok" title="${esc(quemTxt(d[k + '_por']))} ${quando(d[k + '_em'])}">✓</span>${analista ? ` <button class="lnk" data-cra="desfazer_${k}" data-cr="${d.id}">desfazer</button>` : ''}` : analista ? `<button class="btn mini" data-cra="${k}" data-cr="${d.id}">Corrigi</button>` : '<span class="info">pendente</span>'}</td>`).join('')}</tr>`).join('')).join('')}
-    </tbody></table></div>
-    <div class="info" style="margin-top:6px">Quando MELI e Seenc estão marcados, a divergência sai daqui e o envio fica liberado. Ajuste também a quantidade de pares do envio, se mudou.</div></div>`;
+      ${['meli', 'wms'].map(k => `<td>${d[k + '_em'] ? `<span class="dv-ok" title="${esc(quemTxt(d[k + '_por']))} ${quando(d[k + '_em'])}">✓</span>${analista ? ` <button class="lnk" data-cra="desfazer_${k}" data-cr="${d.id}">desfazer</button>` : ''}` : analista ? `<button class="btn mini" data-cra="${k}" data-cr="${d.id}">Corrigi</button>` : '<span class="info">pendente</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details></div>`; }).join('')}
+    <div class="info" style="margin-top:8px">Quando marketplace e Seenc estão marcados, a divergência sai daqui. “A enviar” é o total que o envio no marketplace precisa mostrar depois das correções; ajuste também os pares do cadastro do envio.</div></div>`;
   el.querySelectorAll('[data-cra]').forEach(b => b.onclick = async () => { b.disabled = true;
     try { await apiFull('/full/divergencia/acao', { id:b.dataset.cr, acao:b.dataset.cra }); avisar(b.dataset.cra.startsWith('desfazer') ? 'Marcação desfeita' : 'Correção registrada'); painelCorrecoes(el); }
     catch (x) { if (x instanceof SemSessao) throw x; avisar(x.message, true); b.disabled = false; } });
@@ -2746,6 +2786,15 @@ const CSS_DIVREC = `
   .dv-gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px} .dv-gr label{display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff;font-size:12px}
   .dv-gr small{color:#8a93a5;font-size:10.5px} .dv-gn{width:56px;text-align:center;padding:3px;border:1px solid var(--line);border-radius:5px;font:inherit;margin-top:2px} .dv-gn.dif{border-color:#c62828;background:#fbe9e9;font-weight:700}
   .dv-form{border:1px dashed var(--line);border-radius:8px;padding:10px;margin-top:6px;background:#fafbfd} .dv-form .gv-lab{display:block;margin-top:6px}
+  .dv-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0}
+  .dv-kpi{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;display:grid;gap:1px} .dv-kpi span{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+  .dv-kpi b{font-size:22px;font-variant-numeric:tabular-nums} .dv-kpi small{font-size:11.5px;color:#566074}
+  .dv-kpi.neg{border-color:#f1c4c4;background:#fdf3f3} .dv-kpi.neg b{color:#c62828} .dv-kpi.pos b{color:#1a7a3e} .dv-kpi.ok{border-color:#bfe3cb;background:#f1faf4} .dv-kpi.ok b{color:#1a7a3e}
+  .dv-kpi.alvo{border:2px solid #02285a;background:#f4f7fc}
+  .dv-tam{display:inline-block;background:#f3f5f8;border-radius:6px;padding:1px 6px;margin:1px 2px;font-size:12px;white-space:nowrap} .dv-tam.zero{background:#fbe9e9;color:#a11d1d}
+  .dv-prod tr.dv-tot td{font-weight:700;border-top:2px solid var(--line)}
+  .dv-env{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;background:#fbfcfd} .dv-env h4{margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:15px}
+  .dv-env details summary{cursor:pointer;font-size:13px;color:#0b3a78;margin-top:4px}
   .dv-painel{border-left:4px solid #c62828} .dv-n{display:inline-block;background:#c62828;color:#fff;border-radius:10px;padding:0 8px;font-size:12px} .dv-zero{margin:0 0 10px}
   .dv-tab td,.dv-tab th{padding:6px 8px;text-align:center;vertical-align:top} .dv-tab td small{display:block;font-size:11px;color:#566074} .dv-tab .dif{color:#c62828} .dv-tab .ok{color:#1a7a3e}
   .rc-tl{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0} .rc-tl>div{border-top:3px solid #d5dae3;padding-top:4px;font-size:12px} .rc-tl>div.on{border-top-color:#f1c300}
