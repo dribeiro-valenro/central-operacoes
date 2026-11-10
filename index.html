@@ -829,9 +829,12 @@ const DEMO_PESSOAS = {
     .map((u, i) => ({ usuario:u, funcao:{ 'guilherme porto':'lider', 'degmar gomes':'lider', 'vinicius correa':'apoio', 'douglas ribeiro':'gestao' }[u] || null, ativo:true, obs:null,
       ultimo:addDias(hojeBRT(), -(i % 3)), sep60: ehGenerico(u) ? 0 : 300 + (i * 397) % 2200, lojas: i % 4 ? ['CACAL','DIGOS','DROSA'] : ['DIGOS'] })),
   historico: [],
-  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'layout', nome:'Layout do galpão', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'seenc', nome:'Dados do Seenc (upload)', grupo:'Logística · Indicadores', niveis:['ver','editar'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
-  modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'editar', cross:'gerir', abandono:'gerir', layout:'editar', seenc:'editar', motoristas:'editar', ponto:'gerir', alocacao:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'ver', cross:'gerir', abandono:'gerir', layout:'ver', seenc:'ver', motoristas:'editar', ponto:'editar', alocacao:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', full_comercial:'nenhum', cross:'nenhum', abandono:'nenhum', layout:'nenhum', seenc:'nenhum', motoristas:'nenhum', ponto:'gerir', alocacao:'nenhum', pessoas:'nenhum' } },
+  telas: [{ id:'produtividade', nome:'Produtividade', grupo:'Logística · Indicadores', niveis:['ver'] }, { id:'full', nome:'Gestão - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_plan', nome:'Planejamento - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'full_comercial', nome:'Planejamento comercial - FULL', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'cross', nome:'Gestão - CROSS', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'abandono', nome:'Abandono de pedidos', grupo:'Logística · Ferramentas', niveis:['ver','editar','gerir'] }, { id:'layout', nome:'Layout do galpão', grupo:'Logística · Ferramentas', niveis:['ver','editar'] }, { id:'seenc', nome:'Dados do Seenc (upload)', grupo:'Logística · Indicadores', niveis:['ver','editar'] }, { id:'mkt', nome:'Pares do Marketing', grupo:'Marketing', niveis:['ver','editar','gerir'] }, { id:'motoristas', nome:'Cadastro de motoristas', grupo:'Logística · Cadastros', niveis:['ver','editar'] }, { id:'oo', nome:'One-on-One', grupo:'Gestão do time', niveis:['resumo','ver','editar','gerir'] }, { id:'ponto', nome:'Apontamentos de ponto', grupo:'Gestão do time', niveis:['ver','editar','gerir'] }, { id:'alocacao', nome:'Alocação do time', grupo:'Gestão do time', niveis:['ver','editar'] }, { id:'pessoas', nome:'Pessoas e acessos', grupo:'Administração', niveis:['ver','editar'] }],
+  modelos: { admin:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'editar', cross:'gerir', abandono:'gerir', layout:'editar', seenc:'editar', mkt:'gerir', motoristas:'editar', ponto:'gerir', alocacao:'editar', pessoas:'editar' }, lider:{ produtividade:'ver', full:'gerir', full_plan:'gerir', full_comercial:'ver', cross:'gerir', abandono:'gerir', layout:'ver', seenc:'ver', mkt:'gerir', motoristas:'editar', ponto:'editar', alocacao:'editar', pessoas:'nenhum' }, analista:{ produtividade:'ver', full:'editar', full_plan:'editar', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', mkt:'ver', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, operacional:{ produtividade:'nenhum', full:'editar', full_plan:'nenhum', full_comercial:'nenhum', cross:'editar', abandono:'editar', layout:'nenhum', seenc:'nenhum', mkt:'gerir', motoristas:'editar', ponto:'nenhum', alocacao:'nenhum', pessoas:'nenhum' }, rh:{ produtividade:'nenhum', full:'nenhum', full_plan:'nenhum', full_comercial:'nenhum', cross:'nenhum', abandono:'nenhum', layout:'nenhum', seenc:'nenhum', mkt:'nenhum', motoristas:'nenhum', ponto:'gerir', alocacao:'nenhum', pessoas:'nenhum' } , marketing:{ mkt:'editar' } },
   funcoes: ['operacional','lider','apoio','gestao'], dominio:'op.valenro.local',
+  perfis: [{ id:'admin', nome:'Admin', descricao:'Acesso total; único que cria e edita perfis', sistema:true }, { id:'lider', nome:'Líder', descricao:'Gestão da operação e do time', sistema:true },
+    { id:'analista', nome:'Analista', descricao:'Opera as ferramentas e vê os indicadores', sistema:true }, { id:'operacional', nome:'Operacional', descricao:'Time do galpão', sistema:true },
+    { id:'rh', nome:'RH', descricao:'Apontamentos de ponto', sistema:true }, { id:'marketing', nome:'Marketing', descricao:'Solicita pares para foto e vídeo', sistema:false }],
 };
 async function apiPessoas(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
@@ -848,6 +851,13 @@ async function apiPessoas(path, corpo){
     i >= 0 ? (D.usuarios[i] = novo) : D.usuarios.push(novo);
     return { ok:true };
   }
+  if (path === '/pessoas/perfil') { if (!String(corpo.nome || '').trim()) throw new Error('Informe o nome do perfil');
+    if (D.perfis.some(p => p.nome.toLowerCase() === corpo.nome.trim().toLowerCase() && p.id !== corpo.id)) throw new Error('Já existe um perfil com esse nome');
+    const perm = Object.fromEntries(Object.entries(corpo.permissoes || {}).filter(([, n]) => n !== 'nenhum'));
+    if (corpo.id) { const p = D.perfis.find(x => x.id === corpo.id); if (p.id === 'admin') throw new Error('O perfil Admin não é editável'); Object.assign(p, { nome:corpo.nome, descricao:corpo.descricao }); D.modelos[p.id] = perm; return { ok:true, id:p.id }; }
+    let id = corpo.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'perfil'; while (D.perfis.some(p => p.id === id)) id += '_2';
+    D.perfis.push({ id, nome:corpo.nome, descricao:corpo.descricao, sistema:false }); D.modelos[id] = perm; return { ok:true, id }; }
+  if (path === '/pessoas/perfil/excluir') { if (D.usuarios.some(u => u.perfil === corpo.id)) throw new Error('Há pessoas com este perfil: troque o perfil delas antes'); D.perfis = D.perfis.filter(p => p.id !== corpo.id); delete D.modelos[corpo.id]; return { ok:true }; }
   if (path === '/pessoas/colaborador') {
     const c = D.colaboradores.find(x => x.usuario === corpo.usuario);
     D.historico.unshift({ em:new Date().toISOString(), por, acao:'colaborador.alterar', alvo:corpo.usuario, antes:{ funcao:c.funcao, obs:c.obs }, depois:{ funcao:corpo.funcao, obs:corpo.obs } });
@@ -864,6 +874,7 @@ function telaPessoas(){
       <div class="abas">
         <button data-aba="acessos" class="${s.aba==='acessos'?'on':''}">Acesso ao portal</button>
         <button data-aba="wms" class="${s.aba==='wms'?'on':''}">Colaboradores do WMS</button>
+        <button data-aba="perfis" class="${s.aba==='perfis'?'on':''}">🧩 Perfis</button>
         <button data-aba="crachas" class="${s.aba==='crachas'?'on':''}">🪪 Crachás</button>
         <button data-aba="hist" class="${s.aba==='hist'?'on':''}">Histórico</button>
       </div>
@@ -872,9 +883,57 @@ function telaPessoas(){
   $app.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; s.editando = null; if (s.aba === 'crachas') state.crachas = null; telaPessoas(); });
   carregarPessoas();
 }
+// ---- perfis: o admin cria e edita (nível por tela). Perfil de fábrica: tela nova vem com o padrão; perfil criado: tela nova vem sem acesso.
+function renderPerfis($p, r){
+  const admin = DEMO || state.usuario?.perfil === 'admin', ed = state.pes.perfilEd;
+  const perfis = r.perfis || Object.keys(r.modelos).map(id => ({ id, nome:ROT_PERFIL[id] || id, sistema:true }));
+  const usam = id => r.usuarios.filter(u => u.perfil === id && u.ativo).length;
+  const telasDe = id => r.telas.filter(t => (r.modelos[id]?.[t.id] || 'nenhum') !== 'nenhum').length;
+  $p.innerHTML = `${ed ? formPerfil(r, ed) : ''}
+    <div class="painel"><div class="barra" style="margin:0 0 8px"><h3 style="margin:0">Perfis de acesso</h3><span style="flex:1"></span>${admin && !ed ? '<button class="btn pri" id="pf-novo">+ Novo perfil</button>' : ''}</div>
+      <p class="info" style="margin:0 0 10px">O perfil define o que a pessoa vê em cada tela; exceções individuais continuam na própria pessoa. ${admin ? 'Só admin cria e edita perfis.' : 'Só admin pode alterar.'}
+        Quando entrar uma tela nova no portal, os perfis <b>criados aqui</b> vêm sem acesso a ela: revise e libere.</p>
+      <table class="tab"><thead><tr><th>Perfil</th><th>Descrição</th><th>Telas com acesso</th><th>Pessoas</th><th></th></tr></thead><tbody>
+      ${perfis.map(p => `<tr><td><b>${esc(p.nome)}</b> ${p.sistema ? '<span class="info">(de fábrica)</span>' : ''}</td><td class="info">${esc(p.descricao || '')}</td>
+        <td>${p.id === 'admin' ? 'todas' : telasDe(p.id)} de ${r.telas.length}</td><td>${usam(p.id)}</td>
+        <td style="white-space:nowrap">${admin && p.id !== 'admin' ? `<button class="btn" data-pfe="${p.id}">Editar</button>` : ''}${admin ? ` <button class="btn" data-pfc="${p.id}" title="Novo perfil começando com as permissões deste">Duplicar</button>` : ''}
+          ${admin && !p.sistema ? ` <button class="btn perigo" data-pfx="${p.id}">Excluir</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+  const ir = v => { state.pes.perfilEd = v; renderPerfis($p, r); window.scrollTo({ top:0 }); };
+  const nv = document.getElementById('pf-novo'); if (nv) nv.onclick = () => ir({ novo:true, nome:'', descricao:'', permissoes:{} });
+  $p.querySelectorAll('[data-pfe]').forEach(b => b.onclick = () => { const p = perfis.find(x => x.id === b.dataset.pfe); ir({ id:p.id, sistema:p.sistema, nome:p.nome, descricao:p.descricao || '', permissoes:{ ...(r.modelos[p.id] || {}) } }); });
+  $p.querySelectorAll('[data-pfc]').forEach(b => b.onclick = () => { const p = perfis.find(x => x.id === b.dataset.pfc);
+    const perm = p.id === 'admin' ? Object.fromEntries(r.telas.map(t => [t.id, t.niveis.at(-1)])) : { ...(r.modelos[p.id] || {}) };
+    ir({ novo:true, nome:`${p.nome} (cópia)`, descricao:p.descricao || '', permissoes:perm }); });
+  $p.querySelectorAll('[data-pfx]').forEach(b => b.onclick = async () => { if (!confirmaDupla(b, 'Clique de novo para excluir')) return;
+    try { await apiPessoas('/pessoas/perfil/excluir', { id:b.dataset.pfx }); avisar('Perfil excluído'); carregarPessoas(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
+  const f = document.getElementById('pf-form'); if (!f) return;
+  f.querySelectorAll('[data-pt]').forEach(sel => sel.onchange = () => { ed.permissoes[sel.dataset.pt] = sel.value; sel.closest('tr').classList.toggle('pf-sem', sel.value === 'nenhum'); });
+  document.getElementById('pf-cancelar').onclick = () => ir(null);
+  document.getElementById('pf-salvar').onclick = async () => {
+    ed.nome = document.getElementById('pf-nome').value.trim(); ed.descricao = document.getElementById('pf-desc').value.trim();
+    if (!ed.nome) return avisar('Informe o nome do perfil', true);
+    const perm = Object.fromEntries(r.telas.map(t => [t.id, ed.permissoes[t.id] || 'nenhum']));
+    try { const x = await apiPessoas('/pessoas/perfil', { id:ed.novo ? null : ed.id, nome:ed.nome, descricao:ed.descricao, permissoes:perm });
+      avisar(ed.novo ? `Perfil ${ed.nome} criado: já aparece na lista de perfis da pessoa` : 'Perfil salvo (vale para todas as pessoas com este perfil)'); state.pes.perfilEd = null; carregarPessoas(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+}
+function formPerfil(r, ed){
+  const grupos = {}; r.telas.forEach(t => (grupos[t.grupo] ||= []).push(t));
+  return `<div class="painel" id="pf-form"><h3 style="margin:0 0 8px">${ed.novo ? 'Novo perfil' : `Editar perfil ${esc(ed.nome)}`}</h3>
+    <div class="grade-form g2"><label>Nome<input id="pf-nome" maxlength="40" value="${esc(ed.nome)}" placeholder="ex.: Marketing"></label>
+      <label>Descrição<input id="pf-desc" maxlength="200" value="${esc(ed.descricao || '')}" placeholder="ex.: Solicita pares para foto e vídeo"></label></div>
+    ${ed.sistema ? '<p class="info">Perfil de fábrica: o que você mudar aqui passa a valer no lugar do padrão.</p>' : ''}
+    <table class="tab pf-tab" style="margin-top:10px"><thead><tr><th>Tela</th><th>Nível</th></tr></thead><tbody>
+      ${Object.entries(grupos).map(([g, ts]) => `<tr class="pf-g"><td colspan="2">${esc(g)}</td></tr>${ts.map(t => { const v = ed.permissoes[t.id] || 'nenhum';
+        return `<tr class="${v === 'nenhum' ? 'pf-sem' : ''}"><td>${esc(t.nome)}</td><td><select data-pt="${t.id}">${['nenhum', ...t.niveis].map(n => `<option value="${n}" ${n === v ? 'selected' : ''}>${ROT_NIVEL[n] || n}</option>`).join('')}</select></td></tr>`; }).join('')}`).join('')}
+    </tbody></table>
+    <p class="info">Ver = só consulta · Editar = lança e atualiza · Gerenciar = também cria, exclui e muda o que outros lançaram.</p>
+    <div class="gv-acoes"><span style="flex:1"></span><button class="btn" id="pf-cancelar">Cancelar</button><button class="btn pri" id="pf-salvar">Salvar perfil</button></div></div>
+    <style>.pf-tab tr.pf-g td{background:#f6f7f9;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)} .pf-tab tr.pf-sem td:first-child{color:#9aa3b2}</style>`;
+}
 async function carregarPessoas(){
   const $p = document.getElementById('pes'); if (!$p) return;
-  try { state.pesDados = await apiPessoas('/pessoas'); renderPessoas(); }
+  try { state.pesDados = await apiPessoas('/pessoas'); (state.pesDados.perfis || []).forEach(p => { ROT_PERFIL[p.id] = p.nome; }); renderPessoas(); }
   catch (e) { if (e instanceof SemSessao) throw e; $p.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 function avisar(msg, erro){
@@ -888,6 +947,7 @@ function renderPessoas(){
   if (!$p || !r) return;
   if (s.aba === 'wms') return renderColaboradores($p, r);
   if (s.aba === 'crachas') return renderCrachas($p);
+  if (s.aba === 'perfis') return renderPerfis($p, r);
   if (s.aba === 'hist') return renderHistorico($p, r);
   const edita = pode('pessoas', 'editar');
   const resumo = u => r.telas.map(t => {
@@ -9104,6 +9164,226 @@ function renderCargasSeenc(){
     try { const r = await apiSeenc('/seenc/carga/excluir', { carga_id:b.dataset.exc }); avisar(`Carga excluída (${fmtN(r.linhas)} linhas apagadas)`); carregarSeenc(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
 }
 
+/* =================== PARES DO MARKETING (foto/vídeo) =================== */
+// Solicitado → Separado (movido para o prédio MKT no Seenc) → Entregue (ficha assinada) → Devolvido → Realocado (de volta ao estoque no Seenc)
+const ETAPAS_MK = [
+  { id:'solicitado', rot:'Solicitado', cor:'#566074' },
+  { id:'separado',   rot:'Separado',   cor:'#0b4fa8' },
+  { id:'entregue',   rot:'Com o Marketing', cor:'#c2185b' },
+  { id:'devolvido',  rot:'Devolvido',  cor:'#6b3fa0' },
+  { id:'realocado',  rot:'Realocado',  cor:'#1a7a3e' },
+];
+const CSS_MK = `
+  .mk-kpis{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px} .mk-kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px} .mk-kpi b{font-size:20px;display:block}
+  .mk-kan{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));gap:10px;overflow-x:auto;align-items:start}
+  .mk-col{background:#f6f7f9;border-radius:12px;padding:8px;min-height:120px;border-top:4px solid var(--c)} .mk-col h4{margin:2px 4px 8px;font-size:13px;display:flex;justify-content:space-between;color:var(--c)}
+  .mk-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:pointer;display:grid;gap:3px;font-size:13px}
+  .mk-card:hover{border-color:#0b6bcb} .mk-card .t{display:flex;justify-content:space-between;gap:6px} .mk-card small{color:var(--mute)}
+  .mk-dias{display:inline-block;border-radius:99px;padding:1px 8px;font-weight:700;font-size:12px;background:#eef0f4;color:#1b2333}
+  .mk-dias.d3{background:#fff4d6;color:#7a5a00} .mk-dias.d7{background:#fbe9e9;color:#a11d1d}
+  .mk-itens{width:100%;border-collapse:collapse;font-size:13px} .mk-itens th,.mk-itens td{border-bottom:1px solid #eef0f4;padding:5px 6px;text-align:left} .mk-itens td.n,.mk-itens th.n{text-align:right}
+  .mk-itens input,.mk-itens select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;width:100%;box-sizing:border-box}
+  .mk-linha{display:grid;grid-template-columns:110px 1fr 120px 70px 70px 32px;gap:6px;align-items:center;margin-bottom:6px}
+  .mk-linha input,.mk-linha select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box}
+  @media (max-width:640px){ .mk-linha{grid-template-columns:1fr 1fr} }
+  .mk-tl{display:grid;gap:4px;font-size:12.5px;margin-top:8px} .mk-tl div{display:flex;gap:8px} .mk-tl b{min-width:120px}
+  .mk-conf{display:flex;gap:8px;align-items:flex-start;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}
+  .mk-conf input{margin-top:3px}`;
+const diasDesde = (ini, fim) => ini ? Math.max(0, Math.floor(((fim ? new Date(fim) : new Date()) - new Date(ini)) / 86400000)) : 0;
+const paresMk = s => s.itens.reduce((t, i) => t + i.qtd, 0), devMk = s => s.itens.reduce((t, i) => t + i.qtd_devolvida, 0);
+const linkMk = id => `${urlPortal()}?tela=mkt&mkt=${encodeURIComponent(id)}`;
+
+// demonstração
+let DEMO_MK = null;
+function demoMkBase(){
+  const h = Date.now(), d = n => new Date(h - n * 86400000).toISOString();
+  const S = (id, sol, fin, st, dias, itens, x = {}) => ({ id:String(id), solicitante:sol, solicitante_login:null, finalidade:fin, observacao:null, status:st, solicitado_em:d(dias), solicitado_por:'demonstracao',
+    separado_em:['separado', 'entregue', 'devolvido', 'realocado'].includes(st) ? d(dias - 0.1) : null, separado_por:'guilherme.porto',
+    entregue_em:['entregue', 'devolvido', 'realocado'].includes(st) ? d(dias - 0.2) : null, entregue_por:'guilherme.porto', recebido_por:['entregue', 'devolvido', 'realocado'].includes(st) ? sol : null,
+    devolvido_em:['devolvido', 'realocado'].includes(st) ? d(Math.max(0, dias - 3)) : null, devolvido_por:['devolvido', 'realocado'].includes(st) ? sol : null, conferido_por:'guilherme.porto',
+    realocado_em:st === 'realocado' ? d(Math.max(0, dias - 3.5)) : null, realocado_por:'guilherme.porto', cancelado_em:null, cancelado_por:null, motivo_cancelamento:null, atualizado_em:d(0), atualizado_por:'demonstracao',
+    itens:itens.map((i, k) => ({ id:`${id}-${k}`, cnpj_id:i[0], produto:i[1], cor:i[2], tamanho:i[3], qtd:i[4], qtd_devolvida:st === 'devolvido' || st === 'realocado' ? i[4] : (i[5] || 0) })), ...x });
+  return { seq:20, eventos:[], lista:[
+    S(14, 'Juliana Prado', 'Fotos coleção verão', 'solicitado', 0, [['DIGOS', '6371-367-7286', 'PRETO', '36', 1], ['CACAL', '1478-100-31404', 'BEGE', '35', 1]]),
+    S(13, 'Juliana Prado', 'Vídeo para anúncio Shopee', 'separado', 0.5, [['DROSA', 'T7044-336', 'PRETO', '37', 2]]),
+    S(12, 'Rafael Lima', 'Reels lançamento', 'entregue', 2, [['DIGOS', 'DST04WI', 'ROSA', '25', 1], ['DIGOS', '4202-555-24497', 'MARINHO', '38', 2, 1]]),
+    S(10, 'Juliana Prado', 'Fotos de catálogo', 'entregue', 9, [['CACAL', '5435-560-29564', 'CHOCOLATE', '37', 1], ['CACAL', '8560-314-30277', 'CHOCOLATE', '34', 1], ['DIGOS', 'T1038-546', 'PRETO', '34', 1]]),
+    S(9, 'Rafael Lima', 'Fotos de catálogo', 'devolvido', 5, [['DIGOS', '24-80231', 'OURO', '34', 2]]),
+    S(7, 'Juliana Prado', 'Campanha dia das mães', 'realocado', 12, [['DROSA', '6262-406-7286', 'PRETO', '33', 3]]),
+  ] };
+}
+async function apiMkt(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  const D = DEMO_MK ||= demoMkBase(), ag = new Date().toISOString(), cp = o => JSON.parse(JSON.stringify(o)), ev = (id, acao) => D.eventos.unshift({ id, em:ag, por:'demonstracao', acao, detalhe:null });
+  if (path.startsWith('/mkt?')) return cp({ solicitacoes:D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() });
+  if (path.startsWith('/mkt/detalhe')) { const id = new URLSearchParams(path.split('?')[1]).get('id'), s = D.lista.find(x => x.id === id); if (!s) throw new Error('Solicitação não encontrada'); return cp({ solicitacao:s, eventos:D.eventos.filter(e => e.id === id) }); }
+  if (path === '/mkt/solicitacao') { if (!String(corpo.solicitante || '').trim()) throw new Error('Informe o solicitante'); const itens = (corpo.itens || []).filter(i => i.produto);
+    if (!itens.length) throw new Error('Inclua pelo menos um par'); if (itens.some(i => !i.cnpj_id)) throw new Error('Escolha a loja de cada item'); if (itens.some(i => !(i.qtd >= 1))) throw new Error('Quantidade inválida');
+    const its = id => itens.map((i, k) => ({ id:`${id}-${k}-${Date.now()}`, cnpj_id:i.cnpj_id, produto:caixaAltaTxt(i.produto), cor:caixaAltaTxt(i.cor || ''), tamanho:i.tamanho || '', qtd:Number(i.qtd), qtd_devolvida:0 }));
+    if (corpo.id) { const s = D.lista.find(x => x.id === corpo.id); if (s.status !== 'solicitado') throw new Error('Só dá para alterar enquanto está "Solicitado"'); Object.assign(s, { solicitante:corpo.solicitante, finalidade:corpo.finalidade, observacao:corpo.observacao, itens:its(s.id) }); ev(s.id, 'alterou'); return { ok:true, id:s.id }; }
+    const id = String(++D.seq); D.lista.unshift({ id, solicitante:corpo.solicitante.trim(), finalidade:corpo.finalidade || null, observacao:corpo.observacao || null, status:'solicitado', solicitado_em:ag, solicitado_por:'demonstracao', itens:its(id) }); ev(id, 'solicitou'); return { ok:true, id }; }
+  if (path === '/mkt/acao') { const s = D.lista.find(x => x.id === corpo.id), a = corpo.acao, precisa = st => { if (!st.includes(s.status)) throw new Error('Essa ação não vale nesta etapa'); };
+    if (['separar', 'realocar'].includes(a) && corpo.seenc !== true) throw new Error('Confirme a movimentação no Seenc antes de avançar');
+    if (a === 'separar') { precisa(['solicitado']); Object.assign(s, { status:'separado', separado_em:ag, separado_por:'demonstracao' }); }
+    else if (a === 'entregar') { precisa(['separado']); Object.assign(s, { status:'entregue', entregue_em:ag, entregue_por:'demonstracao', recebido_por:corpo.recebido_por || s.solicitante }); }
+    else if (a === 'devolver') { precisa(['entregue']); let t = 0; (corpo.itens || []).forEach(d => { const i = s.itens.find(x => x.id === d.id); if (i && d.qtd > 0) { if (i.qtd_devolvida + d.qtd > i.qtd) throw new Error(`${i.produto}: devolvendo mais do que foi entregue`); i.qtd_devolvida += d.qtd; t += d.qtd; } });
+      if (!t) throw new Error('Informe quantos pares voltaram'); const tudo = s.itens.every(i => i.qtd_devolvida >= i.qtd); Object.assign(s, { devolvido_por:corpo.devolvido_por || s.solicitante, conferido_por:'demonstracao', status:tudo ? 'devolvido' : 'entregue', devolvido_em:tudo ? ag : null }); ev(s.id, tudo ? 'devolveu tudo' : 'devolveu parte'); return { ok:true, status:s.status }; }
+    else if (a === 'realocar') { precisa(['devolvido']); Object.assign(s, { status:'realocado', realocado_em:ag, realocado_por:'demonstracao' }); }
+    else if (a === 'cancelar') { precisa(['solicitado', 'separado']); if (!corpo.motivo) throw new Error('Informe o motivo do cancelamento'); if (s.status === 'separado' && corpo.seenc !== true) throw new Error('Confirme que os pares voltaram do prédio MKT no Seenc'); Object.assign(s, { status:'cancelado', cancelado_em:ag, cancelado_por:'demonstracao', motivo_cancelamento:corpo.motivo }); }
+    else if (a === 'voltar') { const i = ETAPAS_MK.findIndex(e => e.id === s.status); if (i <= 0) throw new Error('Não há etapa para desfazer'); if (['entregue', 'devolvido'].includes(s.status)) s.itens.forEach(x => x.qtd_devolvida = 0); s.status = ETAPAS_MK[i - 1].id; }
+    ev(s.id, a); return { ok:true }; }
+  throw new Error('Rota de demonstração não encontrada');
+}
+
+function telaMkt(){
+  if (!document.getElementById('css-mk')) { const st = document.createElement('style'); st.id = 'css-mk'; st.textContent = CSS_MK; document.head.appendChild(st); }
+  const s = state.mk ||= { dias:30, busca:'' };
+  $app.innerHTML = `<div class="barra"><h2>Pares do Marketing</h2><input class="campo" id="mk-busca" placeholder="Buscar nº, solicitante, produto" value="${esc(s.busca)}" style="max-width:260px">
+      <select id="mk-dias" title="Realocados e cancelados aparecem por este período">${[7, 30, 90].map(d => `<option value="${d}" ${s.dias === d ? 'selected' : ''}>finalizados: ${d} dias</option>`).join('')}</select>
+      <span style="flex:1"></span>${pode('mkt', 'editar') ? '<button class="btn pri" id="mk-nova">+ Nova solicitação</button>' : ''}</div>
+    <div id="mk"><div class="carregando">Carregando…</div></div>`;
+  document.getElementById('mk-busca').oninput = e => { s.busca = e.target.value; renderMkt(); };
+  document.getElementById('mk-dias').onchange = e => { s.dias = Number(e.target.value); carregarMkt(); };
+  const nv = document.getElementById('mk-nova'); if (nv) nv.onclick = () => formMkt(null);
+  carregarMkt().then(() => { const id = params.get('mkt'); if (id && !s.linkUsado) { s.linkUsado = true; abrirMkt(id.replace(/\D/g, '')); } });
+}
+async function carregarMkt(){
+  try { state.mkDados = await apiMkt(`/mkt?dias=${state.mk.dias}`); renderMkt(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('mk'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function renderMkt(){
+  const $c = document.getElementById('mk'), D = state.mkDados; if (!$c || !D) return;
+  const b = semAcento(state.mk.busca || ''), filtra = x => !b || semAcento(`#${x.id} ${x.solicitante} ${x.finalidade || ''} ${x.itens.map(i => `${i.produto} ${i.cor || ''}`).join(' ')}`).includes(b);
+  const L = D.solicitacoes.filter(filtra), comMk = D.solicitacoes.filter(x => x.status === 'entregue');
+  const paresFora = comMk.reduce((t, x) => t + paresMk(x) - devMk(x), 0), maisAntigo = comMk.reduce((m, x) => Math.max(m, diasDesde(x.entregue_em)), 0);
+  const card = x => { const pares = paresMk(x), dev = devMk(x), lojas = [...new Set(x.itens.map(i => i.cnpj_id))];
+    let tempo = '';
+    if (x.status === 'entregue') { const d = diasDesde(x.entregue_em); tempo = `<span class="mk-dias ${d >= 7 ? 'd7' : d >= 3 ? 'd3' : ''}" title="Dias com o Marketing desde a entrega">${d} dia${d === 1 ? '' : 's'} com o MKT</span>`; }
+    else if (x.status === 'devolvido' || x.status === 'realocado') tempo = `<small>ficou ${diasDesde(x.entregue_em, x.devolvido_em)} dia(s) com o MKT</small>`;
+    else tempo = `<small>${x.status === 'solicitado' ? 'pedido' : 'separado'} ${quando(x.status === 'solicitado' ? x.solicitado_em : x.separado_em)}</small>`;
+    return `<div class="mk-card" data-mk="${x.id}"><div class="t"><b>#${x.id} · ${esc(x.solicitante)}</b><span>${fmtN(pares)} par${pares === 1 ? '' : 'es'}</span></div>
+      ${x.finalidade ? `<small>${esc(x.finalidade)}</small>` : ''}<div>${lojas.map(l => tagLoja(l)).join(' ')}</div>
+      ${x.status === 'entregue' && dev ? `<small><b>${dev}</b> de ${pares} já devolvido(s)</small>` : ''}<div>${tempo}</div></div>`; };
+  const canc = L.filter(x => x.status === 'cancelado');
+  $c.innerHTML = `<div class="mk-kpis"><div class="mk-kpi"><span class="info">Com o Marketing agora</span><b>${fmtN(paresFora)} pares</b><span class="info">${comMk.length} solicitação(ões)</span></div>
+      <div class="mk-kpi"><span class="info">Há mais tempo</span><b>${comMk.length ? `${maisAntigo} dias` : '–'}</b></div>
+      <div class="mk-kpi"><span class="info">A separar</span><b>${D.solicitacoes.filter(x => x.status === 'solicitado').length}</b></div>
+      <div class="mk-kpi"><span class="info">A realocar no Seenc</span><b>${D.solicitacoes.filter(x => x.status === 'devolvido').length}</b></div></div>
+    <div class="mk-kan">${ETAPAS_MK.map(e => { const it = L.filter(x => x.status === e.id).sort((a, b) => e.id === 'entregue' ? new Date(a.entregue_em) - new Date(b.entregue_em) : new Date(b.atualizado_em || b.solicitado_em) - new Date(a.atualizado_em || a.solicitado_em));
+      return `<div class="mk-col" style="--c:${e.cor}"><h4><span>${e.rot}</span><span>${it.length}</span></h4>${it.map(card).join('') || '<div class="info" style="padding:4px">—</div>'}</div>`; }).join('')}</div>
+    ${canc.length ? `<details style="margin-top:10px"><summary class="info">Cancelados (${canc.length})</summary><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">${canc.map(card).join('')}</div></details>` : ''}`;
+  $c.querySelectorAll('[data-mk]').forEach(el => el.onclick = () => abrirMkt(el.dataset.mk));
+}
+async function abrirMkt(id){
+  let r; try { r = await apiMkt(`/mkt/detalhe?id=${id}`); } catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); }
+  const x = r.solicitacao, gerir = pode('mkt', 'gerir'), eu = state.usuario?.login || 'demonstracao', meu = x.solicitado_por === eu;
+  const pares = paresMk(x), dev = devMk(x), et = ETAPAS_MK.find(e => e.id === x.status);
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  const passo = (rot, em, por, extra = '') => em ? `<div><b>${rot}</b><span>${quando(em)} · ${esc(quemTxt(por))}${extra}</span></div>` : '';
+  dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)">
+    <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">#${x.id} · ${esc(x.solicitante)}</h3><span class="mk-dias" style="background:${et ? et.cor : '#8a1f1f'};color:#fff">${et ? et.rot : 'Cancelado'}</span>
+      ${x.status === 'entregue' ? `<span class="mk-dias ${diasDesde(x.entregue_em) >= 7 ? 'd7' : diasDesde(x.entregue_em) >= 3 ? 'd3' : ''}">${diasDesde(x.entregue_em)} dia(s) com o MKT</span>` : ''}<span style="flex:1"></span><button class="btn" data-x>✕</button></div>
+    ${x.finalidade ? `<div class="info">Finalidade: ${esc(x.finalidade)}</div>` : ''}${x.observacao ? `<div class="info">Obs.: ${esc(x.observacao)}</div>` : ''}
+    <table class="mk-itens" style="margin-top:8px"><thead><tr><th>Loja</th><th>Produto / SKU</th><th>Cor</th><th>Nº</th><th class="n">Qtd</th><th class="n">Devolvido</th></tr></thead><tbody>
+      ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `${i.qtd_devolvida}${i.qtd_devolvida < i.qtd ? ` <span class="info">(faltam ${i.qtd - i.qtd_devolvida})</span>` : ' ✓'}` : '–'}</td></tr>`).join('')}
+      <tr><td colspan="4"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table>
+    <div class="mk-tl">${passo('Solicitado', x.solicitado_em, x.solicitado_por)}${passo('Separado', x.separado_em, x.separado_por, ' · movido ao prédio MKT')}${passo('Entregue', x.entregue_em, x.entregue_por, x.recebido_por ? ` · retirado por ${esc(x.recebido_por)}` : '')}
+      ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, ' · de volta ao estoque')}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
+    <div id="mk-acao"></div>
+    <div class="gv-acoes" style="flex-wrap:wrap">
+      <button class="btn" id="mk-ficha">🖨 Ficha</button>
+      ${x.status === 'solicitado' && (meu || gerir) && pode('mkt', 'editar') ? '<button class="btn" id="mk-edit">Editar</button>' : ''}
+      ${['solicitado', 'separado'].includes(x.status) && (meu || gerir) && pode('mkt', 'editar') ? '<button class="btn perigo" id="mk-canc">Cancelar</button>' : ''}
+      ${gerir && !['solicitado', 'cancelado'].includes(x.status) ? '<button class="btn" id="mk-volta" title="Desfaz a última etapa (lançamento errado)">↩ Voltar etapa</button>' : ''}
+      <span style="flex:1"></span>
+      ${gerir ? { solicitado:'<button class="btn pri" data-pr="separar">Separado ›</button>', separado:'<button class="btn pri" data-pr="entregar">Entregue ›</button>',
+        entregue:'<button class="btn pri" data-pr="devolver">Registrar devolução ›</button>', devolvido:'<button class="btn pri" data-pr="realocar">Realocado ›</button>' }[x.status] || '' : ''}</div>
+    ${r.eventos?.length ? `<details style="margin-top:8px"><summary class="info">Histórico</summary><div class="mk-tl">${r.eventos.map(e => `<div><b>${quando(e.em)}</b><span>${esc(quemTxt(e.por))} · ${esc(e.acao)}</span></div>`).join('')}</div></details>` : ''}</div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k), $a = q('#mk-acao');
+  const fechar = () => dlg.remove(), feito = msg => { fechar(); avisar(msg); carregarMkt(); };
+  const enviar = async (corpo, msg) => { try { await apiMkt('/mkt/acao', { id:x.id, ...corpo }); feito(msg); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  q('[data-x]').onclick = fechar;
+  q('#mk-ficha').onclick = () => imprimirHtml(fichaMkt(x));
+  const ed = q('#mk-edit'); if (ed) ed.onclick = () => { fechar(); formMkt(x); };
+  const vo = q('#mk-volta'); if (vo) vo.onclick = () => { if (confirmaDupla(vo, 'Clique de novo para desfazer a etapa')) enviar({ acao:'voltar' }, 'Etapa desfeita'); };
+  const conf = (txt, ok) => `<label class="mk-conf"><input type="checkbox" id="mk-seenc"><span>${txt}</span></label><div style="text-align:right"><button class="btn pri" id="mk-ok">${ok}</button></div>`;
+  const ca = q('#mk-canc'); if (ca) ca.onclick = () => { $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label style="grid-column:1/-1">Motivo do cancelamento<input id="mk-mot" maxlength="200"></label></div>
+      ${x.status === 'separado' ? conf('Os pares já voltaram do prédio MKT para o estoque físico no Seenc.', 'Cancelar solicitação') : '<div style="text-align:right"><button class="btn perigo" id="mk-ok">Cancelar solicitação</button></div>'}`;
+    q('#mk-ok').onclick = () => enviar({ acao:'cancelar', motivo:q('#mk-mot').value.trim(), seenc:!!q('#mk-seenc')?.checked }, 'Solicitação cancelada'); };
+  const pr = q('[data-pr]'); if (pr) pr.onclick = () => { const a = pr.dataset.pr;
+    if (a === 'separar') { $a.innerHTML = conf(`Separei os ${pares} par(es) e <b>movi para o prédio MKT no Seenc</b>.`, 'Confirmar: Separado'); q('#mk-ok').onclick = () => enviar({ acao:'separar', seenc:q('#mk-seenc').checked }, 'Separado: imprima a ficha para a assinatura'); }
+    if (a === 'realocar') { $a.innerHTML = conf('Os pares voltaram para o endereço físico: <b>movi do prédio MKT de volta ao estoque no Seenc</b>.', 'Confirmar: Realocado'); q('#mk-ok').onclick = () => enviar({ acao:'realocar', seenc:q('#mk-seenc').checked }, 'Realocado: ciclo encerrado'); }
+    if (a === 'entregar') { $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label>Quem retirou (assina a ficha)<input id="mk-quem" value="${esc(x.solicitante)}" maxlength="80"></label></div>
+        <div class="info">A ficha precisa estar assinada por quem retirou.</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Confirmar: Entregue</button></div>`;
+      q('#mk-ok').onclick = () => enviar({ acao:'entregar', recebido_por:q('#mk-quem').value.trim() }, 'Entregue: começou a contar os dias com o MKT'); }
+    if (a === 'devolver') { const pend = x.itens.filter(i => i.qtd_devolvida < i.qtd);
+      $a.innerHTML = `<div class="info" style="margin-top:8px">Quantos pares voltaram agora? (se voltar só parte, o restante continua contando os dias)</div>
+        <table class="mk-itens"><thead><tr><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Pendente</th><th class="n" style="width:90px">Voltou</th></tr></thead><tbody>
+        ${pend.map(i => `<tr><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd - i.qtd_devolvida}</td><td><input type="number" min="0" max="${i.qtd - i.qtd_devolvida}" value="${i.qtd - i.qtd_devolvida}" data-dv="${i.id}"></td></tr>`).join('')}</tbody></table>
+        <div class="grade-form g2" style="margin-top:8px"><label>Quem devolveu<input id="mk-quem" value="${esc(x.recebido_por || x.solicitante)}" maxlength="80"></label></div>
+        <div style="text-align:right"><button class="btn pri" id="mk-ok">Confirmar devolução</button></div>`;
+      q('#mk-ok').onclick = () => enviar({ acao:'devolver', devolvido_por:q('#mk-quem').value.trim(), itens:[...dlg.querySelectorAll('[data-dv]')].map(i => ({ id:i.dataset.dv, qtd:Math.round(Number(i.value) || 0) })) }, 'Devolução registrada: falta realocar no Seenc'); }
+    pr.disabled = true; };
+}
+function formMkt(x){
+  const D = state.mkDados, eu = state.usuario, novo = !x;
+  const itens = x ? x.itens.map(i => ({ ...i })) : [{ cnpj_id:'', produto:'', cor:'', tamanho:'', qtd:1 }];
+  const solPad = x ? x.solicitante : (eu?.perfil === 'marketing' ? eu.nome : '');
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)"><h3 style="margin:0 0 8px">${novo ? 'Nova solicitação de pares' : `Editar solicitação #${x.id}`}</h3>
+    <div class="grade-form g2"><label>Solicitante (quem pede e assina a retirada)<input id="mf-sol" list="mf-sols" maxlength="80" value="${esc(solPad)}"><datalist id="mf-sols">${(D?.solicitantes || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist></label>
+      <label>Finalidade<input id="mf-fin" maxlength="200" value="${esc(x?.finalidade || '')}" placeholder="ex.: fotos da coleção verão"></label></div>
+    <div class="info" style="margin:10px 0 4px">Pares (loja · produto/SKU · cor · numeração · quantidade)</div><div id="mf-itens"></div>
+    <button class="btn" id="mf-mais">+ Item</button>
+    <div class="grade-form g2" style="margin-top:8px"><label style="grid-column:1/-1">Observação<input id="mf-obs" maxlength="500" value="${esc(x?.observacao || '')}"></label></div>
+    <div class="gv-acoes"><span class="info" id="mf-tot"></span><span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="mf-ok">${novo ? 'Solicitar' : 'Salvar'}</button></div></div>`;
+  document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
+  const lojas = D?.cnpjs || ['DIGOS', 'CACAL', 'DROSA'];
+  const desenha = () => { q('#mf-itens').innerHTML = itens.map((i, k) => `<div class="mk-linha">
+      <select data-k="${k}" data-c="cnpj_id"><option value="">Loja</option>${lojas.map(l => `<option ${i.cnpj_id === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <input data-k="${k}" data-c="produto" placeholder="Produto / SKU" value="${esc(i.produto)}"><input data-k="${k}" data-c="cor" placeholder="Cor" value="${esc(i.cor || '')}">
+      <input data-k="${k}" data-c="tamanho" placeholder="Nº" value="${esc(i.tamanho || '')}"><input data-k="${k}" data-c="qtd" type="number" min="1" value="${i.qtd}">
+      <button class="btn" data-rm="${k}" title="Tirar" ${itens.length === 1 ? 'disabled' : ''}>✕</button></div>`).join('');
+    q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`;
+    dlg.querySelectorAll('[data-k]').forEach(el => el.oninput = el.onchange = () => { const i = itens[el.dataset.k]; i[el.dataset.c] = el.dataset.c === 'qtd' ? Number(el.value) : el.value; q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`; });
+    dlg.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { itens.splice(Number(b.dataset.rm), 1); desenha(); }); };
+  desenha();
+  q('#mf-mais').onclick = () => { const u = itens.at(-1); itens.push({ cnpj_id:u?.cnpj_id || '', produto:'', cor:'', tamanho:'', qtd:1 }); desenha(); dlg.querySelectorAll('[data-c="produto"]').at?.(-1)?.focus?.(); };
+  q('[data-x]').onclick = () => dlg.remove();
+  q('#mf-ok').onclick = async () => {
+    const corpo = { id:x?.id, solicitante:q('#mf-sol').value.trim(), finalidade:q('#mf-fin').value.trim(), observacao:q('#mf-obs').value.trim(), itens:itens.filter(i => String(i.produto).trim()) };
+    if (!corpo.solicitante) return avisar('Informe o solicitante', true);
+    if (!corpo.itens.length) return avisar('Inclua pelo menos um par', true);
+    if (corpo.itens.some(i => !i.cnpj_id)) return avisar('Escolha a loja de cada item', true);
+    try { const r = await apiMkt('/mkt/solicitacao', corpo); dlg.remove(); avisar(novo ? `Solicitação #${r.id} enviada para a logística` : 'Solicitação salva'); carregarMkt(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+}
+// ficha A4 (uma via): retirada e devolução assinadas
+function fichaMkt(x){
+  const pares = paresMk(x), dt = iso => iso ? new Date(iso).toLocaleDateString('pt-BR', { timeZone:'America/Sao_Paulo' }) : '___/___/______';
+  const ass = (rot, nome) => `<div class="as"><div class="ln"></div><b>${rot}</b><span>${nome ? esc(nome) : 'Nome: ______________________'}</span><span>Data: ____/____/______ &nbsp; Hora: ____:____</span></div>`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Ficha MKT #${x.id}</title><style>
+    @page{size:A4 portrait;margin:12mm} *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Arial,sans-serif;color:#1b2333;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:11pt}
+    .cab{display:flex;align-items:center;gap:12px;border-bottom:1.2mm solid #f1c300;padding-bottom:3mm} .cab img{height:14mm} .cab h1{font-size:16pt;margin:0;color:#02285a} .cab .n{margin-left:auto;text-align:right}
+    .cab .n b{display:block;font-size:22pt;color:#02285a} .qr svg{width:26mm;height:26mm;display:block}
+    .dados{display:grid;grid-template-columns:1fr 1fr;gap:2mm 8mm;margin:4mm 0} .dados div{border-bottom:.3mm solid #dfe3ea;padding:1mm 0} .dados span{display:block;font-size:8pt;color:#566074;text-transform:uppercase}
+    table{width:100%;border-collapse:collapse;margin-top:3mm} th,td{border:.3mm solid #b8bec9;padding:2mm;text-align:left} th{background:#eef1f6;font-size:9pt;text-transform:uppercase} td.n,th.n{text-align:center}
+    .bloco{margin-top:6mm;border:.4mm solid #02285a;border-radius:2mm;padding:3mm 4mm} .bloco h3{margin:0 0 2mm;font-size:11pt;color:#02285a;text-transform:uppercase}
+    .ass2{display:grid;grid-template-columns:1fr 1fr;gap:10mm} .as{display:grid;gap:1mm;font-size:9.5pt} .as .ln{border-bottom:.3mm solid #1b2333;height:14mm} .as span{color:#566074}
+    .nota{font-size:8.5pt;color:#566074;margin-top:4mm}</style></head><body>
+    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Retirada de pares · Marketing</h1><span style="color:#566074">foto e vídeo · uso interno</span></div>
+      <div class="n"><span style="font-size:9pt;color:#566074">FICHA Nº</span><b>${x.id}</b></div><div class="qr">${QR.svg(linkMk(x.id))}</div></div>
+    <div class="dados"><div><span>Solicitante (assina a retirada)</span><b>${esc(x.solicitante)}</b></div><div><span>Solicitado em</span>${dt(x.solicitado_em)}</div>
+      <div><span>Finalidade</span>${esc(x.finalidade || '—')}</div><div><span>Total</span><b>${pares} par${pares === 1 ? '' : 'es'}</b></div></div>
+    <table><thead><tr><th>Loja</th><th>Produto / SKU</th><th>Cor</th><th class="n">Nº</th><th class="n">Qtd</th><th class="n">Devolvido (qtd)</th></tr></thead><tbody>
+      ${x.itens.map(i => `<tr><td>${esc(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n"></td></tr>`).join('')}</tbody></table>
+    ${x.observacao ? `<div class="nota">Obs.: ${esc(x.observacao)}</div>` : ''}
+    <div class="bloco"><h3>Retirada</h3><div class="ass2">${ass('Entregue por (logística)')}${ass('Recebido por (solicitante)', x.solicitante)}</div></div>
+    <div class="bloco"><h3>Devolução</h3><div class="ass2">${ass('Devolvido por')}${ass('Conferido por (logística)')}</div></div>
+    <div class="nota">Enquanto estiverem com o Marketing, os pares ficam no prédio MKT do Seenc. Na devolução, confira quantidade e numeração e realoque no estoque físico.
+      Escaneie o QR para registrar a entrega e a devolução no portal. Impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}.</div></body></html>`;
+}
+
 /* =================== MENU LATERAL =================== */
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
@@ -9112,6 +9392,7 @@ const MENU = [
       { view:'cross', titulo:'Gestão - CROSS', tela:'cross' },
       { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
       { view:'layout', titulo:'Layout do galpão', tela:'layout' },
+      { view:'mkt', titulo:'Pares do Marketing', tela:'mkt' },
     ]},
     { id:'cadastros', titulo:'Cadastros', filhos:[
       { view:'motoristas', titulo:'Motoristas', tela:'motoristas' },
@@ -9140,7 +9421,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { seenc:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { mkt:'mkt', seenc:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -9187,8 +9468,8 @@ document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
-  if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'pessoas'].find(viewLiberada) || 'nada';
+  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc', 'mkt'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
+  if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'mkt', 'pessoas'].find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
   clearInterval(state.timer);
@@ -9209,6 +9490,7 @@ function irPara(view){
   if (view === 'dimensionamento') return telaDimensionamento();
   if (view === 'layout') return telaLayout();
   if (view === 'seenc') return telaSeenc();
+  if (view === 'mkt') return telaMkt();
   if (view === 'prod') return telaProd();
   if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
