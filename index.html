@@ -9192,6 +9192,16 @@ const CSS_MK = `
   .mk-ret{font-size:12px} .mk-ret.atr{color:#a11d1d;font-weight:700}
   .mk-col h4 small{font-weight:600;opacity:.8}
   .mk-form input.cx{text-transform:uppercase}
+  .mk-rep{display:inline-block;background:#fff4d6;color:#7a5a00;border:1px solid #f1e3a0;border-radius:99px;padding:0 7px;font-size:11.5px;font-weight:700}
+  .mk-alerta{border:1px solid #f1e3a0;background:#fffaf0;border-left:4px solid #e0a100;border-radius:10px;padding:8px 12px;margin:0 0 12px;font-size:13px}
+  .mk-alerta summary{cursor:pointer;font-weight:700;color:#7a5a00} .mk-alerta table{margin-top:6px}
+  .mk-lnk{color:#0b4fa8;cursor:pointer;text-decoration:underline;white-space:nowrap}
+  .mk-filtros{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 10px;font-size:13px} .mk-filtros label{display:flex;gap:5px;align-items:center}
+  .mk-filtros input,.mk-filtros select{font:inherit;font-size:13px;padding:4px 6px}
+  .mk-tab{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff} .mk-tab th,.mk-tab td{border-bottom:1px solid #eef0f4;padding:5px 7px;text-align:left;white-space:nowrap}
+  .mk-tab th{background:#f6f7f9;position:sticky;top:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mute)} .mk-tab td.n,.mk-tab th.n{text-align:right}
+  .mk-tab tbody tr{cursor:pointer} .mk-tab tbody tr:hover{background:#f4f8fd} .mk-tab td.sku{font-family:Consolas,monospace;font-weight:700}
+  .mk-st{display:inline-block;border-radius:99px;padding:0 8px;color:#fff;font-size:11px;font-weight:700}
   .mk-hint{font-size:12px;color:#7a5a00;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:5px 9px;margin:6px 0}`;
 const diasDesde = (ini, fim) => ini ? Math.max(0, Math.floor(((fim ? new Date(fim) : new Date()) - new Date(ini)) / 86400000)) : 0;
 const paresMk = s => s.itens.reduce((t, i) => t + i.qtd, 0), devMk = s => s.itens.reduce((t, i) => t + i.qtd_devolvida, 0);
@@ -9209,7 +9219,7 @@ function demoMkBase(){
     retirada_prevista:addDias(hojeBRT(), Math.round(1 - dias)), separado_operador:st !== 'solicitado' ? 'Arthur Magdaleno' : null, realocado_operador:st === 'realocado' ? 'Davi Duarte' : null, cancelado_em:null, cancelado_por:null, motivo_cancelamento:null, atualizado_em:d(0), atualizado_por:'demonstracao',
     itens:itens.map((i, k) => ({ id:`${id}-${k}`, cnpj_id:i[0], produto:i[1], cor:i[2], tamanho:i[3], qtd:i[4], qtd_devolvida:st === 'devolvido' || st === 'realocado' ? i[4] : (i[5] || 0) })), ...x });
   return { seq:20, eventos:[], lista:[
-    S(14, 'Juliana Prado', 'Fotos coleção verão', 'solicitado', 0, [['DIGOS', '6371-367-7286', 'PRETO', '36', 1], ['CACAL', '1478-100-31404', 'BEGE', '35', 1]]),
+    S(14, 'Juliana Prado', 'Fotos coleção verão', 'solicitado', 0, [['DIGOS', '6371-367-7286', 'PRETO', '36', 1], ['CACAL', '1478-100-31404', 'BEGE', '35', 1], ['DIGOS', 'DST04WI', 'ROSA', '25', 1]]),
     S(13, 'Juliana Prado', 'Vídeo para anúncio Shopee', 'separado', 0.5, [['DROSA', 'T7044-336', 'PRETO', '37', 2]]),
     S(12, 'Rafael Lima', 'Reels lançamento', 'entregue', 2, [['DIGOS', 'DST04WI', 'ROSA', '25', 1], ['DIGOS', '4202-555-24497', 'MARINHO', '38', 2, 1]]),
     S(10, 'Juliana Prado', 'Fotos de catálogo', 'entregue', 9, [['CACAL', '5435-560-29564', 'CHOCOLATE', '37', 1], ['CACAL', '8560-314-30277', 'CHOCOLATE', '34', 1], ['DIGOS', 'T1038-546', 'PRETO', '34', 1]]),
@@ -9220,7 +9230,8 @@ function demoMkBase(){
 async function apiMkt(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_MK ||= demoMkBase(), ag = new Date().toISOString(), cp = o => JSON.parse(JSON.stringify(o)), ev = (id, acao) => D.eventos.unshift({ id, em:ag, por:'demonstracao', acao, detalhe:null });
-  if (path.startsWith('/mkt?')) return cp({ solicitacoes:D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], operadores:['Arthur Magdaleno', 'Davi Duarte', 'Nathan Marques', 'Rafael Batista', 'Tiago Santos'], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() });
+  if (path.startsWith('/mkt?')) { const p = new URLSearchParams(path.split('?')[1]), de = p.get('de'), ate = p.get('ate'), dia = iso => isoLocal(iso).slice(0, 10);
+    return cp({ solicitacoes:de && ate ? D.lista.filter(x => dia(x.solicitado_em) >= de && dia(x.solicitado_em) <= ate) : D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], operadores:['Arthur Magdaleno', 'Davi Duarte', 'Nathan Marques', 'Rafael Batista', 'Tiago Santos'], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() }); }
   if (path.startsWith('/mkt/detalhe')) { const id = new URLSearchParams(path.split('?')[1]).get('id'), s = D.lista.find(x => x.id === id); if (!s) throw new Error('Solicitação não encontrada'); return cp({ solicitacao:s, eventos:D.eventos.filter(e => e.id === id) }); }
   if (path === '/mkt/solicitacao') { if (!String(corpo.solicitante || '').trim()) throw new Error('Informe o solicitante'); const itens = (corpo.itens || []).filter(i => i.produto);
     if (!itens.length) throw new Error('Inclua pelo menos um par'); if (itens.some(i => !i.cnpj_id)) throw new Error('Escolha a loja de cada item'); if (itens.some(i => !(i.qtd >= 1))) throw new Error('Quantidade inválida');
@@ -9249,19 +9260,34 @@ function telaMkt(){
   const s = state.mk ||= { dias:30, busca:'' };
   $app.innerHTML = `<div class="barra"><h2>Marketing (Solicitações)</h2><input class="campo" id="mk-busca" placeholder="Buscar nº, solicitante, produto" value="${esc(s.busca)}" style="max-width:260px">
       <select id="mk-dias" title="Realocados e cancelados aparecem por este período">${[7, 30, 90].map(d => `<option value="${d}" ${s.dias === d ? 'selected' : ''}>finalizados: ${d} dias</option>`).join('')}</select>
+      <span class="seg" style="display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden"><button class="btn" data-modo="quadro" style="border:0;border-radius:0;${s.modo !== 'lista' ? 'background:var(--pri);color:#fff' : ''}">▦ Quadro</button><button class="btn" data-modo="lista" style="border:0;border-radius:0;${s.modo === 'lista' ? 'background:var(--pri);color:#fff' : ''}">☰ Lista / histórico</button></span>
       <span style="flex:1"></span>${pode('mkt', 'editar') ? '<button class="btn pri" id="mk-nova">+ Nova solicitação</button>' : ''}</div>
     <div id="mk"><div class="carregando">Carregando…</div></div>`;
+  document.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { s.modo = b.dataset.modo; telaMkt(); });
+  if (s.modo === 'lista') { document.getElementById('mk-dias').style.display = 'none'; document.getElementById('mk-busca').oninput = e => { s.busca = e.target.value; renderListaMkt(); }; carregarListaMkt(); return; }
   document.getElementById('mk-busca').oninput = e => { s.busca = e.target.value; renderMkt(); };
   document.getElementById('mk-dias').onchange = e => { s.dias = Number(e.target.value); carregarMkt(); };
   const nv = document.getElementById('mk-nova'); if (nv) nv.onclick = () => formMkt(null);
+  if (s.modo === 'lista') return;
   carregarMkt().then(() => { const id = params.get('mkt'); if (id && !s.linkUsado) { s.linkUsado = true; abrirMkt(id.replace(/\D/g, '')); } });
 }
 async function carregarMkt(){
   try { state.mkDados = await apiMkt(`/mkt?dias=${state.mk.dias}`); renderMkt(); }
   catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('mk'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
+// mesmo par (SKU + cor + numeração) em mais de uma solicitação em aberto ao mesmo tempo (ainda não devolvido)
+function repetidosMk(lista){
+  const abertas = lista.filter(x => ['solicitado', 'separado', 'entregue'].includes(x.status)), g = {};
+  abertas.forEach(x => x.itens.filter(i => i.qtd_devolvida < i.qtd).forEach(i => { const k = `${i.produto}|${i.cor || ''}|${i.tamanho || ''}`; (g[k] ||= []).push({ x, i }); }));
+  const grupos = Object.entries(g).filter(([, v]) => new Set(v.map(o => o.x.id)).size > 1).map(([k, v]) => ({ k, sku:v[0].i.produto, cor:v[0].i.cor, tam:v[0].i.tamanho, ocs:v,
+    solicitantes:new Set(v.map(o => o.x.solicitante.toLowerCase())).size }));
+  return { grupos, ids:new Set(grupos.flatMap(g => g.ocs.map(o => o.x.id))) };
+}
+const ROT_ST_MK = { solicitado:'Solicitado', separado:'Separado', entregue:'Com o MKT', devolvido:'Devolvido', realocado:'Realocado', cancelado:'Cancelado' };
+const corStMk = st => (ETAPAS_MK.find(e => e.id === st) || { cor:'#8a1f1f' }).cor;
 function renderMkt(){
   const $c = document.getElementById('mk'), D = state.mkDados; if (!$c || !D) return;
+  const REP = repetidosMk(D.solicitacoes);
   const b = semAcento(state.mk.busca || ''), filtra = x => !b || semAcento(`#${x.id} ${x.solicitante} ${x.finalidade || ''} ${x.itens.map(i => `${i.produto} ${i.cor || ''}`).join(' ')}`).includes(b);
   const L = D.solicitacoes.filter(filtra), comMk = D.solicitacoes.filter(x => x.status === 'entregue');
   const paresFora = comMk.reduce((t, x) => t + paresMk(x) - devMk(x), 0), maisAntigo = comMk.reduce((m, x) => Math.max(m, diasDesde(x.entregue_em)), 0);
@@ -9273,17 +9299,81 @@ function renderMkt(){
       tempo = `<small>${x.status === 'solicitado' ? 'pedido' : 'separado'} ${quando(x.status === 'solicitado' ? x.solicitado_em : x.separado_em)}</small>${x.retirada_prevista ? `<div class="mk-ret ${atr ? 'atr' : ''}">📅 retirar ${x.retirada_prevista === D.hoje ? 'hoje' : `em ${dataBR(x.retirada_prevista).slice(0, 5)}`}${atr ? ' (atrasado)' : ''}</div>` : ''}`; }
     return `<div class="mk-card" data-mk="${x.id}"><div class="t"><b>#${x.id} · ${esc(x.solicitante)}</b><span>${fmtN(pares)} par${pares === 1 ? '' : 'es'}</span></div>
       ${x.finalidade ? `<small>${esc(x.finalidade)}</small>` : ''}<div>${lojas.map(l => tagLoja(l)).join(' ')}</div>
-      ${x.status === 'entregue' && dev ? `<small><b>${dev}</b> de ${pares} já devolvido(s)</small>` : ''}<div>${tempo}</div></div>`; };
+      ${x.status === 'entregue' && dev ? `<small><b>${dev}</b> de ${pares} já devolvido(s)</small>` : ''}<div>${tempo}</div>
+      ${REP.ids.has(x.id) ? '<div><span class="mk-rep" title="Algum par desta solicitação também está em outra solicitação em aberto">⚠ par repetido</span></div>' : ''}</div>`; };
   const canc = L.filter(x => x.status === 'cancelado');
   const em = st => D.solicitacoes.filter(x => x.status === st), pp = l => l.reduce((t, x) => t + paresMk(x), 0);
   $c.innerHTML = `<div class="mk-kpis"><div class="mk-kpi"><span class="info">Com o Marketing agora</span><b>${fmtN(paresFora)} pares</b><span class="info">${comMk.length} solicitação(ões)</span></div>
       <div class="mk-kpi"><span class="info">Há mais tempo</span><b>${comMk.length ? `${maisAntigo} dias` : '–'}</b></div>
       <div class="mk-kpi"><span class="info">A separar</span><b>${fmtN(pp(em('solicitado')))} pares</b><span class="info">${em('solicitado').length} solicitação(ões)</span></div>
       <div class="mk-kpi"><span class="info">A realocar no Seenc</span><b>${fmtN(pp(em('devolvido')))} pares</b><span class="info">${em('devolvido').length} solicitação(ões)</span></div></div>
+    ${REP.grupos.length ? `<details class="mk-alerta" ${REP.grupos.length <= 5 ? 'open' : ''}><summary>⚠ ${REP.grupos.length} par(es) pedido(s) em mais de uma solicitação ao mesmo tempo${REP.grupos.some(g => g.solicitantes > 1) ? ' (por solicitantes diferentes)' : ''}</summary>
+      <table class="mk-tab" style="background:transparent"><thead><tr><th>SKU</th><th>Cor</th><th>Nº</th><th>Solicitações</th></tr></thead><tbody>
+      ${REP.grupos.map(g => `<tr style="cursor:default"><td class="sku">${esc(g.sku)}</td><td>${esc(g.cor || '')}</td><td>${esc(g.tam || '')}</td>
+        <td style="white-space:normal">${g.ocs.map(o => `<span class="mk-lnk" data-mk="${o.x.id}">#${o.x.id} ${esc(o.x.solicitante)}</span> <span class="mk-st" style="background:${corStMk(o.x.status)}">${ROT_ST_MK[o.x.status]}</span> ${tagLoja(o.i.cnpj_id)} ${o.i.qtd - o.i.qtd_devolvida} par(es)`).join(' &nbsp;·&nbsp; ')}</td></tr>`).join('')}</tbody></table>
+      <div class="info" style="margin-top:4px">Confirme se é o mesmo par físico: talvez dê para uma solicitação usar o que já está com o Marketing, em vez de tirar outro do estoque.</div></details>` : ''}
     <div class="mk-kan">${ETAPAS_MK.map(e => { const it = L.filter(x => x.status === e.id).sort((a, b) => e.id === 'entregue' ? new Date(a.entregue_em) - new Date(b.entregue_em) : new Date(b.atualizado_em || b.solicitado_em) - new Date(a.atualizado_em || a.solicitado_em));
       return `<div class="mk-col" style="--c:${e.cor}"><h4><span>${e.rot}</span><span>${it.length} <small>· ${fmtN(it.reduce((t, x) => t + paresMk(x), 0))} pares</small></span></h4>${it.map(card).join('') || '<div class="info" style="padding:4px">—</div>'}</div>`; }).join('')}</div>
     ${canc.length ? `<details style="margin-top:10px"><summary class="info">Cancelados (${canc.length})</summary><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">${canc.map(card).join('')}</div></details>` : ''}`;
   $c.querySelectorAll('[data-mk]').forEach(el => el.onclick = () => abrirMkt(el.dataset.mk));
+}
+// ---- lista geral (uma linha por item), com filtros e agrupamento por SKU
+async function carregarListaMkt(){
+  const s = state.mk; s.de ||= addDias(hojeBRT(), -90); s.ate ||= hojeBRT();
+  try { state.mkHist = await apiMkt(`/mkt?de=${s.de}&ate=${s.ate}`); renderListaMkt(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('mk'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function linhasListaMkt(){
+  const s = state.mk, H = state.mkHist, b = semAcento(s.busca || ''), hoje = H.hoje;
+  return H.solicitacoes.flatMap(x => x.itens.map(i => ({ x, i }))).filter(({ x, i }) =>
+    (!s.fSt || x.status === s.fSt) && (!s.fSol || x.solicitante === s.fSol) && (!s.fLoja || i.cnpj_id === s.fLoja)
+    && (!b || semAcento(`#${x.id} ${x.solicitante} ${x.finalidade || ''} ${i.produto} ${i.cor || ''} ${i.tamanho || ''}`).includes(b)));
+}
+function renderListaMkt(){
+  const $c = document.getElementById('mk'), H = state.mkHist, s = state.mk; if (!$c || !H) return;
+  const L = linhasListaMkt(), sols = [...new Set(H.solicitacoes.map(x => x.solicitante))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const dias = x => x.entregue_em ? diasDesde(x.entregue_em, x.devolvido_em) : null;
+  const filtros = `<div class="mk-filtros"><label>Solicitado de <input type="date" id="ml-de" value="${s.de}" max="${hojeBRT()}"> a <input type="date" id="ml-ate" value="${s.ate}" max="${hojeBRT()}"></label>
+      <label>Etapa <select id="ml-st"><option value="">todas</option>${Object.entries(ROT_ST_MK).map(([k, t]) => `<option value="${k}" ${s.fSt === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      <label>Solicitante <select id="ml-sol"><option value="">todos</option>${sols.map(n => `<option ${s.fSol === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+      <label>Loja <select id="ml-loja"><option value="">todas</option>${(H.cnpjs || []).map(l => `<option ${s.fLoja === l ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label><input type="checkbox" id="ml-ag" ${s.agrupar ? 'checked' : ''}> Agrupar por SKU</label><span style="flex:1"></span><button class="btn" id="ml-csv">⬇ CSV</button></div>`;
+  let corpo;
+  if (s.agrupar) {
+    const g = {}; L.forEach(({ x, i }) => { const k = `${i.produto}|${i.cor || ''}`; const o = g[k] ||= { sku:i.produto, cor:i.cor, vezes:new Set(), pares:0, dev:0, sols:new Set(), tams:new Set(), ultima:'', comMk:0 };
+      o.vezes.add(x.id); o.pares += i.qtd; o.dev += i.qtd_devolvida; o.sols.add(x.solicitante); if (i.tamanho) o.tams.add(i.tamanho); if (x.solicitado_em > o.ultima) o.ultima = x.solicitado_em;
+      if (x.status === 'entregue') o.comMk += i.qtd - i.qtd_devolvida; });
+    const G = Object.values(g).sort((a, b) => b.vezes.size - a.vezes.size || b.pares - a.pares);
+    corpo = `<table class="mk-tab"><thead><tr><th>SKU</th><th>Cor</th><th>Numerações</th><th class="n">Solicitações</th><th class="n">Pares pedidos</th><th class="n">Devolvidos</th><th class="n">Com o MKT agora</th><th>Solicitantes</th><th>Último pedido</th></tr></thead><tbody>
+      ${G.map(o => `<tr data-sku="${esc(o.sku)}"><td class="sku">${esc(o.sku)}</td><td>${esc(o.cor || '')}</td><td>${[...o.tams].sort((a, b) => Number(a) - Number(b)).join(', ')}</td><td class="n">${o.vezes.size}</td><td class="n">${o.pares}</td><td class="n">${o.dev}</td>
+        <td class="n">${o.comMk || ''}</td><td style="white-space:normal">${esc([...o.sols].join(', '))}</td><td>${quando(o.ultima)}</td></tr>`).join('') || '<tr><td colspan="9" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
+  } else {
+    corpo = `<table class="mk-tab"><thead><tr><th>Nº</th><th>Solicitado em</th><th>Solicitante</th><th>Finalidade</th><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Entregue</th><th class="n">Devolvida</th><th>Etapa</th><th>Retirada</th><th>Entregue em</th><th>Devolvido em</th><th class="n">Dias c/ MKT</th></tr></thead><tbody>
+      ${L.map(({ x, i }) => `<tr data-mk="${x.id}"><td>#${x.id}</td><td>${quando(x.solicitado_em)}</td><td>${esc(x.solicitante)}</td><td>${esc(x.finalidade || '')}</td><td>${tagLoja(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td>
+        <td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida || ''}</td><td><span class="mk-st" style="background:${corStMk(x.status)}">${ROT_ST_MK[x.status]}</span></td><td>${x.retirada_prevista ? dataBR(x.retirada_prevista).slice(0, 5) : ''}</td>
+        <td>${x.entregue_em ? quando(x.entregue_em) : ''}</td><td>${x.devolvido_em ? quando(x.devolvido_em) : ''}</td><td class="n">${dias(x) ?? ''}</td></tr>`).join('') || '<tr><td colspan="15" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
+  }
+  const pares = L.reduce((t, { i }) => t + i.qtd, 0), nSol = new Set(L.map(({ x }) => x.id)).size;
+  $c.innerHTML = `${filtros}<div class="info" style="margin:0 0 6px"><b>${fmtN(L.length)}</b> linha(s) · <b>${fmtN(pares)}</b> pares · <b>${nSol}</b> solicitação(ões)${s.agrupar ? ' · clique num SKU para ver o histórico dele' : ' · clique numa linha para abrir a solicitação'}</div>
+    <div style="overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:10px">${corpo}</div>`;
+  const q = k => document.getElementById(k);
+  q('ml-de').onchange = e => { if (e.target.value) { s.de = e.target.value; carregarListaMkt(); } };
+  q('ml-ate').onchange = e => { if (e.target.value) { s.ate = e.target.value; carregarListaMkt(); } };
+  q('ml-st').onchange = e => { s.fSt = e.target.value; renderListaMkt(); };
+  q('ml-sol').onchange = e => { s.fSol = e.target.value; renderListaMkt(); };
+  q('ml-loja').onchange = e => { s.fLoja = e.target.value; renderListaMkt(); };
+  q('ml-ag').onchange = e => { s.agrupar = e.target.checked; renderListaMkt(); };
+  q('ml-csv').onclick = () => csvListaMkt(L);
+  $c.querySelectorAll('tr[data-mk]').forEach(tr => tr.onclick = () => abrirMkt(tr.dataset.mk));
+  $c.querySelectorAll('tr[data-sku]').forEach(tr => tr.onclick = () => { s.agrupar = false; s.busca = tr.dataset.sku; const bx = document.getElementById('mk-busca'); if (bx) bx.value = s.busca; renderListaMkt(); });
+}
+function csvListaMkt(L){
+  const c = v => `"${String(v ?? '').replace(/"/g, '""')}"`, d = iso => iso ? new Date(iso).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo' }) : '';
+  const cab = ['Nº', 'Solicitado em', 'Solicitante', 'Finalidade', 'Loja', 'SKU', 'Cor', 'Numeração', 'Qtd entregue', 'Qtd devolvida', 'Etapa', 'Retirada necessária', 'Separado por', 'Entregue em', 'Devolvido em', 'Realocado por', 'Dias com o MKT'];
+  const lin = L.map(({ x, i }) => [x.id, d(x.solicitado_em), x.solicitante, x.finalidade, i.cnpj_id, i.produto, i.cor, i.tamanho, i.qtd, i.qtd_devolvida, ROT_ST_MK[x.status], x.retirada_prevista ? dataBR(x.retirada_prevista) : '',
+    x.separado_operador, d(x.entregue_em), d(x.devolvido_em), x.realocado_operador, x.entregue_em ? diasDesde(x.entregue_em, x.devolvido_em) : ''].map(c).join(';'));
+  const blob = new Blob(['\ufeff' + [cab.map(c).join(';'), ...lin].join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `marketing-solicitacoes_${state.mk.de}_a_${state.mk.ate}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 async function abrirMkt(id){
   let r; try { r = await apiMkt(`/mkt/detalhe?id=${id}`); } catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); }
@@ -9312,7 +9402,7 @@ async function abrirMkt(id){
         entregue:'<button class="btn pri" data-pr="devolver">Registrar devolução ›</button>', devolvido:'<button class="btn pri" data-pr="realocar">Realocado ›</button>' }[x.status] || '' : ''}</div>
     ${r.eventos?.length ? `<details style="margin-top:8px"><summary class="info">Histórico</summary><div class="mk-tl">${r.eventos.map(e => `<div><b>${quando(e.em)}</b><span>${esc(quemTxt(e.por))} · ${esc(e.acao)}</span></div>`).join('')}</div></details>` : ''}</div>`;
   document.body.appendChild(dlg); const q = k => dlg.querySelector(k), $a = q('#mk-acao');
-  const fechar = () => dlg.remove(), feito = msg => { fechar(); avisar(msg); carregarMkt(); };
+  const fechar = () => dlg.remove(), feito = msg => { fechar(); avisar(msg); state.mk?.modo === 'lista' ? carregarListaMkt() : carregarMkt(); };
   const enviar = async (corpo, msg) => { try { await apiMkt('/mkt/acao', { id:x.id, ...corpo }); feito(msg); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
   q('[data-x]').onclick = fechar;
   q('#mk-ficha').onclick = () => imprimirHtml(fichaMkt(x));
@@ -9387,7 +9477,7 @@ function formMkt(x){
     if (!corpo.retirada_prevista) return avisar('Informe a data em que precisa retirar os pares', true);
     if (!corpo.itens.length) return avisar('Inclua pelo menos um par', true);
     if (corpo.itens.some(i => !i.cnpj_id)) return avisar('Escolha a loja de cada item', true);
-    try { const r = await apiMkt('/mkt/solicitacao', corpo); dlg.remove(); avisar(novo ? `Solicitação #${r.id} enviada para a logística` : 'Solicitação salva'); carregarMkt(); }
+    try { const r = await apiMkt('/mkt/solicitacao', corpo); dlg.remove(); avisar(novo ? `Solicitação #${r.id} enviada para a logística` : 'Solicitação salva'); state.mk?.modo === 'lista' ? carregarListaMkt() : carregarMkt(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
 }
 // ficha A4 (uma via): retirada e devolução assinadas. Compacta; as assinaturas nunca se separam da tabela em páginas diferentes sem necessidade
@@ -9402,7 +9492,8 @@ function fichaMkt(x){
     .dados .w2{grid-column:span 2}
     table{width:100%;border-collapse:collapse} thead{display:table-header-group} tr{break-inside:avoid;page-break-inside:avoid}
     th,td{border:.25mm solid #c3c9d3;padding:.9mm 1.6mm;text-align:left;font-size:8.5pt} th{background:#eef1f6;font-size:7pt;text-transform:uppercase;letter-spacing:.02em} td.n,th.n{text-align:center}
-    td.sku{font-weight:700;font-family:Consolas,'Courier New',monospace;font-size:8.5pt} tr.tot td{font-weight:700;background:#f6f7f9}
+    td.sku{font-weight:700;font-family:Consolas,'Courier New',monospace;font-size:8pt;word-break:break-all} th small{font-weight:400;text-transform:none;font-size:6.5pt}
+    td.end{background:#fbfcfd} td{overflow-wrap:anywhere} tbody tr td{height:6mm} tr.tot td{font-weight:700;background:#f6f7f9}
     .fim{break-inside:avoid;page-break-inside:avoid}
     .blocos{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:4mm}
     .bloco{border:.35mm solid #02285a;border-radius:1.5mm;padding:2mm 3mm} .bloco h3{margin:0 0 1mm;font-size:8.5pt;color:#02285a;text-transform:uppercase}
@@ -9416,9 +9507,9 @@ function fichaMkt(x){
       <div><span>Retirada necessária</span><b>${x.retirada_prevista ? dataBR(x.retirada_prevista) : '—'}</b></div><div><span>Total</span><b>${pares} par${pares === 1 ? '' : 'es'}</b></div>
       <div class="w2"><span>Finalidade</span>${esc(x.finalidade || '—')}</div><div class="w2"><span>Separado por (operador)</span>${x.separado_operador ? esc(x.separado_operador) : '&nbsp;'}</div></div>
     ${dev ? `<div class="parc">Devolução parcial já registrada no portal: <b>${dev}</b> de ${pares} par(es) devolvido(s), faltam <b>${pares - dev}</b>.</div>` : ''}
-    <table><thead><tr><th style="width:9%">Loja</th><th>SKU</th><th style="width:19%">Cor</th><th class="n" style="width:6%">Nº</th><th class="n" style="width:11%">Qtd. entregue</th><th class="n" style="width:11%">Qtd. devolvida</th></tr></thead><tbody>
-      ${x.itens.map(i => `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
-      <tr class="tot"><td colspan="4">Total</td><td class="n">${pares}</td><td class="n">${dev || ''}</td></tr></tbody></table>
+    <table style="table-layout:fixed"><thead><tr><th style="width:8%">Loja</th><th style="width:17%">SKU</th><th style="width:22%">Endereço retirado <small>(operador)</small></th><th style="width:17%">Cor</th><th class="n" style="width:6%">Nº</th><th class="n" style="width:15%">Qtd. entregue</th><th class="n" style="width:15%">Qtd. devolvida</th></tr></thead><tbody>
+      ${x.itens.map(i => `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td class="end"></td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
+      <tr class="tot"><td colspan="5">Total</td><td class="n">${pares}</td><td class="n">${dev || ''}</td></tr></tbody></table>
     <div class="fim">
       ${x.observacao ? `<div class="nota">Obs.: ${esc(x.observacao)}</div>` : ''}
       <div class="bloco" style="margin-top:4mm"><h3>Retirada</h3><div class="blocos" style="margin-top:0">${ass('Entregue por (logística)')}${ass('Recebido por (solicitante)', x.solicitante)}</div></div>
