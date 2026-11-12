@@ -377,7 +377,10 @@
   .btn.btn-ok{background:#1a7a3e;border-color:#1a7a3e} .btn.btn-dev{color:#a33d00;border-color:#e9b9a0}
   .btn.pulsa{border-color:#0b4fa8;box-shadow:0 0 0 2px #cfe0f7}
   #pl-hist-box{margin-top:12px} .pl-ev{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px} .pl-ev ul{margin:4px 0 0;padding-left:18px;color:#3c4558}
-  .pl-modal{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.45);display:flex;align-items:center;justify-content:center;padding:16px} .pl-modal .painel{width:min(460px,100%)}
+  .pl-modal{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.45);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;overscroll-behavior:contain} .pl-modal .painel{width:min(460px,100%)}
+  /* janela maior que a tela (ex.: solicitação com muitas linhas): centraliza quando cabe e rola quando não cabe, sem cortar o topo nem os botões */
+  .pl-modal>.painel{margin:auto 0;max-width:100%;box-sizing:border-box;min-width:0} .pl-modal .painel table{max-width:100%}
+  @media (max-width:640px){ .pl-modal{padding:8px} .pl-modal>.painel{padding:12px} }
   .erro-campo{border-color:#c0392b !important}
   .pl-det summary{cursor:pointer;color:#0b4fa8;font-size:13px;margin-top:6px} .pl-tab.ro td{padding:4px 3px}
   .pl-limite.atraso{color:#a33d00}
@@ -9223,7 +9226,9 @@ const CSS_MK = `
   .mk-itens input,.mk-itens select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;width:100%;box-sizing:border-box}
   .mk-linha{display:grid;grid-template-columns:110px 1fr 120px 70px 70px 32px;gap:6px;align-items:center;margin-bottom:6px}
   .mk-linha input,.mk-linha select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;box-sizing:border-box}
-  @media (max-width:640px){ .mk-linha{grid-template-columns:1fr 1fr} }
+  /* celular: cada par em 2 linhas → [loja | SKU] e [cor | nº | qtd | ×] */
+  @media (max-width:640px){ .mk-linha{grid-template-columns:1.4fr .8fr .8fr 40px;padding-bottom:8px;border-bottom:1px dashed var(--line)}
+    .mk-linha>:nth-child(2){grid-column:2/-1} }
   .mk-tl{display:grid;gap:4px;font-size:12.5px;margin-top:8px} .mk-tl div{display:flex;gap:8px} .mk-tl b{min-width:120px}
   .mk-conf{display:flex;gap:8px;align-items:flex-start;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}
   .mk-conf input{margin-top:3px}
@@ -9468,9 +9473,9 @@ async function abrirMkt(id){
       ${x.status === 'entregue' ? `<span class="mk-dias ${diasDesde(x.entregue_em) >= 7 ? 'd7' : diasDesde(x.entregue_em) >= 3 ? 'd3' : ''}">${diasDesde(x.entregue_em)} dia(s) com o MKT</span>` : ''}<span style="flex:1"></span><button class="btn" data-x>✕</button></div>
     <div class="info">Motivo: <b>${esc(motivoMk(x))}</b>${gerir || (meu && pode('mkt', 'editar')) ? ` <span class="mk-lnk" id="mk-mot">${x.motivo ? 'mudar' : 'informar'} motivo</span>` : ''} · Destino: <b>${esc(DESTINOS_MK[x.destino] || '—')}</b>
       ${['solicitado', 'separado', 'entregue', 'armazenado'].includes(x.status) && ((meu && ['solicitado', 'separado'].includes(x.status) && pode('mkt', 'editar')) || gerir) ? ` <span class="mk-lnk" id="mk-dest">mudar destino</span>` : ''}</div>${x.retirada_prevista ? `<div class="info">📅 Retirada necessária: <b>${dataBR(x.retirada_prevista)}</b></div>` : ''}${x.observacao ? `<div class="info">Obs.: ${esc(x.observacao)}</div>` : ''}
-    <table class="mk-itens" style="margin-top:8px"><thead><tr><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Qtd. entregue</th><th class="n">Qtd. devolvida</th></tr></thead><tbody>
+    <div style="overflow-x:auto;margin-top:8px">    <table class="mk-itens"><thead><tr><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Qtd. entregue</th><th class="n">Qtd. devolvida</th></tr></thead><tbody>
       ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `${i.qtd_devolvida}${i.qtd_devolvida < i.qtd ? ` <span class="info">(faltam ${i.qtd - i.qtd_devolvida})</span>` : ' ✓'}` : '–'}</td></tr>`).join('')}
-      <tr><td colspan="4"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table>
+      <tr><td colspan="4"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table></div>
     <div class="mk-tl">${passo('Solicitado', x.solicitado_em, x.solicitado_por)}${passo('Separado', x.separado_em, x.separado_por, `${x.separado_operador ? ` · separado por <b>${esc(x.separado_operador)}</b>` : ''} · movido ao prédio MKT`)}${passo('Entregue', x.entregue_em, x.entregue_por, x.recebido_por ? ` · retirado por ${esc(x.recebido_por)}` : '')}
       ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, `${x.realocado_operador ? ` · realocado por <b>${esc(x.realocado_operador)}</b>` : ''} · de volta ao estoque`)}${x.status === 'armazenado' ? `<div><b>Armazenado no MKT</b><span>${pares - dev} par(es) ficam no Marketing (não voltam para a logística)</span></div>` : ''}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
     <div id="mk-acao"></div>
