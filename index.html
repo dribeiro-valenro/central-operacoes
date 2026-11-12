@@ -9172,10 +9172,15 @@ const ETAPAS_MK = [
   { id:'entregue',   rot:'Com o Marketing', cor:'#c2185b' },
   { id:'devolvido',  rot:'Devolvido',  cor:'#6b3fa0' },
   { id:'realocado',  rot:'Realocado',  cor:'#1a7a3e' },
+  { id:'armazenado', rot:'Armazenado no MKT', cor:'#8a5a00' },   // destino Marketing: termina na entrega, os pares não voltam
 ];
+const MOTIVOS_MK = { anuncio:'Criar anúncio', live:'Fazer live', video:'Fazer vídeo', fotos:'Novas fotos', outro:'Outro' };
+const DESTINOS_MK = { logistica:'Devolve para a logística', marketing:'Fica armazenado no Marketing' };
+const motivoMk = x => x.motivo ? (x.motivo === 'outro' ? `Outro: ${x.motivo_outro || ''}` : MOTIVOS_MK[x.motivo]) : (x.finalidade ? `(antigo) ${x.finalidade}` : '—');
+const tagDestMk = x => x.destino === 'marketing' ? '<span class="mk-dest arm" title="Os pares ficam armazenados no Marketing (não voltam)">📦 fica no MKT</span>' : '<span class="mk-dest" title="Os pares voltam para a logística">↩ volta</span>';
 const CSS_MK = `
   .mk-kpis{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px} .mk-kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px} .mk-kpi b{font-size:20px;display:block}
-  .mk-kan{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));gap:10px;overflow-x:auto;align-items:start}
+  .mk-kan{display:grid;grid-template-columns:repeat(6,minmax(190px,1fr));gap:10px;overflow-x:auto;align-items:start}
   .mk-col{background:#f6f7f9;border-radius:12px;padding:8px;min-height:120px;border-top:4px solid var(--c)} .mk-col h4{margin:2px 4px 8px;font-size:13px;display:flex;justify-content:space-between;color:var(--c)}
   .mk-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:pointer;display:grid;gap:3px;font-size:13px}
   .mk-card:hover{border-color:#0b6bcb} .mk-card .t{display:flex;justify-content:space-between;gap:6px} .mk-card small{color:var(--mute)}
@@ -9202,6 +9207,15 @@ const CSS_MK = `
   .mk-tab th{background:#f6f7f9;position:sticky;top:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mute)} .mk-tab td.n,.mk-tab th.n{text-align:right}
   .mk-tab tbody tr{cursor:pointer} .mk-tab tbody tr:hover{background:#f4f8fd} .mk-tab td.sku{font-family:Consolas,monospace;font-weight:700}
   .mk-st{display:inline-block;border-radius:99px;padding:0 8px;color:#fff;font-size:11px;font-weight:700}
+  .mk-dest{display:inline-block;border-radius:99px;padding:0 7px;font-size:11px;font-weight:700;background:#eef3fb;color:#0b4fa8;border:1px solid #d5e2f5}
+  .mk-dest.arm{background:#fff1d6;color:#8a5a00;border-color:#f0d9a8}
+  .mk-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;margin:0 0 12px}
+  .mk-res .cx{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px} .mk-res h4{margin:0 0 6px;font-size:13px}
+  .mk-res table{width:100%;border-collapse:collapse;font-size:12.5px} .mk-res td,.mk-res th{padding:3px 6px;border-bottom:1px solid #eef0f4;text-align:left} .mk-res .n{text-align:right}
+  .mk-res .bar{height:6px;border-radius:3px;background:#0b4fa8;opacity:.75} .mk-res th{font-size:11px;color:var(--mute);font-weight:600}
+  .mk-esc{display:flex;flex-wrap:wrap;gap:8px;font-size:14px}
+  .mk-form .mk-esc label{display:inline-flex !important;flex-direction:row;gap:7px;align-items:center;font-weight:500;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;margin:0;color:inherit}
+  .mk-form .mk-esc label:has(input:checked){border-color:#0b4fa8;background:#eef3fb} .mk-form .mk-esc input{width:auto;margin:0;padding:0}
   .mk-hint{font-size:12px;color:#7a5a00;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:5px 9px;margin:6px 0}`;
 const diasDesde = (ini, fim) => ini ? Math.max(0, Math.floor(((fim ? new Date(fim) : new Date()) - new Date(ini)) / 86400000)) : 0;
 const paresMk = s => s.itens.reduce((t, i) => t + i.qtd, 0), devMk = s => s.itens.reduce((t, i) => t + i.qtd_devolvida, 0);
@@ -9211,20 +9225,21 @@ const linkMk = id => `${urlPortal()}?tela=mkt&mkt=${encodeURIComponent(id)}`;
 let DEMO_MK = null;
 function demoMkBase(){
   const h = Date.now(), d = n => new Date(h - n * 86400000).toISOString();
-  const S = (id, sol, fin, st, dias, itens, x = {}) => ({ id:String(id), solicitante:sol, solicitante_login:null, finalidade:fin, observacao:null, status:st, solicitado_em:d(dias), solicitado_por:'demonstracao',
+  const S = (id, sol, mot, st, dias, itens, x = {}) => ({ id:String(id), solicitante:sol, solicitante_login:null, finalidade:null, motivo:mot, motivo_outro:null, destino:st === 'armazenado' ? 'marketing' : 'logistica', observacao:null, status:st, solicitado_em:d(dias), solicitado_por:'demonstracao',
     separado_em:['separado', 'entregue', 'devolvido', 'realocado'].includes(st) ? d(dias - 0.1) : null, separado_por:'guilherme.porto',
-    entregue_em:['entregue', 'devolvido', 'realocado'].includes(st) ? d(dias - 0.2) : null, entregue_por:'guilherme.porto', recebido_por:['entregue', 'devolvido', 'realocado'].includes(st) ? sol : null,
+    entregue_em:['entregue', 'devolvido', 'realocado', 'armazenado'].includes(st) ? d(dias - 0.2) : null, entregue_por:'guilherme.porto', recebido_por:['entregue', 'devolvido', 'realocado', 'armazenado'].includes(st) ? sol : null,
     devolvido_em:['devolvido', 'realocado'].includes(st) ? d(Math.max(0, dias - 3)) : null, devolvido_por:['devolvido', 'realocado'].includes(st) ? sol : null, conferido_por:'guilherme.porto',
     realocado_em:st === 'realocado' ? d(Math.max(0, dias - 3.5)) : null, realocado_por:'guilherme.porto',
     retirada_prevista:addDias(hojeBRT(), Math.round(1 - dias)), separado_operador:st !== 'solicitado' ? 'Arthur Magdaleno' : null, realocado_operador:st === 'realocado' ? 'Davi Duarte' : null, cancelado_em:null, cancelado_por:null, motivo_cancelamento:null, atualizado_em:d(0), atualizado_por:'demonstracao',
     itens:itens.map((i, k) => ({ id:`${id}-${k}`, cnpj_id:i[0], produto:i[1], cor:i[2], tamanho:i[3], qtd:i[4], qtd_devolvida:st === 'devolvido' || st === 'realocado' ? i[4] : (i[5] || 0) })), ...x });
   return { seq:20, eventos:[], lista:[
-    S(14, 'Juliana Prado', 'Fotos coleção verão', 'solicitado', 0, [['DIGOS', '6371-367-7286', 'PRETO', '36', 1], ['CACAL', '1478-100-31404', 'BEGE', '35', 1], ['DIGOS', 'DST04WI', 'ROSA', '25', 1]]),
-    S(13, 'Juliana Prado', 'Vídeo para anúncio Shopee', 'separado', 0.5, [['DROSA', 'T7044-336', 'PRETO', '37', 2]]),
-    S(12, 'Rafael Lima', 'Reels lançamento', 'entregue', 2, [['DIGOS', 'DST04WI', 'ROSA', '25', 1], ['DIGOS', '4202-555-24497', 'MARINHO', '38', 2, 1]]),
-    S(10, 'Juliana Prado', 'Fotos de catálogo', 'entregue', 9, [['CACAL', '5435-560-29564', 'CHOCOLATE', '37', 1], ['CACAL', '8560-314-30277', 'CHOCOLATE', '34', 1], ['DIGOS', 'T1038-546', 'PRETO', '34', 1]]),
-    S(9, 'Rafael Lima', 'Fotos de catálogo', 'devolvido', 5, [['DIGOS', '24-80231', 'OURO', '34', 2]]),
-    S(7, 'Juliana Prado', 'Campanha dia das mães', 'realocado', 12, [['DROSA', '6262-406-7286', 'PRETO', '33', 3]]),
+    S(14, 'Juliana Prado', 'fotos', 'solicitado', 0, [['DIGOS', '6371-367-7286', 'PRETO', '36', 1], ['CACAL', '1478-100-31404', 'BEGE', '35', 1], ['DIGOS', 'DST04WI', 'ROSA', '25', 1]]),
+    S(13, 'Juliana Prado', 'video', 'separado', 0.5, [['DROSA', 'T7044-336', 'PRETO', '37', 2]]),
+    S(12, 'Rafael Lima', 'live', 'entregue', 2, [['DIGOS', 'DST04WI', 'ROSA', '25', 1], ['DIGOS', '4202-555-24497', 'MARINHO', '38', 2, 1]]),
+    S(11, 'Rafael Lima', 'anuncio', 'armazenado', 6, [['DIGOS', '4830-317', 'CREME/NUDE', '35', 1], ['CACAL', '8560-314-30277', 'CHOCOLATE', '36', 1]]),
+    S(10, 'Juliana Prado', 'anuncio', 'entregue', 9, [['CACAL', '5435-560-29564', 'CHOCOLATE', '37', 1], ['CACAL', '8560-314-30277', 'CHOCOLATE', '34', 1], ['DIGOS', 'T1038-546', 'PRETO', '34', 1]]),
+    S(9, 'Rafael Lima', 'fotos', 'devolvido', 5, [['DIGOS', '24-80231', 'OURO', '34', 2]]),
+    S(7, 'Juliana Prado', 'outro', 'realocado', 12, [['DROSA', '6262-406-7286', 'PRETO', '33', 3]], { motivo_outro:'Campanha dia das mães' }),
   ] };
 }
 async function apiMkt(path, corpo){
@@ -9237,20 +9252,25 @@ async function apiMkt(path, corpo){
     if (!itens.length) throw new Error('Inclua pelo menos um par'); if (itens.some(i => !i.cnpj_id)) throw new Error('Escolha a loja de cada item'); if (itens.some(i => !(i.qtd >= 1))) throw new Error('Quantidade inválida');
     const its = id => itens.map((i, k) => ({ id:`${id}-${k}-${Date.now()}`, cnpj_id:i.cnpj_id, produto:caixaAltaTxt(i.produto), cor:caixaAltaTxt(i.cor || ''), tamanho:i.tamanho || '', qtd:Number(i.qtd), qtd_devolvida:0 }));
     if (!corpo.retirada_prevista) throw new Error('Informe a data em que precisa retirar os pares');
-    if (corpo.id) { const s = D.lista.find(x => x.id === corpo.id); if (s.status !== 'solicitado') throw new Error('Só dá para alterar enquanto está "Solicitado"'); Object.assign(s, { solicitante:corpo.solicitante, finalidade:corpo.finalidade, observacao:corpo.observacao, retirada_prevista:corpo.retirada_prevista, solicitado_em:corpo.solicitado_em || s.solicitado_em, itens:its(s.id) }); ev(s.id, 'alterou'); return { ok:true, id:s.id }; }
-    const id = String(++D.seq); D.lista.unshift({ id, solicitante:corpo.solicitante.trim(), finalidade:corpo.finalidade || null, observacao:corpo.observacao || null, retirada_prevista:corpo.retirada_prevista, status:'solicitado', solicitado_em:corpo.solicitado_em || ag, solicitado_por:'demonstracao', itens:its(id) }); ev(id, 'solicitou'); return { ok:true, id }; }
+    if (!MOTIVOS_MK[corpo.motivo]) throw new Error('Escolha o motivo da solicitação'); if (corpo.motivo === 'outro' && !String(corpo.motivo_outro || '').trim()) throw new Error('Descreva o motivo (Outro)');
+    if (!DESTINOS_MK[corpo.destino]) throw new Error('Escolha se os pares voltam para a logística ou ficam armazenados no Marketing');
+    const md = { motivo:corpo.motivo, motivo_outro:corpo.motivo === 'outro' ? corpo.motivo_outro.trim() : null, destino:corpo.destino };
+    if (corpo.id) { const s = D.lista.find(x => x.id === corpo.id); if (s.status !== 'solicitado') throw new Error('Só dá para alterar enquanto está "Solicitado"'); Object.assign(s, { solicitante:corpo.solicitante, ...md, observacao:corpo.observacao, retirada_prevista:corpo.retirada_prevista, solicitado_em:corpo.solicitado_em || s.solicitado_em, itens:its(s.id) }); ev(s.id, 'alterou'); return { ok:true, id:s.id }; }
+    const id = String(++D.seq); D.lista.unshift({ id, solicitante:corpo.solicitante.trim(), finalidade:null, ...md, observacao:corpo.observacao || null, retirada_prevista:corpo.retirada_prevista, status:'solicitado', solicitado_em:corpo.solicitado_em || ag, solicitado_por:'demonstracao', itens:its(id) }); ev(id, 'solicitou'); return { ok:true, id }; }
   if (path === '/mkt/acao') { const s = D.lista.find(x => x.id === corpo.id), a = corpo.acao, precisa = st => { if (!st.includes(s.status)) throw new Error('Essa ação não vale nesta etapa'); };
     const em = corpo.em || ag;
     if (['separar', 'realocar'].includes(a) && corpo.seenc !== true) throw new Error('Confirme a movimentação no Seenc antes de avançar');
     if (['separar', 'realocar'].includes(a) && !String(corpo.operador || '').trim()) throw new Error(`Informe o operador que ${a === 'separar' ? 'separou' : 'realocou'}`);
     if (a === 'datas') { Object.entries(corpo.datas || {}).forEach(([k, v]) => { if (s[k] && v) s[k] = v; }); if (corpo.separado_operador !== undefined && s.separado_em) s.separado_operador = corpo.separado_operador; if (corpo.realocado_operador !== undefined && s.realocado_em) s.realocado_operador = corpo.realocado_operador; ev(s.id, 'corrigiu datas'); return { ok:true }; }
     if (a === 'separar') { precisa(['solicitado']); Object.assign(s, { status:'separado', separado_em:em, separado_por:'demonstracao', separado_operador:corpo.operador }); }
-    else if (a === 'entregar') { precisa(['separado']); Object.assign(s, { status:'entregue', entregue_em:em, entregue_por:'demonstracao', recebido_por:corpo.recebido_por || s.solicitante }); }
+    else if (a === 'destino') { if (!['solicitado', 'separado', 'entregue', 'armazenado'].includes(s.status)) throw new Error('O destino não muda mais'); s.destino = corpo.destino;
+      if (['entregue', 'armazenado'].includes(s.status)) s.status = corpo.destino === 'marketing' ? 'armazenado' : 'entregue'; ev(s.id, 'destino'); return { ok:true }; }
+    else if (a === 'entregar') { precisa(['separado']); Object.assign(s, { status:s.destino === 'marketing' ? 'armazenado' : 'entregue', entregue_em:em, entregue_por:'demonstracao', recebido_por:corpo.recebido_por || s.solicitante }); }
     else if (a === 'devolver') { precisa(['entregue']); let t = 0; (corpo.itens || []).forEach(d => { const i = s.itens.find(x => x.id === d.id); if (i && d.qtd > 0) { if (i.qtd_devolvida + d.qtd > i.qtd) throw new Error(`${i.produto}: devolvendo mais do que foi entregue`); i.qtd_devolvida += d.qtd; t += d.qtd; } });
       if (!t) throw new Error('Informe quantos pares voltaram'); const tudo = s.itens.every(i => i.qtd_devolvida >= i.qtd); Object.assign(s, { devolvido_por:corpo.devolvido_por || s.solicitante, conferido_por:'demonstracao', status:tudo ? 'devolvido' : 'entregue', devolvido_em:tudo ? em : null }); ev(s.id, tudo ? 'devolveu tudo' : 'devolveu parte'); return { ok:true, status:s.status }; }
     else if (a === 'realocar') { precisa(['devolvido']); Object.assign(s, { status:'realocado', realocado_em:em, realocado_por:'demonstracao', realocado_operador:corpo.operador }); }
     else if (a === 'cancelar') { precisa(['solicitado', 'separado']); if (!corpo.motivo) throw new Error('Informe o motivo do cancelamento'); if (s.status === 'separado' && corpo.seenc !== true) throw new Error('Confirme que os pares voltaram do prédio MKT no Seenc'); Object.assign(s, { status:'cancelado', cancelado_em:ag, cancelado_por:'demonstracao', motivo_cancelamento:corpo.motivo }); }
-    else if (a === 'voltar') { const i = ETAPAS_MK.findIndex(e => e.id === s.status); if (i <= 0) throw new Error('Não há etapa para desfazer'); if (['entregue', 'devolvido'].includes(s.status)) s.itens.forEach(x => x.qtd_devolvida = 0); s.status = ETAPAS_MK[i - 1].id; }
+    else if (a === 'voltar') { const i = s.status === 'armazenado' ? 2 : ETAPAS_MK.findIndex(e => e.id === s.status); if (i <= 0) throw new Error('Não há etapa para desfazer'); if (['entregue', 'devolvido', 'armazenado'].includes(s.status)) s.itens.forEach(x => x.qtd_devolvida = 0); if (s.status === 'armazenado') s.entregue_em = null; s.status = ETAPAS_MK[i - 1].id; }
     ev(s.id, a); return { ok:true }; }
   throw new Error('Rota de demonstração não encontrada');
 }
@@ -9283,22 +9303,23 @@ function repetidosMk(lista){
     solicitantes:new Set(v.map(o => o.x.solicitante.toLowerCase())).size }));
   return { grupos, ids:new Set(grupos.flatMap(g => g.ocs.map(o => o.x.id))) };
 }
-const ROT_ST_MK = { solicitado:'Solicitado', separado:'Separado', entregue:'Com o MKT', devolvido:'Devolvido', realocado:'Realocado', cancelado:'Cancelado' };
+const ROT_ST_MK = { solicitado:'Solicitado', separado:'Separado', entregue:'Com o MKT', devolvido:'Devolvido', realocado:'Realocado', armazenado:'Armazenado no MKT', cancelado:'Cancelado' };
 const corStMk = st => (ETAPAS_MK.find(e => e.id === st) || { cor:'#8a1f1f' }).cor;
 function renderMkt(){
   const $c = document.getElementById('mk'), D = state.mkDados; if (!$c || !D) return;
   const REP = repetidosMk(D.solicitacoes);
-  const b = semAcento(state.mk.busca || ''), filtra = x => !b || semAcento(`#${x.id} ${x.solicitante} ${x.finalidade || ''} ${x.itens.map(i => `${i.produto} ${i.cor || ''}`).join(' ')}`).includes(b);
+  const b = semAcento(state.mk.busca || ''), filtra = x => !b || semAcento(`#${x.id} ${x.solicitante} ${motivoMk(x)} ${x.itens.map(i => `${i.produto} ${i.cor || ''}`).join(' ')}`).includes(b);
   const L = D.solicitacoes.filter(filtra), comMk = D.solicitacoes.filter(x => x.status === 'entregue');
   const paresFora = comMk.reduce((t, x) => t + paresMk(x) - devMk(x), 0), maisAntigo = comMk.reduce((m, x) => Math.max(m, diasDesde(x.entregue_em)), 0);
   const card = x => { const pares = paresMk(x), dev = devMk(x), lojas = [...new Set(x.itens.map(i => i.cnpj_id))];
     let tempo = '';
     if (x.status === 'entregue') { const d = diasDesde(x.entregue_em); tempo = `<span class="mk-dias ${d >= 7 ? 'd7' : d >= 3 ? 'd3' : ''}" title="Dias com o Marketing desde a entrega">${d} dia${d === 1 ? '' : 's'} com o MKT</span>`; }
+    else if (x.status === 'armazenado') tempo = `<small>entregue ${quando(x.entregue_em)}${devMk(x) ? ` · ${paresMk(x) - devMk(x)} ficaram` : ''}</small>`;
     else if (x.status === 'devolvido' || x.status === 'realocado') tempo = `<small>ficou ${diasDesde(x.entregue_em, x.devolvido_em)} dia(s) com o MKT</small>`;
     else { const atr = x.retirada_prevista && x.retirada_prevista < D.hoje;
       tempo = `<small>${x.status === 'solicitado' ? 'pedido' : 'separado'} ${quando(x.status === 'solicitado' ? x.solicitado_em : x.separado_em)}</small>${x.retirada_prevista ? `<div class="mk-ret ${atr ? 'atr' : ''}">📅 retirar ${x.retirada_prevista === D.hoje ? 'hoje' : `em ${dataBR(x.retirada_prevista).slice(0, 5)}`}${atr ? ' (atrasado)' : ''}</div>` : ''}`; }
     return `<div class="mk-card" data-mk="${x.id}"><div class="t"><b>#${x.id} · ${esc(x.solicitante)}</b><span>${fmtN(pares)} par${pares === 1 ? '' : 'es'}</span></div>
-      ${x.finalidade ? `<small>${esc(x.finalidade)}</small>` : ''}<div>${lojas.map(l => tagLoja(l)).join(' ')}</div>
+      <small>${esc(motivoMk(x))}</small><div>${lojas.map(l => tagLoja(l)).join(' ')} ${x.status !== 'armazenado' ? tagDestMk(x) : ''}</div>
       ${x.status === 'entregue' && dev ? `<small><b>${dev}</b> de ${pares} já devolvido(s)</small>` : ''}<div>${tempo}</div>
       ${REP.ids.has(x.id) ? '<div><span class="mk-rep" title="Algum par desta solicitação também está em outra solicitação em aberto">⚠ par repetido</span></div>' : ''}</div>`; };
   const canc = L.filter(x => x.status === 'cancelado');
@@ -9327,16 +9348,19 @@ function linhasListaMkt(){
   const s = state.mk, H = state.mkHist, b = semAcento(s.busca || ''), hoje = H.hoje;
   return H.solicitacoes.flatMap(x => x.itens.map(i => ({ x, i }))).filter(({ x, i }) =>
     (!s.fSt || x.status === s.fSt) && (!s.fSol || x.solicitante === s.fSol) && (!s.fLoja || i.cnpj_id === s.fLoja)
-    && (!b || semAcento(`#${x.id} ${x.solicitante} ${x.finalidade || ''} ${i.produto} ${i.cor || ''} ${i.tamanho || ''}`).includes(b)));
+    && (!s.fMot || (s.fMot === 'sem' ? !x.motivo : x.motivo === s.fMot)) && (!s.fDest || x.destino === s.fDest)
+    && (!b || semAcento(`#${x.id} ${x.solicitante} ${motivoMk(x)} ${i.produto} ${i.cor || ''} ${i.tamanho || ''}`).includes(b)));
 }
 function renderListaMkt(){
   const $c = document.getElementById('mk'), H = state.mkHist, s = state.mk; if (!$c || !H) return;
   const L = linhasListaMkt(), sols = [...new Set(H.solicitacoes.map(x => x.solicitante))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const dias = x => x.entregue_em ? diasDesde(x.entregue_em, x.devolvido_em) : null;
+  const dias = x => x.entregue_em && x.status !== 'armazenado' ? diasDesde(x.entregue_em, x.devolvido_em) : null;
   const filtros = `<div class="mk-filtros"><label>Solicitado de <input type="date" id="ml-de" value="${s.de}" max="${hojeBRT()}"> a <input type="date" id="ml-ate" value="${s.ate}" max="${hojeBRT()}"></label>
       <label>Etapa <select id="ml-st"><option value="">todas</option>${Object.entries(ROT_ST_MK).map(([k, t]) => `<option value="${k}" ${s.fSt === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label>Solicitante <select id="ml-sol"><option value="">todos</option>${sols.map(n => `<option ${s.fSol === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       <label>Loja <select id="ml-loja"><option value="">todas</option>${(H.cnpjs || []).map(l => `<option ${s.fLoja === l ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label>Motivo <select id="ml-mot"><option value="">todos</option>${Object.entries(MOTIVOS_MK).map(([k, t]) => `<option value="${k}" ${s.fMot === k ? 'selected' : ''}>${t}</option>`).join('')}${H.solicitacoes.some(x => !x.motivo) ? `<option value="sem" ${s.fMot === 'sem' ? 'selected' : ''}>(sem motivo · antigas)</option>` : ''}</select></label>
+      <label>Destino <select id="ml-dest"><option value="">todos</option>${Object.entries(DESTINOS_MK).map(([k, t]) => `<option value="${k}" ${s.fDest === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label><input type="checkbox" id="ml-ag" ${s.agrupar ? 'checked' : ''}> Agrupar por SKU</label><span style="flex:1"></span><button class="btn" id="ml-csv">⬇ CSV</button></div>`;
   let corpo;
   if (s.agrupar) {
@@ -9348,13 +9372,13 @@ function renderListaMkt(){
       ${G.map(o => `<tr data-sku="${esc(o.sku)}"><td class="sku">${esc(o.sku)}</td><td>${esc(o.cor || '')}</td><td>${[...o.tams].sort((a, b) => Number(a) - Number(b)).join(', ')}</td><td class="n">${o.vezes.size}</td><td class="n">${o.pares}</td><td class="n">${o.dev}</td>
         <td class="n">${o.comMk || ''}</td><td style="white-space:normal">${esc([...o.sols].join(', '))}</td><td>${quando(o.ultima)}</td></tr>`).join('') || '<tr><td colspan="9" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
   } else {
-    corpo = `<table class="mk-tab"><thead><tr><th>Nº</th><th>Solicitado em</th><th>Solicitante</th><th>Finalidade</th><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Entregue</th><th class="n">Devolvida</th><th>Etapa</th><th>Retirada</th><th>Entregue em</th><th>Devolvido em</th><th class="n">Dias c/ MKT</th></tr></thead><tbody>
-      ${L.map(({ x, i }) => `<tr data-mk="${x.id}"><td>#${x.id}</td><td>${quando(x.solicitado_em)}</td><td>${esc(x.solicitante)}</td><td>${esc(x.finalidade || '')}</td><td>${tagLoja(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td>
+    corpo = `<table class="mk-tab"><thead><tr><th>Nº</th><th>Solicitado em</th><th>Solicitante</th><th>Motivo</th><th>Destino</th><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Entregue</th><th class="n">Devolvida</th><th>Etapa</th><th>Retirada</th><th>Entregue em</th><th>Devolvido em</th><th class="n">Dias c/ MKT</th></tr></thead><tbody>
+      ${L.map(({ x, i }) => `<tr data-mk="${x.id}"><td>#${x.id}</td><td>${quando(x.solicitado_em)}</td><td>${esc(x.solicitante)}</td><td>${esc(motivoMk(x))}</td><td>${tagDestMk(x)}</td><td>${tagLoja(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td>
         <td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida || ''}</td><td><span class="mk-st" style="background:${corStMk(x.status)}">${ROT_ST_MK[x.status]}</span></td><td>${x.retirada_prevista ? dataBR(x.retirada_prevista).slice(0, 5) : ''}</td>
-        <td>${x.entregue_em ? quando(x.entregue_em) : ''}</td><td>${x.devolvido_em ? quando(x.devolvido_em) : ''}</td><td class="n">${dias(x) ?? ''}</td></tr>`).join('') || '<tr><td colspan="15" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
+        <td>${x.entregue_em ? quando(x.entregue_em) : ''}</td><td>${x.devolvido_em ? quando(x.devolvido_em) : ''}</td><td class="n">${dias(x) ?? ''}</td></tr>`).join('') || '<tr><td colspan="16" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
   }
   const pares = L.reduce((t, { i }) => t + i.qtd, 0), nSol = new Set(L.map(({ x }) => x.id)).size;
-  $c.innerHTML = `${filtros}<div class="info" style="margin:0 0 6px"><b>${fmtN(L.length)}</b> linha(s) · <b>${fmtN(pares)}</b> pares · <b>${nSol}</b> solicitação(ões)${s.agrupar ? ' · clique num SKU para ver o histórico dele' : ' · clique numa linha para abrir a solicitação'}</div>
+  $c.innerHTML = `${filtros}${resumoListaMkt(L)}<div class="info" style="margin:0 0 6px"><b>${fmtN(L.length)}</b> linha(s) · <b>${fmtN(pares)}</b> pares · <b>${nSol}</b> solicitação(ões)${s.agrupar ? ' · clique num SKU para ver o histórico dele' : ' · clique numa linha para abrir a solicitação'}</div>
     <div style="overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:10px">${corpo}</div>`;
   const q = k => document.getElementById(k);
   q('ml-de').onchange = e => { if (e.target.value) { s.de = e.target.value; carregarListaMkt(); } };
@@ -9363,15 +9387,32 @@ function renderListaMkt(){
   q('ml-sol').onchange = e => { s.fSol = e.target.value; renderListaMkt(); };
   q('ml-loja').onchange = e => { s.fLoja = e.target.value; renderListaMkt(); };
   q('ml-ag').onchange = e => { s.agrupar = e.target.checked; renderListaMkt(); };
+  q('ml-mot').onchange = e => { s.fMot = e.target.value; renderListaMkt(); };
+  q('ml-dest').onchange = e => { s.fDest = e.target.value; renderListaMkt(); };
   q('ml-csv').onclick = () => csvListaMkt(L);
   $c.querySelectorAll('tr[data-mk]').forEach(tr => tr.onclick = () => abrirMkt(tr.dataset.mk));
   $c.querySelectorAll('tr[data-sku]').forEach(tr => tr.onclick = () => { s.agrupar = false; s.busca = tr.dataset.sku; const bx = document.getElementById('mk-busca'); if (bx) bx.value = s.busca; renderListaMkt(); });
 }
+// resumo do filtro por motivo e por destino (sem as canceladas, que não saíram do estoque)
+function resumoListaMkt(L){
+  const V = L.filter(({ x }) => x.status !== 'cancelado'); if (!V.length) return '';
+  const soma = chave => { const g = {}; V.forEach(({ x, i }) => { const k = chave(x), o = g[k] ||= { ids:new Set(), pares:0, fora:0, arm:0 };
+      o.ids.add(x.id); o.pares += i.qtd; const rest = i.qtd - i.qtd_devolvida;
+      if (x.status === 'entregue') o.fora += rest; if (x.status === 'armazenado') o.arm += rest; }); return g; };
+  const tot = V.reduce((t, { i }) => t + i.qtd, 0), nTot = new Set(V.map(({ x }) => x.id)).size;
+  const tab = (g, rot, extra) => { const ls = Object.entries(g).sort((a, b) => b[1].pares - a[1].pares), max = Math.max(...ls.map(([, o]) => o.pares));
+    return `<table><thead><tr><th></th><th class="n">Solicitações</th><th class="n">Pares</th><th class="n">%</th>${extra ? `<th class="n">${extra[0]}</th>` : ''}<th style="width:22%"></th></tr></thead><tbody>
+      ${ls.map(([k, o]) => `<tr><td>${rot(k)}</td><td class="n">${o.ids.size}</td><td class="n"><b>${fmtN(o.pares)}</b></td><td class="n">${Math.round(o.pares / tot * 100)}%</td>${extra ? `<td class="n">${extra[1](o) || '–'}</td>` : ''}<td><div class="bar" style="width:${Math.max(4, o.pares / max * 100)}%"></div></td></tr>`).join('')}
+      <tr><td><b>Total</b></td><td class="n"><b>${nTot}</b></td><td class="n"><b>${fmtN(tot)}</b></td><td></td>${extra ? '<td></td>' : ''}<td></td></tr></tbody></table>`; };
+  return `<div class="mk-res"><div class="cx"><h4>Por motivo</h4>${tab(soma(x => x.motivo || 'sem'), k => k === 'sem' ? '<span class="info">(sem motivo · antigas)</span>' : esc(MOTIVOS_MK[k]))}</div>
+    <div class="cx"><h4>Por destino</h4>${tab(soma(x => x.destino || 'logistica'), k => k === 'marketing' ? '📦 Armazenado no Marketing' : '↩ Devolve para a logística', ['Com o MKT hoje', o => fmtN(o.fora + o.arm)])}
+      <div class="info" style="margin-top:4px">"Com o MKT hoje": pares que ainda não voltaram (em uso + armazenados). Canceladas ficam fora do resumo.</div></div></div>`;
+}
 function csvListaMkt(L){
   const c = v => `"${String(v ?? '').replace(/"/g, '""')}"`, d = iso => iso ? new Date(iso).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo' }) : '';
-  const cab = ['Nº', 'Solicitado em', 'Solicitante', 'Finalidade', 'Loja', 'SKU', 'Cor', 'Numeração', 'Qtd entregue', 'Qtd devolvida', 'Etapa', 'Retirada necessária', 'Separado por', 'Entregue em', 'Devolvido em', 'Realocado por', 'Dias com o MKT'];
-  const lin = L.map(({ x, i }) => [x.id, d(x.solicitado_em), x.solicitante, x.finalidade, i.cnpj_id, i.produto, i.cor, i.tamanho, i.qtd, i.qtd_devolvida, ROT_ST_MK[x.status], x.retirada_prevista ? dataBR(x.retirada_prevista) : '',
-    x.separado_operador, d(x.entregue_em), d(x.devolvido_em), x.realocado_operador, x.entregue_em ? diasDesde(x.entregue_em, x.devolvido_em) : ''].map(c).join(';'));
+  const cab = ['Nº', 'Solicitado em', 'Solicitante', 'Motivo', 'Destino', 'Loja', 'SKU', 'Cor', 'Numeração', 'Qtd entregue', 'Qtd devolvida', 'Etapa', 'Retirada necessária', 'Separado por', 'Entregue em', 'Devolvido em', 'Realocado por', 'Dias com o MKT'];
+  const lin = L.map(({ x, i }) => [x.id, d(x.solicitado_em), x.solicitante, motivoMk(x), DESTINOS_MK[x.destino] || '', i.cnpj_id, i.produto, i.cor, i.tamanho, i.qtd, i.qtd_devolvida, ROT_ST_MK[x.status], x.retirada_prevista ? dataBR(x.retirada_prevista) : '',
+    x.separado_operador, d(x.entregue_em), d(x.devolvido_em), x.realocado_operador, x.entregue_em && x.status !== 'armazenado' ? diasDesde(x.entregue_em, x.devolvido_em) : ''].map(c).join(';'));
   const blob = new Blob(['\ufeff' + [cab.map(c).join(';'), ...lin].join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `marketing-solicitacoes_${state.mk.de}_a_${state.mk.ate}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
@@ -9384,12 +9425,13 @@ async function abrirMkt(id){
   dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)">
     <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">#${x.id} · ${esc(x.solicitante)}</h3><span class="mk-dias" style="background:${et ? et.cor : '#8a1f1f'};color:#fff">${et ? et.rot : 'Cancelado'}</span>
       ${x.status === 'entregue' ? `<span class="mk-dias ${diasDesde(x.entregue_em) >= 7 ? 'd7' : diasDesde(x.entregue_em) >= 3 ? 'd3' : ''}">${diasDesde(x.entregue_em)} dia(s) com o MKT</span>` : ''}<span style="flex:1"></span><button class="btn" data-x>✕</button></div>
-    ${x.finalidade ? `<div class="info">Finalidade: ${esc(x.finalidade)}</div>` : ''}${x.retirada_prevista ? `<div class="info">📅 Retirada necessária: <b>${dataBR(x.retirada_prevista)}</b></div>` : ''}${x.observacao ? `<div class="info">Obs.: ${esc(x.observacao)}</div>` : ''}
+    <div class="info">Motivo: <b>${esc(motivoMk(x))}</b> · Destino: <b>${esc(DESTINOS_MK[x.destino] || '—')}</b>
+      ${['solicitado', 'separado', 'entregue', 'armazenado'].includes(x.status) && ((meu && ['solicitado', 'separado'].includes(x.status) && pode('mkt', 'editar')) || gerir) ? ` <span class="mk-lnk" id="mk-dest">mudar destino</span>` : ''}</div>${x.retirada_prevista ? `<div class="info">📅 Retirada necessária: <b>${dataBR(x.retirada_prevista)}</b></div>` : ''}${x.observacao ? `<div class="info">Obs.: ${esc(x.observacao)}</div>` : ''}
     <table class="mk-itens" style="margin-top:8px"><thead><tr><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Qtd. entregue</th><th class="n">Qtd. devolvida</th></tr></thead><tbody>
       ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `${i.qtd_devolvida}${i.qtd_devolvida < i.qtd ? ` <span class="info">(faltam ${i.qtd - i.qtd_devolvida})</span>` : ' ✓'}` : '–'}</td></tr>`).join('')}
       <tr><td colspan="4"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table>
     <div class="mk-tl">${passo('Solicitado', x.solicitado_em, x.solicitado_por)}${passo('Separado', x.separado_em, x.separado_por, `${x.separado_operador ? ` · separado por <b>${esc(x.separado_operador)}</b>` : ''} · movido ao prédio MKT`)}${passo('Entregue', x.entregue_em, x.entregue_por, x.recebido_por ? ` · retirado por ${esc(x.recebido_por)}` : '')}
-      ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, `${x.realocado_operador ? ` · realocado por <b>${esc(x.realocado_operador)}</b>` : ''} · de volta ao estoque`)}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
+      ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, `${x.realocado_operador ? ` · realocado por <b>${esc(x.realocado_operador)}</b>` : ''} · de volta ao estoque`)}${x.status === 'armazenado' ? `<div><b>Armazenado no MKT</b><span>${pares - dev} par(es) ficam no Marketing (não voltam para a logística)</span></div>` : ''}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
     <div id="mk-acao"></div>
     <div class="gv-acoes" style="flex-wrap:wrap">
       <button class="btn" id="mk-ficha">🖨 Ficha</button>
@@ -9420,6 +9462,11 @@ async function abrirMkt(id){
       <div class="info">Uma etapa não pode ficar antes da anterior. A correção fica no histórico.</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Salvar datas</button></div>`;
     q('#mk-ok').onclick = () => enviar({ acao:'datas', datas:Object.fromEntries([...dlg.querySelectorAll('[data-dt]')].map(i => [i.dataset.dt, deLocal(i.value)])),
       ...(q('#mk-sop') ? { separado_operador:q('#mk-sop').value.trim() } : {}), ...(q('#mk-rop') ? { realocado_operador:q('#mk-rop').value.trim() } : {}) }, 'Datas corrigidas'); };
+  const ds = q('#mk-dest'); if (ds) ds.onclick = () => { const nv = x.destino === 'marketing' ? 'logistica' : 'marketing';
+    const aviso = { entregue:'Os pares que ainda não voltaram passam a ficar armazenados no Marketing e a solicitação termina como "Armazenado no MKT".',
+      armazenado:'A solicitação volta para "Com o MKT" e os dias com o Marketing voltam a contar desde a entrega.' }[x.status] || 'A logística vai ver o novo destino na separação.';
+    $a.innerHTML = `<div class="mk-conf" style="display:block">Mudar para <b>${DESTINOS_MK[nv]}</b>. ${aviso}</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Confirmar novo destino</button></div>`;
+    q('#mk-ok').onclick = () => enviar({ acao:'destino', destino:nv }, `Destino: ${DESTINOS_MK[nv].toLowerCase()}`); };
   const ca = q('#mk-canc'); if (ca) ca.onclick = () => { $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label style="grid-column:1/-1">Motivo do cancelamento<input id="mk-mot" maxlength="200"></label></div>
       ${x.status === 'separado' ? conf('Os pares já voltaram do prédio MKT para o estoque físico no Seenc.', 'Cancelar solicitação') : '<div style="text-align:right"><button class="btn perigo" id="mk-ok">Cancelar solicitação</button></div>'}`;
     q('#mk-ok').onclick = () => enviar({ acao:'cancelar', motivo:q('#mk-mot').value.trim(), seenc:!!q('#mk-seenc')?.checked }, 'Solicitação cancelada'); };
@@ -9430,7 +9477,8 @@ async function abrirMkt(id){
       q('#mk-ok').onclick = () => enviar({ acao:'realocar', seenc:q('#mk-seenc').checked, operador:q('#mk-op').value.trim(), em:emVal() }, 'Realocado: ciclo encerrado'); }
     if (a === 'entregar') { $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label>Quem retirou (assina a ficha)<input id="mk-quem" value="${esc(x.solicitante)}" maxlength="80"></label>${campoEm()}</div>
         <div class="info">A ficha precisa estar assinada por quem retirou.</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Confirmar: Entregue</button></div>`;
-      q('#mk-ok').onclick = () => enviar({ acao:'entregar', recebido_por:q('#mk-quem').value.trim(), em:emVal() }, 'Entregue: começou a contar os dias com o MKT'); }
+      if (x.destino === 'marketing') $a.insertAdjacentHTML('afterbegin', '<div class="mk-hint">Destino: <b>fica armazenado no Marketing</b>. Com a entrega, a solicitação termina como "Armazenado no MKT".</div>');
+      q('#mk-ok').onclick = () => enviar({ acao:'entregar', recebido_por:q('#mk-quem').value.trim(), em:emVal() }, x.destino === 'marketing' ? 'Entregue: pares armazenados no Marketing' : 'Entregue: começou a contar os dias com o MKT'); }
     if (a === 'devolver') { const pend = x.itens.filter(i => i.qtd_devolvida < i.qtd);
       $a.innerHTML = `<div class="info" style="margin-top:8px">Quantos pares voltaram agora? (se voltar só parte, o restante continua contando os dias)</div>
         <table class="mk-itens"><thead><tr><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Pendente</th><th class="n" style="width:90px">Voltou</th></tr></thead><tbody>
@@ -9449,7 +9497,10 @@ function formMkt(x){
   dlg.innerHTML = `<div class="painel mk-form" style="width:min(780px,100%)"><h3 style="margin:0 0 8px">${novo ? 'Nova solicitação de pares' : `Editar solicitação #${x.id}`}</h3>
     <div class="grade-form g2"><label>Solicitante (quem pede e assina a retirada)<input id="mf-sol" list="mf-sols" maxlength="80" value="${esc(solPad)}"><datalist id="mf-sols">${(D?.solicitantes || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist></label>
       <label>Retirada necessária em<input type="date" id="mf-ret" value="${esc(x?.retirada_prevista || '')}"></label>
-      <label>Finalidade<input id="mf-fin" maxlength="200" value="${esc(x?.finalidade || '')}" placeholder="ex.: fotos da coleção verão"></label>
+      <label>Motivo *<select id="mf-mot"><option value="">— escolha —</option>${Object.entries(MOTIVOS_MK).map(([k, t]) => `<option value="${k}" ${x?.motivo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      <label id="mf-outro-l" style="${x?.motivo === 'outro' ? '' : 'display:none'}">Qual o motivo?<input id="mf-outro" maxlength="120" value="${esc(x?.motivo_outro || '')}" placeholder="descreva"></label>
+      <div style="grid-column:1/-1"><div class="info" style="margin-bottom:3px">Depois de usar, os pares… *</div><div class="mk-esc">${Object.entries(DESTINOS_MK).map(([k, t]) => `<label><input type="radio" name="mf-dest" value="${k}" ${x?.destino === k ? 'checked' : ''}> ${k === 'marketing' ? '📦' : '↩'} ${t}</label>`).join('')}</div></div>
+      ${x?.finalidade && !x?.motivo ? `<div class="info" style="grid-column:1/-1">Finalidade antiga: ${esc(x.finalidade)}</div>` : ''}
       ${gerir ? `<label>Data/hora da solicitação <span class="info">(para lançar antigas)</span><input type="datetime-local" id="mf-em" value="${isoLocal(x?.solicitado_em || new Date().toISOString())}" max="${agoraLocal()}"></label>` : ''}</div>
     <div class="mk-hint">Use o <b>mesmo código de SKU</b> que aparece na Weesu / Seenc (ex.: 6371-367-7286). SKU e cor ficam em maiúsculas.</div>
     <div class="info" style="margin:6px 0 4px">Pares (loja · SKU · cor · numeração · quantidade)</div><div id="mf-itens"></div>
@@ -9469,12 +9520,16 @@ function formMkt(x){
   desenha();
   q('#mf-mais').onclick = () => { const u = itens.at(-1); itens.push({ cnpj_id:u?.cnpj_id || '', produto:'', cor:'', tamanho:'', qtd:1 }); desenha(); dlg.querySelectorAll('[data-c="produto"]').at?.(-1)?.focus?.(); };
   q('[data-x]').onclick = () => dlg.remove();
+  q('#mf-mot').onchange = e => { q('#mf-outro-l').style.display = e.target.value === 'outro' ? '' : 'none'; if (e.target.value === 'outro') q('#mf-outro').focus(); };
   q('#mf-ok').onclick = async () => {
-    const corpo = { id:x?.id, solicitante:q('#mf-sol').value.trim(), finalidade:q('#mf-fin').value.trim(), observacao:q('#mf-obs').value.trim(), retirada_prevista:q('#mf-ret').value,
+    const corpo = { id:x?.id, solicitante:q('#mf-sol').value.trim(), motivo:q('#mf-mot').value, motivo_outro:q('#mf-outro').value.trim(), destino:dlg.querySelector('[name="mf-dest"]:checked')?.value || '', observacao:q('#mf-obs').value.trim(), retirada_prevista:q('#mf-ret').value,
       itens:itens.filter(i => String(i.produto).trim()).map(i => ({ ...i, produto:caixaAltaTxt(i.produto).trim(), cor:caixaAltaTxt(i.cor || '').trim() })) };
     const emF = q('#mf-em')?.value; if (emF && (!x || isoLocal(x.solicitado_em) !== emF) && (x || emF !== agoraLocal())) corpo.solicitado_em = deLocal(emF);
     if (!corpo.solicitante) return avisar('Informe o solicitante', true);
     if (!corpo.retirada_prevista) return avisar('Informe a data em que precisa retirar os pares', true);
+    if (!corpo.motivo) return avisar('Escolha o motivo', true);
+    if (corpo.motivo === 'outro' && !corpo.motivo_outro) return avisar('Descreva o motivo (Outro)', true);
+    if (!corpo.destino) return avisar('Escolha se os pares voltam para a logística ou ficam armazenados no Marketing', true);
     if (!corpo.itens.length) return avisar('Inclua pelo menos um par', true);
     if (corpo.itens.some(i => !i.cnpj_id)) return avisar('Escolha a loja de cada item', true);
     try { const r = await apiMkt('/mkt/solicitacao', corpo); dlg.remove(); avisar(novo ? `Solicitação #${r.id} enviada para a logística` : 'Solicitação salva'); state.mk?.modo === 'lista' ? carregarListaMkt() : carregarMkt(); }
@@ -9505,17 +9560,17 @@ function fichaMkt(x){
       <div class="n"><span>FICHA Nº</span><b>${x.id}</b></div><div class="qr">${QR.svg(linkMk(x.id))}</div></div>
     <div class="dados"><div><span>Solicitante (assina a retirada)</span><b>${esc(x.solicitante)}</b></div><div><span>Solicitado em</span>${dt(x.solicitado_em)}</div>
       <div><span>Retirada necessária</span><b>${x.retirada_prevista ? dataBR(x.retirada_prevista) : '—'}</b></div><div><span>Total</span><b>${pares} par${pares === 1 ? '' : 'es'}</b></div>
-      <div class="w2"><span>Finalidade</span>${esc(x.finalidade || '—')}</div><div class="w2"><span>Separado por (operador)</span>${x.separado_operador ? esc(x.separado_operador) : '&nbsp;'}</div></div>
+      <div><span>Motivo</span>${esc(motivoMk(x))}</div><div><span>Destino</span><b>${x.destino === 'marketing' ? 'Fica no Marketing' : 'Volta p/ logística'}</b></div><div class="w2"><span>Separado por (operador)</span>${x.separado_operador ? esc(x.separado_operador) : '&nbsp;'}</div></div>
     ${dev ? `<div class="parc">Devolução parcial já registrada no portal: <b>${dev}</b> de ${pares} par(es) devolvido(s), faltam <b>${pares - dev}</b>.</div>` : ''}
-    <table style="table-layout:fixed"><thead><tr><th style="width:7%">Loja</th><th style="width:29%">SKU</th><th style="width:14%">Endereço retirado <small>(operador)</small></th><th style="width:16%">Cor</th><th class="n" style="width:6%">Nº</th><th class="n" style="width:14%">Qtd. entregue</th><th class="n" style="width:14%">Qtd. devolvida</th></tr></thead><tbody>
+    <table style="table-layout:fixed"><thead><tr><th style="width:9%">Loja</th><th style="width:28%">SKU</th><th style="width:14%">Endereço retirado <small>(operador)</small></th><th style="width:15%">Cor</th><th class="n" style="width:6%">Nº</th><th class="n" style="width:14%">Qtd. entregue</th><th class="n" style="width:14%">Qtd. devolvida</th></tr></thead><tbody>
       ${x.itens.map(i => `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td class="end"></td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
       <tr class="tot"><td colspan="5">Total</td><td class="n">${pares}</td><td class="n">${dev || ''}</td></tr></tbody></table>
     <div class="fim">
       ${x.observacao ? `<div class="nota">Obs.: ${esc(x.observacao)}</div>` : ''}
       <div class="bloco" style="margin-top:4mm"><h3>Retirada</h3><div class="blocos" style="margin-top:0">${ass('Entregue por (logística)')}${ass('Recebido por (solicitante)', x.solicitante)}</div></div>
-      <div class="bloco" style="margin-top:3mm"><h3>Devoluções <small>(uma linha por devolução; parcial: anote os pares que voltaram e some na coluna “Qtd. devolvida”)</small></h3>
+      ${x.destino === 'marketing' && !dev ? `<div class="bloco" style="margin-top:3mm"><h3>Armazenado no Marketing</h3><div style="font-size:8pt">Estes pares <b>ficam armazenados no Marketing</b> e não voltam para a logística. Quem recebe passa a responder pela guarda deles. Se algum voltar, a logística muda o destino no portal antes de receber.</div></div>` : `<div class="bloco" style="margin-top:3mm"><h3>Devoluções <small>(uma linha por devolução; parcial: anote os pares que voltaram e some na coluna “Qtd. devolvida”)</small></h3>
         <table class="dv"><thead><tr><th style="width:17%">Data / hora</th><th class="n" style="width:10%">Pares</th><th>Devolvido por (nome e assinatura)</th><th>Conferido por (logística)</th></tr></thead>
-          <tbody>${'<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>'.repeat(3)}</tbody></table></div>
+          <tbody>${'<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>'.repeat(3)}</tbody></table></div>`}
       <div class="nota">Com o Marketing, os pares ficam no prédio MKT do Seenc. Na devolução, confira quantidade e numeração e realoque no estoque físico (anote quem realocou: ______________________).
         QR: registra entrega e devolução no portal. Impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}.</div></div></body></html>`;
 }
