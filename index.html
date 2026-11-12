@@ -9245,6 +9245,11 @@ const CSS_MK = `
   .mk-tab th{background:#f6f7f9;position:sticky;top:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mute)} .mk-tab td.n,.mk-tab th.n{text-align:right}
   .mk-tab tbody tr{cursor:pointer} .mk-tab tbody tr:hover{background:#f4f8fd} .mk-tab td.sku{font-family:Consolas,monospace;font-weight:700}
   .mk-st{display:inline-block;border-radius:99px;padding:0 8px;color:#fff;font-size:11px;font-weight:700}
+  .mk-sem{display:inline-block;border-radius:99px;padding:0 7px;font-size:11px;font-weight:700;background:#fde7e7;color:#a11d1d;border:1px solid #f3c4c4;white-space:nowrap}
+  .mk-av{grid-column:1/-1;font-size:12px;color:#8a4b00;background:#fff4e0;border:1px solid #f3d6a4;border-radius:6px;padding:3px 8px;margin-top:-2px}
+  .mk-itens tr.semest td{color:#9aa1ad} .mk-itens tr.semest td b{text-decoration:line-through}
+  .mk-itens td.end{font-family:Consolas,monospace;font-size:12px;white-space:nowrap}
+  .mk-ed td{padding:3px 5px} .mk-ed input[type=text]{width:100%;min-width:120px;text-transform:uppercase;font-family:Consolas,monospace;padding:4px 6px;border:1px solid var(--line);border-radius:6px}
   .mk-pr{display:inline-block;border-radius:5px;padding:0 5px;font-size:11px;font-weight:800;color:#fff;margin-right:4px;vertical-align:1px}
   .mk-pr.p1{background:#b3261e} .mk-pr.p2{background:#d2591a} .mk-pr.p3{background:#c79100} .mk-pr.p4{background:#2e7d32} .mk-pr.p5,.mk-pr.p6{background:#7a8294}
   .mk-dest{display:inline-block;border-radius:99px;padding:0 7px;font-size:11px;font-weight:700;background:#eef3fb;color:#0b4fa8;border:1px solid #d5e2f5}
@@ -9258,7 +9263,16 @@ const CSS_MK = `
   .mk-form .mk-esc label:has(input:checked){border-color:#0b4fa8;background:#eef3fb} .mk-form .mk-esc input{width:auto;margin:0;padding:0}
   .mk-hint{font-size:12px;color:#7a5a00;background:#fff8d6;border:1px solid #f1e3a0;border-radius:8px;padding:5px 9px;margin:6px 0}`;
 const diasDesde = (ini, fim) => ini ? Math.max(0, Math.floor(((fim ? new Date(fim) : new Date()) - new Date(ini)) / 86400000)) : 0;
-const paresMk = s => s.itens.reduce((t, i) => t + i.qtd, 0), devMk = s => s.itens.reduce((t, i) => t + i.qtd_devolvida, 0);
+// par apontado sem estoque: não foi entregue (conta 0) e não trava a devolução
+const semEstMk = i => !!i.sem_estoque_em, qMk = i => semEstMk(i) ? 0 : i.qtd;
+const paresMk = s => s.itens.reduce((t, i) => t + qMk(i), 0), devMk = s => s.itens.reduce((t, i) => t + i.qtd_devolvida, 0);
+const chaveParMk = i => [i.cnpj_id, String(i.produto || '').trim().toUpperCase(), String(i.cor || '').trim().toUpperCase(), String(i.tamanho || '').trim()].join('|');
+// último apontamento "sem estoque" do mesmo par (loja + SKU + cor + nº) em OUTRA solicitação → alerta (não impede)
+function semEstAntesMk(i, solId){
+  const L = (state.mk?.modo === 'lista' ? state.mkHist?.sem_estoque : state.mkDados?.sem_estoque) || state.mkDados?.sem_estoque || state.mkHist?.sem_estoque || [], k = chaveParMk(i);
+  return L.find(r => chaveParMk({ cnpj_id:r.cnpj_id, produto:r.produto, cor:r.cor, tamanho:r.tamanho }) === k && String(r.solicitacao_id) !== String(solId || '')) || null;
+}
+const txtSemEstMk = r => `apontado sem estoque em ${new Date(r.sem_estoque_em).toLocaleDateString('pt-BR', { timeZone:'America/Sao_Paulo' })} (solicitação #${r.solicitacao_id})`;
 const linkMk = id => `${urlPortal()}?tela=mkt&mkt=${encodeURIComponent(id)}`;
 
 // demonstração
@@ -9272,21 +9286,27 @@ function demoMkBase(){
     realocado_em:st === 'realocado' ? d(Math.max(0, dias - 3.5)) : null, realocado_por:'guilherme.porto',
     retirada_prevista:addDias(hojeBRT(), Math.round(1 - dias)), separado_operador:st !== 'solicitado' ? 'Arthur Magdaleno' : null, realocado_operador:st === 'realocado' ? 'Davi Duarte' : null, cancelado_em:null, cancelado_por:null, motivo_cancelamento:null, atualizado_em:d(0), atualizado_por:'demonstracao',
     itens:itens.map((i, k) => ({ id:`${id}-${k}`, cnpj_id:i[0], produto:i[1], cor:i[2], tamanho:i[3], qtd:i[4], qtd_devolvida:st === 'devolvido' || st === 'realocado' ? i[4] : (i[5] || 0) })), ...x });
-  return { seq:20, eventos:[], lista:[
+  const lista = [
     S(14, 'Juliana Prado', 'fotos', 'solicitado', 0, [['DIGOS', '6371-367-7286', 'PRETO', '36', 1], ['CACAL', '1478-100-31404', 'BEGE', '35', 1], ['DIGOS', 'DST04WI', 'ROSA', '25', 1]]),
     S(13, 'Juliana Prado', 'video', 'separado', 0.5, [['DROSA', 'T7044-336', 'PRETO', '37', 2]]),
     S(12, 'Rafael Lima', 'live', 'entregue', 2, [['DIGOS', 'DST04WI', 'ROSA', '25', 1], ['DIGOS', '4202-555-24497', 'MARINHO', '38', 2, 1]]),
     S(11, 'Rafael Lima', 'anuncio', 'armazenado', 6, [['DIGOS', '4830-317', 'CREME/NUDE', '35', 1], ['CACAL', '8560-314-30277', 'CHOCOLATE', '36', 1]]),
     S(10, 'Juliana Prado', 'anuncio', 'entregue', 9, [['CACAL', '5435-560-29564', 'CHOCOLATE', '37', 1], ['CACAL', '8560-314-30277', 'CHOCOLATE', '34', 1], ['DIGOS', 'T1038-546', 'PRETO', '34', 1]]),
     S(9, 'Rafael Lima', 'fotos', 'devolvido', 5, [['DIGOS', '24-80231', 'OURO', '34', 2]]),
-    S(7, 'Juliana Prado', 'outro', 'realocado', 12, [['DROSA', '6262-406-7286', 'PRETO', '33', 3]], { motivo_outro:'Campanha dia das mães' }),
-  ] };
+    S(7, 'Juliana Prado', 'outro', 'realocado', 12, [['DROSA', '6262-406-7286', 'PRETO', '33', 3], ['DIGOS', '6371-367-7286', 'PRETO', '36', 1]], { motivo_outro:'Campanha dia das mães' }),
+  ];
+  // exemplo: um par não encontrado (e pedido de novo na #14 → alerta)
+  const i7 = lista.at(-1).itens[1]; Object.assign(i7, { qtd_devolvida:0, sem_estoque_em:lista.at(-1).separado_em, sem_estoque_por:'guilherme.porto' });
+  lista.at(-1).itens[0].endereco = 'BL2-RUA3-P2-A1';
+  return { seq:20, eventos:[], lista };
 }
 async function apiMkt(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   const D = DEMO_MK ||= demoMkBase(), ag = new Date().toISOString(), cp = o => JSON.parse(JSON.stringify(o)), ev = (id, acao) => D.eventos.unshift({ id, em:ag, por:'demonstracao', acao, detalhe:null });
   if (path.startsWith('/mkt?')) { const p = new URLSearchParams(path.split('?')[1]), de = p.get('de'), ate = p.get('ate'), dia = iso => isoLocal(iso).slice(0, 10);
-    return cp({ solicitacoes:de && ate ? D.lista.filter(x => dia(x.solicitado_em) >= de && dia(x.solicitado_em) <= ate) : D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], operadores:['Arthur Magdaleno', 'Davi Duarte', 'Nathan Marques', 'Rafael Batista', 'Tiago Santos'], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() }); }
+    const semEst = Object.values(Object.fromEntries(D.lista.flatMap(x => x.itens.filter(semEstMk).map(i => ({ cnpj_id:i.cnpj_id, produto:i.produto, cor:i.cor, tamanho:i.tamanho, sem_estoque_em:i.sem_estoque_em, solicitacao_id:x.id })))
+      .sort((a, b) => a.sem_estoque_em.localeCompare(b.sem_estoque_em)).map(r => [chaveParMk(r), r])));
+    return cp({ sem_estoque:semEst, solicitacoes:de && ate ? D.lista.filter(x => dia(x.solicitado_em) >= de && dia(x.solicitado_em) <= ate) : D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], operadores:['Arthur Magdaleno', 'Davi Duarte', 'Nathan Marques', 'Rafael Batista', 'Tiago Santos'], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() }); }
   if (path.startsWith('/mkt/detalhe')) { const id = new URLSearchParams(path.split('?')[1]).get('id'), s = D.lista.find(x => x.id === id); if (!s) throw new Error('Solicitação não encontrada'); return cp({ solicitacao:s, eventos:D.eventos.filter(e => e.id === id) }); }
   if (path === '/mkt/solicitacao') { if (!String(corpo.solicitante || '').trim()) throw new Error('Informe o solicitante'); const itens = (corpo.itens || []).filter(i => i.produto);
     if (!itens.length) throw new Error('Inclua pelo menos um par'); if (itens.some(i => !i.cnpj_id)) throw new Error('Escolha a loja de cada item'); if (itens.some(i => !(i.qtd >= 1))) throw new Error('Quantidade inválida');
@@ -9302,6 +9322,9 @@ async function apiMkt(path, corpo){
     if (['separar', 'realocar'].includes(a) && corpo.seenc !== true) throw new Error('Confirme a movimentação no Seenc antes de avançar');
     if (['separar', 'realocar'].includes(a) && !String(corpo.operador || '').trim()) throw new Error(`Informe o operador que ${a === 'separar' ? 'separou' : 'realocou'}`);
     if (a === 'datas') { Object.entries(corpo.datas || {}).forEach(([k, v]) => { if (s[k] && v) s[k] = v; }); if (corpo.separado_operador !== undefined && s.separado_em) s.separado_operador = corpo.separado_operador; if (corpo.realocado_operador !== undefined && s.realocado_em) s.realocado_operador = corpo.realocado_operador; ev(s.id, 'corrigiu datas'); return { ok:true }; }
+    if (a === 'itens') { (corpo.itens || []).forEach(d => { const i = s.itens.find(x => x.id === d.id); if (!i) return; i.endereco = String(d.endereco || '').trim().toUpperCase().replace(/\s+/g, ' ') || null;
+        if (d.sem_estoque && !i.sem_estoque_em) Object.assign(i, { sem_estoque_em:corpo.em || ag, sem_estoque_por:'demonstracao' }); if (!d.sem_estoque) Object.assign(i, { sem_estoque_em:null, sem_estoque_por:null }); });
+      if (s.status === 'entregue' && s.itens.some(i => !semEstMk(i)) && s.itens.every(i => semEstMk(i) || i.qtd_devolvida >= i.qtd)) Object.assign(s, { status:'devolvido', devolvido_em:ag }); ev(s.id, 'endereços / estoque'); return { ok:true }; }
     if (a === 'separar') { precisa(['solicitado']); Object.assign(s, { status:'separado', separado_em:em, separado_por:'demonstracao', separado_operador:corpo.operador }); }
     else if (a === 'motivo') { if (!MOTIVOS_MK[corpo.motivo]) throw new Error('Escolha o motivo'); if (corpo.motivo === 'outro' && !corpo.motivo_outro) throw new Error('Descreva o motivo (Outro)');
       Object.assign(s, { motivo:corpo.motivo, motivo_outro:corpo.motivo === 'outro' ? corpo.motivo_outro : null }); ev(s.id, 'motivo'); return { ok:true }; }
@@ -9309,7 +9332,7 @@ async function apiMkt(path, corpo){
       if (['entregue', 'armazenado'].includes(s.status)) s.status = corpo.destino === 'marketing' ? 'armazenado' : 'entregue'; ev(s.id, 'destino'); return { ok:true }; }
     else if (a === 'entregar') { precisa(['separado']); Object.assign(s, { status:s.destino === 'marketing' ? 'armazenado' : 'entregue', entregue_em:em, entregue_por:'demonstracao', recebido_por:corpo.recebido_por || s.solicitante }); }
     else if (a === 'devolver') { precisa(['entregue']); let t = 0; (corpo.itens || []).forEach(d => { const i = s.itens.find(x => x.id === d.id); if (i && d.qtd > 0) { if (i.qtd_devolvida + d.qtd > i.qtd) throw new Error(`${i.produto}: devolvendo mais do que foi entregue`); i.qtd_devolvida += d.qtd; t += d.qtd; } });
-      if (!t) throw new Error('Informe quantos pares voltaram'); const tudo = s.itens.every(i => i.qtd_devolvida >= i.qtd); Object.assign(s, { devolvido_por:corpo.devolvido_por || s.solicitante, conferido_por:'demonstracao', status:tudo ? 'devolvido' : 'entregue', devolvido_em:tudo ? em : null }); ev(s.id, tudo ? 'devolveu tudo' : 'devolveu parte'); return { ok:true, status:s.status }; }
+      if (!t) throw new Error('Informe quantos pares voltaram'); const tudo = s.itens.every(i => semEstMk(i) || i.qtd_devolvida >= i.qtd); Object.assign(s, { devolvido_por:corpo.devolvido_por || s.solicitante, conferido_por:'demonstracao', status:tudo ? 'devolvido' : 'entregue', devolvido_em:tudo ? em : null }); ev(s.id, tudo ? 'devolveu tudo' : 'devolveu parte'); return { ok:true, status:s.status }; }
     else if (a === 'realocar') { precisa(['devolvido']); Object.assign(s, { status:'realocado', realocado_em:em, realocado_por:'demonstracao', realocado_operador:corpo.operador }); }
     else if (a === 'cancelar') { precisa(['solicitado', 'separado']); if (!corpo.motivo) throw new Error('Informe o motivo do cancelamento'); if (s.status === 'separado' && corpo.seenc !== true) throw new Error('Confirme que os pares voltaram do prédio MKT no Seenc'); Object.assign(s, { status:'cancelado', cancelado_em:ag, cancelado_por:'demonstracao', motivo_cancelamento:corpo.motivo }); }
     else if (a === 'voltar') { const i = s.status === 'armazenado' ? 2 : ETAPAS_MK.findIndex(e => e.id === s.status); if (i <= 0) throw new Error('Não há etapa para desfazer'); if (['entregue', 'devolvido', 'armazenado'].includes(s.status)) s.itens.forEach(x => x.qtd_devolvida = 0); if (s.status === 'armazenado') s.entregue_em = null; s.status = ETAPAS_MK[i - 1].id; }
@@ -9342,7 +9365,7 @@ async function carregarMkt(){
 // mesmo par (SKU + cor + numeração) em mais de uma solicitação em aberto ao mesmo tempo (ainda não devolvido)
 function repetidosMk(lista){
   const abertas = lista.filter(x => ['solicitado', 'separado', 'entregue'].includes(x.status)), g = {};
-  abertas.forEach(x => x.itens.filter(i => i.qtd_devolvida < i.qtd).forEach(i => { const k = `${i.produto}|${i.cor || ''}|${i.tamanho || ''}`; (g[k] ||= []).push({ x, i }); }));
+  abertas.forEach(x => x.itens.filter(i => i.qtd_devolvida < i.qtd && !semEstMk(i)).forEach(i => { const k = `${i.produto}|${i.cor || ''}|${i.tamanho || ''}`; (g[k] ||= []).push({ x, i }); }));
   const grupos = Object.entries(g).filter(([, v]) => new Set(v.map(o => o.x.id)).size > 1).map(([k, v]) => ({ k, sku:v[0].i.produto, cor:v[0].i.cor, tam:v[0].i.tamanho, ocs:v,
     solicitantes:new Set(v.map(o => o.x.solicitante.toLowerCase())).size }));
   return { grupos, ids:new Set(grupos.flatMap(g => g.ocs.map(o => o.x.id))) };
@@ -9367,7 +9390,9 @@ function renderMkt(){
     return `<div class="mk-card" data-mk="${x.id}"><div class="t"><b>#${x.id} · ${esc(x.solicitante)}</b><span>${fmtN(pares)} par${pares === 1 ? '' : 'es'}</span></div>
       <small>${['solicitado', 'separado'].includes(x.status) ? `<span class="mk-pr p${prioMk(x)}" title="Prioridade de separação pelo motivo">P${prioMk(x) > 5 ? '–' : prioMk(x)}</span>` : ''}${esc(motivoMk(x))}</small><div>${lojas.map(l => tagLoja(l)).join(' ')} ${x.status !== 'armazenado' ? tagDestMk(x) : ''}</div>
       ${x.status === 'entregue' && dev ? `<small><b>${dev}</b> de ${pares} já devolvido(s)</small>` : ''}<div>${tempo}</div>
-      ${REP.ids.has(x.id) ? '<div><span class="mk-rep" title="Algum par desta solicitação também está em outra solicitação em aberto">⚠ par repetido</span></div>' : ''}</div>`; };
+      ${REP.ids.has(x.id) ? '<div><span class="mk-rep" title="Algum par desta solicitação também está em outra solicitação em aberto">⚠ par repetido</span></div>' : ''}${(() => {
+        const nSem = x.itens.filter(semEstMk).length, ant = ['solicitado', 'separado'].includes(x.status) ? x.itens.filter(i => !semEstMk(i) && semEstAntesMk(i, x.id)).length : 0;
+        return nSem || ant ? `<div>${nSem ? `<span class="mk-sem" title="Pares que não foram encontrados (estoque zerado)">✕ ${nSem} sem estoque</span> ` : ''}${ant ? `<span class="mk-rep" title="Este par já foi apontado sem estoque em outra solicitação: confira o estoque antes de separar">⚠ sem estoque antes</span>` : ''}</div>` : ''; })()}</div>`; };
   const canc = L.filter(x => x.status === 'cancelado');
   const em = st => base.filter(x => x.status === st), pp = l => l.reduce((t, x) => t + paresMk(x), 0);
   $c.innerHTML = `<div class="mk-kpis"><div class="mk-kpi"><span class="info">Com o Marketing agora</span><b>${fmtN(paresFora)} pares</b><span class="info">${comMk.length} solicitação(ões)</span></div>
@@ -9394,8 +9419,8 @@ function linhasListaMkt(){
   const s = state.mk, H = state.mkHist, b = semAcento(s.busca || ''), hoje = H.hoje;
   return H.solicitacoes.flatMap(x => x.itens.map(i => ({ x, i }))).filter(({ x, i }) =>
     (!s.fSt || x.status === s.fSt) && (!s.fSol || x.solicitante === s.fSol) && (!s.fLoja || i.cnpj_id === s.fLoja)
-    && (!s.fMot || (s.fMot === 'sem' ? !x.motivo : x.motivo === s.fMot)) && (!s.fDest || x.destino === s.fDest)
-    && (!b || semAcento(`#${x.id} ${x.solicitante} ${motivoMk(x)} ${i.produto} ${i.cor || ''} ${i.tamanho || ''}`).includes(b)));
+    && (!s.fMot || (s.fMot === 'sem' ? !x.motivo : x.motivo === s.fMot)) && (!s.fDest || x.destino === s.fDest) && (!s.fSem || semEstMk(i))
+    && (!b || semAcento(`#${x.id} ${x.solicitante} ${motivoMk(x)} ${i.produto} ${i.cor || ''} ${i.tamanho || ''} ${i.endereco || ''}`).includes(b)));
 }
 function renderListaMkt(){
   const $c = document.getElementById('mk'), H = state.mkHist, s = state.mk; if (!$c || !H) return;
@@ -9406,24 +9431,25 @@ function renderListaMkt(){
       <label>Solicitante <select id="ml-sol"><option value="">todos</option>${sols.map(n => `<option ${s.fSol === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       <label>Loja <select id="ml-loja"><option value="">todas</option>${(H.cnpjs || []).map(l => `<option ${s.fLoja === l ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label>Motivo <select id="ml-mot"><option value="">todos</option>${Object.entries(MOTIVOS_MK).map(([k, t]) => `<option value="${k}" ${s.fMot === k ? 'selected' : ''}>${t}</option>`).join('')}${H.solicitacoes.some(x => !x.motivo) ? `<option value="sem" ${s.fMot === 'sem' ? 'selected' : ''}>(sem motivo · antigas)</option>` : ''}</select></label>
+      <label title="Só os pares apontados sem estoque"><input type="checkbox" id="ml-sem" ${s.fSem ? 'checked' : ''}> só sem estoque</label>
       <label>Destino <select id="ml-dest"><option value="">todos</option>${Object.entries(DESTINOS_MK).map(([k, t]) => `<option value="${k}" ${s.fDest === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label><input type="checkbox" id="ml-ag" ${s.agrupar ? 'checked' : ''}> Agrupar por SKU</label><span style="flex:1"></span><button class="btn" id="ml-csv">⬇ CSV</button></div>`;
   let corpo;
   if (s.agrupar) {
     const g = {}; L.forEach(({ x, i }) => { const k = `${i.produto}|${i.cor || ''}`; const o = g[k] ||= { sku:i.produto, cor:i.cor, vezes:new Set(), pares:0, dev:0, sols:new Set(), tams:new Set(), ultima:'', comMk:0 };
-      o.vezes.add(x.id); o.pares += i.qtd; o.dev += i.qtd_devolvida; o.sols.add(x.solicitante); if (i.tamanho) o.tams.add(i.tamanho); if (x.solicitado_em > o.ultima) o.ultima = x.solicitado_em;
+      o.vezes.add(x.id); o.pares += qMk(i); if (semEstMk(i)) o.sem = (o.sem || 0) + 1; o.dev += i.qtd_devolvida; o.sols.add(x.solicitante); if (i.tamanho) o.tams.add(i.tamanho); if (x.solicitado_em > o.ultima) o.ultima = x.solicitado_em;
       if (x.status === 'entregue') o.comMk += i.qtd - i.qtd_devolvida; });
     const G = Object.values(g).sort((a, b) => b.vezes.size - a.vezes.size || b.pares - a.pares);
-    corpo = `<table class="mk-tab"><thead><tr><th>SKU</th><th>Cor</th><th>Numerações</th><th class="n">Solicitações</th><th class="n">Pares pedidos</th><th class="n">Devolvidos</th><th class="n">Com o MKT agora</th><th>Solicitantes</th><th>Último pedido</th></tr></thead><tbody>
-      ${G.map(o => `<tr data-sku="${esc(o.sku)}"><td class="sku">${esc(o.sku)}</td><td>${esc(o.cor || '')}</td><td>${[...o.tams].sort((a, b) => Number(a) - Number(b)).join(', ')}</td><td class="n">${o.vezes.size}</td><td class="n">${o.pares}</td><td class="n">${o.dev}</td>
-        <td class="n">${o.comMk || ''}</td><td style="white-space:normal">${esc([...o.sols].join(', '))}</td><td>${quando(o.ultima)}</td></tr>`).join('') || '<tr><td colspan="9" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
+    corpo = `<table class="mk-tab"><thead><tr><th>SKU</th><th>Cor</th><th>Numerações</th><th class="n">Solicitações</th><th class="n">Pares entregues</th><th class="n" title="Vezes em que o par não foi encontrado">Sem estoque</th><th class="n">Devolvidos</th><th class="n">Com o MKT agora</th><th>Solicitantes</th><th>Último pedido</th></tr></thead><tbody>
+      ${G.map(o => `<tr data-sku="${esc(o.sku)}"><td class="sku">${esc(o.sku)}</td><td>${esc(o.cor || '')}</td><td>${[...o.tams].sort((a, b) => Number(a) - Number(b)).join(', ')}</td><td class="n">${o.vezes.size}</td><td class="n">${o.pares}</td><td class="n">${o.sem ? `<span class="mk-sem">${o.sem}×</span>` : ''}</td><td class="n">${o.dev}</td>
+        <td class="n">${o.comMk || ''}</td><td style="white-space:normal">${esc([...o.sols].join(', '))}</td><td>${quando(o.ultima)}</td></tr>`).join('') || '<tr><td colspan="10" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
   } else {
-    corpo = `<table class="mk-tab"><thead><tr><th>Nº</th><th>Solicitado em</th><th>Solicitante</th><th>Motivo</th><th>Destino</th><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Entregue</th><th class="n">Devolvida</th><th>Etapa</th><th>Retirada</th><th>Entregue em</th><th>Devolvido em</th><th class="n">Dias c/ MKT</th></tr></thead><tbody>
-      ${L.map(({ x, i }) => `<tr data-mk="${x.id}"><td>#${x.id}</td><td>${quando(x.solicitado_em)}</td><td>${esc(x.solicitante)}</td><td>${esc(motivoMk(x))}</td><td>${tagDestMk(x)}</td><td>${tagLoja(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td>
-        <td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida || ''}</td><td><span class="mk-st" style="background:${corStMk(x.status)}">${ROT_ST_MK[x.status]}</span></td><td>${x.retirada_prevista ? dataBR(x.retirada_prevista).slice(0, 5) : ''}</td>
-        <td>${x.entregue_em ? quando(x.entregue_em) : ''}</td><td>${x.devolvido_em ? quando(x.devolvido_em) : ''}</td><td class="n">${dias(x) ?? ''}</td></tr>`).join('') || '<tr><td colspan="16" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
+    corpo = `<table class="mk-tab"><thead><tr><th>Nº</th><th>Solicitado em</th><th>Solicitante</th><th>Motivo</th><th>Destino</th><th>Loja</th><th>SKU</th><th>Endereço</th><th>Cor</th><th>Nº</th><th class="n">Entregue</th><th class="n">Devolvida</th><th>Etapa</th><th>Retirada</th><th>Entregue em</th><th>Devolvido em</th><th class="n">Dias c/ MKT</th></tr></thead><tbody>
+      ${L.map(({ x, i }) => `<tr data-mk="${x.id}"><td>#${x.id}</td><td>${quando(x.solicitado_em)}</td><td>${esc(x.solicitante)}</td><td>${esc(motivoMk(x))}</td><td>${tagDestMk(x)}</td><td>${tagLoja(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td class="sku" style="font-weight:400">${semEstMk(i) ? `<span class="mk-sem">✕ sem estoque ${dataBR(isoLocal(i.sem_estoque_em).slice(0, 10)).slice(0, 5)}</span>` : esc(i.endereco || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td>
+        <td class="n">${qMk(i)}</td><td class="n">${i.qtd_devolvida || ''}</td><td><span class="mk-st" style="background:${corStMk(x.status)}">${ROT_ST_MK[x.status]}</span></td><td>${x.retirada_prevista ? dataBR(x.retirada_prevista).slice(0, 5) : ''}</td>
+        <td>${x.entregue_em ? quando(x.entregue_em) : ''}</td><td>${x.devolvido_em ? quando(x.devolvido_em) : ''}</td><td class="n">${dias(x) ?? ''}</td></tr>`).join('') || '<tr><td colspan="17" class="info">Nada no filtro.</td></tr>'}</tbody></table>`;
   }
-  const pares = L.reduce((t, { i }) => t + i.qtd, 0), nSol = new Set(L.map(({ x }) => x.id)).size;
+  const pares = L.reduce((t, { i }) => t + qMk(i), 0), nSol = new Set(L.map(({ x }) => x.id)).size;
   $c.innerHTML = `${filtros}${resumoListaMkt(L)}<div class="info" style="margin:0 0 6px"><b>${fmtN(L.length)}</b> linha(s) · <b>${fmtN(pares)}</b> pares · <b>${nSol}</b> solicitação(ões)${s.agrupar ? ' · clique num SKU para ver o histórico dele' : ' · clique numa linha para abrir a solicitação'}</div>
     <div style="overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:10px">${corpo}</div>`;
   const q = k => document.getElementById(k);
@@ -9435,6 +9461,7 @@ function renderListaMkt(){
   q('ml-ag').onchange = e => { s.agrupar = e.target.checked; renderListaMkt(); };
   q('ml-mot').onchange = e => { s.fMot = e.target.value; renderListaMkt(); };
   q('ml-dest').onchange = e => { s.fDest = e.target.value; renderListaMkt(); };
+  q('ml-sem').onchange = e => { s.fSem = e.target.checked; renderListaMkt(); };
   q('ml-csv').onclick = () => csvListaMkt(L);
   $c.querySelectorAll('tr[data-mk]').forEach(tr => tr.onclick = () => abrirMkt(tr.dataset.mk));
   $c.querySelectorAll('tr[data-sku]').forEach(tr => tr.onclick = () => { s.agrupar = false; s.busca = tr.dataset.sku; const bx = document.getElementById('mk-busca'); if (bx) bx.value = s.busca; renderListaMkt(); });
@@ -9443,9 +9470,9 @@ function renderListaMkt(){
 function resumoListaMkt(L){
   const V = L.filter(({ x }) => x.status !== 'cancelado'); if (!V.length) return '';
   const soma = chave => { const g = {}; V.forEach(({ x, i }) => { const k = chave(x), o = g[k] ||= { ids:new Set(), pares:0, fora:0, arm:0 };
-      o.ids.add(x.id); o.pares += i.qtd; const rest = i.qtd - i.qtd_devolvida;
+      o.ids.add(x.id); o.pares += qMk(i); const rest = qMk(i) - i.qtd_devolvida;
       if (x.status === 'entregue') o.fora += rest; if (x.status === 'armazenado') o.arm += rest; }); return g; };
-  const tot = V.reduce((t, { i }) => t + i.qtd, 0), nTot = new Set(V.map(({ x }) => x.id)).size;
+  const tot = V.reduce((t, { i }) => t + qMk(i), 0), nTot = new Set(V.map(({ x }) => x.id)).size;
   const tab = (g, rot, extra) => { const ls = Object.entries(g).sort((a, b) => b[1].pares - a[1].pares), max = Math.max(...ls.map(([, o]) => o.pares));
     return `<table><thead><tr><th></th><th class="n">Solicitações</th><th class="n">Pares</th><th class="n">%</th>${extra ? `<th class="n">${extra[0]}</th>` : ''}<th style="width:22%"></th></tr></thead><tbody>
       ${ls.map(([k, o]) => `<tr><td>${rot(k)}</td><td class="n">${o.ids.size}</td><td class="n"><b>${fmtN(o.pares)}</b></td><td class="n">${Math.round(o.pares / tot * 100)}%</td>${extra ? `<td class="n">${extra[1](o) || '–'}</td>` : ''}<td><div class="bar" style="width:${Math.max(4, o.pares / max * 100)}%"></div></td></tr>`).join('')}
@@ -9456,8 +9483,8 @@ function resumoListaMkt(L){
 }
 function csvListaMkt(L){
   const c = v => `"${String(v ?? '').replace(/"/g, '""')}"`, d = iso => iso ? new Date(iso).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo' }) : '';
-  const cab = ['Nº', 'Solicitado em', 'Solicitante', 'Motivo', 'Destino', 'Loja', 'SKU', 'Cor', 'Numeração', 'Qtd entregue', 'Qtd devolvida', 'Etapa', 'Retirada necessária', 'Separado por', 'Entregue em', 'Devolvido em', 'Realocado por', 'Dias com o MKT'];
-  const lin = L.map(({ x, i }) => [x.id, d(x.solicitado_em), x.solicitante, motivoMk(x), DESTINOS_MK[x.destino] || '', i.cnpj_id, i.produto, i.cor, i.tamanho, i.qtd, i.qtd_devolvida, ROT_ST_MK[x.status], x.retirada_prevista ? dataBR(x.retirada_prevista) : '',
+  const cab = ['Nº', 'Solicitado em', 'Solicitante', 'Motivo', 'Destino', 'Loja', 'SKU', 'Endereço', 'Sem estoque em', 'Cor', 'Numeração', 'Qtd pedida', 'Qtd entregue', 'Qtd devolvida', 'Etapa', 'Retirada necessária', 'Separado por', 'Entregue em', 'Devolvido em', 'Realocado por', 'Dias com o MKT'];
+  const lin = L.map(({ x, i }) => [x.id, d(x.solicitado_em), x.solicitante, motivoMk(x), DESTINOS_MK[x.destino] || '', i.cnpj_id, i.produto, i.endereco, i.sem_estoque_em ? d(i.sem_estoque_em) : '', i.cor, i.tamanho, i.qtd, qMk(i), i.qtd_devolvida, ROT_ST_MK[x.status], x.retirada_prevista ? dataBR(x.retirada_prevista) : '',
     x.separado_operador, d(x.entregue_em), d(x.devolvido_em), x.realocado_operador, x.entregue_em && x.status !== 'armazenado' ? diasDesde(x.entregue_em, x.devolvido_em) : ''].map(c).join(';'));
   const blob = new Blob(['\ufeff' + [cab.map(c).join(';'), ...lin].join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `marketing-solicitacoes_${state.mk.de}_a_${state.mk.ate}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
@@ -9471,11 +9498,14 @@ async function abrirMkt(id){
   dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)">
     <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">#${x.id} · ${esc(x.solicitante)}</h3><span class="mk-dias" style="background:${et ? et.cor : '#8a1f1f'};color:#fff">${et ? et.rot : 'Cancelado'}</span>
       ${x.status === 'entregue' ? `<span class="mk-dias ${diasDesde(x.entregue_em) >= 7 ? 'd7' : diasDesde(x.entregue_em) >= 3 ? 'd3' : ''}">${diasDesde(x.entregue_em)} dia(s) com o MKT</span>` : ''}<span style="flex:1"></span><button class="btn" data-x>✕</button></div>
-    <div class="info">Motivo: <b>${esc(motivoMk(x))}</b>${gerir || (meu && pode('mkt', 'editar')) ? ` <span class="mk-lnk" id="mk-mot">${x.motivo ? 'mudar' : 'informar'} motivo</span>` : ''} · Destino: <b>${esc(DESTINOS_MK[x.destino] || '—')}</b>
+    <div class="info">Motivo: <b>${esc(motivoMk(x))}</b>${gerir || (meu && pode('mkt', 'editar')) ? ` <span class="mk-lnk" id="mk-motl">${x.motivo ? 'mudar' : 'informar'} motivo</span>` : ''} · Destino: <b>${esc(DESTINOS_MK[x.destino] || '—')}</b>
       ${['solicitado', 'separado', 'entregue', 'armazenado'].includes(x.status) && ((meu && ['solicitado', 'separado'].includes(x.status) && pode('mkt', 'editar')) || gerir) ? ` <span class="mk-lnk" id="mk-dest">mudar destino</span>` : ''}</div>${x.retirada_prevista ? `<div class="info">📅 Retirada necessária: <b>${dataBR(x.retirada_prevista)}</b></div>` : ''}${x.observacao ? `<div class="info">Obs.: ${esc(x.observacao)}</div>` : ''}
-    <div style="overflow-x:auto;margin-top:8px">    <table class="mk-itens"><thead><tr><th>Loja</th><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Qtd. entregue</th><th class="n">Qtd. devolvida</th></tr></thead><tbody>
-      ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `${i.qtd_devolvida}${i.qtd_devolvida < i.qtd ? ` <span class="info">(faltam ${i.qtd - i.qtd_devolvida})</span>` : ' ✓'}` : '–'}</td></tr>`).join('')}
-      <tr><td colspan="4"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table></div>
+    <div style="overflow-x:auto;margin-top:8px">    <table class="mk-itens"><thead><tr><th>Loja</th><th>SKU</th><th>Endereço</th><th>Cor</th><th>Nº</th><th class="n">Qtd. entregue</th><th class="n">Qtd. devolvida</th></tr></thead><tbody>
+      ${x.itens.map(i => { const ant = !semEstMk(i) && ['solicitado', 'separado'].includes(x.status) ? semEstAntesMk(i, x.id) : null;
+        return `<tr class="${semEstMk(i) ? 'semest' : ''}"><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b>${ant ? `<div><span class="mk-rep" title="${esc(txtSemEstMk(ant))}">⚠ ${esc(txtSemEstMk(ant))}</span></div>` : ''}</td>
+          <td class="end">${semEstMk(i) ? `<span class="mk-sem" title="Apontado por ${esc(quemTxt(i.sem_estoque_por))}">✕ sem estoque · ${dataBR(isoLocal(i.sem_estoque_em).slice(0, 10))}</span>` : esc(i.endereco || '–')}</td>
+          <td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${semEstMk(i) ? `0 <span class="info">de ${i.qtd}</span>` : i.qtd}</td><td class="n">${semEstMk(i) ? '–' : i.qtd_devolvida ? `${i.qtd_devolvida}${i.qtd_devolvida < i.qtd ? ` <span class="info">(faltam ${i.qtd - i.qtd_devolvida})</span>` : ' ✓'}` : '–'}</td></tr>`; }).join('')}
+      <tr><td colspan="5"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table></div>
     <div class="mk-tl">${passo('Solicitado', x.solicitado_em, x.solicitado_por)}${passo('Separado', x.separado_em, x.separado_por, `${x.separado_operador ? ` · separado por <b>${esc(x.separado_operador)}</b>` : ''} · movido ao prédio MKT`)}${passo('Entregue', x.entregue_em, x.entregue_por, x.recebido_por ? ` · retirado por ${esc(x.recebido_por)}` : '')}
       ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, `${x.realocado_operador ? ` · realocado por <b>${esc(x.realocado_operador)}</b>` : ''} · de volta ao estoque`)}${x.status === 'armazenado' ? `<div><b>Armazenado no MKT</b><span>${pares - dev} par(es) ficam no Marketing (não voltam para a logística)</span></div>` : ''}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
     <div id="mk-acao"></div>
@@ -9484,6 +9514,7 @@ async function abrirMkt(id){
       ${x.status === 'solicitado' && (meu || gerir) && pode('mkt', 'editar') ? '<button class="btn" id="mk-edit">Editar</button>' : ''}
       ${['solicitado', 'separado'].includes(x.status) && (meu || gerir) && pode('mkt', 'editar') ? '<button class="btn perigo" id="mk-canc">Cancelar</button>' : ''}
       ${gerir && !['solicitado', 'cancelado'].includes(x.status) ? '<button class="btn" id="mk-volta" title="Desfaz a última etapa (lançamento errado)">↩ Voltar etapa</button>' : ''}
+      ${gerir && x.status !== 'cancelado' ? '<button class="btn" id="mk-end" title="Endereço de cada par e pares não encontrados (sem estoque)">📍 Endereços / sem estoque</button>' : ''}
       ${gerir && x.status !== 'cancelado' ? '<button class="btn" id="mk-datas" title="Corrigir data/hora das etapas e operadores (lançamento de solicitações antigas)">✎ Datas</button>' : ''}
       <span style="flex:1"></span>
       ${gerir ? { solicitado:'<button class="btn pri" data-pr="separar">Separado ›</button>', separado:'<button class="btn pri" data-pr="entregar">Entregue ›</button>',
@@ -9508,13 +9539,25 @@ async function abrirMkt(id){
       <div class="info">Uma etapa não pode ficar antes da anterior. A correção fica no histórico.</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Salvar datas</button></div>`;
     q('#mk-ok').onclick = () => enviar({ acao:'datas', datas:Object.fromEntries([...dlg.querySelectorAll('[data-dt]')].map(i => [i.dataset.dt, deLocal(i.value)])),
       ...(q('#mk-sop') ? { separado_operador:q('#mk-sop').value.trim() } : {}), ...(q('#mk-rop') ? { realocado_operador:q('#mk-rop').value.trim() } : {}) }, 'Datas corrigidas'); };
-  const mo = q('#mk-mot'); if (mo) mo.onclick = () => {
+  const mo = q('#mk-motl'); if (mo) mo.onclick = () => {
     $a.innerHTML = `<div class="grade-form g2" style="margin-top:8px"><label>Motivo<select id="mk-mv"><option value="">— escolha —</option>${Object.entries(MOTIVOS_MK).map(([k, t]) => `<option value="${k}" ${x.motivo === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label id="mk-mol" style="${x.motivo === 'outro' ? '' : 'display:none'}">Qual o motivo?<input id="mk-mo" maxlength="120" value="${esc(x.motivo_outro || (!x.motivo ? x.finalidade || '' : ''))}"></label></div>
       ${!x.motivo && x.finalidade ? `<div class="info">Finalidade antiga: ${esc(x.finalidade)}</div>` : ''}<div style="text-align:right"><button class="btn pri" id="mk-ok">Salvar motivo</button></div>`;
     q('#mk-mv').onchange = e => { q('#mk-mol').style.display = e.target.value === 'outro' ? '' : 'none'; };
     q('#mk-ok').onclick = () => { const m = q('#mk-mv').value; if (!m) return avisar('Escolha o motivo', true); if (m === 'outro' && !q('#mk-mo').value.trim()) return avisar('Descreva o motivo (Outro)', true);
       enviar({ acao:'motivo', motivo:m, motivo_outro:q('#mk-mo').value.trim() }, 'Motivo salvo'); }; };
+  // endereço de cada par (a logística pesquisa antes e já sai com a ficha preenchida) e "sem estoque" (par não encontrado)
+  const en = q('#mk-end'); if (en) en.onclick = () => { const concl = !['solicitado', 'separado'].includes(x.status);
+    $a.innerHTML = `<div class="info" style="margin-top:8px">Endereço sai impresso na ficha. Marque <b>sem estoque</b> o par que não foi encontrado: ele não conta como entregue e, se alguém pedir de novo, aparece um alerta.</div>
+      <div style="overflow-x:auto"><table class="mk-itens mk-ed"><thead><tr><th>SKU</th><th>Cor</th><th>Nº</th><th>Endereço</th><th class="n">Sem estoque</th></tr></thead><tbody>
+      ${x.itens.map(i => `<tr><td><b>${esc(i.produto)}</b> ${tagLoja(i.cnpj_id)}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td>
+        <td><input type="text" data-en="${i.id}" maxlength="40" value="${esc(i.endereco || '')}" placeholder="ex.: BL1-RUA3-P5-A1"></td>
+        <td class="n"><input type="checkbox" data-se="${i.id}" ${semEstMk(i) ? 'checked' : ''} ${!semEstMk(i) && i.qtd_devolvida > 0 ? 'disabled title="Já teve devolução registrada"' : ''}></td></tr>`).join('')}</tbody></table></div>
+      ${gerir ? `<div class="grade-form g2" style="margin-top:6px"><label>Data do apontamento <span class="info">(vale para os pares marcados agora)</span><input type="datetime-local" id="mk-sem-em" value="${concl && x.separado_em ? isoLocal(x.separado_em) : agoraLocal()}" max="${agoraLocal()}"></label></div>` : ''}
+      ${x.status === 'entregue' ? '<div class="info">Se o que falta voltar for só o que não tinha estoque, a solicitação passa para Devolvido.</div>' : ''}
+      <div style="text-align:right"><button class="btn pri" id="mk-ok">Salvar</button></div>`;
+    q('#mk-ok').onclick = () => { const v = q('#mk-sem-em')?.value;
+      enviar({ acao:'itens', em:v && v !== agoraLocal() ? deLocal(v) : null, itens:x.itens.map(i => ({ id:i.id, endereco:dlg.querySelector(`[data-en="${i.id}"]`).value, sem_estoque:dlg.querySelector(`[data-se="${i.id}"]`).checked })) }, 'Endereços e estoque salvos'); }; };
   const ds = q('#mk-dest'); if (ds) ds.onclick = () => { const nv = x.destino === 'marketing' ? 'logistica' : 'marketing';
     const aviso = { entregue:'Os pares que ainda não voltaram passam a ficar armazenados no Marketing e a solicitação termina como "Armazenado no MKT".',
       armazenado:'A solicitação volta para "Com o MKT" e os dias com o Marketing voltam a contar desde a entrega.' }[x.status] || 'A logística vai ver o novo destino na separação.';
@@ -9532,7 +9575,7 @@ async function abrirMkt(id){
         <div class="info">A ficha precisa estar assinada por quem retirou.</div><div style="text-align:right"><button class="btn pri" id="mk-ok">Confirmar: Entregue</button></div>`;
       if (x.destino === 'marketing') $a.insertAdjacentHTML('afterbegin', '<div class="mk-hint">Destino: <b>fica armazenado no Marketing</b>. Com a entrega, a solicitação termina como "Armazenado no MKT".</div>');
       q('#mk-ok').onclick = () => enviar({ acao:'entregar', recebido_por:q('#mk-quem').value.trim(), em:emVal() }, x.destino === 'marketing' ? 'Entregue: pares armazenados no Marketing' : 'Entregue: começou a contar os dias com o MKT'); }
-    if (a === 'devolver') { const pend = x.itens.filter(i => i.qtd_devolvida < i.qtd);
+    if (a === 'devolver') { const pend = x.itens.filter(i => i.qtd_devolvida < i.qtd && !semEstMk(i));
       $a.innerHTML = `<div class="info" style="margin-top:8px">Quantos pares voltaram agora? (se voltar só parte, o restante continua contando os dias)</div>
         <table class="mk-itens"><thead><tr><th>SKU</th><th>Cor</th><th>Nº</th><th class="n">Pendente</th><th class="n" style="width:90px">Voltou</th></tr></thead><tbody>
         ${pend.map(i => `<tr><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd - i.qtd_devolvida}</td><td><input type="number" min="0" max="${i.qtd - i.qtd_devolvida}" value="${i.qtd - i.qtd_devolvida}" data-dv="${i.id}"></td></tr>`).join('')}</tbody></table>
@@ -9562,13 +9605,17 @@ function formMkt(x){
     <div class="gv-acoes"><span class="info" id="mf-tot"></span><span style="flex:1"></span><button class="btn" data-x>Cancelar</button><button class="btn pri" id="mf-ok">${novo ? 'Solicitar' : 'Salvar'}</button></div></div>`;
   document.body.appendChild(dlg); const q = k => dlg.querySelector(k);
   const lojas = D?.cnpjs || ['DIGOS', 'CACAL', 'DROSA'];
+  // alerta (não impede): o mesmo par já foi apontado sem estoque em outra solicitação
+  const avisa = k => { const el = dlg.querySelector(`[data-av="${k}"]`), i = itens[k]; if (!el) return;
+    const r = i?.produto && i.cnpj_id ? semEstAntesMk(i, x?.id) : null; el.hidden = !r; el.innerHTML = r ? `⚠ Este par foi <b>${esc(txtSemEstMk(r))}</b>. Confira o estoque antes; dá para pedir mesmo assim.` : ''; };
   const desenha = () => { q('#mf-itens').innerHTML = itens.map((i, k) => `<div class="mk-linha">
       <select data-k="${k}" data-c="cnpj_id"><option value="">Loja</option>${lojas.map(l => `<option ${i.cnpj_id === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <input class="cx" data-k="${k}" data-c="produto" placeholder="SKU (igual Weesu/Seenc)" value="${esc(i.produto)}"><input class="cx" data-k="${k}" data-c="cor" placeholder="Cor" value="${esc(i.cor || '')}">
       <input data-k="${k}" data-c="tamanho" placeholder="Nº" value="${esc(i.tamanho || '')}"><input data-k="${k}" data-c="qtd" type="number" min="1" value="${i.qtd}">
-      <button class="btn" data-rm="${k}" title="Tirar" ${itens.length === 1 ? 'disabled' : ''}>✕</button></div>`).join('');
+      <button class="btn" data-rm="${k}" title="Tirar" ${itens.length === 1 ? 'disabled' : ''}>✕</button><div class="mk-av" data-av="${k}" hidden></div></div>`).join('');
+    itens.forEach((_, k) => avisa(k));
     q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`;
-    dlg.querySelectorAll('[data-k]').forEach(el => el.oninput = el.onchange = () => { const i = itens[el.dataset.k]; i[el.dataset.c] = el.dataset.c === 'qtd' ? Number(el.value) : ['produto', 'cor'].includes(el.dataset.c) ? caixaAltaTxt(el.value).trim() : el.value; q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`; });
+    dlg.querySelectorAll('[data-k]').forEach(el => el.oninput = el.onchange = () => { const i = itens[el.dataset.k]; i[el.dataset.c] = el.dataset.c === 'qtd' ? Number(el.value) : ['produto', 'cor'].includes(el.dataset.c) ? caixaAltaTxt(el.value).trim() : el.value; avisa(el.dataset.k); q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`; });
     dlg.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { itens.splice(Number(b.dataset.rm), 1); desenha(); }); };
   desenha();
   q('#mf-mais').onclick = () => { const u = itens.at(-1); itens.push({ cnpj_id:u?.cnpj_id || '', produto:'', cor:'', tamanho:'', qtd:1 }); desenha(); dlg.querySelectorAll('[data-c="produto"]').at?.(-1)?.focus?.(); };
@@ -9601,7 +9648,7 @@ function fichaMkt(x){
     table{width:100%;border-collapse:collapse} thead{display:table-header-group} tr{break-inside:avoid;page-break-inside:avoid}
     th,td{border:.25mm solid #c3c9d3;padding:.9mm 1.6mm;text-align:left;font-size:8.5pt} th{background:#eef1f6;font-size:7pt;text-transform:uppercase;letter-spacing:.02em} td.n,th.n{text-align:center}
     td.sku{font-weight:700;font-family:Consolas,'Courier New',monospace;font-size:8pt;word-break:break-all} th small{font-weight:400;text-transform:none;font-size:6.5pt}
-    td.end{background:#fbfcfd} td{overflow-wrap:anywhere} tbody tr td{height:6mm} tr.tot td{font-weight:700;background:#f6f7f9}
+    td.end{background:#fbfcfd;font-family:Consolas,'Courier New',monospace;font-size:8.5pt;font-weight:700} tr.sem td{color:#8a8f99} tr.sem td.end b{color:#a11d1d;font-family:inherit;font-size:7.5pt} td{overflow-wrap:anywhere} tbody tr td{height:6mm} tr.tot td{font-weight:700;background:#f6f7f9}
     .fim{break-inside:avoid;page-break-inside:avoid}
     .blocos{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:4mm}
     .bloco{border:.35mm solid #02285a;border-radius:1.5mm;padding:2mm 3mm} .bloco h3{margin:0 0 1mm;font-size:8.5pt;color:#02285a;text-transform:uppercase}
@@ -9616,7 +9663,8 @@ function fichaMkt(x){
       <div><span>Motivo</span>${esc(motivoMk(x))}</div><div><span>Destino</span><b>${x.destino === 'marketing' ? 'Fica no Marketing' : 'Volta p/ logística'}</b></div><div class="w2"><span>Separado por (operador)</span>${x.separado_operador ? esc(x.separado_operador) : '&nbsp;'}</div></div>
     ${dev ? `<div class="parc">Devolução parcial já registrada no portal: <b>${dev}</b> de ${pares} par(es) devolvido(s), faltam <b>${pares - dev}</b>.</div>` : ''}
     <table style="table-layout:fixed"><thead><tr><th style="width:9%">Loja</th><th style="width:28%">SKU</th><th style="width:24%">Endereço retirado <small>(operador)</small></th><th style="width:15%">Cor</th><th class="n" style="width:6%">Nº</th><th class="n" style="width:9%">Qtd.<br>entregue</th><th class="n" style="width:9%">Qtd.<br>devolvida</th></tr></thead><tbody>
-      ${x.itens.map(i => `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td class="end"></td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
+      ${x.itens.map(i => semEstMk(i) ? `<tr class="sem"><td>${esc(i.cnpj_id)}</td><td class="sku"><s>${esc(i.produto)}</s></td><td class="end"><b>SEM ESTOQUE</b></td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">0</td><td class="n">–</td></tr>`
+        : `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td class="end">${esc(i.endereco || '')}</td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
       <tr class="tot"><td colspan="5">Total</td><td class="n">${pares}</td><td class="n">${dev || ''}</td></tr></tbody></table>
     <div class="fim">
       ${x.observacao ? `<div class="nota">Obs.: ${esc(x.observacao)}</div>` : ''}
