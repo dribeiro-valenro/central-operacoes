@@ -9349,8 +9349,8 @@ function renderPk(){
   $a.innerHTML = ORDEM_LOJAS.filter(id => s.lojas[id]).map(id => { const A = s.lojas[id];
     return `<div class="pk-lj" style="--c:${LOJAS[id]?.borda || LOJAS[id]?.cor || '#02285a'}"><h4>${tagLoja(id)} <span class="x" data-tira="${id}">tirar</span></h4>
       <div class="${A.estoque ? 'ok' : 'f'}">${A.estoque ? `Estoque: ${fmtN(A.estoque.linhas.length)} linhas · ${fmtN(new Set(A.estoque.linhas.map(e => e.sku)).size)} SKUs${A.estoque.ars.length ? ` · AR${A.estoque.ars.join('/AR')}` : ''}${A.estoque.zerados ? ` · <span class="pk-tag am">${fmtN(A.estoque.zerados)} no endereço zerado</span>` : ''}${hr(A.estoque)}` : 'falta o estoque alocado por posição'}</div>
-      <div class="${A.itens ? 'ok' : 'f'}">${A.itens ? `Itens: ${fmtN(A.itens.linhas.length)} itens · ${fmtN(new Set(A.itens.linhas.map(i => i.pedido)).size)} pedidos${hr(A.itens)}` : 'falta os pedidos com os itens (SKU)'}</div>
-      ${A.pedidos ? `<div class="ok">Pedidos (cabeçalho): ${fmtN(A.pedidos.linhas.length)}${hr(A.pedidos)}</div>` : ''}</div>`; }).join('') || '<div class="info">Nenhum arquivo importado ainda.</div>';
+      ${A.pedidos ? `<div class="ok">Pedidos: ${fmtN(A.pedidos.linhas.length)} <span class="info">(lista de pedidos, sem o SKU dos itens)</span>${hr(A.pedidos)}</div>` : ''}
+      <div class="${A.itens ? 'ok' : 'f'}">${A.itens ? `Itens dos pedidos (SKU): ${fmtN(A.itens.linhas.length)} itens · ${fmtN(new Set(A.itens.linhas.map(i => i.pedido)).size)} pedidos${hr(A.itens)}` : `falta o relatório de <b>itens dos pedidos</b> (com o SKU de cada item)${A.pedidos ? ' — é um relatório diferente da lista de pedidos' : ''}`}</div></div>`; }).join('') || '<div class="info">Nenhum arquivo importado ainda.</div>';
   $a.querySelectorAll('[data-tira]').forEach(el => el.onclick = () => { delete s.lojas[el.dataset.tira]; telaPicking(); });
   const lojas = Object.values(s.lojas);
   if (!lojas.length) { $r.innerHTML = ''; return; }
@@ -9361,9 +9361,9 @@ function renderPk(){
 function semItensPk(){
   const s = state.pk, peds = [], est = [];
   Object.entries(s.lojas).forEach(([loja, A]) => { (A.pedidos?.linhas || []).forEach(p => peds.push({ ...p, loja, mkt:mktPk(p.canal, p.conta) })); (A.estoque?.linhas || []).forEach(e => est.push({ ...e, loja })); });
-  let h = `<div class="painel" style="border-left:4px solid #c79100"><b>Falta o relatório com os itens dos pedidos.</b>
-    <div class="info" style="margin-top:4px">O relatório de pedidos só tem o cabeçalho (pedido, canal, prazo, quantidade de itens), sem o <b>SKU</b> de cada item; sem SKU não dá para saber em que posição o pedido está.
-    No Seenc, exporte os pedidos <b>com os itens</b> (colunas Pedido + SKU/SKU variação + Quantidade). Assim que subir, o mapa aparece.</div></div>`;
+  let h = `<div class="painel" style="border-left:4px solid #c79100"><b>A lista de pedidos foi lida. Para montar o mapa, falta o relatório de itens dos pedidos.</b>
+    <div class="info" style="margin-top:4px">A lista de pedidos diz <b>quantos</b> itens cada pedido tem ("Quantidade de itens"), mas não <b>qual SKU</b> é cada item; sem o SKU não dá para saber em que posição o pedido está.
+    No Seenc, exporte um relatório que traga <b>uma linha por item</b>, com as colunas Pedido + SKU (ou SKU variação) + Quantidade. Assim que subir, o mapa aparece.</div></div>`;
   if (peds.length) { const g = {}; peds.forEach(p => { const k = `${p.mkt}|${p.prazo || '(sem prazo)'}`; (g[k] ||= { mkt:p.mkt, prazo:p.prazo, n:0, it:0, lojas:{}, f:{} }); const o = g[k]; o.n++; o.it += p.itens || 0; o.lojas[p.loja] = (o.lojas[p.loja] || 0) + 1; o.f[p.forma] = (o.f[p.forma] || 0) + 1; });
     h += `<div class="painel"><h3 style="margin:0 0 8px">Pedidos a separar por marketplace e prazo</h3><div class="pk-scroll"><table class="pk-t"><thead><tr><th>Marketplace</th><th>Enviar até</th><th class="n">Pedidos</th><th class="n">Itens</th><th>Lojas</th><th>Formas de entrega</th></tr></thead><tbody>
       ${Object.values(g).sort((a, b) => ordPrazoPk(a.prazo, b.prazo) || a.mkt.localeCompare(b.mkt)).map(o => `<tr><td><b>${esc(o.mkt)}</b></td><td><b>${esc(prazoPk(o.prazo))}</b></td><td class="n">${fmtN(o.n)}</td><td class="n">${fmtN(o.it)}</td><td>${Object.entries(o.lojas).map(([l, n]) => `${tagLoja(l)} ${n}`).join(' ')}</td><td class="info">${Object.entries(o.f).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${esc(f)} (${n})`).join(' · ')}</td></tr>`).join('')}</tbody></table></div></div>`; }
