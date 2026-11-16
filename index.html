@@ -5334,8 +5334,8 @@ const mascaraTel = el => el.addEventListener('input', () => { const d = el.value
 const forcaCaixaAlta = el => el.addEventListener('input', () => { const p = el.selectionStart; el.value = el.value.toUpperCase(); try { el.setSelectionRange(p, p); } catch (_) {} });
 
 const TODAS_DEMO = ['CACAL', 'DIGOS', 'DROSA'];
-const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida', lojas:['DIGOS'], ordem:10, ativo:true }, { id:'shopee_express', nome:'Shopee Express', lojas:['DIGOS'], ordem:15, ativo:true },
-  { id:'shein', nome:'Shein', lojas:TODAS_DEMO, ordem:20, ativo:true, campos:['cod_completa', 'cod_parcial'] }, { id:'ml_coleta', nome:'Mercado Livre', lojas:TODAS_DEMO, ordem:30, ativo:true, campos:['cod_autorizacao'] }, { id:'ml_flex', nome:'Flex', lojas:TODAS_DEMO, ordem:40, ativo:true },
+const CANAIS_DEMO = [{ id:'shopee_rapida', nome:'Shopee Rápida', lojas:['DIGOS'], ordem:10, ativo:true, formas_api:['Shopee Entrega Direta'] }, { id:'shopee_express', nome:'Shopee Express', lojas:['DIGOS'], ordem:15, ativo:true, formas_api:['Shopee Xpress'] },
+  { id:'shein', nome:'Shein', lojas:TODAS_DEMO, ordem:20, ativo:true, campos:['cod_completa', 'cod_parcial'] }, { id:'ml_coleta', nome:'Mercado Livre', lojas:TODAS_DEMO, ordem:30, ativo:true, campos:['cod_autorizacao'], formas_api:['Mercado Envios (Coleta)'] }, { id:'ml_flex', nome:'Flex', lojas:TODAS_DEMO, ordem:40, ativo:true, formas_api:['Mercado Envios (Flex)'] },
   { id:'correios', nome:'Correios', lojas:TODAS_DEMO, ordem:50, ativo:true }, { id:'outro', nome:'Outro', lojas:TODAS_DEMO, ordem:90, ativo:false }];
 // ---- demonstração: o caderno de 23/10/2026, em memória
 const DEMO_CROSS = (() => {
@@ -6725,15 +6725,18 @@ function verFoto(url, titulo){
 }
 
 /* =================== CADASTRO DE MARKETPLACES =================== */
-async function apiMkt(path, corpo){
+async function apiMktpl(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   if (path === '/marketplaces') return { marketplaces: CANAIS_DEMO.map(c => ({ ...c, n_coletas: DEMO_CROSS.coletas.filter(x => x.canal_id === c.id).length, ultima: DEMO_CROSS.coletas.filter(x => x.canal_id === c.id).map(x => x.data).sort().at(-1) || null })),
-    lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }] };
+    lojas: [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }],
+    formas_api: [['Mercado Envios (Coleta)', 'Mercado Livre', 340], ['Shopee Xpress', 'Shopee', 260], ['Mercado Envios (Flex)', 'Mercado Livre', 120], ['Shopee Entrega Direta', 'Shopee', 90], ['Shein (Ponto coleta)', 'Shein', 40], ['Shopee (Retirar pessoalmente)', 'Shopee', 5]]
+      .map(([forma, canal, pedidos]) => ({ forma, canal, pedidos, sem_vinculo:!CANAIS_DEMO.some(c => (c.formas_api || []).includes(forma)) })) };
   if (path === '/marketplace') {
     const nome = String(corpo.nome || '').trim(); if (!nome) throw new Error('Informe o nome do marketplace');
     if (!corpo.lojas?.length) throw new Error('Marque ao menos uma loja que vende neste marketplace');
     if (CANAIS_DEMO.some(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== corpo.id)) throw new Error('Já existe um marketplace com esse nome');
-    if (corpo.id) Object.assign(CANAIS_DEMO.find(c => c.id === corpo.id), { nome, lojas:corpo.lojas, campos:corpo.campos || [], ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
+    const dupF = CANAIS_DEMO.find(c => c.id !== corpo.id && (c.formas_api || []).some(f => (corpo.formas_api || []).includes(f))); if (dupF) throw new Error(`Forma já ligada a ${dupF.nome}: tire de lá antes`);
+    if (corpo.id) Object.assign(CANAIS_DEMO.find(c => c.id === corpo.id), { nome, lojas:corpo.lojas, campos:corpo.campos || [], formas_api:corpo.formas_api || [], ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
     else CANAIS_DEMO.push({ id:nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_'), nome, lojas:corpo.lojas, ordem:Number(corpo.ordem) || 100, ativo:corpo.ativo !== false });
     CANAIS_DEMO.sort((a, b) => (a.ordem ?? 100) - (b.ordem ?? 100));
     return { ok:true };
@@ -6754,7 +6757,7 @@ function telaMarketplaces(){
 }
 async function carregarMarketplaces(){
   const $c = document.getElementById('mkt'); if (!$c) return;
-  try { state.mkt = await apiMkt('/marketplaces'); renderMarketplaces(); }
+  try { state.mkt = await apiMktpl('/marketplaces'); renderMarketplaces(); }
   catch (e) { if (e instanceof SemSessao) throw e; $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 function renderMarketplaces(){
@@ -6762,11 +6765,15 @@ function renderMarketplaces(){
   if (!$c || !d) return;
   $c.innerHTML = `<div class="painel">
     <div class="leg">Clique num marketplace para editar as lojas, desativar ou excluir. Na coleta do CROSS aparecem só os marketplaces ativos, e dentro de cada um só as lojas marcadas aqui. Desativar não apaga o histórico: as coletas antigas continuam com o nome.${edita ? '' : ' <b>Só líderes do CROSS alteram este cadastro.</b>'}</div>
-    <div style="overflow-x:auto"><table class="tab-mot"><thead><tr><th>Marketplace</th>${d.lojas.map(l => `<th class="c">${esc(nomeLoja(l.id))}</th>`).join('')}<th class="n">Coletas CROSS</th><th>Última</th><th>Situação</th></tr></thead><tbody>
+    <div style="overflow-x:auto"><table class="tab-mot"><thead><tr><th>Marketplace</th>${d.lojas.map(l => `<th class="c">${esc(nomeLoja(l.id))}</th>`).join('')}<th>Formas de entrega (API)</th><th class="n">Coletas CROSS</th><th>Última</th><th>Situação</th></tr></thead><tbody>
     ${d.marketplaces.map(m => `<tr data-mk="${esc(m.id)}" class="${m.ativo ? '' : 'inativo'}"><td><b>${esc(m.nome)}</b></td>
       ${d.lojas.map(l => `<td class="c">${(m.lojas || []).includes(l.id) ? `<span class="marca-loja" style="background:${corLoja(l.id)};width:12px;height:12px"></span>` : '<span class="info">–</span>'}</td>`).join('')}
+      <td>${(m.formas_api || []).map(f => `<span class="tag" style="font-size:11px">${esc(f)}</span>`).join(' ') || '<span class="info">–</span>'}</td>
       <td class="n">${fmtN(m.n_coletas || 0)}</td><td>${m.ultima ? dataBR(m.ultima) : '<span class="info">–</span>'}</td><td>${m.ativo ? 'Ativo' : 'Inativo'}</td></tr>`).join('')}
-    </tbody></table></div></div>`;
+    </tbody></table></div></div>
+    ${(d.formas_api || []).some(f => f.sem_vinculo) ? `<div class="painel" style="border-left:4px solid #c79100"><b>Formas de entrega da API sem marketplace</b> <span class="info">(sem isso, a Inteligência de Separação não sabe o dia de coleta desses pedidos)</span>
+      <div style="margin-top:6px">${d.formas_api.filter(f => f.sem_vinculo).map(f => `<span class="tag">${esc(f.forma)} <span class="info">${esc(f.canal || '')} · ${fmtN(f.pedidos)} pedidos/30 dias</span></span>`).join(' ')}</div>
+      <div class="info" style="margin-top:4px">Abra o marketplace certo e marque a forma em "Formas de entrega na API".</div></div>` : ''}`;
   if (edita) $c.querySelectorAll('[data-mk]').forEach(tr => tr.onclick = () => abrirMarketplace(d.marketplaces.find(m => m.id === tr.dataset.mk)));
 }
 function abrirMarketplace(m){
@@ -6783,6 +6790,12 @@ function abrirMarketplace(m){
       <div class="mk-lojas">${d.lojas.map(l => `<label class="chk mk-loja" style="--c:${corLoja(l.id)}"><input type="checkbox" data-mkl="${l.id}" ${(m.lojas || []).includes(l.id) ? 'checked' : ''}> ${esc(nomeLoja(l.id))}</label>`).join('')}</div>
       <div class="gv-sec">Códigos pedidos pelo motorista <span class="info">aparecem na coleta do CROSS deste marketplace</span></div>
       <div class="mk-lojas">${Object.entries(CAMPOS_COLETA).map(([k, t]) => `<label class="chk mk-loja" style="--c:#02285a"><input type="checkbox" data-mkc="${k}" ${(m.campos || []).includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
+      <div class="gv-sec">Formas de entrega na API <span class="info">como a Weesu manda; liga os pedidos a este marketplace e às janelas de coleta (Inteligência de Separação)</span></div>
+      <div class="mk-lojas" id="mk-formas">${(() => { const outras = new Map(); d.marketplaces.filter(x => x.id !== m.id).forEach(x => (x.formas_api || []).forEach(f => outras.set(f, x.nome)));
+          const todas = [...new Set([...(m.formas_api || []), ...(d.formas_api || []).map(f => f.forma)])];
+          return todas.map(f => outras.has(f) ? `<span class="chk mk-loja info" title="Ligada a ${esc(outras.get(f))}" style="--c:#c9ced8;opacity:.6"><input type="checkbox" disabled> ${esc(f)} <small>(${esc(outras.get(f))})</small></span>`
+            : `<label class="chk mk-loja" style="--c:#0b4fa8"><input type="checkbox" data-mkf="${esc(f)}" ${(m.formas_api || []).includes(f) ? 'checked' : ''}> ${esc(f)}</label>`).join('') || '<span class="info">A API ainda não mandou pedidos. Digite a forma abaixo, se souber o nome exato.</span>'; })()}</div>
+      <div class="grade-form g2" style="margin-top:6px"><label>Outra forma (nome exato da API)<input id="mk-fnova" maxlength="80" placeholder="ex.: Mercado Envios (Flex)"></label></div>
       <div class="gv-acoes"><button class="btn pri" id="mk-ok">Salvar</button></div>
       ${novo ? '' : `<div class="gv-sec">Situação: ${m.ativo ? '<b style="color:var(--ok,#1a7a3e)">Ativo</b>' : '<b style="color:var(--bad)">Inativo</b>'}</div>
         <div class="gv-acoes" style="justify-content:flex-start;flex-wrap:wrap">
@@ -6792,16 +6805,17 @@ function abrirMarketplace(m){
   const $ = k => document.getElementById(k), fechar = () => { g.hidden = true; g.innerHTML = ''; document.body.classList.remove('gaveta-aberta'); };
   $('gv-fechar').onclick = fechar; $('gv-fundo').onclick = fechar;
   $('mk-ok').onclick = async () => {
-    const corpo = { id: m.id || null, nome: $('mk-nome').value.trim(), ordem: $('mk-ordem').value.trim(), ativo: m.ativo !== false, lojas: [...g.querySelectorAll('[data-mkl]:checked')].map(x => x.dataset.mkl), campos: [...g.querySelectorAll('[data-mkc]:checked')].map(x => x.dataset.mkc) };
-    try { await apiMkt('/marketplace', corpo); avisar('Marketplace salvo'); fechar(); state.crossDados = null; await carregarMarketplaces(); }
+    const corpo = { id: m.id || null, nome: $('mk-nome').value.trim(), ordem: $('mk-ordem').value.trim(), ativo: m.ativo !== false, lojas: [...g.querySelectorAll('[data-mkl]:checked')].map(x => x.dataset.mkl), campos: [...g.querySelectorAll('[data-mkc]:checked')].map(x => x.dataset.mkc),
+      formas_api: [...new Set([...[...g.querySelectorAll('[data-mkf]:checked')].map(x => x.dataset.mkf), $('mk-fnova').value.trim()].filter(Boolean))] };
+    try { await apiMktpl('/marketplace', corpo); avisar('Marketplace salvo'); fechar(); state.crossDados = null; await carregarMarketplaces(); }
     catch (e) { if (e instanceof SemSessao) throw e; const x = $('mk-erro'); x.hidden = false; x.textContent = e.message; }
   };
   const erroMk = e => { if (e instanceof SemSessao) throw e; const x = $('mk-erro'); x.hidden = false; x.textContent = e.message; };
   const at = $('mk-ativar'); if (at) at.onclick = async () => {
-    try { await apiMkt('/marketplace', { id:m.id, nome:m.nome, ordem:m.ordem, lojas:m.lojas, campos:m.campos || [], ativo:!m.ativo }); avisar(m.ativo ? `${m.nome} desativado` : `${m.nome} reativado`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
+    try { await apiMktpl('/marketplace', { id:m.id, nome:m.nome, ordem:m.ordem, lojas:m.lojas, campos:m.campos || [], formas_api:m.formas_api || [], ativo:!m.ativo }); avisar(m.ativo ? `${m.nome} desativado` : `${m.nome} reativado`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
   const ex = $('mk-excluir'); if (ex) ex.onclick = async () => {
     if (!confirmaDupla(ex, 'Clique de novo para excluir')) return;
-    try { await apiMkt('/marketplace/excluir', { id:m.id }); avisar(`${m.nome} excluído`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
+    try { await apiMktpl('/marketplace/excluir', { id:m.id }); avisar(`${m.nome} excluído`); fechar(); state.crossDados = null; await carregarMarketplaces(); } catch (e) { erroMk(e); } };
   $('mk-nome').focus();
 }
 
@@ -9219,6 +9233,140 @@ const filaMk = (a, b) => prioMk(a) - prioMk(b) || String(a.retirada_prevista || 
 const DESTINOS_MK = { logistica:'Devolve para a logística', marketing:'Fica armazenado no Marketing' };
 const motivoMk = x => x.motivo ? (x.motivo === 'outro' ? `Outro: ${x.motivo_outro || ''}` : MOTIVOS_MK[x.motivo]) : (x.finalidade ? `(antigo) ${x.finalidade}` : '—');
 const tagDestMk = x => x.destino === 'marketing' ? '<span class="mk-dest arm" title="Os pares ficam armazenados no Marketing (não voltam)">📦 fica no MKT</span>' : '<span class="mk-dest" title="Os pares voltam para a logística">↩ volta</span>';
+// ===================== INTELIGÊNCIA DE SEPARAÇÃO (etapa 1: resumo dos pedidos) =====================
+// Lê /separacao: pedidos e pares (API Weesu, coletados pela operacoes-api a cada 15 min) por dia de coleta × coleta × loja × marketplace × forma.
+// Dia de coleta = regra das janelas da Gestão CROSS. "Em aberto" = ainda não enviado (a API não diz a etapa do WMS).
+const CSS_IS = `
+  .is-fil{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:0 0 12px}
+  .is-chips{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center} .is-chips>span{font-size:13px;color:var(--mute);margin-right:2px}
+  .is-chip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:inherit}
+  .is-chip.on{background:#02285a;border-color:#02285a;color:#fff} .is-chip small{opacity:.75}
+  .is-t{width:100%;border-collapse:collapse;font-size:13px} .is-t th{font-size:11px;color:var(--mute);font-weight:600;text-align:left;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .is-t td{padding:5px 7px;border-bottom:1px solid #eef0f4;vertical-align:middle} .is-t .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .is-t tr.dia td{background:#f3f6fb;font-weight:700;border-top:2px solid #d5deeb} .is-t tr.dia td .info{font-weight:400}
+  .is-t td.lj{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap} .is-t td.lj small{color:var(--mute)}
+  .is-t th.lj{text-align:right;border-bottom:3px solid var(--c)}
+  .is-ab{color:#8a4b00;font-weight:700} .is-env{color:#1a7a3e}
+  .is-st{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px} .is-st>div{border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px 10px;font-size:12.5px;border-left:4px solid var(--c)}
+  .is-st .ok{color:#1a7a3e} .is-st .ruim{color:var(--bad)} .is-st .am{color:#8a4b00}
+  .is-scroll{overflow-x:auto}`;
+async function apiIS(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  await new Promise(r => setTimeout(r, 80));
+  if (path.startsWith('/separacao/coletar')) return { ok:true, segundos:12, lojas:[{ loja:'DIGOS', status:'ok', linhas:812 }, { loja:'CACAL', status:'ok', linhas:240 }, { loja:'DROSA', status:'ok', linhas:130 }] };
+  // demonstração: volumes plausíveis para hoje e os próximos 2 dias
+  const u = new URLSearchParams(path.split('?')[1] || ''), hoje = hojeBRT(), de = u.get('de') || hoje, ate = u.get('ate') || addDias(hoje, 2);
+  const F = [['Mercado Livre', 'Mercado Envios (Coleta)', 'ml_coleta', 1, 1.0], ['Mercado Livre', 'Mercado Envios (Flex)', 'ml_flex', 1, .35], ['Shopee', 'Shopee Xpress', 'shopee_express', 1, .75],
+    ['Shopee', 'Shopee Entrega Direta', 'shopee_rapida', 1, .2], ['Shopee', 'Shopee Entrega Direta', 'shopee_rapida', 2, .15], ['Shein', 'Shein (Ponto coleta)', null, null, .1]];
+  const base = { DIGOS:420, CACAL:150, DROSA:90 }, linhas = [];
+  for (let k = 0; ; k++) { const dia = addDias(de, k); if (dia > ate) break; const fat = dia === hoje ? 1 : dia < hoje ? 1 : k === 1 ? .55 : .2;
+    for (const [mkt, forma, canal, seq, w] of F) for (const [loja, b] of Object.entries(base)) { if (!canal) continue; if (canal === 'shopee_rapida' && loja !== 'DIGOS') continue;
+      const ped = Math.round(b * w * fat * (0.85 + ((dia.charCodeAt(9) + loja.length + forma.length) % 7) / 20)); if (!ped) continue;
+      const env = dia < hoje ? ped : dia === hoje ? Math.round(ped * .45) : 0;
+      if (ped - env) linhas.push({ dia, seq, loja, mkt, forma, canal_id:canal, grupo:'aberto', pedidos:ped - env, pares:Math.round((ped - env) * 1.06), itens:ped - env });
+      if (env) linhas.push({ dia, seq, loja, mkt, forma, canal_id:canal, grupo:'enviado', pedidos:env, pares:Math.round(env * 1.06), itens:env }); } }
+  const ag = new Date();
+  return { de, ate, hoje, agora:ag.toISOString(), linhas,
+    atrasados:[{ dia:addDias(hoje, -1), loja:'DIGOS', mkt:'Shopee', forma:'Shopee Xpress', pedidos:4, pares:4 }],
+    sem_regra:[{ loja:'DIGOS', mkt:'Shein', forma:'Shein (Ponto coleta)', canal_id:null, pedidos:39, pares:41 }],
+    coletas:[{ loja:'DIGOS', inicio:new Date(ag - 6e5).toISOString(), fim:new Date(ag - 5.7e5).toISOString(), status:'ok', linhas:812 }, { loja:'CACAL', inicio:new Date(ag - 6e5).toISOString(), fim:new Date(ag - 5.8e5).toISOString(), status:'parcial', linhas:200, erro:'Weesu: muitas requisições (429)' }],
+    coletas_24h:{ com_429:1, total:58 }, canais:CANAIS_DEMO.map(c => ({ id:c.id, nome:c.nome })),
+    janelas:[{ canal_id:'ml_coleta', cnpj_id:null, sequencia:1, coleta_ini:'10:00', hora_corte:'10:00', corte_dias:0 }, { canal_id:'ml_flex', cnpj_id:null, sequencia:1, coleta_ini:'12:30', hora_corte:'12:00', corte_dias:0 },
+      { canal_id:'shopee_express', cnpj_id:null, sequencia:1, coleta_ini:'14:00', hora_corte:'13:00', corte_dias:0 }, { canal_id:'shopee_rapida', cnpj_id:null, sequencia:1, coleta_ini:'11:30', hora_corte:'11:00', corte_dias:0 },
+      { canal_id:'shopee_rapida', cnpj_id:null, sequencia:2, coleta_ini:'16:30', hora_corte:'16:00', corte_dias:0 }],
+    credenciais:[{ loja:'DIGOS', ok:true }, { loja:'CACAL', ok:true }, { loja:'DROSA', ok:false }] };
+}
+function telaSeparacao(){
+  if (!document.getElementById('css-is')) { const st = document.createElement('style'); st.id = 'css-is'; st.textContent = CSS_IS; document.head.appendChild(st); }
+  const hoje = hojeBRT();
+  state.is ||= { de:hoje, ate:addDias(hoje, 2), fLojas:[], fMkts:[], fFormas:[], so:'todos' };
+  const s = state.is, edita = pode('separacao', 'editar');
+  $app.innerHTML = `<div class="barra"><h2>Inteligência de Separação</h2><span style="flex:1"></span>
+      <span class="is-chips"><button class="is-chip" data-per="0">Hoje</button><button class="is-chip" data-per="1">Amanhã</button><button class="is-chip" data-per="3">Hoje + 2 dias</button></span>
+      <label class="info">De <input type="date" id="is-de" value="${s.de}"></label><label class="info">até <input type="date" id="is-ate" value="${s.ate}"></label>
+      ${edita ? '<button class="btn" id="is-col" title="Busca agora na API Weesu as vendas de hoje (a busca automática roda a cada 15 min)">⟳ Atualizar agora</button>' : ''}</div>
+    <div id="is-res"><div class="carregando">Carregando…</div></div>`;
+  const q = id => document.getElementById(id);
+  const per = () => document.querySelectorAll('[data-per]').forEach(b => { const n = +b.dataset.per, de = n === 1 ? addDias(hojeBRT(), 1) : hojeBRT(), ate = n === 0 ? hojeBRT() : n === 1 ? de : addDias(hojeBRT(), 2); b.classList.toggle('on', s.de === de && s.ate === ate); });
+  document.querySelectorAll('[data-per]').forEach(b => b.onclick = () => { const n = +b.dataset.per, h = hojeBRT(); s.de = n === 1 ? addDias(h, 1) : h; s.ate = n === 0 ? h : n === 1 ? s.de : addDias(h, 2); q('is-de').value = s.de; q('is-ate').value = s.ate; per(); carregarIS(); });
+  q('is-de').onchange = e => { if (e.target.value) { s.de = e.target.value; if (s.ate < s.de) { s.ate = s.de; q('is-ate').value = s.ate; } per(); carregarIS(); } };
+  q('is-ate').onchange = e => { if (e.target.value) { s.ate = e.target.value; if (s.de > s.ate) { s.de = s.ate; q('is-de').value = s.de; } per(); carregarIS(); } };
+  const col = q('is-col'); if (col) col.onclick = async () => { col.disabled = true; col.textContent = 'Buscando na Weesu…';
+    try { const r = await apiIS('/separacao/coletar', {}); avisar(r.pulou ? `Já tem uma busca em andamento: ${r.pulou}` : `Atualizado em ${r.segundos} s: ${(r.lojas || []).map(l => `${nomeLoja(l.loja)} ${l.status === 'ok' ? `✓ ${fmtN(l.linhas)} itens` : l.status === 'sem_credencial' ? 'sem credencial' : `⚠ ${l.erro || l.status}`}`).join(' · ')}`); carregarIS(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { col.disabled = false; col.textContent = '⟳ Atualizar agora'; } };
+  per(); carregarIS();
+  clearInterval(state.timer); state.timer = setInterval(() => { if (state.view === 'separacao') carregarIS(true); }, 5 * 60e3);
+}
+async function carregarIS(silencioso){
+  const s = state.is, $r = document.getElementById('is-res'); if (!$r) return;
+  try { s.dados = await apiIS(`/separacao?de=${s.de}&ate=${s.ate}`); desenhaIS(); }
+  catch (e) { if (e instanceof SemSessao) throw e; if (!silencioso) $r.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function desenhaIS(){
+  const s = state.is, D = s.dados, $r = document.getElementById('is-res'); if (!$r || !D) return;
+  const nomeCanal = id => D.canais.find(c => c.id === id)?.nome || id || '(sem marketplace)';
+  const janela = (canal, seq) => D.janelas.find(j => j.canal_id === canal && j.sequencia === seq && !j.cnpj_id) || D.janelas.find(j => j.canal_id === canal && j.sequencia === seq);
+  const rotColeta = (canal, seq) => { const j = janela(canal, seq); return seq ? `${seq}ª coleta${j ? ` · ${j.coleta_ini}` : ''}` : ''; };
+  const lojasT = ORDEM_LOJAS.filter(l => D.linhas.some(x => x.loja === l) || D.credenciais.some(c => c.loja === l));
+  const mktsT = [...new Set(D.linhas.map(x => x.mkt))].sort(), formasT = [...new Set(D.linhas.filter(x => !s.fMkts.length || s.fMkts.includes(x.mkt)).map(x => x.forma))].sort();
+  s.fFormas = s.fFormas.filter(f => formasT.includes(f));
+  const passa = x => (!s.fLojas.length || s.fLojas.includes(x.loja)) && (!s.fMkts.length || s.fMkts.includes(x.mkt)) && (!s.fFormas.length || s.fFormas.includes(x.forma));
+  const L = D.linhas.filter(x => passa(x) && (s.so === 'todos' || x.grupo === s.so));
+  const soma = (A, k) => A.reduce((t, x) => t + (Number(x[k]) || 0), 0);
+  const ab = L.filter(x => x.grupo === 'aberto'), en = L.filter(x => x.grupo === 'enviado');
+  const atr = D.atrasados.filter(passa), sr = D.sem_regra.filter(passa);
+  const lojasCol = lojasT.filter(l => !s.fLojas.length || s.fLojas.includes(l));
+  // linhas da tabela: dia → (marketplace CROSS + coleta + forma)
+  const dias = [...new Set(L.map(x => x.dia))].sort();
+  const chave = x => `${x.canal_id}|${x.seq}|${x.forma}`;
+  const celula = (A, l) => { const B = A.filter(x => x.loja === l), p = soma(B, 'pedidos'); return p ? `<b>${fmtN(p)}</b> <small>· ${fmtN(soma(B, 'pares'))}</small>` : '<span class="info">–</span>'; };
+  const linhaHtml = (A, rot, cls = '') => `<tr class="${cls}"><td>${rot}</td>${lojasCol.map(l => `<td class="lj">${celula(A, l)}</td>`).join('')}
+    <td class="n"><b>${fmtN(soma(A, 'pedidos'))}</b></td><td class="n"><b>${fmtN(soma(A, 'pares'))}</b></td>
+    <td class="n is-ab">${fmtN(soma(A.filter(x => x.grupo === 'aberto'), 'pedidos')) || ''}</td><td class="n is-env">${fmtN(soma(A.filter(x => x.grupo === 'enviado'), 'pedidos')) || ''}</td></tr>`;
+  const corpo = dias.map(d => { const Ld = L.filter(x => x.dia === d), grupos = [...new Set(Ld.map(chave))];
+    const ord = grupos.map(k => { const A = Ld.filter(x => chave(x) === k), x = A[0]; return { k, A, x, hora:janela(x.canal_id, x.seq)?.coleta_ini || '99' }; }).sort((a, z) => a.hora.localeCompare(z.hora) || soma(z.A, 'pares') - soma(a.A, 'pares'));
+    return linhaHtml(Ld, `${dataBR(d)} <span class="info">${DOW_CURTO[new Date(d + 'T12:00:00Z').getUTCDay()]}${d === D.hoje ? ' · hoje' : d === addDias(D.hoje, 1) ? ' · amanhã' : ''}</span>`, 'dia')
+      + ord.map(o => linhaHtml(o.A, `<b>${esc(nomeCanal(o.x.canal_id))}</b> <span class="info">${esc(rotColeta(o.x.canal_id, o.x.seq))}</span><div class="info">${esc(o.x.forma)}</div>`)).join(''); }).join('');
+  const chips = (rot, todos, sel, data, txt) => `<span class="is-chips"><span>${rot}</span><button class="is-chip ${!sel.length ? 'on' : ''}" data-${data}="">todos</button>${todos.map(v => `<button class="is-chip ${sel.includes(v) ? 'on' : ''}" data-${data}="${esc(v)}">${txt(v)}</button>`).join('')}</span>`;
+  const quandoCol = c => c ? `${new Date(c.fim || c.inicio).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}${new Date(c.fim || c.inicio).toISOString().slice(0, 10) !== new Date().toISOString().slice(0, 10) ? ` de ${dataBR(new Date(c.fim || c.inicio).toISOString().slice(0, 10)).slice(0, 5)}` : ''}` : '';
+  $r.innerHTML = `
+    <div class="is-st">${D.credenciais.map(cr => { const c = D.coletas.find(x => x.loja === cr.loja);
+      return `<div style="--c:${LOJAS[cr.loja]?.borda || LOJAS[cr.loja]?.cor || '#02285a'}"><b>${esc(nomeLoja(cr.loja))}</b> ${!cr.ok ? '<span class="ruim">sem credencial da API</span>'
+        : !c ? '<span class="am">ainda não buscou</span>' : c.status === 'ok' ? `<span class="ok">✓ atualizado às ${quandoCol(c)}</span>` : `<span class="${c.status === 'erro' ? 'ruim' : 'am'}">⚠ ${quandoCol(c)}: ${esc(c.erro || c.status)}</span>`}</div>`; }).join('')}
+      ${D.coletas_24h?.com_429 ? `<div style="--c:#c79100" title="Buscas que receberam 429 (limite de requisições da Weesu) nas últimas 24 h">429 da Weesu: ${D.coletas_24h.com_429} de ${D.coletas_24h.total} buscas em 24 h</div>` : ''}</div>
+    <div class="is-fil">
+      ${chips('Lojas', lojasT, s.fLojas, 'flj', v => esc(nomeLoja(v)))}
+      ${chips('Marketplace', mktsT, s.fMkts, 'fmk', v => esc(v))}
+      <span class="is-chips"><span>Situação</span>${[['todos', 'todos'], ['aberto', 'em aberto'], ['enviado', 'enviados']].map(([k, t]) => `<button class="is-chip ${s.so === k ? 'on' : ''}" data-so="${k}">${t}</button>`).join('')}</span></div>
+    <div class="is-fil">${chips('Forma de entrega', formasT, s.fFormas, 'ffo', v => esc(v))}
+      ${s.fLojas.length || s.fMkts.length || s.fFormas.length || s.so !== 'todos' ? '<button class="btn" id="is-lf">Limpar filtros</button>' : ''}<span style="flex:1"></span><button class="btn" id="is-csv">⇩ CSV</button></div>
+    <div class="kpis">
+      <div class="kpi destaque"><div class="rot">Pedidos no período</div><div class="val">${fmtN(soma(L, 'pedidos'))}</div><div class="det">${fmtN(soma(L, 'pares'))} pares · coleta de ${dataBR(D.de).slice(0, 5)}${D.ate !== D.de ? ` a ${dataBR(D.ate).slice(0, 5)}` : ''}</div></div>
+      <div class="kpi"><div class="rot">Em aberto</div><div class="val">${fmtN(soma(ab, 'pedidos'))}</div><div class="det">${fmtN(soma(ab, 'pares'))} pares ainda não enviados</div></div>
+      <div class="kpi"><div class="rot">Enviados</div><div class="val">${fmtN(soma(en, 'pedidos'))}</div><div class="det">${fmtN(soma(en, 'pares'))} pares</div></div>
+      <div class="kpi ${atr.length ? 'alerta' : ''}"><div class="rot">Atrasados</div><div class="val">${fmtN(soma(atr, 'pedidos'))}</div><div class="det">coleta já passou e não foi enviado (7 dias)</div></div>
+      <div class="kpi ${sr.length ? 'alerta' : ''}"><div class="rot">Sem dia de coleta</div><div class="val">${fmtN(soma(sr, 'pedidos'))}</div><div class="det">forma sem marketplace ou sem janela</div></div>
+    </div>
+    <div class="painel"><div class="is-scroll"><table class="is-t"><thead><tr><th>Dia de coleta · marketplace · forma</th>${lojasCol.map(l => `<th class="lj" style="--c:${LOJAS[l]?.borda || LOJAS[l]?.cor || '#02285a'}">${esc(nomeLoja(l))} <span style="font-weight:400">ped · pares</span></th>`).join('')}
+      <th class="n">Pedidos</th><th class="n">Pares</th><th class="n" title="Ainda não enviados">Em aberto</th><th class="n">Enviados</th></tr></thead><tbody>
+      ${corpo || `<tr><td colspan="${lojasCol.length + 5}" class="info">Nenhum pedido com coleta nesse período${s.fLojas.length || s.fMkts.length || s.fFormas.length ? ' e filtros' : ''}.</td></tr>`}</tbody></table></div>
+      <div class="info" style="margin-top:6px">Dia e coleta calculados pelas <b>janelas da Gestão CROSS</b> (corte × aprovação do pedido). "Em aberto" = ainda não enviado: a API não informa se já foi separado no WMS. Full não entra.</div></div>
+    ${atr.length ? `<div class="painel" style="margin-top:14px;border-left:4px solid var(--bad)"><h3 style="margin:0 0 8px">Atrasados <span class="info">(coleta já passou e o pedido não consta como enviado)</span></h3><div class="is-scroll"><table class="is-t"><thead><tr><th>Coleta era</th><th>Loja</th><th>Marketplace</th><th>Forma</th><th class="n">Pedidos</th><th class="n">Pares</th></tr></thead><tbody>
+      ${atr.map(x => `<tr><td>${dataBR(x.dia)}</td><td>${tagLoja(x.loja)}</td><td>${esc(x.mkt)}</td><td>${esc(x.forma)}</td><td class="n"><b>${fmtN(x.pedidos)}</b></td><td class="n">${fmtN(x.pares)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="info" style="margin-top:4px">Pode ser atraso real ou status da API ainda não atualizado (a busca de D-1/D-2 roda a cada 2 h). Confira na Torre de expedição.</div></div>` : ''}
+    ${sr.length ? `<div class="painel" style="margin-top:14px;border-left:4px solid #c79100"><h3 style="margin:0 0 8px">Pedidos sem dia de coleta <span class="info">(vendas dos últimos 7 dias, em aberto)</span></h3><div class="is-scroll"><table class="is-t"><thead><tr><th>Loja</th><th>Marketplace</th><th>Forma de entrega (API)</th><th>Motivo</th><th class="n">Pedidos</th><th class="n">Pares</th></tr></thead><tbody>
+      ${sr.map(x => `<tr><td>${tagLoja(x.loja)}</td><td>${esc(x.mkt)}</td><td><b>${esc(x.forma)}</b></td><td>${x.canal_id ? `${esc(nomeCanal(x.canal_id))} sem janela vigente para essa loja → <a href="#" data-ir="cross">Gestão CROSS › Janelas</a>` : 'forma sem marketplace → <a href="#" data-ir="marketplaces">Cadastros › Marketplaces</a>'}</td><td class="n"><b>${fmtN(x.pedidos)}</b></td><td class="n">${fmtN(x.pares)}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+    <div class="info" style="margin-top:8px">Busca automática na API Weesu a cada 15 min (6h–20h); a tela se atualiza sozinha a cada 5 min. Consultado às ${new Date(D.agora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}.</div>`;
+  const re = () => desenhaIS(), alterna = (arr, v) => !v ? [] : arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
+  $r.querySelectorAll('[data-flj]').forEach(b => b.onclick = () => { s.fLojas = alterna(s.fLojas, b.dataset.flj); re(); });
+  $r.querySelectorAll('[data-fmk]').forEach(b => b.onclick = () => { s.fMkts = alterna(s.fMkts, b.dataset.fmk); re(); });
+  $r.querySelectorAll('[data-ffo]').forEach(b => b.onclick = () => { s.fFormas = alterna(s.fFormas, b.dataset.ffo); re(); });
+  $r.querySelectorAll('[data-so]').forEach(b => b.onclick = () => { s.so = b.dataset.so; re(); });
+  $r.querySelectorAll('[data-ir]').forEach(a => a.onclick = e => { e.preventDefault(); irPara(a.dataset.ir); });
+  const lf = document.getElementById('is-lf'); if (lf) lf.onclick = () => { Object.assign(s, { fLojas:[], fMkts:[], fFormas:[], so:'todos' }); re(); };
+  document.getElementById('is-csv').onclick = () => baixarCsv(`inteligencia-separacao-${D.de}_${D.ate}.csv`, [['Dia de coleta', 'Coleta', 'Hora da coleta', 'Loja', 'Marketplace (CROSS)', 'Canal', 'Forma de entrega', 'Situação', 'Pedidos', 'Pares'],
+    ...[...L].sort((a, z) => a.dia.localeCompare(z.dia)).map(x => [dataBR(x.dia), x.seq || '', janela(x.canal_id, x.seq)?.coleta_ini || '', nomeLoja(x.loja), nomeCanal(x.canal_id), x.mkt, x.forma, x.grupo === 'aberto' ? 'em aberto' : 'enviado', x.pedidos, x.pares])]);
+}
 // ===================== MAPA DE SEPARAÇÃO (picking) =====================
 // POR LOJA, sobe a posição de estoque do dia + os pedidos a separar; o navegador cruza (cada item → posição com MAIOR saldo do SKU no estoque
 // DA MESMA LOJA, fora do endereço zerado BL0/RUA0) e grava o resultado no banco (/picking/carga). A tela lê do banco (/picking) por período:
@@ -10032,6 +10180,7 @@ const MENU = [
       { view:'full', titulo:'Gestão - FULL', tela:'full' },
       { view:'cross', titulo:'Gestão - CROSS', tela:'cross' },
       { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
+      { view:'separacao', titulo:'Inteligência de Separação', tela:'separacao' },
       { view:'layout', titulo:'Layout do galpão', tela:'layout' },
       { view:'mkt', titulo:'Marketing (Solicitações)', tela:'mkt' },
       { view:'picking', titulo:'Mapa de separação', tela:'seenc' },
@@ -10042,7 +10191,6 @@ const MENU = [
     ]},
     { id:'indicadores', titulo:'Indicadores', filhos:[
       { view:'consolidado', titulo:'Produção do time', tela:'produtividade' },
-      { view:'separados', titulo:'Produtividade', tela:'produtividade' },
       { view:'seenc', titulo:'Dados do Seenc', tela:'seenc' },
       { view:'volume',    titulo:'Volume de Pedidos', soDemo:true },
     ]},
@@ -10063,7 +10211,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { mkt:'mkt', seenc:'seenc', picking:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { separacao:'separacao', mkt:'mkt', seenc:'seenc', picking:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -10109,9 +10257,11 @@ document.getElementById('btn-menu').onclick = () => alternarMenu();
 document.getElementById('veu').onclick = () => alternarMenu(false);
 if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado');
 
+// tela de entrada: a primeira desta lista que a pessoa pode abrir
+const TELA_INICIAL = ['separacao', 'full', 'cross', 'mkt', 'alocacao', 'oo', 'pessoas'];
 function irPara(view){
-  if (!['separados', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc', 'mkt', 'picking'].includes(view) || (view === 'volume' && !DEMO)) view = 'separados';   // "prod" foi unificado em "separados"
-  if (!viewLiberada(view)) view = ['separados', 'full', 'cross', 'oo', 'mkt', 'pessoas'].find(viewLiberada) || 'nada';
+  if (!['separacao', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc', 'mkt', 'picking'].includes(view) || (view === 'volume' && !DEMO)) view = TELA_INICIAL.find(viewLiberada) || 'nada';   // a Produtividade ("separados") saiu em 16/11/2026
+  if (!viewLiberada(view)) view = TELA_INICIAL.find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
   clearInterval(state.timer);
@@ -10134,8 +10284,8 @@ function irPara(view){
   if (view === 'seenc') return telaSeenc();
   if (view === 'mkt') return telaMkt();
   if (view === 'picking') return telaPicking();
+  if (view === 'separacao') return telaSeparacao();
   if (view === 'prod') return telaProd();
-  if (view === 'separados') { telaSep(); state.timer = setInterval(() => carregarSep(true), 15*60e3); return; }
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
 }
 
@@ -10828,14 +10978,14 @@ function ligarDicas(raiz){
 }
 
 /* =================== INÍCIO =================== */
-document.getElementById('btn-home').onclick = () => irPara('separados');
+document.getElementById('btn-home').onclick = () => irPara('inicio');
 async function iniciar(){
   document.getElementById('logo-topo').src = LOGOS.VALENRO;
   document.getElementById('selo-demo').hidden = !DEMO;
   if (DEMO) {
     state.cnpjs = [{ id:'DIGOS', nome:'Digos' }, { id:'CACAL', nome:'Cacal' }, { id:'DROSA', nome:"D'Rosa" }];
     state.usuario ||= { nome:'Demonstração', login:'demonstracao', foto:null }; mostrarUsuario(state.usuario);
-    return irPara(params.get('tela') || 'separados');
+    return irPara(params.get('tela') || 'inicio');
   }
   if (!lerSessao()) return telaLogin();
   try {
@@ -10844,7 +10994,7 @@ async function iniciar(){
     mostrarUsuario(me.usuario);
     if (me.usuario.foto && !me.usuario.foto_mini) miniDe(me.usuario.foto).then(m => api('/me/foto', { metodo:'POST', corpo:{ foto:me.usuario.foto, foto_mini:m } })).catch(() => {});
     state.cnpjs = (await api('/cnpjs')).cnpjs;
-    irPara(params.get('tela') || 'separados');
+    irPara(params.get('tela') || 'inicio');
   } catch (e) {
     if (e instanceof SemSessao) return telaLogin();
     $app.innerHTML = `<div class="erro"><b>Não foi possível conectar ao servidor.</b><br>${esc(e.message)}</div>`;
