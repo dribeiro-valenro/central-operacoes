@@ -9215,8 +9215,9 @@ const DESTINOS_MK = { logistica:'Devolve para a logística', marketing:'Fica arm
 const motivoMk = x => x.motivo ? (x.motivo === 'outro' ? `Outro: ${x.motivo_outro || ''}` : MOTIVOS_MK[x.motivo]) : (x.finalidade ? `(antigo) ${x.finalidade}` : '—');
 const tagDestMk = x => x.destino === 'marketing' ? '<span class="mk-dest arm" title="Os pares ficam armazenados no Marketing (não voltam)">📦 fica no MKT</span>' : '<span class="mk-dest" title="Os pares voltam para a logística">↩ volta</span>';
 // ===================== MAPA DE SEPARAÇÃO (picking) =====================
-// Importa (no navegador, sem gravar no banco), POR LOJA, a posição de estoque do dia + os pedidos a separar e mostra onde está cada item
-// (posição com MAIOR saldo do SKU no estoque DA MESMA LOJA, fora do endereço zerado BL0/RUA0) e o resumo por armazém/bloco/rua e marketplace.
+// POR LOJA, sobe a posição de estoque do dia + os pedidos a separar; o navegador cruza (cada item → posição com MAIOR saldo do SKU no estoque
+// DA MESMA LOJA, fora do endereço zerado BL0/RUA0) e grava o resultado no banco (/picking/carga). A tela lê do banco (/picking) por período:
+// filtros dinâmicos, "só o que falta separar" (itens da última importação da loja no dia) e histórico por bloco.
 // O estoque de uma loja nunca atende item de outra. O resumo por rua soma as lojas (é o lugar físico onde o time anda).
 // Arquivos aceitos (tipo detectado pelo cabeçalho):
 //   • estoque  — "estoque alocado por posição": Posição, SKU, GTIN, Produto, Quantidade alocada (+ Bloco, Rua, Prédio)
@@ -9243,7 +9244,8 @@ const CSS_PK = `
   .pk-mx td.c{text-align:center;font-variant-numeric:tabular-nums} .pk-mx td.c span{display:block;border-radius:5px;padding:2px 0}
   .pk-scroll{overflow-x:auto} .pk-tag{display:inline-block;border-radius:99px;padding:0 7px;font-size:11px;font-weight:700;background:#fde7e7;color:#a11d1d;border:1px solid #f3c4c4}
   .pk-tag.am{background:#fff4e0;color:#8a4b00;border-color:#f3d6a4}
-  .pk-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:8px;vertical-align:middle} .pk-seg button{border:0;background:#fff;padding:2px 10px;font-size:12px;cursor:pointer} .pk-seg button.on{background:#02285a;color:#fff}`;
+  .pk-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:8px;vertical-align:middle} .pk-seg button{border:0;background:#fff;padding:2px 10px;font-size:12px;cursor:pointer} .pk-seg button.on{background:#02285a;color:#fff}
+  .pk-imp summary{cursor:pointer;font-weight:600} .pk-hist td.c{text-align:right;font-variant-numeric:tabular-nums}`;
 const COL_PK = {
   pedido:['pedido', 'codigo_venda_weesu', 'codigo do pedido', 'numero do pedido'], sku:['sku', 'sku variacao', 'sku_produto', 'sku do produto', 'sku_variacao'],
   gtin:['gtin', 'ean', 'codigo de barras'], produto:['produto', 'nome do produto', 'descricao', 'desc_produto'],
@@ -9288,25 +9290,58 @@ function lerArquivoPk(txt, nome){
   }
   return { nome, tipo:'erro', erro:'Não reconheci o relatório (preciso de "Posição" + "Quantidade alocada" no estoque, ou "Pedido" + "SKU" nos itens)' };
 }
-// junta tudo, loja por loja: cada item → posição com maior saldo do SKU NO ESTOQUE DA MESMA LOJA (fora do endereço zerado)
-function calcPk(){
-  const L = [], semItens = [], est = [];
-  for (const [loja, A] of Object.entries(state.pk.lojas)) {
-    const e = A.estoque?.linhas || [], itens = A.itens?.linhas || [], peds = A.pedidos?.linhas || [];
-    e.forEach(x => est.push({ ...x, loja }));
-    const porSku = new Map(), gtinSku = new Map();
-    e.forEach(x => { if (!porSku.has(x.sku)) porSku.set(x.sku, []); porSku.get(x.sku).push(x); if (x.gtin && !gtinSku.has(x.gtin)) gtinSku.set(x.gtin, x.sku); });
-    const cab = new Map(peds.map(p => [p.pedido, p]));
-    itens.forEach(i => { const h = cab.get(i.pedido) || {}, sku = i.sku && porSku.has(i.sku) ? i.sku : (gtinSku.get(i.gtin) || i.sku);
-      const locs = porSku.get(sku) || [], end = locs.filter(x => !x.zerado).sort((a, b) => b.qtd - a.qtd || a.pos.localeCompare(b.pos, 'pt', { numeric:true }));
-      const best = end[0], conta = i.conta || h.conta || '';
-      L.push({ loja, pedido:i.pedido, sku:sku || i.gtin, produto:i.produto || locs[0]?.produto || '', qtd:i.qtd, prazo:i.prazo || h.prazo || '', forma:i.forma || h.forma || '',
-        mkt:mktPk(i.canal || h.canal, conta), conta, st:!A.estoque ? 'semarq' : best ? 'ok' : locs.length ? 'zerado' : 'sem',
-        pos:best?.pos || '', ar:best?.ar || '', bloco:best?.bloco || '', rua:best?.rua || '', predio:best?.predio || '', saldo:best?.qtd || 0,
-        outras:Math.max(0, end.length - 1), saldoZer:locs.filter(x => x.zerado).reduce((t, x) => t + x.qtd, 0) }); });
-    const com = new Set(itens.map(i => i.pedido)); if (itens.length) peds.filter(p => !com.has(p.pedido)).forEach(p => semItens.push({ ...p, loja }));
-  }
-  return { L, semItens, est };
+// cruza os arquivos de UMA loja (estoque só da própria loja) → o que vai para o banco
+function calcLojaPk(loja){
+  const A = state.pk.local[loja] || {}, e = A.estoque?.linhas || [], itens = A.itens?.linhas || [], peds = A.pedidos?.linhas || [];
+  const porSku = new Map(), gtinSku = new Map();
+  e.forEach(x => { if (!porSku.has(x.sku)) porSku.set(x.sku, []); porSku.get(x.sku).push(x); if (x.gtin && !gtinSku.has(x.gtin)) gtinSku.set(x.gtin, x.sku); });
+  const cab = new Map(peds.map(p => [p.pedido, p]));
+  const L = itens.map(i => { const h = cab.get(i.pedido) || {}, sku = i.sku && porSku.has(i.sku) ? i.sku : (gtinSku.get(i.gtin) || i.sku);
+    const locs = porSku.get(sku) || [], end = locs.filter(x => !x.zerado).sort((a, b) => b.qtd - a.qtd || a.pos.localeCompare(b.pos, 'pt', { numeric:true }));
+    const best = end[0], conta = i.conta || h.conta || '';
+    return { pedido:i.pedido, sku:sku || i.gtin, produto:i.produto || locs[0]?.produto || '', qtd:i.qtd, prazo:i.prazo || h.prazo || '', forma:i.forma || h.forma || '',
+      mkt:mktPk(i.canal || h.canal, conta), conta, st:!A.estoque ? 'semarq' : best ? 'ok' : locs.length ? 'zerado' : 'sem',
+      pos:best?.pos || '', ar:best?.ar || '', bloco:best?.bloco || '', rua:best?.rua || '', predio:best?.predio || '', saldo:best?.qtd || 0,
+      outras:Math.max(0, end.length - 1), saldoZer:locs.filter(x => x.zerado).reduce((t, x) => t + x.qtd, 0) }; });
+  const pedidos = peds.map(p => ({ pedido:p.pedido, mkt:mktPk(p.canal, p.conta), conta:p.conta, forma:p.forma, prazo:p.prazo, itens:p.itens }));
+  const g = new Map(); e.forEach(x => { const k = `${x.ar}|${x.bloco}|${x.rua}`; if (!g.has(k)) g.set(k, { ar:x.ar, bloco:x.bloco, rua:x.rua, pos:new Set(), skus:new Set(), pares:0, zerado:x.zerado });
+    const o = g.get(k); o.pos.add(x.pos); o.skus.add(x.sku); o.pares += x.qtd; });
+  const estoque_rua = [...g.values()].map(o => ({ ar:o.ar, bloco:o.bloco, rua:o.rua, posicoes:o.pos.size, skus:o.skus.size, pares:o.pares, zerado:o.zerado }));
+  return { itens:L, pedidos, estoque_rua };
+}
+// dados do banco → linhas no formato da tela; "pendente" = item/pedido que está na última importação (com itens/pedidos) da loja no dia
+function montarPk(D){
+  const ultI = {}, ultP = {}; (D.cargas || []).forEach(c => { const k = `${c.dia}|${c.cnpj_id}`; if (c.itens > 0) ultI[k] = c.id; if (c.pedidos > 0) ultP[k] = c.id; });
+  const obj = T => T.linhas.map(r => Object.fromEntries(T.cols.map((c, i) => [c, r[i]])));
+  const L = obj(D.itens).map(x => ({ dia:x.dia, loja:x.cnpj_id, pedido:x.pedido, sku:x.sku, produto:x.produto || '', qtd:Number(x.qtd) || 0, mkt:x.mkt || '(sem marketplace)', conta:x.conta || '',
+    forma:x.forma || '', prazo:x.prazo || '', st:x.situacao, pos:x.posicao || '', ar:x.ar || '', bloco:x.bloco || '', rua:x.rua || '', predio:x.predio || '', saldo:Number(x.saldo) || 0,
+    outras:x.outras || 0, saldoZer:Number(x.saldo_zerado) || 0, pend:x.carga_id === ultI[`${x.dia}|${x.cnpj_id}`] }));
+  const P = obj(D.pedidos).map(p => ({ dia:p.dia, loja:p.cnpj_id, pedido:p.pedido, mkt:p.mkt || '(sem marketplace)', conta:p.conta || '', forma:p.forma || '', prazo:p.prazo || '', itens:p.n_itens || 0,
+    pend:p.carga_id === ultP[`${p.dia}|${p.cnpj_id}`] }));
+  return { L, P, E:D.estoque || [], cargas:D.cargas || [], dias:[...new Set([...L.map(x => x.dia), ...P.map(x => x.dia)])].sort() };
+}
+// ---------- demonstração (sem API): guarda em memória ----------
+const DEMO_PK = { seq:0, cargas:[], itens:[], pedidos:[], estoque:[] };
+async function apiPicking(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  await new Promise(r => setTimeout(r, 60)); const D = DEMO_PK, hoje = hojeBRT();
+  if (path.startsWith('/picking?')) { const u = new URLSearchParams(path.split('?')[1]), de = u.get('de') || hoje, ate = u.get('ate') || hoje, f = x => x.dia >= de && x.dia <= ate;
+    const CI = ['dia', 'cnpj_id', 'pedido', 'sku', 'produto', 'qtd', 'mkt', 'conta', 'forma', 'prazo', 'situacao', 'posicao', 'ar', 'bloco', 'rua', 'predio', 'saldo', 'outras', 'saldo_zerado', 'carga_id'];
+    const CP = ['dia', 'cnpj_id', 'pedido', 'mkt', 'conta', 'forma', 'prazo', 'n_itens', 'carga_id'];
+    return JSON.parse(JSON.stringify({ de, ate, hoje, cargas:D.cargas.filter(f), estoque:D.estoque.filter(f),
+      itens:{ cols:CI, linhas:D.itens.filter(f).map(r => CI.map(k => r[k])) }, pedidos:{ cols:CP, linhas:D.pedidos.filter(f).map(r => CP.map(k => r[k])) } })); }
+  if (path === '/picking/carga') { const id = String(++D.seq), loja = corpo.cnpj_id;
+    D.cargas.push({ id, dia:hoje, cnpj_id:loja, itens:corpo.itens.length, pedidos:corpo.pedidos.length, com_estoque:corpo.estoque_rua.length > 0, criado_em:new Date().toISOString(), criado_por:'demonstracao' });
+    corpo.itens.forEach(x => { const r = { dia:hoje, cnpj_id:loja, pedido:x.pedido, sku:String(x.sku).toUpperCase(), produto:x.produto, qtd:x.qtd, mkt:x.mkt, conta:x.conta, forma:x.forma, prazo:x.prazo, situacao:x.st,
+        posicao:x.st === 'ok' ? x.pos : null, ar:x.st === 'ok' ? x.ar : null, bloco:x.st === 'ok' ? x.bloco : null, rua:x.st === 'ok' ? x.rua : null, predio:x.st === 'ok' ? x.predio : null, saldo:x.saldo, outras:x.outras, saldo_zerado:x.saldoZer, carga_id:id };
+      const i = D.itens.findIndex(y => y.dia === hoje && y.cnpj_id === loja && y.pedido === r.pedido && y.sku === r.sku); if (i >= 0) D.itens[i] = r; else D.itens.push(r); });
+    corpo.pedidos.forEach(x => { const r = { dia:hoje, cnpj_id:loja, pedido:x.pedido, mkt:x.mkt, conta:x.conta, forma:x.forma, prazo:x.prazo, n_itens:x.itens, carga_id:id };
+      const i = D.pedidos.findIndex(y => y.dia === hoje && y.cnpj_id === loja && y.pedido === r.pedido); if (i >= 0) D.pedidos[i] = r; else D.pedidos.push(r); });
+    if (corpo.estoque_rua.length) { D.estoque = D.estoque.filter(y => !(y.dia === hoje && y.cnpj_id === loja)); corpo.estoque_rua.forEach(x => D.estoque.push({ ...x, dia:hoje, cnpj_id:loja })); }
+    return { ok:true, carga_id:id, dia:hoje, itens:corpo.itens.length, pedidos:corpo.pedidos.length }; }
+  if (path === '/picking/excluir') { const f = x => x.dia >= corpo.de && x.dia <= corpo.ate && (!corpo.cnpj_id || x.cnpj_id === corpo.cnpj_id), n = D.itens.filter(f).length;
+    ['cargas', 'itens', 'pedidos', 'estoque'].forEach(k => { D[k] = D[k].filter(x => !f(x)); }); return { ok:true, itens:n }; }
+  throw new Error('Rota de demonstração não encontrada');
 }
 const prazoPk = s => { const t = tsSeenc(s); if (!t) return s || '(sem prazo)'; const [d, h] = String(s).split(' '); return d === dataBR(hojeBRT()) ? `hoje ${h || ''}`.trim() : s; };
 const ordPrazoPk = (a, b) => String(tsSeenc(a) || '9').localeCompare(String(tsSeenc(b) || '9'));
@@ -9314,63 +9349,92 @@ const blocoPk = x => `AR${x.ar}-BL${x.bloco}`, ruaPk = x => `AR${x.ar}-BL${x.blo
 const ordRuaPk = (a, z) => (+a.ar - +z.ar) || (+a.bloco - +z.bloco) || (+a.rua - +z.rua) || (+a.predio - +z.predio) || a.pos.localeCompare(z.pos, 'pt', { numeric:true });
 function telaPicking(){
   if (!document.getElementById('css-pk')) { const st = document.createElement('style'); st.id = 'css-pk'; st.textContent = CSS_PK; document.head.appendChild(st); }
-  state.pk ||= { lojas:{}, loja:'', fLojas:[], fMkts:[], fBloco:'', fRua:'', fPrazo:'', fForma:'', busca:'', mx:'prazo' };
-  const s = state.pk, tem = Object.keys(s.lojas).length;
-  $app.innerHTML = `<div class="barra"><h2>Mapa de separação</h2><span style="flex:1"></span>${tem ? '<button class="btn" id="pk-limpa" title="Tirar todos os arquivos importados">Limpar tudo</button>' : ''}</div>
-    <div class="painel"><div class="pk-up">
+  const hoje = hojeBRT();
+  state.pk ||= { local:{}, loja:'', de:hoje, ate:hoje, pend:true, fLojas:[], fMkts:[], fBloco:'', fRua:'', fPrazo:'', fForma:'', busca:'', mx:'prazo' };
+  const s = state.pk, editar = pode('seenc', 'editar');
+  $app.innerHTML = `<div class="barra"><h2>Mapa de separação</h2><span style="flex:1"></span>
+      <label class="info">De <input type="date" id="pk-de" value="${s.de}" max="${hoje}"></label><label class="info">até <input type="date" id="pk-ate" value="${s.ate}" max="${hoje}"></label>
+      <button class="btn" id="pk-hoje">Hoje</button>${editar ? '<button class="btn" id="pk-exc" title="Apagar do banco as importações do período">Excluir período</button>' : ''}</div>
+    ${editar ? `<div class="painel"><details class="pk-imp" ${Object.keys(s.local).length || !s.dados?.cargas?.length ? 'open' : ''}><summary>⇪ Importar relatórios do dia</summary>
+      <div class="pk-up" style="margin-top:10px">
         <label>Loja dos arquivos <select id="pk-loja"><option value="">— escolha —</option>${ORDEM_LOJAS.map(id => `<option value="${id}" ${s.loja === id ? 'selected' : ''}>${esc(nomeLoja(id))}</option>`).join('')}</select></label>
-        <label class="btn pri" style="cursor:pointer">⇪ Importar relatórios da loja<input type="file" id="pk-arq" accept=".csv,text/csv" multiple hidden></label>
-        <span class="info">Uma loja por vez: <b>estoque alocado por posição</b> + <b>pedidos a separar com os itens (SKU)</b> do Seenc.</span></div>
-      <div class="info" style="margin-top:6px">Cada item vai para a <b>posição com maior saldo do SKU no estoque da própria loja</b> (o estoque de uma loja nunca atende pedido de outra; o endereço zerado BL0-RUA0 fica de fora).
-        Os arquivos ficam só neste navegador: nada é gravado no banco; amanhã, importe os novos.</div>
-      <div class="pk-arqs" id="pk-arqs"></div></div>
-    <div id="pk-res"></div>`;
+        <label class="btn pri" style="cursor:pointer">Escolher arquivos da loja<input type="file" id="pk-arq" accept=".csv,text/csv" multiple hidden></label>
+        <span class="info">Uma loja por vez: <b>estoque alocado por posição</b> + <b>itens dos pedidos (SKU)</b> + (opcional) lista de pedidos, do Seenc.</span></div>
+      <div class="info" style="margin-top:6px">O portal cruza aqui (cada item → <b>posição com maior saldo do SKU no estoque da própria loja</b>; o estoque de uma loja nunca atende pedido de outra; o endereço zerado BL0-RUA0 fica de fora)
+        e grava o resultado no banco. Reimportar no mesmo dia atualiza, não duplica. Se recarregar a página, importe o estoque de novo junto com os itens.</div>
+      <div class="pk-arqs" id="pk-arqs"></div></details></div>` : ''}
+    <div id="pk-res"><div class="carregando">Carregando…</div></div>`;
   const q = id => document.getElementById(id);
-  q('pk-loja').onchange = e => { s.loja = e.target.value; };
-  const inp = q('pk-arq'); inp.onclick = e => { if (!s.loja) { e.preventDefault(); avisar('Escolha primeiro de qual loja são os arquivos', true); } };
-  inp.onchange = () => importarPk([...inp.files]);
-  const lp = q('pk-limpa'); if (lp) lp.onclick = () => { s.lojas = {}; s.fLojas = []; s.fMkts = []; telaPicking(); };
-  renderPk();
+  q('pk-de').onchange = e => { if (e.target.value) { s.de = e.target.value; if (s.ate < s.de) s.ate = s.de; carregarPk(); } };
+  q('pk-ate').onchange = e => { if (e.target.value) { s.ate = e.target.value; if (s.de > s.ate) s.de = s.ate; carregarPk(); } };
+  q('pk-hoje').onclick = () => { s.de = s.ate = hojeBRT(); telaPicking(); };
+  if (editar) {
+    q('pk-loja').onchange = e => { s.loja = e.target.value; };
+    const inp = q('pk-arq'); inp.onclick = e => { if (!s.loja) { e.preventDefault(); avisar('Escolha primeiro de qual loja são os arquivos', true); } };
+    inp.onchange = () => importarPk([...inp.files]);
+    q('pk-exc').onclick = () => excluirPeriodoPk();
+    renderArqsPk();
+  }
+  carregarPk();
+}
+async function carregarPk(){
+  const s = state.pk; document.querySelectorAll('#pk-de,#pk-ate').forEach(i => { i.value = i.id === 'pk-de' ? s.de : s.ate; });
+  try { s.dados = await apiPicking(`/picking?de=${s.de}&ate=${s.ate}`); s.calc = montarPk(s.dados); }
+  catch (e) { if (e instanceof SemSessao) throw e; const $r = document.getElementById('pk-res'); if ($r) $r.innerHTML = `<div class="erro">${esc(e.message)}</div>`; return; }
+  if (!s.calc.L.length) { const $r = document.getElementById('pk-res'); if ($r) $r.innerHTML = semItensPk(); return; }
+  desenhaPk();
 }
 async function importarPk(files){
   const s = state.pk, loja = s.loja; if (!loja) return avisar('Escolha a loja dos arquivos', true);
   for (const f of files) { try { const r = lerArquivoPk(await textoArquivo(f), f.name); r.em = new Date().toISOString();
       if (r.tipo === 'erro') { avisar(`${f.name}: ${r.erro}`, true); continue; }
       // não deixa misturar: pedido de uma loja subido como se fosse de outra
-      if (r.lojas?.length && !r.lojas.includes(loja)) { avisar(`${f.name}: as contas do arquivo são da ${r.lojas.map(nomeLoja).join(' / ')}, não da ${nomeLoja(loja)}. Troque a loja e importe de novo.`, true); continue; }
       if (r.lojas?.length > 1) { avisar(`${f.name}: o arquivo tem pedidos de mais de uma loja (${r.lojas.map(nomeLoja).join(', ')}). Exporte uma loja por vez.`, true); continue; }
-      (s.lojas[loja] ||= {})[r.tipo] = r; }
+      if (r.lojas?.length && !r.lojas.includes(loja)) { avisar(`${f.name}: as contas do arquivo são da ${r.lojas.map(nomeLoja).join(' / ')}, não da ${nomeLoja(loja)}. Troque a loja e importe de novo.`, true); continue; }
+      (s.local[loja] ||= {})[r.tipo] = r; }
     catch (e) { avisar(`${f.name}: ${e.message}`, true); } }
-  s.fBloco = s.fRua = ''; telaPicking();
+  renderArqsPk();
+  const A = s.local[loja]; if (!A) return;
+  const corpo = { cnpj_id:loja, arquivos:Object.values(A).map(r => r.nome), ...calcLojaPk(loja) };
+  if (!corpo.itens.length && !corpo.pedidos.length && !corpo.estoque_rua.length) return;
+  try { const r = await apiPicking('/picking/carga', corpo); A.enviado = new Date().toISOString();
+    avisar(`${nomeLoja(loja)}: gravado (${fmtN(r.itens)} itens · ${fmtN(r.pedidos)} pedidos${corpo.estoque_rua.length ? ` · estoque de ${corpo.estoque_rua.length} ruas` : ''})${corpo.itens.length && !A.estoque ? ' — falta o estoque desta loja para localizar os itens' : ''}`);
+    s.de = s.ate = r.dia || hojeBRT(); s.pend = true; telaPicking();
+  } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); renderArqsPk(); }
 }
-function renderPk(){
-  const s = state.pk, $a = document.getElementById('pk-arqs'), $r = document.getElementById('pk-res'); if (!$a) return;
+async function excluirPeriodoPk(){
+  const s = state.pk, b = document.getElementById('pk-exc');
+  if (!confirmaDupla(b, `Clique de novo: apaga ${dataBR(s.de)}${s.ate !== s.de ? ` a ${dataBR(s.ate)}` : ''} (todas as lojas)`)) return;
+  try { const r = await apiPicking('/picking/excluir', { de:s.de, ate:s.ate }); avisar(`Excluído: ${fmtN(r.itens)} itens`); carregarPk(); }
+  catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+}
+function renderArqsPk(){
+  const s = state.pk, $a = document.getElementById('pk-arqs'); if (!$a) return;
   const hr = r => `<span class="info"> · ${new Date(r.em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })} · ${esc(r.nome)}</span>`;
-  $a.innerHTML = ORDEM_LOJAS.filter(id => s.lojas[id]).map(id => { const A = s.lojas[id];
-    return `<div class="pk-lj" style="--c:${LOJAS[id]?.borda || LOJAS[id]?.cor || '#02285a'}"><h4>${tagLoja(id)} <span class="x" data-tira="${id}">tirar</span></h4>
+  $a.innerHTML = ORDEM_LOJAS.filter(id => s.local[id]).map(id => { const A = s.local[id];
+    return `<div class="pk-lj" style="--c:${LOJAS[id]?.borda || LOJAS[id]?.cor || '#02285a'}"><h4>${tagLoja(id)} ${A.enviado ? `<span class="info">gravado às ${new Date(A.enviado).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</span>` : ''}<span class="x" data-tira="${id}">tirar</span></h4>
       <div class="${A.estoque ? 'ok' : 'f'}">${A.estoque ? `Estoque: ${fmtN(A.estoque.linhas.length)} linhas · ${fmtN(new Set(A.estoque.linhas.map(e => e.sku)).size)} SKUs${A.estoque.ars.length ? ` · AR${A.estoque.ars.join('/AR')}` : ''}${A.estoque.zerados ? ` · <span class="pk-tag am">${fmtN(A.estoque.zerados)} no endereço zerado</span>` : ''}${hr(A.estoque)}` : 'falta o estoque alocado por posição'}</div>
       ${A.pedidos ? `<div class="ok">Pedidos: ${fmtN(A.pedidos.linhas.length)} <span class="info">(lista de pedidos, sem o SKU dos itens)</span>${hr(A.pedidos)}</div>` : ''}
-      <div class="${A.itens ? 'ok' : 'f'}">${A.itens ? `Itens dos pedidos (SKU): ${fmtN(A.itens.linhas.length)} itens · ${fmtN(new Set(A.itens.linhas.map(i => i.pedido)).size)} pedidos${hr(A.itens)}` : `falta o relatório de <b>itens dos pedidos</b> (com o SKU de cada item)${A.pedidos ? ' — é um relatório diferente da lista de pedidos' : ''}`}</div></div>`; }).join('') || '<div class="info">Nenhum arquivo importado ainda.</div>';
-  $a.querySelectorAll('[data-tira]').forEach(el => el.onclick = () => { delete s.lojas[el.dataset.tira]; telaPicking(); });
-  const lojas = Object.values(s.lojas);
-  if (!lojas.length) { $r.innerHTML = ''; return; }
-  if (!lojas.some(A => A.itens)) { $r.innerHTML = semItensPk(); return; }
-  state.pk.calc = calcPk(); desenhaPk();
+      <div class="${A.itens ? 'ok' : 'f'}">${A.itens ? `Itens dos pedidos (SKU): ${fmtN(A.itens.linhas.length)} itens · ${fmtN(new Set(A.itens.linhas.map(i => i.pedido)).size)} pedidos${hr(A.itens)}` : `falta o relatório de <b>itens dos pedidos</b> (com o SKU de cada item)${A.pedidos ? ' — é um relatório diferente da lista de pedidos' : ''}`}</div></div>`; }).join('')
+    || '<div class="info">Escolha a loja e os arquivos. Eles ficam guardados nesta tela até você recarregar a página.</div>';
+  $a.querySelectorAll('[data-tira]').forEach(el => el.onclick = () => { delete s.local[el.dataset.tira]; renderArqsPk(); });
 }
-// sem nenhum arquivo de itens: mostra o que dá (pedidos por marketplace/prazo e estoque por bloco) e explica o que falta
+// período sem itens gravados: mostra o que dá (pedidos por marketplace/prazo e estoque por bloco) e explica o que falta
 function semItensPk(){
-  const s = state.pk, peds = [], est = [];
-  Object.entries(s.lojas).forEach(([loja, A]) => { (A.pedidos?.linhas || []).forEach(p => peds.push({ ...p, loja, mkt:mktPk(p.canal, p.conta) })); (A.estoque?.linhas || []).forEach(e => est.push({ ...e, loja })); });
-  let h = `<div class="painel" style="border-left:4px solid #c79100"><b>A lista de pedidos foi lida. Para montar o mapa, falta o relatório de itens dos pedidos.</b>
-    <div class="info" style="margin-top:4px">A lista de pedidos diz <b>quantos</b> itens cada pedido tem ("Quantidade de itens"), mas não <b>qual SKU</b> é cada item; sem o SKU não dá para saber em que posição o pedido está.
-    No Seenc, exporte um relatório que traga <b>uma linha por item</b>, com as colunas Pedido + SKU (ou SKU variação) + Quantidade. Assim que subir, o mapa aparece.</div></div>`;
+  const s = state.pk, C = s.calc || { P:[], E:[] }, peds = C.P.filter(p => !s.pend || p.pend), est = C.E;
+  let h = '';
+  if (!peds.length && !est.length) return `<div class="painel"><div class="info">Nada importado em ${dataBR(s.de)}${s.ate !== s.de ? ` a ${dataBR(s.ate)}` : ''}.${pode('seenc', 'editar') ? ' Use "Importar relatórios do dia" acima.' : ''}</div></div>`;
+  h += `<div class="painel" style="border-left:4px solid #c79100"><b>Para montar o mapa, falta o relatório de itens dos pedidos.</b>
+    <div class="info" style="margin-top:4px">A lista de pedidos diz <b>quantos</b> itens cada pedido tem, mas não <b>qual SKU</b> é cada item; sem o SKU não dá para saber em que posição o pedido está.
+    No Seenc, exporte um relatório com <b>uma linha por item</b> (Pedido + SKU ou SKU variação + Quantidade).</div></div>`;
   if (peds.length) { const g = {}; peds.forEach(p => { const k = `${p.mkt}|${p.prazo || '(sem prazo)'}`; (g[k] ||= { mkt:p.mkt, prazo:p.prazo, n:0, it:0, lojas:{}, f:{} }); const o = g[k]; o.n++; o.it += p.itens || 0; o.lojas[p.loja] = (o.lojas[p.loja] || 0) + 1; o.f[p.forma] = (o.f[p.forma] || 0) + 1; });
     h += `<div class="painel"><h3 style="margin:0 0 8px">Pedidos a separar por marketplace e prazo</h3><div class="pk-scroll"><table class="pk-t"><thead><tr><th>Marketplace</th><th>Enviar até</th><th class="n">Pedidos</th><th class="n">Itens</th><th>Lojas</th><th>Formas de entrega</th></tr></thead><tbody>
       ${Object.values(g).sort((a, b) => ordPrazoPk(a.prazo, b.prazo) || a.mkt.localeCompare(b.mkt)).map(o => `<tr><td><b>${esc(o.mkt)}</b></td><td><b>${esc(prazoPk(o.prazo))}</b></td><td class="n">${fmtN(o.n)}</td><td class="n">${fmtN(o.it)}</td><td>${Object.entries(o.lojas).map(([l, n]) => `${tagLoja(l)} ${n}`).join(' ')}</td><td class="info">${Object.entries(o.f).sort((a, b) => b[1] - a[1]).map(([f, n]) => `${esc(f)} (${n})`).join(' · ')}</td></tr>`).join('')}</tbody></table></div></div>`; }
-  if (est.length) { const g = {}; est.filter(e => !e.zerado).forEach(e => { const k = blocoPk(e); (g[k] ||= { pos:new Set(), skus:new Set(), q:0, ruas:new Set(), lojas:new Set() }); g[k].pos.add(e.pos); g[k].skus.add(`${e.loja}|${e.sku}`); g[k].q += e.qtd; g[k].ruas.add(e.rua); g[k].lojas.add(e.loja); });
-    const tot = Object.values(g).reduce((t, o) => t + o.q, 0);
-    h += `<div class="painel"><h3 style="margin:0 0 8px">Estoque por bloco (sem o endereço zerado)</h3><table class="pk-t"><thead><tr><th>Bloco</th><th>Lojas</th><th class="n">Ruas</th><th class="n">Posições</th><th class="n">SKUs</th><th class="n">Pares</th><th class="n">%</th></tr></thead><tbody>
-      ${Object.entries(g).sort((a, b) => b[1].q - a[1].q).map(([k, o]) => `<tr><td><b>${k}</b></td><td>${[...o.lojas].map(tagLoja).join(' ')}</td><td class="n">${o.ruas.size}</td><td class="n">${fmtN(o.pos.size)}</td><td class="n">${fmtN(o.skus.size)}</td><td class="n">${fmtN(o.q)}</td><td class="n">${Math.round(o.q / tot * 100)}%</td></tr>`).join('')}</tbody></table></div>`; }
+  if (est.length) { const ult = est.filter(e => e.dia === [...new Set(est.map(x => x.dia))].sort().at(-1)), g = {};
+    ult.filter(e => !e.zerado).forEach(e => { const k = blocoPk(e); (g[k] ||= { pos:0, skus:0, q:0, ruas:new Set(), lojas:new Set() }); g[k].pos += e.posicoes; g[k].skus += e.skus; g[k].q += Number(e.pares); g[k].ruas.add(e.rua); g[k].lojas.add(e.cnpj_id); });
+    const tot = Object.values(g).reduce((t, o) => t + o.q, 0) || 1;
+    h += `<div class="painel"><h3 style="margin:0 0 8px">Estoque por bloco <span class="info">(${dataBR(ult[0].dia)} · sem o endereço zerado)</span></h3><table class="pk-t"><thead><tr><th>Bloco</th><th>Lojas</th><th class="n">Ruas</th><th class="n">Posições</th><th class="n">SKUs</th><th class="n">Pares</th><th class="n">%</th></tr></thead><tbody>
+      ${Object.entries(g).sort((a, b) => b[1].q - a[1].q).map(([k, o]) => `<tr><td><b>${k}</b></td><td>${[...o.lojas].map(tagLoja).join(' ')}</td><td class="n">${o.ruas.size}</td><td class="n">${fmtN(o.pos)}</td><td class="n">${fmtN(o.skus)}</td><td class="n">${fmtN(o.q)}</td><td class="n">${Math.round(o.q / tot * 100)}%</td></tr>`).join('')}</tbody></table></div>`; }
   return h;
 }
 function desenhaPk(){
@@ -9378,7 +9442,7 @@ function desenhaPk(){
   const b = semAcento(s.busca), lojasT = [...new Set(C.L.map(x => x.loja))], mktsT = [...new Set(C.L.map(x => x.mkt))].sort();
   s.fLojas = s.fLojas.filter(l => lojasT.includes(l)); s.fMkts = s.fMkts.filter(m => mktsT.includes(m));
   // base: loja + marketplace (vários de uma vez) + prazo + entrega + busca
-  const F0 = C.L.filter(x => (!s.fLojas.length || s.fLojas.includes(x.loja)) && (!s.fMkts.length || s.fMkts.includes(x.mkt)));
+  const F0 = C.L.filter(x => (!s.pend || x.pend) && (!s.fLojas.length || s.fLojas.includes(x.loja)) && (!s.fMkts.length || s.fMkts.includes(x.mkt)));
   const F = F0.filter(x => (!s.fPrazo || x.prazo === s.fPrazo) && (!s.fForma || x.forma === s.fForma) && (!b || semAcento(`${x.pedido} ${x.sku} ${x.produto} ${x.pos}`).includes(b)));
   const OK = F.filter(x => x.st === 'ok'), SEM = F.filter(x => x.st === 'sem' || x.st === 'zerado'), SARQ = F.filter(x => x.st === 'semarq');
   const V = OK.filter(x => (!s.fBloco || blocoPk(x) === s.fBloco) && (!s.fRua || ruaPk(x) === s.fRua));
@@ -9417,9 +9481,10 @@ function desenhaPk(){
       ${formas.length ? `<label>Entrega <select id="pk-fo"><option value="">todas</option>${formas.map(f => `<option ${s.fForma === f ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></label>` : ''}
       <input id="pk-busca" placeholder="Buscar pedido, SKU, posição" value="${esc(s.busca)}" style="min-width:200px">
       ${s.fLojas.length || s.fMkts.length || s.fBloco || s.fRua || s.fPrazo || s.fForma || s.busca ? '<button class="btn" id="pk-lf">Limpar filtros</button>' : ''}
-      <span style="flex:1"></span><button class="btn" id="pk-csv">⇩ CSV da lista</button></div>
+      <span style="flex:1"></span><label title="Só os itens que estão na última importação de cada loja no dia (o que ainda falta separar). Desmarcado: tudo o que passou pelo período."><input type="checkbox" id="pk-pend" ${s.pend ? 'checked' : ''}> só o que falta separar</label>
+      <button class="btn" id="pk-csv">⇩ CSV da lista</button></div>
     <div class="kpis">
-      <div class="kpi destaque"><div class="rot">Pedidos a separar</div><div class="val">${fmtN(nPed(F))}</div><div class="det">${fmtN(pares(F))} pares · ${fmtN(F.length)} itens</div></div>
+      <div class="kpi destaque"><div class="rot">${s.pend ? 'Pedidos a separar' : 'Pedidos no período'}</div><div class="val">${fmtN(nPed(F))}</div><div class="det">${fmtN(pares(F))} pares · ${fmtN(F.length)} itens</div></div>
       <div class="kpi"><div class="rot">Localizados</div><div class="val">${Math.round(OK.length / ((F.length - SARQ.length) || 1) * 100)}%</div><div class="det">${fmtN(OK.length)} itens em ${fmtN(new Set(OK.map(x => x.pos)).size)} posições</div></div>
       <div class="kpi"><div class="rot">Ruas com separação</div><div class="val">${fmtN(new Set(OK.map(ruaPk)).size)}</div><div class="det">${n80 ? `${n80} rua(s) = 80% dos pares${s.fBloco ? ` do ${s.fBloco}` : ''}` : ''}</div></div>
       <div class="kpi"><div class="rot">Pedidos em mais de 1 rua</div><div class="val">${fmtN(multi)}</div><div class="det">o separador cruza ruas</div></div>
@@ -9447,13 +9512,18 @@ function desenhaPk(){
       ${LISTA.length > lim ? `<tr><td colspan="10" class="info">Mostrando ${lim} de ${fmtN(LISTA.length)}. Clique numa rua para ver só ela, <span id="pk-tudo" style="cursor:pointer;color:#0b4fa8;text-decoration:underline">mostrar todos</span> ou baixe o CSV.</td></tr>` : ''}</tbody></table></div></div>
     ${SEM.length ? `<div class="painel" style="margin-top:14px;border-left:4px solid var(--bad)"><h3 style="margin:0 0 8px">Itens sem estoque alocado <span class="info">(${fmtN(semG.size)} SKUs · procurado só no estoque da própria loja)</span></h3><div class="pk-scroll"><table class="pk-t"><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th class="n">Pedidos</th><th class="n">Pares</th><th>Situação</th></tr></thead><tbody>
       ${[...semG.values()].sort((a, z) => z.q - a.q).map(o => `<tr><td>${tagLoja(o.x.loja)}</td><td class="pk-pos">${esc(o.x.sku)}</td><td>${esc(o.x.produto)}</td><td class="n">${o.ped.size}</td><td class="n">${o.q}</td><td>${o.x.st === 'zerado' ? `<span class="pk-tag am">só no endereço zerado (${fmtN(o.x.saldoZer)})</span>` : '<span class="pk-tag">sem saldo em nenhuma posição</span>'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
-    ${C.semItens.length ? `<div class="info" style="margin-top:8px">${fmtN(C.semItens.length)} pedido(s) do cabeçalho não aparecem no arquivo de itens.</div>` : ''}`;
+    ${histPk(C, F0)}
+    ${(() => { const com = new Set(C.L.map(x => `${x.dia}|${x.loja}`)), tem = new Set(C.L.map(x => `${x.dia}|${x.loja}|${x.pedido}`));
+      const n = C.P.filter(p => (!s.pend || p.pend) && com.has(`${p.dia}|${p.loja}`) && !tem.has(`${p.dia}|${p.loja}|${p.pedido}`) && (!s.fLojas.length || s.fLojas.includes(p.loja))).length;
+      return n ? `<div class="info" style="margin-top:8px">${fmtN(n)} pedido(s) da lista de pedidos não aparecem no arquivo de itens.</div>` : ''; })()}
+    <div class="info" style="margin-top:8px">Importações no período: ${C.cargas.filter(c => c.itens > 0 || c.pedidos > 0).map(c => `${dataBR(c.dia).slice(0, 5)} ${new Date(c.criado_em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })} ${esc(nomeLoja(c.cnpj_id))} (${fmtN(c.itens)} itens)`).join(' · ') || '—'}</div>`;
   const q = id => document.getElementById(id), re = () => desenhaPk();
   const alterna = (arr, v) => { if (!v) return []; return arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]; };
   $r.querySelectorAll('[data-flj]').forEach(el => el.onclick = () => { s.fLojas = alterna(s.fLojas, el.dataset.flj); s.fBloco = s.fRua = ''; re(); });
   $r.querySelectorAll('[data-fmk]').forEach(el => el.onclick = () => { s.fMkts = alterna(s.fMkts, el.dataset.fmk); re(); });
   $r.querySelectorAll('tr[data-mk]').forEach(el => el.onclick = () => { s.fMkts = alterna(s.fMkts, el.dataset.mk); re(); });
   $r.querySelectorAll('[data-mx]').forEach(el => el.onclick = () => { s.mx = el.dataset.mx; re(); });
+  q('pk-pend').onchange = e => { s.pend = e.target.checked; re(); };
   q('pk-bl').onchange = e => { s.fBloco = e.target.value; s.fRua = ''; re(); };
   q('pk-ru').onchange = e => { s.fRua = e.target.value; if (s.fRua) s.fBloco = s.fRua.split('-RUA')[0]; re(); };
   q('pk-pz').onchange = e => { s.fPrazo = e.target.value; re(); };
@@ -9463,9 +9533,22 @@ function desenhaPk(){
   const lf = q('pk-lf'); if (lf) lf.onclick = () => { Object.assign(s, { fLojas:[], fMkts:[], fBloco:'', fRua:'', fPrazo:'', fForma:'', busca:'' }); re(); };
   $r.querySelectorAll('[data-bl]').forEach(tr => tr.onclick = () => { s.fBloco = s.fBloco === tr.dataset.bl ? '' : tr.dataset.bl; s.fRua = ''; re(); });
   $r.querySelectorAll('[data-ru]').forEach(tr => tr.onclick = () => { const c = tr.dataset.ru; if (s.fRua === c) s.fRua = ''; else { s.fRua = c; s.fBloco = c.split('-RUA')[0]; } re(); });
-  q('pk-csv').onclick = () => baixarCsv(`mapa-separacao-${hojeBRT()}.csv`, [['Loja', 'Posição', 'Armazém', 'Bloco', 'Rua', 'Prédio', 'SKU', 'Produto', 'Qtd', 'Pedido', 'Marketplace', 'Conta', 'Enviar até', 'Forma de entrega', 'Saldo na posição', 'Outras posições', 'Situação'],
-    ...[...LISTA, ...(!s.fBloco && !s.fRua ? [...SEM, ...SARQ] : [])].map(x => [nomeLoja(x.loja), x.pos, x.ar, x.bloco, x.rua, x.predio, x.sku, x.produto, x.qtd, x.pedido, x.mkt, x.conta, x.prazo, x.forma, x.saldo, x.outras,
+  q('pk-csv').onclick = () => baixarCsv(`mapa-separacao-${hojeBRT()}.csv`, [['Dia', 'Loja', 'Posição', 'Armazém', 'Bloco', 'Rua', 'Prédio', 'SKU', 'Produto', 'Qtd', 'Pedido', 'Marketplace', 'Conta', 'Enviar até', 'Forma de entrega', 'Saldo na posição', 'Outras posições', 'Situação'],
+    ...[...LISTA, ...(!s.fBloco && !s.fRua ? [...SEM, ...SARQ] : [])].map(x => [dataBR(x.dia), nomeLoja(x.loja), x.pos, x.ar, x.bloco, x.rua, x.predio, x.sku, x.produto, x.qtd, x.pedido, x.mkt, x.conta, x.prazo, x.forma, x.saldo, x.outras,
       { ok:'localizado', sem:'sem estoque alocado', zerado:'só endereço zerado', semarq:'estoque da loja não importado' }[x.st]])]);
+}
+
+// histórico: com mais de um dia no período, % dos pares por bloco em cada dia (como os pedidos estão se distribuindo no galpão)
+function histPk(C, F0){
+  const dias = [...new Set(F0.map(x => x.dia))].sort(); if (dias.length < 2) return '';
+  const OK = F0.filter(x => x.st === 'ok'), tot = {}; OK.forEach(x => { tot[blocoPk(x)] = (tot[blocoPk(x)] || 0) + x.qtd; });
+  const blocos = Object.entries(tot).sort((a, z) => z[1] - a[1]).map(([k]) => k).slice(0, 10);
+  const linha = d => { const L = F0.filter(x => x.dia === d), ok = L.filter(x => x.st === 'ok'), p = ok.reduce((t, x) => t + x.qtd, 0) || 1;
+    return `<tr><td><b>${dataBR(d)}</b></td><td class="c">${fmtN(new Set(L.map(x => `${x.loja}|${x.pedido}`)).size)}</td><td class="c">${fmtN(L.reduce((t, x) => t + x.qtd, 0))}</td>
+      ${blocos.map(bk => { const v = ok.filter(x => blocoPk(x) === bk).reduce((t, x) => t + x.qtd, 0); return `<td class="c" title="${v} pares">${v ? `${Math.round(v / p * 100)}%` : ''}</td>`; }).join('')}
+      <td class="c">${(() => { const B = L.filter(x => x.st !== 'semarq'); return B.length ? `${Math.round(B.filter(x => x.st !== 'ok').length / B.length * 100)}%` : '–'; })()}</td></tr>`; };
+  return `<div class="painel" style="margin-top:14px"><h3 style="margin:0 0 8px">Histórico por bloco <span class="info">(% dos pares localizados de cada dia)</span></h3><div class="pk-scroll"><table class="pk-t pk-hist"><thead><tr><th>Dia</th><th class="n">Pedidos</th><th class="n">Pares</th>${blocos.map(bk => `<th class="n">${bk}</th>`).join('')}<th class="n" title="Itens sem estoque alocado ou só no endereço zerado">Sem estoque</th></tr></thead><tbody>
+    ${dias.map(linha).join('')}</tbody></table></div><div class="info" style="margin-top:4px">Segue os filtros de loja, marketplace e "só o que falta separar". Para comparar dias, use sempre o mesmo horário de importação.</div></div>`;
 }
 const CSS_MK = `
   .mk-kpis{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px} .mk-kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px} .mk-kpi b{font-size:20px;display:block}
