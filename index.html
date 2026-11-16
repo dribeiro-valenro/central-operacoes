@@ -9393,14 +9393,20 @@ async function importarPk(files){
       if (r.lojas?.length && !r.lojas.includes(loja)) { avisar(`${f.name}: as contas do arquivo são da ${r.lojas.map(nomeLoja).join(' / ')}, não da ${nomeLoja(loja)}. Troque a loja e importe de novo.`, true); continue; }
       (s.local[loja] ||= {})[r.tipo] = r; }
     catch (e) { avisar(`${f.name}: ${e.message}`, true); } }
-  renderArqsPk();
-  const A = s.local[loja]; if (!A) return;
-  const corpo = { cnpj_id:loja, arquivos:Object.values(A).map(r => r.nome), ...calcLojaPk(loja) };
+  renderArqsPk(); await gravarLojaPk(loja);
+}
+// grava no banco o cruzamento de uma loja; o erro fica no quadro da loja (com "Gravar de novo"), não só no aviso que some
+async function gravarLojaPk(loja){
+  const s = state.pk, A = s.local[loja]; if (!A) return;
+  let corpo;
+  try { corpo = { cnpj_id:loja, arquivos:[A.estoque, A.itens, A.pedidos].filter(Boolean).map(r => r.nome), ...calcLojaPk(loja) }; }
+  catch (e) { A.erro = `Erro ao cruzar os arquivos: ${e.message}`; console.error(e); renderArqsPk(); return; }
   if (!corpo.itens.length && !corpo.pedidos.length && !corpo.estoque_rua.length) return;
-  try { const r = await apiPicking('/picking/carga', corpo); A.enviado = new Date().toISOString();
+  A.erro = null; A.gravando = true; renderArqsPk();
+  try { const r = await apiPicking('/picking/carga', corpo); A.enviado = new Date().toISOString(); A.gravando = false;
     avisar(`${nomeLoja(loja)}: gravado (${fmtN(r.itens)} itens · ${fmtN(r.pedidos)} pedidos${corpo.estoque_rua.length ? ` · estoque de ${corpo.estoque_rua.length} ruas` : ''})${corpo.itens.length && !A.estoque ? ' — falta o estoque desta loja para localizar os itens' : ''}`);
     s.de = s.ate = r.dia || hojeBRT(); s.pend = true; telaPicking();
-  } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); renderArqsPk(); }
+  } catch (e) { if (e instanceof SemSessao) throw e; console.error('picking/carga', e); A.gravando = false; A.erro = `Não gravou no banco: ${e.message}`; avisar(A.erro, true); renderArqsPk(); }
 }
 async function excluirPeriodoPk(){
   const s = state.pk, b = document.getElementById('pk-exc');
@@ -9412,12 +9418,14 @@ function renderArqsPk(){
   const s = state.pk, $a = document.getElementById('pk-arqs'); if (!$a) return;
   const hr = r => `<span class="info"> · ${new Date(r.em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })} · ${esc(r.nome)}</span>`;
   $a.innerHTML = ORDEM_LOJAS.filter(id => s.local[id]).map(id => { const A = s.local[id];
-    return `<div class="pk-lj" style="--c:${LOJAS[id]?.borda || LOJAS[id]?.cor || '#02285a'}"><h4>${tagLoja(id)} ${A.enviado ? `<span class="info">gravado às ${new Date(A.enviado).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</span>` : ''}<span class="x" data-tira="${id}">tirar</span></h4>
+    return `<div class="pk-lj" style="--c:${LOJAS[id]?.borda || LOJAS[id]?.cor || '#02285a'}"><h4>${tagLoja(id)} ${A.gravando ? '<span class="info">gravando…</span>' : A.enviado ? `<span class="info">✓ gravado às ${new Date(A.enviado).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</span>` : ''}<span class="x" data-tira="${id}">tirar</span></h4>
+      ${A.erro ? `<div class="erro" style="margin:4px 0">${esc(A.erro)} <button class="btn" data-regrava="${id}" style="margin-left:6px">Gravar de novo</button></div>` : ''}
       <div class="${A.estoque ? 'ok' : 'f'}">${A.estoque ? `Estoque: ${fmtN(A.estoque.linhas.length)} linhas · ${fmtN(new Set(A.estoque.linhas.map(e => e.sku)).size)} SKUs${A.estoque.ars.length ? ` · AR${A.estoque.ars.join('/AR')}` : ''}${A.estoque.zerados ? ` · <span class="pk-tag am">${fmtN(A.estoque.zerados)} no endereço zerado</span>` : ''}${hr(A.estoque)}` : 'falta o estoque alocado por posição'}</div>
       ${A.pedidos ? `<div class="ok">Pedidos: ${fmtN(A.pedidos.linhas.length)} <span class="info">(lista de pedidos, sem o SKU dos itens)</span>${hr(A.pedidos)}</div>` : ''}
       <div class="${A.itens ? 'ok' : 'f'}">${A.itens ? `Itens dos pedidos (SKU): ${fmtN(A.itens.linhas.length)} itens · ${fmtN(new Set(A.itens.linhas.map(i => i.pedido)).size)} pedidos${hr(A.itens)}` : `falta o relatório de <b>itens dos pedidos</b> (com o SKU de cada item)${A.pedidos ? ' — é um relatório diferente da lista de pedidos' : ''}`}</div></div>`; }).join('')
     || '<div class="info">Escolha a loja e os arquivos. Eles ficam guardados nesta tela até você recarregar a página.</div>';
   $a.querySelectorAll('[data-tira]').forEach(el => el.onclick = () => { delete s.local[el.dataset.tira]; renderArqsPk(); });
+  $a.querySelectorAll('[data-regrava]').forEach(el => el.onclick = () => gravarLojaPk(el.dataset.regrava));
 }
 // período sem itens gravados: mostra o que dá (pedidos por marketplace/prazo e estoque por bloco) e explica o que falta
 function semItensPk(){
