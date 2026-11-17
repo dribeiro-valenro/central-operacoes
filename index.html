@@ -9869,7 +9869,8 @@ function demoRS(loja){
   const ocupacao = loja !== 'DIGOS' ? [] : [1, 2].flatMap(rua => [1, 2, 3, 4, 5, 6, 7, 8].flatMap(predio => [80, 80, 20].map((cap, k) => {
     const atual = Math.round(cap * r(rua * 10 + predio, k) * .8), sai = r(predio, k + 5) < .2 ? Math.round(atual * .5) : 0, entra = Math.min(cap - atual + sai, Math.round(cap * r(predio, rua + k) * .4));
     return { rua, predio, andar:k + 1, cap, atual, sai, entra, pos:`AR2-BL4-RUA${rua}-P${predio}-A${k + 1}` }; })));
-  return { loja, hoje:hojeBRT(), dias:28, dias_com_dado:9, primeiro_dia:addDias(hojeBRT(), -9), credencial:true,
+  return { loja, hoje:hojeBRT(), dias:28, dias_com_dado:9, primeiro_dia:addDias(hojeBRT(), -9), credencial:true, base:'seenc', mes_base:'2026-10', dias_base:31,
+    meses_seenc:[{ mes:'2026-10-01', skus:2641, pares:9004 }],
     config:{ areas:[loja === 'DIGOS' ? 'BL4' : 'BL0-R0-P0'], dias_curva:28, corte_a:80, corte_b:95, cobertura_a:2, cobertura_b:1, capacidade_pares:loja === 'DIGOS' ? null : 120,
       mapa:loja === 'DIGOS' ? '1: 1-8\n2: 1-8' : '', cap_andares:loja === 'DIGOS' ? [80, 80, 20] : [] }, ocupacao,
     estoque:{ id:1, origem:'agendada', inicio:new Date(ag - 3.6e6).toISOString(), fim:new Date(ag - 3.4e6).toISOString(), linhas:4821 }, atualizando:null,
@@ -9882,7 +9883,7 @@ async function apiRS(path, corpo){
   await new Promise(r => setTimeout(r, 120));
   if (path.startsWith('/ressuprimento/estoque')) return { ok:true, segundos:96, lojas:[{ loja:corpo.cnpj_id, status:'parcial', de:0, ate:3000, total:4821 }] };
   if (path.startsWith('/ressuprimento/arquivo')) return { ok:true, sync_id:9, gravadas:(corpo.linhas || []).length };
-  if (path.startsWith('/ressuprimento/config')) return { ok:true };
+  if (path.startsWith('/ressuprimento/config') || path.startsWith('/ressuprimento/vendas')) return { ok:true };
   return demoRS(new URLSearchParams(path.split('?')[1] || '').get('loja') || 'DIGOS');
 }
 const chaveFeitoRS = (loja, dia) => `valenro_rs_feito_${loja}_${dia}`;
@@ -9895,9 +9896,9 @@ function telaRessuprimento(){
   $app.innerHTML = `<div class="barra"><h2>Ressuprimento - Cross</h2><span style="flex:1"></span>
       <span class="is-chips">${ORDEM_LOJAS.map(l => `<button class="is-chip ${s.loja === l ? 'on' : ''}" data-lj="${l}">${esc(nomeLoja(l))}</button>`).join('')}</span>
       ${edita ? `<button class="btn" id="rs-sync" title="Recomeça agora a busca do estoque por endereço desta loja na API Weesu (vai em etapas de 100 linhas; a automática roda toda madrugada)">⟳ Atualizar estoque</button>
-        <label class="btn" title="Plano B: relatório de estoque alocado por posição do Seenc, em CSV">⇪ Arquivo do Seenc<input type="file" id="rs-arq" accept=".csv,.txt" hidden></label>` : ''}</div>
+        <label class="btn" title="CSV do Seenc da loja escolhida: Estoque alocado por posição (substitui o estoque) ou Vendas por variação de um mês (base da curva)">⇪ Arquivo do Seenc<input type="file" id="rs-arq" accept=".csv,.txt" hidden></label>` : ''}</div>
     <div id="rs-res"><div class="carregando">Carregando…</div></div>`;
-  document.querySelectorAll('[data-lj]').forEach(b => b.onclick = () => { s.loja = b.dataset.lj; s.dias = null; telaRessuprimento(); });
+  document.querySelectorAll('[data-lj]').forEach(b => b.onclick = () => { s.loja = b.dataset.lj; s.dias = null; s.base = null; telaRessuprimento(); });
   const sy = document.getElementById('rs-sync');
   if (sy) sy.onclick = async () => { sy.disabled = true; sy.textContent = 'Buscando na Weesu… (até 2 min)';
     try { const r = await apiRS('/ressuprimento/estoque', { cnpj_id:s.loja });
@@ -9909,10 +9910,31 @@ function telaRessuprimento(){
   if (arq) arq.onchange = async () => {
     const f = arq.files[0]; arq.value = ''; if (!f) return;
     try {
-      const r = lerArquivoPk(await textoArquivo(f), f.name);
+      const txt = await textoArquivo(f);
+      // arquivo de outra loja? compara os SKUs com o que já se conhece desta loja (estoque + vendas)
+      const conhecidos = new Set((s.dados?.linhas || []).map(x => x.sku));
+      const confere = skus => { if (conhecidos.size < 200) return true; const n = skus.filter(k => conhecidos.has(k)).length;
+        return n / Math.max(1, skus.length) >= .2 || confirm(`Só ${Math.round(n / skus.length * 100)}% dos SKUs deste arquivo aparecem em ${nomeLoja(s.loja)}. Ele é mesmo desta loja? (OK = sim, subir assim mesmo)`); };
+      // relatório "Vendas por variação" (EAN; SKU; Produto; Quantidade vendida; Pedidos)
+      const l1 = txt.replace(/^\uFEFF/, '').split(/\r?\n/)[0] || '';
+      if (/quantidade vendida/i.test(semAcento(l1))) {
+        const rows = lerCsvAspas(txt.replace(/^\uFEFF/, ''), l1.includes(';') ? ';' : ','), H = rows[0].map(semAcento), ix = n => H.indexOf(n);
+        const V = rows.slice(1).map(r => ({ ean:r[ix('ean')], sku:chaveSkuPk(r[ix('sku')]), produto:r[ix('produto')], qtd:numPk(r[ix('quantidade vendida')]), pedidos:numPk(r[ix('pedidos')]) })).filter(x => x.sku && x.qtd > 0);
+        if (!V.length) throw new Error('O relatório de vendas não tem linhas com quantidade.');
+        const ant = addDias(hojeBRT().slice(0, 8) + '01', -1).slice(0, 7);
+        const mes = (prompt(`Vendas por variação de ${nomeLoja(s.loja)}: ${fmtN(V.length)} SKUs, ${fmtN(V.reduce((t, x) => t + x.qtd, 0))} pares.\nDe qual MÊS é este relatório? (AAAA-MM)`, ant) || '').trim();
+        if (!mes) return;
+        if (!/^\d{4}-\d{2}$/.test(mes)) throw new Error('Mês inválido. Use AAAA-MM (ex.: 2026-10).');
+        if (!confere(V.map(x => x.sku))) return;
+        for (let i = 0; i < V.length; i += 5000)
+          await apiRS('/ressuprimento/vendas', { cnpj_id:s.loja, mes, arquivo:f.name, inicio:i === 0, fim:i + 5000 >= V.length, linhas:V.slice(i, i + 5000) });
+        avisar(`Vendas de ${mes.slice(5)}/${mes.slice(0, 4)} de ${nomeLoja(s.loja)} carregadas (${fmtN(V.length)} SKUs)`); s.base = null; carregarRS(); return;
+      }
+      const r = lerArquivoPk(txt, f.name);
       if (r.tipo !== 'estoque') throw new Error('Não reconheci como estoque por posição (precisa das colunas de posição/endereço, SKU e quantidade alocada). Exporte em CSV.');
       const L = r.linhas.map(e => ({ pos:e.pos, sku:e.sku, gtin:e.gtin, qtd:e.qtd, ar:e.ar }));
       if (!L.length) throw new Error('O arquivo não tem linhas com saldo.');
+      if (!confere([...new Set(L.map(x => x.sku))])) return;
       avisar(`Enviando ${fmtN(L.length)} linhas de ${nomeLoja(s.loja)}…`);
       let id = 0;
       for (let i = 0; i < L.length; i += 5000) { const fim = i + 5000 >= L.length;
@@ -9925,9 +9947,10 @@ function telaRessuprimento(){
 }
 async function carregarRS(silencioso){
   const s = state.rs, $r = document.getElementById('rs-res'); if (!$r) return;
-  try { s.dados = await apiRS(`/ressuprimento?loja=${s.loja}${s.dias ? `&dias=${s.dias}` : ''}`); desenhaRS(); }
+  try { s.dados = await apiRS(`/ressuprimento?loja=${s.loja}${s.dias ? `&dias=${s.dias}` : ''}${s.base ? `&base=${s.base}` : ''}`); desenhaRS(); }
   catch (e) { if (e instanceof SemSessao) throw e; if (!silencioso) $r.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
+const mesCurtoRS = m => { const [y, mm] = String(m).slice(0, 7).split('-'); return `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][+mm - 1]}/${y}`; };
 const dhRS = iso => { if (!iso) return '—'; const d = new Date(iso); return `${dataBR(new Date(d - 3 * 3600e3).toISOString().slice(0, 10)).slice(0, 5)} ${new Date(d - 3 * 3600e3).toISOString().slice(11, 16)}`; };
 function desenhaRS(){
   const s = state.rs, D = s.dados, $r = document.getElementById('rs-res'); if (!$r || !D) return;
@@ -9940,11 +9963,13 @@ function desenhaRS(){
       ${at ? `<span class="${at.status === 'erro' ? 'ruim' : 'am'}">${at.status === 'erro' ? `⚠ última tentativa: ${esc(at.erro || 'erro')}` : `⟳ atualizando em etapas: ${fmtN(at.proximo_offset)}${at.total ? ` de ${fmtN(at.total)}` : ''} linhas`}</span>` : ''}
       ${!D.credencial ? '<span class="ruim">⚠ loja sem credencial da Weesu (use o arquivo do Seenc)</span>' : ''}
       <span>Área: <b>${C.areas.length ? C.areas.map(esc).join(', ') : '<span class="ruim">não definida</span>'}</b>${K.capacidade ? ` <span class="info">(${fmtN(K.capacidade)} pares${(D.ocupacao || []).length ? ` em ${fmtN(D.ocupacao.length)} posições` : ''})</span>` : ''}</span>
-      <span>Vendas: <b>${D.dias_com_dado}</b> de ${D.dias} dias com dado</span>
-      <span class="is-chips"><span>Curva</span>${[14, 28, 60].map(n => `<button class="is-chip ${D.dias === n ? 'on' : ''}" data-dias="${n}">${n} dias</button>`).join('')}</span></div>`;
+      <span class="is-chips"><span>Curva pelo</span>
+        ${(D.meses_seenc || []).length ? `<button class="is-chip ${D.base === 'seenc' ? 'on' : ''}" data-base="seenc" title="Relatório Vendas por variação (só cross)">relatório do Seenc · ${esc(mesCurtoRS(D.meses_seenc[0].mes))}</button>` : ''}
+        <button class="is-chip ${D.base === 'api' ? 'on' : ''}" data-base="api" title="Pedidos coletados pela API (${D.dias_com_dado} de ${D.dias} dias com dado)">pedidos da API · ${D.dias_com_dado} dia(s)</button></span>
+      ${D.base === 'api' ? `<span class="is-chips"><span>Período</span>${[14, 28, 60].map(n => `<button class="is-chip ${D.dias === n ? 'on' : ''}" data-dias="${n}">${n} dias</button>`).join('')}</span>` : ''}</div>`;
   const aviso = [
     !C.areas.length ? `Defina em <b>Parâmetros</b> qual é a área de ressuprimento de ${esc(nomeLoja(D.loja))} (o começo do endereço, ex.: BL4 ou AR2-BL4).` : '',
-    D.dias_com_dado < Math.min(14, D.dias) ? `Só há <b>${D.dias_com_dado} dia(s)</b> de vendas guardados — a curva ainda é instável. O histórico dos últimos 30 dias está sendo buscado de madrugada; em 1 a 2 dias ela fica confiável.` : '',
+    D.base === 'api' && D.dias_com_dado < Math.min(14, D.dias) ? `Só há <b>${D.dias_com_dado} dia(s)</b> de vendas guardados — a curva ainda é instável. O histórico dos últimos 30 dias está sendo buscado à noite; em 2 a 3 dias ela fica confiável. Até lá, suba o relatório <b>Vendas por variação</b> do mês anterior (⇪ Arquivo do Seenc) — e <b>não execute a lista de Devolver</b>.` : '',
     !est ? 'Sem estoque carregado: clique em <b>⟳ Atualizar estoque</b> ou suba o arquivo do Seenc.' : '',
   ].filter(Boolean).map(t => `<div class="rs-av">${t}</div>`).join('');
   const kpis = `<div class="rs-kpis">
@@ -9953,7 +9978,7 @@ function desenhaRS(){
       <div class="rs-kpi"><span>Curva A e B já cobertas</span><b>${fmtN(K.ab_cobertos)}<small style="display:inline;font-size:14px"> / ${fmtN(K.ab_total)}</small></b><small>${fmtN(K.skus_a)} A · ${fmtN(K.skus_b)} B (SKUs)</small></div>
       <div class="rs-kpi"><span>Sem saldo para repor</span><b class="${K.sem_saldo ? 'is-ab' : ''}">${fmtN(K.sem_saldo)}</b><small>SKU(s) A/B sem estoque fora da área</small></div>
       <div class="rs-kpi"><span>Na área hoje</span><b>${fmtN(K.area_pares)}</b><small>pares em ${fmtN(K.area_posicoes)} posições${K.capacidade ? ` · capacidade ${fmtN(K.capacidade)}` : ''}</small></div>
-      <div class="rs-kpi"><span>Vendido com saldo na área</span><b>${K.pct_vendido_area == null ? '—' : String(K.pct_vendido_area).replace('.', ',') + '%'}</b><small>dos ${fmtN(K.pares_periodo)} pares vendidos no período</small></div></div>`;
+      <div class="rs-kpi"><span>Vendido com saldo na área</span><b>${K.pct_vendido_area == null ? '—' : String(K.pct_vendido_area).replace('.', ',') + '%'}</b><small>dos ${fmtN(K.pares_periodo)} pares vendidos ${D.base === 'seenc' ? `em ${esc(mesCurtoRS(D.mes_base))}` : 'no período'}</small></div></div>`;
   const par = edita ? `<details class="rs-par" ${C.areas.length ? '' : 'open'}><summary>⚙ Parâmetros de ${esc(nomeLoja(D.loja))}</summary>
       <div class="g">
         <label>Área de ressuprimento (começo do endereço)<input class="lg" id="rp-areas" value="${esc(C.areas.join(', '))}" placeholder="BL4 ou AR2-BL4"></label>
@@ -10017,6 +10042,7 @@ function desenhaRS(){
       <span style="flex:1"></span><button class="btn mini" id="rs-csv">⇩ CSV</button><button class="btn mini" id="rs-imp">🖨 Imprimir lista</button></div>
     <div class="rs-scroll">${corpo}</div>`;
   $r.querySelectorAll('[data-dias]').forEach(b => b.onclick = () => { s.dias = +b.dataset.dias; carregarRS(); });
+  $r.querySelectorAll('[data-base]').forEach(b => b.onclick = () => { s.base = b.dataset.base; carregarRS(); });
   $r.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; desenhaRS(); });
   $r.querySelectorAll('[data-feito]').forEach(c => c.onchange = () => { const f = feitosRS(D.loja, D.hoje); c.checked ? f.add(c.dataset.feito) : f.delete(c.dataset.feito); gravaFeitosRS(D.loja, D.hoje, f); c.closest('tr').classList.toggle('feito', c.checked); });
   const bu = document.getElementById('rs-busca'); if (bu) { bu.oninput = () => { s.busca = bu.value; clearTimeout(s.tb); s.tb = setTimeout(() => { desenhaRS(); const n = document.getElementById('rs-busca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); }; }
