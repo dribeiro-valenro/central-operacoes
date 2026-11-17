@@ -342,6 +342,25 @@
   .pg-lin input[data-c=titulo]{width:170px} .pg-q{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--mute)} .pg-lin input[data-c=qtd]{width:58px;text-align:center;font-weight:700} .pg-lin input.pr-c{width:52px;text-align:center} .pr-av{flex-basis:100%;font-size:12px;color:#a15c00;font-weight:600} .pr-av:empty{display:none} .pg-lin input[data-c=nome]{width:130px} .pg-lin select[data-c=mk]{width:200px}
   .pg-n{min-width:22px;height:22px;border-radius:50%;background:var(--pri);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
   .pg-acs{display:inline-flex;gap:4px;margin-left:auto}
+  .lv-glob,.lv-mods{border-bottom:1px solid var(--line);padding-bottom:8px}
+  .lv-glob select,.lv-glob input:not([type=checkbox]),.lv-mods select{font:inherit;font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+  .lv-glob .pg-q{display:inline-flex;gap:6px}
+  .lv-add{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0}
+  .lv-palco{background:#e7eaf0;border-radius:8px;padding:12px;display:flex;justify-content:center;outline:none;user-select:none;touch-action:none}
+  .lv-palco:focus-visible{box-shadow:0 0 0 2px var(--pri)}
+  .lv-esc{box-shadow:0 2px 10px rgba(0,0,0,.18);background:#fff;overflow:hidden}
+  .lv-palco [data-li]{cursor:move} .lv-palco [data-li]:hover{outline:1px dashed #4a90e2}
+  .lv-palco .lv-sel{outline:2px solid #1a73e8 !important;outline-offset:0}
+  .lv-palco .lv-estoura{outline:2px dashed #d93025 !important}
+  .lv-h{position:absolute;right:-6px;bottom:-6px;width:14px;height:14px;background:#1a73e8;border:2px solid #fff;border-radius:3px;cursor:nwse-resize;transform-origin:100% 100%}
+  .lv-props{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .lv-props input[type=number],.lv-props select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+  .lv-txt{width:100%;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);resize:vertical}
+  .lv-cores{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+  .lv-cor{width:22px;height:22px;border-radius:50%;border:1px solid #9aa3b2;cursor:pointer;padding:0;font-size:12px;line-height:20px;background:#fff;color:#566074}
+  .lv-cor.on{box-shadow:0 0 0 2px var(--card),0 0 0 4px #1a73e8}
+  .lv-cores input[type=color]{width:28px;height:24px;border:0;padding:0;background:none;cursor:pointer}
+  .lv-al .btn.on,.btn.mini.on{background:var(--pri);color:#fff}
   .pg-logos{margin-top:10px} .pg-logos summary{cursor:pointer;font-weight:700}
   .pg-logo{display:flex;align-items:center;gap:8px;padding:4px 0} .pg-logo span{width:190px} .pg-logo img{height:28px;max-width:120px;object-fit:contain;background:#eef0f4;border-radius:4px;padding:2px} .pg-logo em{color:var(--mute);font-size:12px}
   .imp-papel iframe.paisagem{width:1123px;height:794px;margin-bottom:-318px;margin-left:-225px;margin-right:-225px}
@@ -3276,9 +3295,228 @@ function configPlacasRua(el, redesenha){
   desenha();
 }
 
+/* =================== PLACA LIVRE (editor: textos e formas, A4 ou A5, retrato ou paisagem) =================== */
+// Posição e tamanho dos itens em % da área útil da placa (mudar o formato mantém a proporção); letra em pt.
+// A placa em edição e os modelos salvos ficam guardados neste navegador (localStorage).
+const LIVRE_KEY = 'valenro_placa_livre_v1';
+const DIM_LIVRE = { 'A4-retrato':[210, 297], 'A4-paisagem':[297, 210], 'A5-retrato':[148.5, 210], 'A5-paisagem':[210, 148.5] };
+const TIPOS_LIVRE = { texto:'Texto', ret:'Retângulo', circ:'Círculo', linha:'Linha', seta:'Seta' };
+const TRACOS_LIVRE = { solid:'━ contínuo', dashed:'╍ tracejado', dotted:'┈ pontilhado', double:'═ duplo' };
+const CORES_LIVRE = ['#02285a', '#f1c300', '#1b2333', '#566074', '#ffffff', '#b60a01', '#1f8a4c', '#ee4d2d'];
+const placaLivrePadrao = () => ({ formato:'A5', orient:'retrato', moldura:true, rodape:'SINALIZAÇÃO', qtd:1, itens:[
+  { tipo:'texto', x:5, y:6, w:90, h:22, texto:'TÍTULO', tam:60, negrito:true, cor:'#02285a', alinh:'centro' },
+  { tipo:'ret', x:5, y:34, w:90, h:16, fundo:'#02285a', borda:'#f1c300', esp:0, raio:2.5 },
+  { tipo:'texto', x:5, y:34, w:90, h:16, texto:'Subtítulo', tam:30, negrito:true, cor:'#ffffff', alinh:'centro' },
+  { tipo:'texto', x:5, y:58, w:90, h:30, texto:'Texto livre.\nEnter quebra a linha.', tam:22, negrito:false, cor:'#1b2333', alinh:'centro' },
+]});
+function lerLivre(){
+  let d = state._livre;
+  if (!d) { try { d = JSON.parse(localStorage.getItem(LIVRE_KEY) || 'null'); } catch(e) {} }
+  d = d || {}; d.atual ||= placaLivrePadrao(); d.salvos ||= {};
+  return state._livre = d;
+}
+function gravarLivre(){ try { localStorage.setItem(LIVRE_KEY, JSON.stringify(state._livre)); return true; } catch(e) { return false; } }
+const folhaLivrePaisagem = p => (p.formato === 'A4') === (p.orient === 'paisagem');   // A4 deitada: A4 paisagem ou 2 A5 em pé
+const CSS_LIVRE = `
+  .pv-pl{position:relative;padding:6mm;background:#fff;overflow:hidden}
+  .pv-pm{position:relative;height:100%;display:flex;flex-direction:column;overflow:hidden}
+  .pv-pm.mold{border:3mm solid #02285a;outline:0.6mm solid #f1c300;outline-offset:-3.8mm;border-radius:3mm}
+  .pv-area{position:relative;flex:1;min-height:0;margin:3mm}
+  .pv-it{position:absolute;box-sizing:border-box}
+  .pv-tx{display:flex;flex-direction:column;justify-content:center;white-space:pre-wrap;line-height:1.05;overflow:visible;word-break:normal;overflow-wrap:normal}
+  .pv-st{display:flex;align-items:center;justify-content:center} .pv-st svg{width:100%;height:100%}
+  .pv-rod{height:7mm;flex:none;background:#02285a;color:#fff;display:flex;align-items:center;gap:3mm;padding:0 5mm;font-size:8pt;font-weight:700;letter-spacing:1.5pt;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif}
+  .pv-rod img{height:5mm} .pv-rod .esp{flex:1}`;
+function itemLivreHtml(it, i, edit){
+  const pos = `left:${it.x}%;top:${it.y}%;width:${it.w}%;height:${it.h}%;`;
+  const ed = edit ? ` data-li="${i}"` : '';
+  if (it.tipo === 'texto') {
+    const al = { esq:'left', centro:'center', dir:'right' }[it.alinh || 'centro'];
+    return `<div class="pv-it pv-tx"${ed} style="${pos}text-align:${al};font-size:${+it.tam || 20}pt;font-weight:${it.negrito ? 900 : 500};color:${it.cor || '#1b2333'};${it.fundo ? `background:${it.fundo};` : ''}">${esc(it.texto || '')}</div>`;
+  }
+  if (it.tipo === 'seta') {
+    const rot = { dir:0, baixo:90, esq:180, cima:270 }[it.dir || 'dir'];
+    return `<div class="pv-it pv-st"${ed} style="${pos}"><svg viewBox="0 0 100 100" preserveAspectRatio="none" style="transform:rotate(${rot}deg)"><path d="M4 36h60V10l32 40-32 40V64H4z" fill="${it.cor || '#02285a'}"/></svg></div>`;
+  }
+  if (it.tipo === 'linha') {   // linha: um traço no meio da caixa, deitado ou em pé
+    const v = it.vertical, tr = `${+it.esp || 1}mm ${it.traco || 'solid'} ${it.borda || '#02285a'}`;
+    return `<div class="pv-it"${ed} style="${pos}"><div style="position:absolute;${v ? `left:50%;top:0;bottom:0;border-left:${tr};transform:translateX(-50%)` : `top:50%;left:0;right:0;border-top:${tr};transform:translateY(-50%)`}"></div></div>`;
+  }
+  const r = it.tipo === 'circ' ? '50%' : `${+it.raio || 0}mm`;
+  return `<div class="pv-it"${ed} style="${pos}background:${it.fundo || 'transparent'};border:${+it.esp || 0}mm ${it.traco || 'solid'} ${it.borda || '#02285a'};border-radius:${r}"></div>`;
+}
+function placaLivreHtml(p, edit){
+  const [w, h] = DIM_LIVRE[`${p.formato}-${p.orient}`];
+  return `<div class="pv-pl" style="width:${w}mm;height:${h}mm"><div class="pv-pm ${p.moldura ? 'mold' : ''}">
+    <div class="pv-area">${p.itens.map((it, i) => itemLivreHtml(it, i, edit)).join('')}</div>
+    ${p.moldura ? `<div class="pv-rod"><img src="${LOGOS.VALENRO}" alt="Valenro"><span>${esc(String(p.rodape || '').toUpperCase())}</span><span class="esp"></span><span>Grupo Valenro</span></div>` : ''}
+  </div></div>`;
+}
+function placasLivreHtml(){
+  const p = lerLivre().atual, n = Math.max(1, qtdPlaca(p)), pais = folhaLivrePaisagem(p);
+  const um = placaLivreHtml(p, false), folhas = [];
+  if (p.formato === 'A4') for (let i = 0; i < n; i++) folhas.push(`<div class="pag">${um}</div>`);
+  else for (let i = 0; i < n; i += 2) folhas.push(`<div class="pag dupla">${um}${i + 1 < n ? um : ''}</div>`);
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Placa livre</title><style>${CSS_IMPRESSO}${CSS_LIVRE}
+  @page{size:A4 ${pais ? 'landscape' : 'portrait'};margin:0}
+  .pag{width:${pais ? 297 : 210}mm;height:${pais ? 210 : 297}mm;display:flex;flex-direction:${pais ? 'row' : 'column'};overflow:hidden;page-break-after:always;break-after:page}
+  .pag:last-child{page-break-after:auto;break-after:auto}
+  .pag.dupla .pv-pl + .pv-pl{border-${pais ? 'left' : 'top'}:0.3mm dashed #9aa3b2}
+  </style></head><body>${folhas.join('')}</body></html>`;
+}
+function configPlacaLivre(el, redesenha){
+  const D = lerLivre();
+  let sel = null, tPrev;
+  const P = () => D.atual;
+  const prev = () => { gravarLivre(); clearTimeout(tPrev); tPrev = setTimeout(redesenha, 300); };
+  const opc = (obj, v) => Object.entries(obj).map(([k, t]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${esc(t)}</option>`).join('');
+  const cores = (campo, v, vazio) => `<span class="lv-cores" data-cor="${campo}">${vazio ? `<button class="lv-cor ${!v ? 'on' : ''}" data-v="" title="Sem cor">∅</button>` : ''}${CORES_LIVRE.map(c => `<button class="lv-cor ${v === c ? 'on' : ''}" data-v="${c}" style="background:${c}" title="${c}"></button>`).join('')}<input type="color" value="${/^#[0-9a-f]{6}$/i.test(v || '') ? v : '#02285a'}" title="Outra cor"></span>`;
+  const desenhaTudo = () => {
+    const p = P(), nomes = Object.keys(D.salvos).sort((a, b) => a.localeCompare(b, 'pt'));
+    el.innerHTML = `<style>${CSS_LIVRE}</style>
+      <div class="pg-topo lv-glob">
+        <label class="pg-q">Formato <select data-g="formato">${opc({ A4:'A4 (1 por folha)', A5:'A5 (2 por folha A4)' }, p.formato)}</select></label>
+        <label class="pg-q">Posição <select data-g="orient">${opc({ retrato:'Retrato (em pé)', paisagem:'Paisagem (deitada)' }, p.orient)}</select></label>
+        <label class="pg-q">Qtd <input data-g="qtd" type="number" min="1" max="99" value="${Math.max(1, qtdPlaca(p))}" style="width:58px;text-align:center;font-weight:700"></label>
+        <label class="pg-q"><input type="checkbox" data-g="moldura" ${p.moldura ? 'checked' : ''}> Moldura Valenro</label>
+        <label class="pg-q" style="flex:1;min-width:200px">Rodapé <input data-g="rodape" value="${esc(p.rodape || '')}" ${p.moldura ? '' : 'disabled'} style="flex:1" maxlength="60"></label>
+      </div>
+      <div class="pg-topo lv-mods">
+        <b>Modelos</b>
+        <select id="lv-mod"><option value="">— abrir um modelo salvo —</option>${nomes.map(n => `<option>${esc(n)}</option>`).join('')}</select>
+        <button class="btn mini" id="lv-abrir">Abrir</button><button class="btn mini" id="lv-salvar">Salvar como…</button><button class="btn mini" id="lv-exc">Excluir</button>
+        <span style="flex:1"></span><button class="btn mini" id="lv-novo">Começar do zero</button>
+      </div>
+      <div class="lv-add"><span class="info">Inserir:</span>${Object.entries(TIPOS_LIVRE).map(([k, t]) => `<button class="btn mini" data-novo="${k}">+ ${t}</button>`).join('')}
+        <span class="info" style="margin-left:auto">Arraste para mover · canto ◢ para redimensionar · setas do teclado para ajuste fino</span></div>
+      <div class="lv-palco" tabindex="0"><div class="lv-esc"></div></div>
+      <div class="lv-props"></div>`;
+    ligaGlobais(); ligaModelos(); desenhaPalco(); desenhaProps();
+    el.querySelectorAll('[data-novo]').forEach(b => b.onclick = () => {
+      const t = b.dataset.novo, base = { tipo:t, x:30, y:35, w:40, h:20 };
+      const it = t === 'texto' ? { ...base, x:10, w:80, h:14, texto:'Novo texto', tam:32, negrito:true, cor:'#02285a', alinh:'centro' }
+        : t === 'seta' ? { ...base, x:35, w:30, h:14, cor:'#02285a', dir:'dir' }
+        : t === 'circ' ? { ...base, x:38, w:24, h:18, fundo:'#f1c300', borda:'#02285a', esp:1, traco:'solid' }
+        : t === 'linha' ? { ...base, x:10, y:50, w:80, h:4, borda:'#02285a', esp:1, traco:'solid', vertical:false }
+        : { ...base, fundo:'', borda:'#02285a', esp:1, raio:2.5, traco:'solid' };
+      P().itens.push(it); sel = P().itens.length - 1; prev(); desenhaPalco(); desenhaProps();
+    });
+  };
+  const ligaGlobais = () => el.querySelectorAll('[data-g]').forEach(c => c.addEventListener(c.type === 'checkbox' || c.tagName === 'SELECT' ? 'change' : 'input', () => {
+    const k = c.dataset.g, p = P();
+    p[k] = c.type === 'checkbox' ? c.checked : c.value;
+    if (k === 'formato' || k === 'orient' || k === 'moldura') {
+      const fr = document.getElementById('imp-frame'); fr?.classList.toggle('paisagem', folhaLivrePaisagem(p));
+      el.querySelector('[data-g=rodape]').disabled = !p.moldura; desenhaPalco();
+    }
+    if (k === 'rodape') { const r = el.querySelector('.lv-palco .pv-rod span'); if (r) r.textContent = String(p.rodape || '').toUpperCase(); }
+    prev();
+  }));
+  const ligaModelos = () => {
+    el.querySelector('#lv-abrir').onclick = () => { const n = el.querySelector('#lv-mod').value; if (!n) return avisar('Escolha um modelo na lista.', true);
+      D.atual = JSON.parse(JSON.stringify(D.salvos[n])); sel = null; prev(); desenhaTudo(); avisar(`Modelo "${n}" aberto`); };
+    el.querySelector('#lv-salvar').onclick = () => {
+      const n = (prompt('Nome do modelo (o mesmo nome substitui):', el.querySelector('#lv-mod').value || '') || '').trim().slice(0, 40);
+      if (!n) return; D.salvos[n] = JSON.parse(JSON.stringify(P()));
+      if (!gravarLivre()) return avisar('O navegador não deixou guardar (sem espaço ou modo anônimo).', true);
+      desenhaTudo(); el.querySelector('#lv-mod').value = n; avisar(`Modelo "${n}" salvo neste computador`);
+    };
+    el.querySelector('#lv-exc').onclick = e => { const n = el.querySelector('#lv-mod').value; if (!n) return avisar('Escolha o modelo a excluir.', true);
+      if (!confirmaDupla(e.currentTarget, 'Confirmar?')) return; delete D.salvos[n]; gravarLivre(); desenhaTudo(); };
+    el.querySelector('#lv-novo').onclick = e => { if (!confirmaDupla(e.currentTarget, 'Apagar a placa atual?')) return;
+      D.atual = { ...placaLivrePadrao(), itens:[] }; sel = null; prev(); desenhaTudo(); };
+  };
+  const desenhaPalco = () => {
+    const p = P(), [w, h] = DIM_LIVRE[`${p.formato}-${p.orient}`], palco = el.querySelector('.lv-palco'), esc_ = palco.querySelector('.lv-esc');
+    const larg = Math.min(palco.clientWidth - 24 || 520, 620), k = Math.min(larg / (w * 3.7795), 520 / (h * 3.7795));
+    esc_.style.cssText = `width:${w * 3.7795 * k}px;height:${h * 3.7795 * k}px`;
+    esc_.innerHTML = `<div style="transform:scale(${k});transform-origin:0 0;width:${w}mm;height:${h}mm">${placaLivreHtml(p, true)}</div>`;
+    esc_.querySelectorAll('[data-li]').forEach(n => {
+      const i = +n.dataset.li; n.classList.toggle('lv-sel', i === sel);
+      if (i === sel) { const hd = document.createElement('span'); hd.className = 'lv-h'; hd.style.transform = `scale(${1 / k})`; n.appendChild(hd); }
+      n.addEventListener('pointerdown', ev => arrasta(ev, i, ev.target.classList.contains('lv-h')));
+      if (n.classList.contains('pv-tx') && (n.scrollWidth > n.clientWidth + 1 || n.scrollHeight > n.clientHeight + 1)) n.classList.add('lv-estoura');
+    });
+  };
+  const arrasta = (ev, i, redim) => {
+    ev.preventDefault(); ev.stopPropagation();
+    if (sel !== i) { sel = i; desenhaPalco(); desenhaProps(); }
+    const it = P().itens[i], area = el.querySelector('.lv-palco .pv-area').getBoundingClientRect();
+    const x0 = ev.clientX, y0 = ev.clientY, o = { ...it }, no = el.querySelector(`.lv-palco [data-li="${i}"]`);
+    const lim = (v, a, b) => Math.max(a, Math.min(b, v)), r1 = v => Math.round(v * 10) / 10;
+    const mov = e => {
+      const dx = (e.clientX - x0) / area.width * 100, dy = (e.clientY - y0) / area.height * 100;
+      if (redim) { it.w = r1(lim(o.w + dx, 2, 100 - it.x)); it.h = r1(lim(o.h + dy, 1, 100 - it.y)); }
+      else { it.x = r1(lim(o.x + dx, 0, 100 - it.w)); it.y = r1(lim(o.y + dy, 0, 100 - it.h)); }
+      Object.assign(no.style, { left:it.x + '%', top:it.y + '%', width:it.w + '%', height:it.h + '%' });
+    };
+    const fim = () => { removeEventListener('pointermove', mov); removeEventListener('pointerup', fim); prev(); desenhaProps(); };
+    addEventListener('pointermove', mov); addEventListener('pointerup', fim);
+  };
+  const desenhaProps = () => {
+    const box = el.querySelector('.lv-props'), it = P().itens[sel];
+    if (!it) { box.innerHTML = '<div class="info">Clique num item da placa para editar. Use “Inserir” para colocar textos, retângulos, círculos e setas.</div>'; return; }
+    const num = (c, rot, min, max, passo = 1) => `<label class="pg-q">${rot} <input data-p="${c}" type="number" min="${min}" max="${max}" step="${passo}" value="${it[c] ?? ''}" style="width:64px;text-align:center"></label>`;
+    box.innerHTML = `<div class="pg-topo"><b>${TIPOS_LIVRE[it.tipo]}</b>
+        <span style="flex:1"></span>
+        <button class="btn mini" data-o="chx" title="Centralizar na horizontal">↔ centro</button><button class="btn mini" data-o="chy" title="Centralizar na vertical">↕ centro</button>
+        <button class="btn mini" data-o="frente" title="Trazer para frente">▲ frente</button><button class="btn mini" data-o="tras" title="Enviar para trás">▼ trás</button>
+        <button class="btn mini" data-o="dup" title="Duplicar">⧉</button><button class="btn mini" data-o="del" title="Excluir">✕</button></div>
+      ${it.tipo === 'texto' ? `${el.querySelector(`.lv-palco [data-li="${sel}"]`)?.classList.contains('lv-estoura') ? '<div class="pr-av lv-est">⚠ O texto não cabe na caixa: diminua a letra ou aumente a caixa (canto ◢).</div>' : ''}<textarea data-p="texto" rows="2" class="lv-txt">${esc(it.texto || '')}</textarea>
+        <div class="pg-topo">${num('tam', 'Letra (pt)', 6, 400)}
+          <span class="lv-al">${['esq', 'centro', 'dir'].map(a => `<button class="btn mini ${(it.alinh || 'centro') === a ? 'on' : ''}" data-al="${a}">${{ esq:'⇤ esquerda', centro:'↔ centro', dir:'direita ⇥' }[a]}</button>`).join('')}</span>
+          <label class="pg-q"><input type="checkbox" data-p="negrito" ${it.negrito ? 'checked' : ''}> Negrito</label></div>
+        <div class="pg-topo"><span class="pg-q">Cor da letra</span>${cores('cor', it.cor)}</div>
+        <div class="pg-topo"><span class="pg-q">Fundo</span>${cores('fundo', it.fundo, true)}</div>`
+      : it.tipo === 'seta' ? `<div class="pg-topo"><label class="pg-q">Direção <select data-p="dir">${opc({ dir:'→ direita', esq:'← esquerda', cima:'↑ cima', baixo:'↓ baixo' }, it.dir || 'dir')}</select></label></div>
+        <div class="pg-topo"><span class="pg-q">Cor</span>${cores('cor', it.cor)}</div>`
+      : it.tipo === 'linha' ? `<div class="pg-topo"><span class="pg-q">Cor</span>${cores('borda', it.borda)}</div>
+        <div class="pg-topo"><label class="pg-q">Traço <select data-p="traco">${opc(TRACOS_LIVRE, it.traco || 'solid')}</select></label>${num('esp', 'Espessura (mm)', 0.2, 20, 0.2)}
+          <label class="pg-q"><input type="checkbox" data-p="vertical" ${it.vertical ? 'checked' : ''}> Em pé (vertical)</label></div>`
+      : `<div class="pg-topo"><span class="pg-q">Preenchimento</span>${cores('fundo', it.fundo, true)}</div>
+        <div class="pg-topo"><span class="pg-q">Borda</span>${cores('borda', it.borda)}</div>
+        <div class="pg-topo"><label class="pg-q">Traço <select data-p="traco">${opc(TRACOS_LIVRE, it.traco || 'solid')}</select></label>${num('esp', 'Espessura (mm)', 0, 20, 0.5)}
+          ${it.tipo === 'ret' ? `${num('raio', 'Cantos arredondados (mm)', 0, 60, 0.5)}<span class="lv-al">${[[0, 'reto'], [3, 'suave'], [8, 'redondo']].map(([v, n]) => `<button class="btn mini ${+it.raio === v ? 'on' : ''}" data-raio="${v}">${n}</button>`).join('')}</span>` : ''}</div>`}
+      <div class="pg-topo">${num('x', 'Esq. %', 0, 100, 0.5)}${num('y', 'Topo %', 0, 100, 0.5)}${num('w', 'Largura %', 1, 100, 0.5)}${num('h', 'Altura %', 1, 100, 0.5)}</div>`;
+    const muda = () => { prev(); desenhaPalco();
+      const est = el.querySelector(`.lv-palco [data-li="${sel}"]`)?.classList.contains('lv-estoura'), av = box.querySelector('.lv-est');
+      if (it.tipo === 'texto') { if (est && !av) box.querySelector('.lv-txt').insertAdjacentHTML('beforebegin', '<div class="pr-av lv-est">⚠ O texto não cabe na caixa: diminua a letra ou aumente a caixa (canto ◢).</div>'); if (!est && av) av.remove(); } };
+    box.querySelectorAll('[data-p]').forEach(c => c.addEventListener(c.type === 'checkbox' || c.tagName === 'SELECT' ? 'change' : 'input', () => {
+      const k = c.dataset.p; it[k] = c.type === 'checkbox' ? c.checked : c.type === 'number' ? (c.value === '' ? '' : +c.value) : c.value; muda();
+    }));
+    box.querySelectorAll('[data-al]').forEach(b => b.onclick = () => { it.alinh = b.dataset.al; muda(); desenhaProps(); });
+    box.querySelectorAll('[data-raio]').forEach(b => b.onclick = () => { it.raio = +b.dataset.raio; muda(); desenhaProps(); });
+    box.querySelectorAll('[data-cor]').forEach(g => {
+      const k = g.dataset.cor;
+      g.querySelectorAll('.lv-cor').forEach(b => b.onclick = () => { it[k] = b.dataset.v; muda(); desenhaProps(); });
+      g.querySelector('input[type=color]').addEventListener('input', e => { it[k] = e.target.value; muda(); });
+    });
+    box.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
+      const I = P().itens, o = b.dataset.o;
+      if (o === 'chx') it.x = Math.round((100 - it.w) / 2 * 10) / 10;
+      if (o === 'chy') it.y = Math.round((100 - it.h) / 2 * 10) / 10;
+      if (o === 'frente' && sel < I.length - 1) { I.splice(sel, 1); I.push(it); sel = I.length - 1; }
+      if (o === 'tras' && sel > 0) { I.splice(sel, 1); I.unshift(it); sel = 0; }
+      if (o === 'dup') { I.push({ ...it, x:Math.min(it.x + 3, 100 - it.w), y:Math.min(it.y + 3, 100 - it.h) }); sel = I.length - 1; }
+      if (o === 'del') { I.splice(sel, 1); sel = null; }
+      prev(); desenhaPalco(); desenhaProps();
+    });
+  };
+  desenhaTudo();
+  // teclado: setas movem 0,5% (Shift = 5%), Delete apaga o item selecionado
+  el.querySelector('.lv-palco').addEventListener('keydown', e => {
+    const it = P().itens[sel]; if (!it) return;
+    const d = e.shiftKey ? 5 : 0.5, m = { ArrowLeft:['x', -d], ArrowRight:['x', d], ArrowUp:['y', -d], ArrowDown:['y', d] }[e.key];
+    if (m) { e.preventDefault(); const [k, v] = m, max = 100 - (k === 'x' ? it.w : it.h); it[k] = Math.round(Math.max(0, Math.min(max, it[k] + v)) * 10) / 10; prev(); desenhaPalco(); desenhaProps(); }
+    if (e.key === 'Delete') { P().itens.splice(sel, 1); sel = null; prev(); desenhaPalco(); desenhaProps(); }
+  });
+  el.querySelector('.lv-palco').addEventListener('pointerdown', e => { if (!e.target.closest('[data-li]') && sel != null) { sel = null; desenhaPalco(); desenhaProps(); } });
+}
+
 const MODELOS_IMPRESSO = [
   { id:'placas_gaiola', nome:'Placas - Gaiolas (Cross)', desc:'Logo do marketplace (um por forma de entrega) e nome da loja. Monte a fila e imprima 2 placas por A4 (21 × 14,85 cm), iguais ou diferentes.', ico:'🏷️', html: () => placasGaiolaHtml(), config: configPlacasGaiola },
   { id:'placas_rua', nome:'Placas - Ruas (A5)', desc:'Número da rua bem grande, bloco e os prédios de cada lado (par e ímpar), com seta opcional. A5 em pé, 2 por folha A4.', ico:'🪧', html: () => placasRuaHtml(), config: configPlacasRua, paisagem:true },
+  { id:'placa_livre', nome:'Placa livre', desc:'Monte do zero: textos (tamanho, alinhamento, cor), retângulos com cantos arredondados, círculos, linhas, setas e tipo de traço. A4 ou A5, em pé ou deitada, rodapé editável. Salve como modelo.', ico:'✏️', html: () => placasLivreHtml(), config: configPlacaLivre, paisagem: () => folhaLivrePaisagem(lerLivre().atual) },
   { id:'qr_portal', nome:'QR code do portal', desc:'Para colar na parede: o time escaneia e abre a Central de Operações no celular.', ico:'📱',
     html: () => placaQrHtml({ titulo:'Central de Operações', chamada:'Acesse pelo celular', sub:'Aponte a câmera do celular para o código e entre com o seu usuário.', url:PORTAL_URL_PUBLICADO,
       passo1:'Abra a câmera e aponte para o código', passo2:'Toque no link que aparecer', passo3:'Entre com o seu usuário e senha. Não compartilhe o seu acesso.' }) },
@@ -3303,7 +3541,7 @@ function telaImpressos(){
     const m = MODELOS_IMPRESSO.find(x => x.id === s.sel) || MODELOS_IMPRESSO[0];
     document.getElementById('imp-nome').textContent = m.nome;
     const frame = document.getElementById('imp-frame'), cfg = document.getElementById('imp-cfg');
-    frame.classList.toggle('paisagem', !!m.paisagem); frame.srcdoc = m.html();
+    frame.classList.toggle('paisagem', typeof m.paisagem === 'function' ? m.paisagem() : !!m.paisagem); frame.srcdoc = m.html();
     cfg.innerHTML = ''; cfg.className = m.config ? 'imp-cfg' : '';
     if (m.config) m.config(cfg, () => { const y = frame.contentWindow?.scrollY || 0; frame.onload = () => { try { frame.contentWindow.scrollTo(0, y); } catch(e) {} }; frame.srcdoc = m.html(); });
     document.querySelectorAll('[data-mod]').forEach(b => b.classList.toggle('on', b.dataset.mod === m.id));
