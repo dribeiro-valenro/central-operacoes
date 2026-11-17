@@ -9974,7 +9974,7 @@ function desenhaRS(){
   ].filter(Boolean).map(t => `<div class="rs-av">${t}</div>`).join('');
   const kpis = `<div class="rs-kpis">
       <div class="rs-kpi dest"><span>Levar para a área</span><b>${fmtN(K.pares_repor)}</b><small>pares em ${fmtN(K.linhas_repor)} SKU(s)${K.pares_sem_espaco ? ` · ${fmtN(K.pares_sem_espaco)} sem espaço` : ''}</small></div>
-      <div class="rs-kpi"><span>Devolver aos outros blocos</span><b>${fmtN(K.pares_devolver)}</b><small>pares em ${fmtN(K.linhas_devolver)} SKU(s) curva C / sem venda</small></div>
+      <div class="rs-kpi"><span>Devolver aos outros blocos</span><b>${fmtN(K.pares_devolver)}</b><small>pares em ${fmtN(K.linhas_devolver)} SKU(s) ${C.cobertura_c > 0 ? 'sem venda' : 'curva C / sem venda'}</small></div>
       <div class="rs-kpi"><span>Curva A e B já cobertas</span><b>${fmtN(K.ab_cobertos)}<small style="display:inline;font-size:14px"> / ${fmtN(K.ab_total)}</small></b><small>${fmtN(K.skus_a)} A · ${fmtN(K.skus_b)} B (SKUs)</small></div>
       <div class="rs-kpi"><span>Sem saldo para repor</span><b class="${K.sem_saldo ? 'is-ab' : ''}">${fmtN(K.sem_saldo)}</b><small>SKU(s) A/B sem estoque fora da área</small></div>
       <div class="rs-kpi"><span>Na área hoje</span><b>${fmtN(K.area_pares)}</b><small>pares em ${fmtN(K.area_posicoes)} posições${K.capacidade ? ` · capacidade ${fmtN(K.capacidade)}` : ''}</small></div>
@@ -9987,13 +9987,14 @@ function desenhaRS(){
         <label>Corte B (% acumulado)<input id="rp-cb" type="number" min="60" max="100" value="${C.corte_b}"></label>
         <label>Cobertura A (dias)<input id="rp-qa" type="number" step="0.5" min="0.5" max="10" value="${C.cobertura_a}"></label>
         <label>Cobertura B (dias)<input id="rp-qb" type="number" step="0.5" min="0" max="10" value="${C.cobertura_b}"></label>
+        <label title="0 = a curva C não fica na área (vai para Devolver)">Cobertura C (dias)<input id="rp-qc" type="number" step="0.5" min="0" max="10" value="${C.cobertura_c ?? 0}"></label>
         <label>Mapa da área (uma rua por linha, a mais perto da expedição primeiro)<textarea id="rp-mapa" rows="6" placeholder="1: 1-12&#10;2: 1-12" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:200px">${esc(C.mapa || '')}</textarea></label>
         <label>Pares por andar (andar 1, 2, 3…)<input class="lg" id="rp-andares" value="${esc((C.cap_andares || []).join(', '))}" placeholder="80, 80, 20"></label>
         <label>Capacidade total (sem mapa)<input id="rp-cap" type="number" min="1" value="${C.capacidade_pares ?? ''}" placeholder="sem limite" title="Use quando a área não tem mapa (ex.: uma posição só). Com mapa, a capacidade é a soma das posições."></label>
         <button class="btn pri" id="rp-salvar">Salvar</button></div>
       <div class="info" style="margin-top:8px">Curva: SKUs ordenados pelos pares vendidos; A até ${C.corte_a}% do total, B até ${C.corte_b}%. Alvo na área = venda média/dia × cobertura (ou a carteira em aberto, se for maior).
         Origem sugerida = endereço com <b>maior saldo</b> fora da área (a mesma regra do Seenc). O endereço zerado (BL0/RUA0) nunca é origem.
-        Com o mapa, o destino sai posição a posição: o SKU fica junto de onde já está; curva A vai primeiro para o andar 1 (depois o 2), curva B prefere o último andar (o menor); dentro do andar, <b>na ordem das linhas do mapa</b> (escreva primeiro as ruas mais perto da expedição) e do prédio menor para o maior.</div></details>` : '';
+        Com o mapa, o destino sai posição a posição: o SKU fica junto de onde já está; depois, por andar — <b>curva A no andar 2</b> (depois 1 e 3), <b>B no andar 1</b> (depois 2 e 3), <b>C no andar 3</b> (depois 2 e 1); dentro do andar, <b>na ordem das linhas do mapa</b> (escreva primeiro as ruas mais perto da expedição) e do prédio menor para o maior.</div></details>` : '';
   const AB = D.linhas.filter(x => x.repor > 0), DEV = D.linhas.filter(x => x.devolver > 0), SS = D.linhas.filter(x => x.sem_saldo > 0);
   const OC = D.ocupacao || [];
   const abas = { repor:`Levar para a área (${AB.length})`, ...(OC.length ? { ocupacao:'Ocupação do bloco' } : {}), devolver:`Devolver (${DEV.length})`, semsaldo:`Sem saldo (${SS.length})`, curva:`Curva completa (${D.linhas.length})` };
@@ -10049,7 +10050,7 @@ function desenhaRS(){
   const sv = document.getElementById('rp-salvar');
   if (sv) sv.onclick = async () => { const v = id => document.getElementById(id).value;
     sv.disabled = true;
-    try { await apiRS('/ressuprimento/config', { cnpj_id:D.loja, areas:v('rp-areas'), dias_curva:v('rp-dias'), corte_a:v('rp-ca'), corte_b:v('rp-cb'), cobertura_a:v('rp-qa'), cobertura_b:v('rp-qb'), capacidade_pares:v('rp-cap'), mapa:v('rp-mapa'), cap_andares:v('rp-andares') });
+    try { await apiRS('/ressuprimento/config', { cnpj_id:D.loja, areas:v('rp-areas'), dias_curva:v('rp-dias'), corte_a:v('rp-ca'), corte_b:v('rp-cb'), cobertura_a:v('rp-qa'), cobertura_b:v('rp-qb'), cobertura_c:v('rp-qc'), capacidade_pares:v('rp-cap'), mapa:v('rp-mapa'), cap_andares:v('rp-andares') });
       avisar('Parâmetros salvos'); s.dias = null; carregarRS(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { sv.disabled = false; } };
   document.getElementById('rs-csv').onclick = () => baixarCsv(`ressuprimento_${D.loja}_${D.hoje}.csv`, [
