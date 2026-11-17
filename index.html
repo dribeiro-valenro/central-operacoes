@@ -3148,7 +3148,7 @@ const numRua = v => { const n = parseInt(String(v ?? '').replace(/\D/g, ''), 10)
 function faixaRua(de, ate, par){
   let a = numRua(de), b = numRua(ate);
   if (a == null && b == null) return null;
-  if (a == null) a = b; if (b == null) b = a; if (a > b) [a, b] = [b, a];
+  if (a == null) a = b; if (b == null) b = a;   // a ordem é a digitada: 6 a 2 numa ponta, 2 a 6 na outra
   const ok = n => par == null || (n % 2 === 0) === par;   // par == null: rua misturada, qualquer número vale
   return { de:a, ate:b, aviso: ok(a) && ok(b) ? '' : `${par ? 'lado par' : 'lado ímpar'} com prédio ${!ok(a) ? a : b}` };
 }
@@ -3162,7 +3162,7 @@ function ladosRua(p){
 }
 function placaRuaHtml(p){
   const lados = ladosRua(p);
-  const seq = (f, mis) => { if (!f) return ''; const v = []; for (let n = f.de; n <= f.ate; n += (!mis && f.de % 2 === f.ate % 2 ? 2 : 1)) v.push(n); return v.length <= 12 ? v.join(' · ') : ''; };
+  const seq = (f, mis) => { if (!f) return ''; const v = [], dir = f.de <= f.ate ? 1 : -1, passo = dir * (!mis && f.de % 2 === f.ate % 2 ? 2 : 1); for (let n = f.de; dir > 0 ? n <= f.ate : n >= f.ate; n += passo) v.push(n); return v.length <= 12 ? v.join(' · ') : ''; };
   const ar = String(p.ar || '').trim(), bl = String(p.bloco || '').trim();
   return `<div class="pl"><div class="pm">
     <div class="mio"><div class="topo-r"><span class="rk">RUA</span><div class="rn">${esc(String(p.rua || '?').trim())}</div></div>
@@ -3217,6 +3217,12 @@ function placasRuaHtml(){
   document.querySelectorAll('.mio').forEach(m => { const r = m.querySelector('.rn'); let f = parseFloat(r.style.fontSize || 290);
     while (f > 80 && m.scrollHeight > m.clientHeight + 1) { f -= 6; r.style.fontSize = f + 'pt'; } });<\/script></body></html>`;
 }
+function inverterRua(p){
+  const q = { ...p }, esp = s => s === 'esq' ? 'dir' : s === 'dir' ? 'esq' : (s || '');
+  [['impDe', 'impAte'], ['parDe', 'parAte'], ['misDe', 'misAte']].forEach(([a, b]) => { [q[a], q[b]] = [p[b], p[a]]; });
+  ['setaImp', 'setaPar', 'setaMis'].forEach(k => { q[k] = esp(p[k]); });
+  return q;
+}
 function configPlacasRua(el, redesenha){
   const d = lerRuas();
   const salva = () => { gravarRuas(); redesenha(); };
@@ -3226,7 +3232,7 @@ function configPlacasRua(el, redesenha){
   const desenha = () => {
     el.innerHTML = `
       <div class="pg-topo"><b id="pr-tot">${total()}</b><span class="info">A5 em pé, duas por folha A4 deitada — corte na linha tracejada.</span><span style="flex:1"></span>
-        <button class="btn" id="pr-add">+ Rua</button><button class="btn" id="pr-limpa">Limpar</button></div>
+        <button class="btn" id="pr-add">+ Rua</button><button class="btn" id="pr-pontas" title="Para cada linha, coloca logo abaixo a mesma rua com a numeração e as setas invertidas (uma placa para cada ponta)">⧉⇄ Duplicar todas invertidas</button><button class="btn" id="pr-limpa">Limpar</button></div>
       <div class="pg-lista">${d.fila.map((p, i) => `
         <div class="pg-lin pr-lin" data-i="${i}"><span class="pg-n">${i + 1}</span>
           <label class="pg-q">Qtd <input data-c="qtd" type="number" min="0" max="99" inputmode="numeric" value="${qtdPlaca(p)}"></label>
@@ -3237,11 +3243,13 @@ function configPlacasRua(el, redesenha){
           ${p.lado === 'misto' ? `<label class="pg-q">Prédios <input data-c="misDe" class="pr-c" inputmode="numeric" value="${esc(p.misDe || '')}" placeholder="de"> a <input data-c="misAte" class="pr-c" inputmode="numeric" value="${esc(p.misAte || '')}" placeholder="até"> <select data-c="setaMis" title="Seta">${opc(SETA_RUA, p.setaMis || '')}</select></label>` : ''}
           ${!['par', 'misto'].includes(p.lado) ? `<label class="pg-q">Ímpar <input data-c="impDe" class="pr-c" inputmode="numeric" value="${esc(p.impDe || '')}" placeholder="de"> a <input data-c="impAte" class="pr-c" inputmode="numeric" value="${esc(p.impAte || '')}" placeholder="até"> <select data-c="setaImp" title="Seta do lado ímpar">${opc(SETA_RUA, p.setaImp || '')}</select></label>` : ''}
           ${!['impar', 'misto'].includes(p.lado) ? `<label class="pg-q">Par <input data-c="parDe" class="pr-c" inputmode="numeric" value="${esc(p.parDe || '')}" placeholder="de"> a <input data-c="parAte" class="pr-c" inputmode="numeric" value="${esc(p.parAte || '')}" placeholder="até"> <select data-c="setaPar" title="Seta do lado par">${opc(SETA_RUA, p.setaPar || '')}</select></label>` : ''}
-          <span class="pg-acs"><button class="btn mini" data-a="dup" title="Duplicar (próxima rua)">⧉</button><button class="btn mini" data-a="sob" ${i ? '' : 'disabled'}>↑</button><button class="btn mini" data-a="des" ${i < d.fila.length - 1 ? '' : 'disabled'}>↓</button><button class="btn mini" data-a="del" title="Tirar">✕</button></span>
+          <span class="pg-acs"><button class="btn mini" data-a="inv" title="Inverter a numeração (e as setas) desta placa">⇄</button><button class="btn mini" data-a="dinv" title="Duplicar invertida: a mesma rua vista da outra ponta">⧉⇄</button><button class="btn mini" data-a="dup" title="Duplicar para a próxima rua">⧉</button><button class="btn mini" data-a="sob" ${i ? '' : 'disabled'}>↑</button><button class="btn mini" data-a="des" ${i < d.fila.length - 1 ? '' : 'disabled'}>↓</button><button class="btn mini" data-a="del" title="Tirar">✕</button></span>
           <div class="pr-av">${esc(avisos(p) ? '⚠ ' + avisos(p) : '')}</div>
         </div>`).join('') || '<div class="info" style="padding:8px">Nenhuma rua na fila. Use “+ Rua”.</div>'}</div>`;
     el.querySelector('#pr-add').onclick = () => { const u = d.fila[d.fila.length - 1];
       d.fila.push(u ? { ...u, rua: numRua(u.rua) != null ? String(numRua(u.rua) + 1) : '', qtd:1 } : { ar:'', bloco:'1', rua:'1', lado:'ambos', qtd:1 }); salva(); desenha(); };
+    el.querySelector('#pr-pontas').onclick = e => { if (!d.fila.length || !confirmaDupla(e.currentTarget, `Duplicar as ${d.fila.length}?`)) return;
+      d.fila = d.fila.flatMap(p => [p, inverterRua(p)]); salva(); desenha(); };
     el.querySelector('#pr-limpa').onclick = e => confirmaDupla(e.currentTarget, 'Confirmar limpar?') && (d.fila = [], salva(), desenha());
     el.querySelectorAll('.pr-lin').forEach(lin => {
       const i = +lin.dataset.i, p = d.fila[i];
@@ -3255,6 +3263,8 @@ function configPlacasRua(el, redesenha){
       });
       lin.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
         const a = b.dataset.a;
+        if (a === 'inv') d.fila[i] = inverterRua(p);
+        if (a === 'dinv') d.fila.splice(i + 1, 0, inverterRua(p));
         if (a === 'dup') d.fila.splice(i + 1, 0, { ...p, rua: numRua(p.rua) != null ? String(numRua(p.rua) + 1) : p.rua, qtd:1 });
         if (a === 'del') d.fila.splice(i, 1);
         if (a === 'sob' && i) [d.fila[i - 1], d.fila[i]] = [d.fila[i], d.fila[i - 1]];
