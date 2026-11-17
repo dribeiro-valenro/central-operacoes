@@ -3133,6 +3133,9 @@ function configPlacasGaiola(el, redesenha){
 // Cada linha da fila = uma placa: armazém, bloco, rua, lado (par / ímpar / os dois) e a faixa de prédios de cada lado.
 const RUAS_KEY = 'valenro_placas_rua_v1';
 const LADO_RUA = { ambos:'Par e ímpar', impar:'Só ímpar', par:'Só par' };
+const SETA_RUA = { '':'sem seta', esq:'← esquerda', dir:'→ direita' };
+// seta logo abaixo da faixa de prédios (aponta para onde fica aquele lado da rua)
+const setaRuaSvg = lado => `<svg class="st" viewBox="0 0 100 70" style="${lado === 'esq' ? 'transform:scaleX(-1)' : ''}"><path d="M4 26h56V6l36 29-36 29V44H4z" fill="#02285a"/></svg>`;
 function lerRuas(){
   let d = state._ruas;
   if (!d) { try { d = JSON.parse(localStorage.getItem(RUAS_KEY) || 'null'); } catch(e) {} }
@@ -3151,8 +3154,8 @@ function faixaRua(de, ate, par){
 }
 function ladosRua(p){
   const L = [];
-  if (p.lado !== 'par')   L.push({ par:false, nome:'LADO ÍMPAR', f:faixaRua(p.impDe, p.impAte, false) });
-  if (p.lado !== 'impar') L.push({ par:true,  nome:'LADO PAR',   f:faixaRua(p.parDe, p.parAte, true) });
+  if (p.lado !== 'par')   L.push({ par:false, nome:'LADO ÍMPAR', f:faixaRua(p.impDe, p.impAte, false), seta:p.setaImp || '' });
+  if (p.lado !== 'impar') L.push({ par:true,  nome:'LADO PAR',   f:faixaRua(p.parDe, p.parAte, true),  seta:p.setaPar || '' });
   return L;
 }
 function placaRuaHtml(p){
@@ -3164,7 +3167,7 @@ function placaRuaHtml(p){
     <div class="bl">${ar ? `<span class="ar">ARMAZÉM ${esc(ar)}</span>` : ''}<b>BLOCO ${esc(bl || '?')}</b></div>
     <div class="lados n${lados.length}">${lados.map(l => `
       <div class="lado ${l.par ? 'par' : 'imp'}"><div class="ln">${l.nome}</div>
-        <div class="lp"><small>PRÉDIOS</small><b>${l.f ? (l.f.de === l.f.ate ? l.f.de : `${l.f.de} <i>a</i> ${l.f.ate}`) : '—'}</b></div>${l.f && seq(l.f) ? `<div class="sq">${seq(l.f)}</div>` : ''}
+        <div class="lp"><small>PRÉDIOS</small><b>${l.f ? (l.f.de === l.f.ate ? l.f.de : `${l.f.de} <i>a</i> ${l.f.ate}`) : '—'}</b></div>${l.seta ? `<div class="sta">${setaRuaSvg(l.seta)}</div>` : ''}${l.f && seq(l.f) && !(l.seta && lados.length > 1) ? `<div class="sq">${seq(l.f)}</div>` : ''}
       </div>`).join('')}</div></div>
     <div class="rod"><img src="${LOGOS.VALENRO}" alt="Valenro"><span>ENDEREÇAMENTO</span><span class="esp"></span><span>Grupo Valenro</span></div>
   </div></div>`;
@@ -3196,7 +3199,8 @@ function placasRuaHtml(){
   .lado.imp .ln{background:#f1c300;color:#02285a} .lado.par .ln{background:#02285a;color:#fff}
   .lp{display:flex;flex-direction:column;align-items:center;margin-top:1.5mm}
   .lp small{font-size:11pt;font-weight:800;letter-spacing:3pt;color:#566074}
-  .lp b{font-size:52pt;font-weight:900;color:#1b2333;line-height:1;white-space:nowrap} .lp i{font-style:normal;font-size:24pt;color:#566074;font-weight:700}
+  .lp b{font-size:52pt;font-weight:900;color:#1b2333;line-height:1;white-space:nowrap}
+  .sta{line-height:0;margin-top:1.5mm} .sta .st{height:11mm;width:auto} .lados.n1 .sta .st{height:18mm} .lp i{font-style:normal;font-size:24pt;color:#566074;font-weight:700}
   .lados.n1 .lp b{font-size:68pt} .lados.n2 .lp b{font-size:42pt} .lados.n2 .lp i{font-size:20pt} .lados.n2 .lado{padding:1mm 0} .lados.n2 .lado + .lado{padding-top:2.5mm}
   .sq{font-size:11pt;font-weight:700;color:#566074;letter-spacing:.5pt;margin-top:1mm}
   .rod{height:7mm;background:#02285a;color:#fff;display:flex;align-items:center;gap:3mm;padding:0 5mm;font-size:7pt;font-weight:700;letter-spacing:1.5pt}
@@ -3228,8 +3232,8 @@ function configPlacasRua(el, redesenha){
           <label class="pg-q">Bloco <input data-c="bloco" class="pr-c" inputmode="numeric" value="${esc(p.bloco || '')}"></label>
           <label class="pg-q">Rua <input data-c="rua" class="pr-c" inputmode="numeric" value="${esc(p.rua || '')}"></label>
           <select data-c="lado">${opc(LADO_RUA, p.lado || 'ambos')}</select>
-          ${p.lado !== 'par' ? `<label class="pg-q">Ímpar <input data-c="impDe" class="pr-c" inputmode="numeric" value="${esc(p.impDe || '')}" placeholder="de"> a <input data-c="impAte" class="pr-c" inputmode="numeric" value="${esc(p.impAte || '')}" placeholder="até"></label>` : ''}
-          ${p.lado !== 'impar' ? `<label class="pg-q">Par <input data-c="parDe" class="pr-c" inputmode="numeric" value="${esc(p.parDe || '')}" placeholder="de"> a <input data-c="parAte" class="pr-c" inputmode="numeric" value="${esc(p.parAte || '')}" placeholder="até"></label>` : ''}
+          ${p.lado !== 'par' ? `<label class="pg-q">Ímpar <input data-c="impDe" class="pr-c" inputmode="numeric" value="${esc(p.impDe || '')}" placeholder="de"> a <input data-c="impAte" class="pr-c" inputmode="numeric" value="${esc(p.impAte || '')}" placeholder="até"> <select data-c="setaImp" title="Seta do lado ímpar">${opc(SETA_RUA, p.setaImp || '')}</select></label>` : ''}
+          ${p.lado !== 'impar' ? `<label class="pg-q">Par <input data-c="parDe" class="pr-c" inputmode="numeric" value="${esc(p.parDe || '')}" placeholder="de"> a <input data-c="parAte" class="pr-c" inputmode="numeric" value="${esc(p.parAte || '')}" placeholder="até"> <select data-c="setaPar" title="Seta do lado par">${opc(SETA_RUA, p.setaPar || '')}</select></label>` : ''}
           <span class="pg-acs"><button class="btn mini" data-a="dup" title="Duplicar (próxima rua)">⧉</button><button class="btn mini" data-a="sob" ${i ? '' : 'disabled'}>↑</button><button class="btn mini" data-a="des" ${i < d.fila.length - 1 ? '' : 'disabled'}>↓</button><button class="btn mini" data-a="del" title="Tirar">✕</button></span>
           <div class="pr-av">${esc(avisos(p) ? '⚠ ' + avisos(p) : '')}</div>
         </div>`).join('') || '<div class="info" style="padding:8px">Nenhuma rua na fila. Use “+ Rua”.</div>'}</div>`;
@@ -3242,6 +3246,7 @@ function configPlacasRua(el, redesenha){
         let t; c.addEventListener(c.tagName === 'SELECT' ? 'change' : 'input', () => {
           p[c.dataset.c] = c.value;
           if (c.dataset.c === 'lado') { salva(); desenha(); return; }
+          if (c.tagName === 'SELECT') { salva(); return; }
           clearTimeout(t); t = setTimeout(() => { salva(); el.querySelector('#pr-tot').textContent = total(); lin.querySelector('.pr-av').textContent = avisos(p) ? '⚠ ' + avisos(p) : ''; }, 350);
         });
       });
@@ -3260,7 +3265,7 @@ function configPlacasRua(el, redesenha){
 
 const MODELOS_IMPRESSO = [
   { id:'placas_gaiola', nome:'Placas - Gaiolas (Cross)', desc:'Logo do marketplace (um por forma de entrega) e nome da loja. Monte a fila e imprima 2 placas por A4 (21 × 14,85 cm), iguais ou diferentes.', ico:'🏷️', html: () => placasGaiolaHtml(), config: configPlacasGaiola },
-  { id:'placas_rua', nome:'Placas - Ruas (A5)', desc:'Número da rua bem grande, bloco e os prédios de cada lado (par e ímpar). A5 em pé, 2 por folha A4.', ico:'🪧', html: () => placasRuaHtml(), config: configPlacasRua, paisagem:true },
+  { id:'placas_rua', nome:'Placas - Ruas (A5)', desc:'Número da rua bem grande, bloco e os prédios de cada lado (par e ímpar), com seta opcional. A5 em pé, 2 por folha A4.', ico:'🪧', html: () => placasRuaHtml(), config: configPlacasRua, paisagem:true },
   { id:'qr_portal', nome:'QR code do portal', desc:'Para colar na parede: o time escaneia e abre a Central de Operações no celular.', ico:'📱',
     html: () => placaQrHtml({ titulo:'Central de Operações', chamada:'Acesse pelo celular', sub:'Aponte a câmera do celular para o código e entre com o seu usuário.', url:PORTAL_URL_PUBLICADO,
       passo1:'Abra a câmera e aponte para o código', passo2:'Toque no link que aparecer', passo3:'Entre com o seu usuário e senha. Não compartilhe o seu acesso.' }) },
