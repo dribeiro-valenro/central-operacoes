@@ -3132,7 +3132,7 @@ function configPlacasGaiola(el, redesenha){
 /* =================== PLACAS DAS RUAS (A5 retrato = 14,85 × 21 cm, 2 por folha A4 deitada) =================== */
 // Cada linha da fila = uma placa: armazém, bloco, rua, lado (par / ímpar / os dois) e a faixa de prédios de cada lado.
 const RUAS_KEY = 'valenro_placas_rua_v1';
-const LADO_RUA = { ambos:'Par e ímpar', impar:'Só ímpar', par:'Só par' };
+const LADO_RUA = { ambos:'Par e ímpar', impar:'Só ímpar', par:'Só par', misto:'Misturado (sem lado)' };
 const SETA_RUA = { '':'sem seta', esq:'← esquerda', dir:'→ direita' };
 // seta logo abaixo da faixa de prédios (aponta para onde fica aquele lado da rua)
 const setaRuaSvg = lado => `<svg class="st" viewBox="0 0 100 70" style="${lado === 'esq' ? 'transform:scaleX(-1)' : ''}"><path d="M4 26h56V6l36 29-36 29V44H4z" fill="#02285a"/></svg>`;
@@ -3149,10 +3149,12 @@ function faixaRua(de, ate, par){
   let a = numRua(de), b = numRua(ate);
   if (a == null && b == null) return null;
   if (a == null) a = b; if (b == null) b = a; if (a > b) [a, b] = [b, a];
-  const ok = n => (n % 2 === 0) === par;
+  const ok = n => par == null || (n % 2 === 0) === par;   // par == null: rua misturada, qualquer número vale
   return { de:a, ate:b, aviso: ok(a) && ok(b) ? '' : `${par ? 'lado par' : 'lado ímpar'} com prédio ${!ok(a) ? a : b}` };
 }
 function ladosRua(p){
+  // rua misturada: par e ímpar no mesmo lado/sentido → uma faixa só, sem a etiqueta de lado
+  if (p.lado === 'misto') return [{ par:null, nome:'', f:faixaRua(p.misDe, p.misAte, null), seta:p.setaMis || '' }];
   const L = [];
   if (p.lado !== 'par')   L.push({ par:false, nome:'LADO ÍMPAR', f:faixaRua(p.impDe, p.impAte, false), seta:p.setaImp || '' });
   if (p.lado !== 'impar') L.push({ par:true,  nome:'LADO PAR',   f:faixaRua(p.parDe, p.parAte, true),  seta:p.setaPar || '' });
@@ -3160,14 +3162,14 @@ function ladosRua(p){
 }
 function placaRuaHtml(p){
   const lados = ladosRua(p);
-  const seq = f => { if (!f) return ''; const v = []; for (let n = f.de; n <= f.ate; n += (f.de % 2 === f.ate % 2 ? 2 : 1)) v.push(n); return v.length <= 12 ? v.join(' · ') : ''; };
+  const seq = (f, mis) => { if (!f) return ''; const v = []; for (let n = f.de; n <= f.ate; n += (!mis && f.de % 2 === f.ate % 2 ? 2 : 1)) v.push(n); return v.length <= 12 ? v.join(' · ') : ''; };
   const ar = String(p.ar || '').trim(), bl = String(p.bloco || '').trim();
   return `<div class="pl"><div class="pm">
     <div class="mio"><div class="topo-r"><span class="rk">RUA</span><div class="rn">${esc(String(p.rua || '?').trim())}</div></div>
     <div class="bl">${ar ? `<span class="ar">ARMAZÉM ${esc(ar)}</span>` : ''}<b>BLOCO ${esc(bl || '?')}</b></div>
     <div class="lados n${lados.length}">${lados.map(l => `
-      <div class="lado ${l.par ? 'par' : 'imp'}"><div class="ln">${l.nome}</div>
-        <div class="lp"><small>PRÉDIOS</small><b>${l.f ? (l.f.de === l.f.ate ? l.f.de : `${l.f.de} <i>a</i> ${l.f.ate}`) : '—'}</b></div>${l.seta ? `<div class="sta">${setaRuaSvg(l.seta)}</div>` : ''}${l.f && seq(l.f) && !(l.seta && lados.length > 1) ? `<div class="sq">${seq(l.f)}</div>` : ''}
+      <div class="lado ${l.par == null ? 'mis' : l.par ? 'par' : 'imp'}">${l.nome ? `<div class="ln">${l.nome}</div>` : ''}
+        <div class="lp"><small>PRÉDIOS</small><b>${l.f ? (l.f.de === l.f.ate ? l.f.de : `${l.f.de} <i>a</i> ${l.f.ate}`) : '—'}</b></div>${l.seta ? `<div class="sta">${setaRuaSvg(l.seta)}</div>` : ''}${l.f && seq(l.f, l.par == null) && !(l.seta && lados.length > 1) ? `<div class="sq">${seq(l.f, l.par == null)}</div>` : ''}
       </div>`).join('')}</div></div>
     <div class="rod"><img src="${LOGOS.VALENRO}" alt="Valenro"><span>ENDEREÇAMENTO</span><span class="esp"></span><span>Grupo Valenro</span></div>
   </div></div>`;
@@ -3232,8 +3234,9 @@ function configPlacasRua(el, redesenha){
           <label class="pg-q">Bloco <input data-c="bloco" class="pr-c" inputmode="numeric" value="${esc(p.bloco || '')}"></label>
           <label class="pg-q">Rua <input data-c="rua" class="pr-c" inputmode="numeric" value="${esc(p.rua || '')}"></label>
           <select data-c="lado">${opc(LADO_RUA, p.lado || 'ambos')}</select>
-          ${p.lado !== 'par' ? `<label class="pg-q">Ímpar <input data-c="impDe" class="pr-c" inputmode="numeric" value="${esc(p.impDe || '')}" placeholder="de"> a <input data-c="impAte" class="pr-c" inputmode="numeric" value="${esc(p.impAte || '')}" placeholder="até"> <select data-c="setaImp" title="Seta do lado ímpar">${opc(SETA_RUA, p.setaImp || '')}</select></label>` : ''}
-          ${p.lado !== 'impar' ? `<label class="pg-q">Par <input data-c="parDe" class="pr-c" inputmode="numeric" value="${esc(p.parDe || '')}" placeholder="de"> a <input data-c="parAte" class="pr-c" inputmode="numeric" value="${esc(p.parAte || '')}" placeholder="até"> <select data-c="setaPar" title="Seta do lado par">${opc(SETA_RUA, p.setaPar || '')}</select></label>` : ''}
+          ${p.lado === 'misto' ? `<label class="pg-q">Prédios <input data-c="misDe" class="pr-c" inputmode="numeric" value="${esc(p.misDe || '')}" placeholder="de"> a <input data-c="misAte" class="pr-c" inputmode="numeric" value="${esc(p.misAte || '')}" placeholder="até"> <select data-c="setaMis" title="Seta">${opc(SETA_RUA, p.setaMis || '')}</select></label>` : ''}
+          ${!['par', 'misto'].includes(p.lado) ? `<label class="pg-q">Ímpar <input data-c="impDe" class="pr-c" inputmode="numeric" value="${esc(p.impDe || '')}" placeholder="de"> a <input data-c="impAte" class="pr-c" inputmode="numeric" value="${esc(p.impAte || '')}" placeholder="até"> <select data-c="setaImp" title="Seta do lado ímpar">${opc(SETA_RUA, p.setaImp || '')}</select></label>` : ''}
+          ${!['impar', 'misto'].includes(p.lado) ? `<label class="pg-q">Par <input data-c="parDe" class="pr-c" inputmode="numeric" value="${esc(p.parDe || '')}" placeholder="de"> a <input data-c="parAte" class="pr-c" inputmode="numeric" value="${esc(p.parAte || '')}" placeholder="até"> <select data-c="setaPar" title="Seta do lado par">${opc(SETA_RUA, p.setaPar || '')}</select></label>` : ''}
           <span class="pg-acs"><button class="btn mini" data-a="dup" title="Duplicar (próxima rua)">⧉</button><button class="btn mini" data-a="sob" ${i ? '' : 'disabled'}>↑</button><button class="btn mini" data-a="des" ${i < d.fila.length - 1 ? '' : 'disabled'}>↓</button><button class="btn mini" data-a="del" title="Tirar">✕</button></span>
           <div class="pr-av">${esc(avisos(p) ? '⚠ ' + avisos(p) : '')}</div>
         </div>`).join('') || '<div class="info" style="padding:8px">Nenhuma rua na fila. Use “+ Rua”.</div>'}</div>`;
