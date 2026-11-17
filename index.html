@@ -9816,6 +9816,240 @@ const filaMk = (a, b) => prioMk(a) - prioMk(b) || String(a.retirada_prevista || 
 const DESTINOS_MK = { logistica:'Devolve para a logística', marketing:'Fica armazenado no Marketing' };
 const motivoMk = x => x.motivo ? (x.motivo === 'outro' ? `Outro: ${x.motivo_outro || ''}` : MOTIVOS_MK[x.motivo]) : (x.finalidade ? `(antigo) ${x.finalidade}` : '—');
 const tagDestMk = x => x.destino === 'marketing' ? '<span class="mk-dest arm" title="Os pares ficam armazenados no Marketing (não voltam)">📦 fica no MKT</span>' : '<span class="mk-dest" title="Os pares voltam para a logística">↩ volta</span>';
+// ===================== RESSUPRIMENTO - CROSS =====================
+// Curva A/B (pares vendidos por SKU filho, pedidos da API Weesu) × estoque por endereço (API stock/address ou arquivo do Seenc):
+// o que levar para a área de ressuprimento da loja (Digos: Bloco 4) e o que devolver aos outros blocos. Uma loja por vez — estoque não se mistura.
+const CSS_RS = `
+  .rs-st{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .rs-st .ok{color:#1a7a3e} .rs-st .am{color:#8a4b00} .rs-st .ruim{color:var(--bad)}
+  .rs-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:0 0 12px}
+  .rs-kpi{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 10px} .rs-kpi span{font-size:11.5px;color:var(--mute);display:block}
+  .rs-kpi b{font-size:22px;font-variant-numeric:tabular-nums} .rs-kpi small{font-size:11.5px;color:var(--mute);display:block}
+  .rs-kpi.dest{border-left:4px solid #f1c300}
+  .rs-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 8px;border-bottom:1px solid var(--line)}
+  .rs-tab{border:0;background:none;padding:8px 12px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--mute);border-bottom:3px solid transparent;margin-bottom:-1px}
+  .rs-tab.on{color:#02285a;font-weight:700;border-bottom-color:#f1c300}
+  .rs-t{width:100%;border-collapse:collapse;font-size:13px} .rs-t th{font-size:11px;color:var(--mute);font-weight:600;text-align:left;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:#fff}
+  .rs-t td{padding:5px 7px;border-bottom:1px solid #eef0f4;vertical-align:middle} .rs-t .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rs-t tr.grp td{background:#f3f6fb;font-weight:700;border-top:2px solid #d5deeb;font-size:12.5px}
+  .rs-t tr.feito td{opacity:.45} .rs-t tr.feito td.lv{text-decoration:line-through}
+  .rs-t td.lv{font-weight:800;font-size:15px;color:#02285a} .rs-t .pos{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:nowrap}
+  .rs-c{display:inline-block;min-width:20px;text-align:center;border-radius:5px;font-weight:800;font-size:11.5px;padding:1px 5px}
+  .rs-c.A{background:#02285a;color:#fff} .rs-c.B{background:#f1c300;color:#02285a} .rs-c.C{background:#e6e9ef;color:#566074} .rs-c.S{background:#fff;border:1px solid #c9cfda;color:#8a93a3}
+  .rs-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .rs-par{border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;margin:0 0 12px}
+  .rs-par summary{cursor:pointer;font-weight:700} .rs-par .g{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px;align-items:flex-end}
+  .rs-par label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mute)} .rs-par input{font:inherit;font-size:13.5px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:90px}
+  .rs-par input.lg{width:220px}
+  .rs-rua{padding:8px 10px;border-bottom:1px solid #eef0f4} .rs-rt{font-weight:700;font-size:13px;margin-bottom:6px;color:#02285a}
+  .rs-pr{display:flex;flex-wrap:wrap;gap:6px} .rs-pd{width:118px;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fafbfd}
+  .rs-pt{font-size:11px;font-weight:700;color:var(--mute);text-align:center;margin-bottom:3px}
+  .rs-and{position:relative;height:22px;border-radius:4px;background:#e9edf3;margin-top:3px;overflow:hidden;font-size:10.5px}
+  .rs-and i{position:absolute;left:0;top:0;bottom:0;opacity:.35} .rs-and span{position:relative;padding-left:5px;line-height:22px;font-variant-numeric:tabular-nums}
+  .rs-and b{position:absolute;right:4px;top:0;line-height:22px;color:#02285a;font-size:10.5px}
+  .rs-av{background:#fff7e0;border:1px solid #f1c300;border-radius:10px;padding:8px 12px;font-size:13px;margin:0 0 10px}`;
+const CURVA_RS = { A:'Curva A', B:'Curva B', C:'Curva C', S:'Sem venda no período' };
+function demoRS(loja){
+  const r = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const area = loja === 'DIGOS' ? 'BL4' : loja === 'CACAL' ? 'BL7' : 'BL8', L = [];
+  for (let i = 0; i < 90; i++) {
+    const media = Math.round(Math.max(0, 9 / (i + 1) + r(i, 1) * .4) * 100) / 100, curva = i < 14 ? 'A' : i < 34 ? 'B' : i < 80 ? 'C' : 'S';
+    const cob = curva === 'A' ? 2 : curva === 'B' ? 1 : 0, cart = r(i, 2) < .25 && curva !== 'S' ? Math.ceil(r(i, 3) * 4) : 0;
+    const alvo = curva === 'A' || curva === 'B' ? Math.max(Math.ceil(media * cob), cart) : 0;
+    const na = r(i, 4) < (curva === 'A' ? .5 : curva === 'B' ? .3 : .15) ? Math.ceil(r(i, 5) * 6) : 0, fora = r(i, 6) < .06 ? 0 : Math.ceil(r(i, 7) * 30);
+    const falta = Math.max(0, alvo - na), repor = Math.min(falta, fora), dev = curva === 'A' || curva === 'B' ? 0 : Math.max(0, na - cart);
+    const bl = 1 + Math.floor(r(i, 8) * 3), rua = 1 + Math.floor(r(i, 9) * 6), p = 1 + Math.floor(r(i, 10) * 14);
+    const mod = ['Tênis Runner', 'Sapatênis Couro', 'Mocassim Drive', 'Bota Coturno', 'Chinelo Slide', 'Tênis Casual'][i % 6], tam = 37 + (i * 7) % 8;
+    L.push({ sku:`${loja.slice(0, 2)}${String(1000 + Math.floor(i / 3) * 7)}-${['PRT', 'BRC', 'MAR'][i % 3]}-${tam}`, produto:mod, cor:['Preto', 'Branco', 'Marrom'][i % 3], tamanho:String(tam), curva,
+      pares_periodo:Math.round(media * 28), pedidos:Math.round(media * 27), media_dia:media, carteira:cart, cobertura:cob, alvo, na_area:na, fora, zerado:0, falta, repor, sem_saldo:falta - repor, devolver:dev,
+      de:repor ? [{ pos:`AR2-BL${bl}-RUA${rua}-P${p}-A${1 + i % 4}`, q:repor }] : [], pos_area:na ? [`AR2-${area}-RUA${1 + i % 3}-P${1 + i % 9}-A1`] : [],
+      para:repor ? [{ pos:loja === 'DIGOS' ? `AR2-BL4-RUA${1 + (i % 2)}-P${1 + Math.floor(i / 6) % 8}-A${curva === 'A' ? 1 : 3}` : 'BL0-R0-P0', q:repor }] : [] });
+  }
+  const AB = L.filter(x => 'AB'.includes(x.curva)), soma = k => L.reduce((t, x) => t + x[k], 0), ag = Date.now();
+  const ocupacao = loja !== 'DIGOS' ? [] : [1, 2].flatMap(rua => [1, 2, 3, 4, 5, 6, 7, 8].flatMap(predio => [80, 80, 20].map((cap, k) => {
+    const atual = Math.round(cap * r(rua * 10 + predio, k) * .8), sai = r(predio, k + 5) < .2 ? Math.round(atual * .5) : 0, entra = Math.min(cap - atual + sai, Math.round(cap * r(predio, rua + k) * .4));
+    return { rua, predio, andar:k + 1, cap, atual, sai, entra, pos:`AR2-BL4-RUA${rua}-P${predio}-A${k + 1}` }; })));
+  return { loja, hoje:hojeBRT(), dias:28, dias_com_dado:9, primeiro_dia:addDias(hojeBRT(), -9), credencial:true,
+    config:{ areas:[loja === 'DIGOS' ? 'BL4' : 'BL0-R0-P0'], dias_curva:28, corte_a:80, corte_b:95, cobertura_a:2, cobertura_b:1, capacidade_pares:loja === 'DIGOS' ? null : 120,
+      mapa:loja === 'DIGOS' ? '1: 1-8\n2: 1-8' : '', cap_andares:loja === 'DIGOS' ? [80, 80, 20] : [] }, ocupacao,
+    estoque:{ id:1, origem:'agendada', inicio:new Date(ag - 3.6e6).toISOString(), fim:new Date(ag - 3.4e6).toISOString(), linhas:4821 }, atualizando:null,
+    kpi:{ skus_a:14, skus_b:20, ab_cobertos:AB.filter(x => x.na_area >= x.alvo).length, ab_total:AB.length, linhas_repor:L.filter(x => x.repor).length, pares_repor:soma('repor'),
+      sem_saldo:L.filter(x => x.sem_saldo).length, linhas_devolver:L.filter(x => x.devolver).length, pares_devolver:soma('devolver'), area_pares:soma('na_area'), area_posicoes:23,
+      capacidade:loja === 'DIGOS' ? 2880 : 120, espaco:loja === 'DIGOS' ? 1900 : 60, pares_sem_espaco:0, pct_vendido_area:41.5, pares_periodo:soma('pares_periodo') }, linhas:L };
+}
+async function apiRS(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  await new Promise(r => setTimeout(r, 120));
+  if (path.startsWith('/ressuprimento/estoque')) return { ok:true, segundos:96, lojas:[{ loja:corpo.cnpj_id, status:'parcial', de:0, ate:3000, total:4821 }] };
+  if (path.startsWith('/ressuprimento/arquivo')) return { ok:true, sync_id:9, gravadas:(corpo.linhas || []).length };
+  if (path.startsWith('/ressuprimento/config')) return { ok:true };
+  return demoRS(new URLSearchParams(path.split('?')[1] || '').get('loja') || 'DIGOS');
+}
+const chaveFeitoRS = (loja, dia) => `valenro_rs_feito_${loja}_${dia}`;
+function feitosRS(loja, dia){ try { return new Set(JSON.parse(localStorage.getItem(chaveFeitoRS(loja, dia)) || '[]')); } catch(e) { return new Set(); } }
+function gravaFeitosRS(loja, dia, set){ try { localStorage.setItem(chaveFeitoRS(loja, dia), JSON.stringify([...set])); } catch(e) {} }
+function telaRessuprimento(){
+  if (!document.getElementById('css-rs')) { const st = document.createElement('style'); st.id = 'css-rs'; st.textContent = CSS_RS; document.head.appendChild(st); }
+  state.rs ||= { loja:'DIGOS', aba:'repor', dias:null, busca:'' };
+  const s = state.rs, edita = pode('ressuprimento', 'editar');
+  $app.innerHTML = `<div class="barra"><h2>Ressuprimento - Cross</h2><span style="flex:1"></span>
+      <span class="is-chips">${ORDEM_LOJAS.map(l => `<button class="is-chip ${s.loja === l ? 'on' : ''}" data-lj="${l}">${esc(nomeLoja(l))}</button>`).join('')}</span>
+      ${edita ? `<button class="btn" id="rs-sync" title="Recomeça agora a busca do estoque por endereço desta loja na API Weesu (vai em etapas de 100 linhas; a automática roda toda madrugada)">⟳ Atualizar estoque</button>
+        <label class="btn" title="Plano B: relatório de estoque alocado por posição do Seenc, em CSV">⇪ Arquivo do Seenc<input type="file" id="rs-arq" accept=".csv,.txt" hidden></label>` : ''}</div>
+    <div id="rs-res"><div class="carregando">Carregando…</div></div>`;
+  document.querySelectorAll('[data-lj]').forEach(b => b.onclick = () => { s.loja = b.dataset.lj; s.dias = null; telaRessuprimento(); });
+  const sy = document.getElementById('rs-sync');
+  if (sy) sy.onclick = async () => { sy.disabled = true; sy.textContent = 'Buscando na Weesu… (até 2 min)';
+    try { const r = await apiRS('/ressuprimento/estoque', { cnpj_id:s.loja });
+      const l = (r.lojas || [])[0];
+      avisar(r.pulou ? r.pulou : !l ? 'Nada a fazer' : l.status === 'ok' ? `Estoque atualizado: ${fmtN(l.total ?? l.ate)} linhas` : l.status === 'parcial' ? `Em etapas: ${fmtN(l.ate)} de ${fmtN(l.total)} linhas. A busca continua sozinha a cada 5–10 min; a tela mostra o andamento. Até terminar, vale o estoque anterior.` : l.status === 'sem_credencial' ? 'Esta loja está sem credencial da Weesu' : `⚠ ${l.erro || l.status}`, l && l.status === 'erro');
+      carregarRS(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { sy.disabled = false; sy.textContent = '⟳ Atualizar estoque'; } };
+  const arq = document.getElementById('rs-arq');
+  if (arq) arq.onchange = async () => {
+    const f = arq.files[0]; arq.value = ''; if (!f) return;
+    try {
+      const r = lerArquivoPk(await textoArquivo(f), f.name);
+      if (r.tipo !== 'estoque') throw new Error('Não reconheci como estoque por posição (precisa das colunas de posição/endereço, SKU e quantidade alocada). Exporte em CSV.');
+      const L = r.linhas.map(e => ({ pos:e.pos, sku:e.sku, gtin:e.gtin, qtd:e.qtd, ar:e.ar }));
+      if (!L.length) throw new Error('O arquivo não tem linhas com saldo.');
+      avisar(`Enviando ${fmtN(L.length)} linhas de ${nomeLoja(s.loja)}…`);
+      let id = 0;
+      for (let i = 0; i < L.length; i += 5000) { const fim = i + 5000 >= L.length;
+        const x = await apiRS('/ressuprimento/arquivo', { cnpj_id:s.loja, sync_id:id || undefined, arquivo:f.name, linhas:L.slice(i, i + 5000), fim }); id = x.sync_id; }
+      avisar(`Estoque de ${nomeLoja(s.loja)} atualizado pelo arquivo (${fmtN(L.length)} linhas)`); carregarRS();
+    } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+  };
+  carregarRS();
+  clearInterval(state.timer); state.timer = setInterval(() => { if (state.view === 'ressuprimento') carregarRS(true); }, 5 * 60e3);
+}
+async function carregarRS(silencioso){
+  const s = state.rs, $r = document.getElementById('rs-res'); if (!$r) return;
+  try { s.dados = await apiRS(`/ressuprimento?loja=${s.loja}${s.dias ? `&dias=${s.dias}` : ''}`); desenhaRS(); }
+  catch (e) { if (e instanceof SemSessao) throw e; if (!silencioso) $r.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+const dhRS = iso => { if (!iso) return '—'; const d = new Date(iso); return `${dataBR(new Date(d - 3 * 3600e3).toISOString().slice(0, 10)).slice(0, 5)} ${new Date(d - 3 * 3600e3).toISOString().slice(11, 16)}`; };
+function desenhaRS(){
+  const s = state.rs, D = s.dados, $r = document.getElementById('rs-res'); if (!$r || !D) return;
+  const K = D.kpi, C = D.config, edita = pode('ressuprimento', 'editar'), feitos = feitosRS(D.loja, D.hoje);
+  const prod = x => `${esc(x.produto || '—')}${x.cor ? ` · ${esc(x.cor)}` : ''}${x.tamanho ? ` · <b>${esc(x.tamanho)}</b>` : ''}`;
+  const cv = c => `<span class="rs-c ${c}" title="${CURVA_RS[c]}">${c === 'S' ? '—' : c}</span>`;
+  const est = D.estoque, at = D.atualizando;
+  const status = `<div class="rs-st">
+      <span>Estoque por endereço: ${est ? `<b class="ok">✓ ${dhRS(est.fim || est.inicio)}</b> <span class="info">(${est.origem === 'arquivo' ? `arquivo${est.arquivo ? ' ' + esc(est.arquivo) : ''}` : 'API'} · ${fmtN(est.linhas)} linhas)</span>` : '<b class="ruim">ainda não carregado</b>'}</span>
+      ${at ? `<span class="${at.status === 'erro' ? 'ruim' : 'am'}">${at.status === 'erro' ? `⚠ última tentativa: ${esc(at.erro || 'erro')}` : `⟳ atualizando em etapas: ${fmtN(at.proximo_offset)}${at.total ? ` de ${fmtN(at.total)}` : ''} linhas`}</span>` : ''}
+      ${!D.credencial ? '<span class="ruim">⚠ loja sem credencial da Weesu (use o arquivo do Seenc)</span>' : ''}
+      <span>Área: <b>${C.areas.length ? C.areas.map(esc).join(', ') : '<span class="ruim">não definida</span>'}</b>${K.capacidade ? ` <span class="info">(${fmtN(K.capacidade)} pares${(D.ocupacao || []).length ? ` em ${fmtN(D.ocupacao.length)} posições` : ''})</span>` : ''}</span>
+      <span>Vendas: <b>${D.dias_com_dado}</b> de ${D.dias} dias com dado</span>
+      <span class="is-chips"><span>Curva</span>${[14, 28, 60].map(n => `<button class="is-chip ${D.dias === n ? 'on' : ''}" data-dias="${n}">${n} dias</button>`).join('')}</span></div>`;
+  const aviso = [
+    !C.areas.length ? `Defina em <b>Parâmetros</b> qual é a área de ressuprimento de ${esc(nomeLoja(D.loja))} (o começo do endereço, ex.: BL4 ou AR2-BL4).` : '',
+    D.dias_com_dado < Math.min(14, D.dias) ? `Só há <b>${D.dias_com_dado} dia(s)</b> de vendas guardados — a curva ainda é instável. O histórico dos últimos 30 dias está sendo buscado de madrugada; em 1 a 2 dias ela fica confiável.` : '',
+    !est ? 'Sem estoque carregado: clique em <b>⟳ Atualizar estoque</b> ou suba o arquivo do Seenc.' : '',
+  ].filter(Boolean).map(t => `<div class="rs-av">${t}</div>`).join('');
+  const kpis = `<div class="rs-kpis">
+      <div class="rs-kpi dest"><span>Levar para a área</span><b>${fmtN(K.pares_repor)}</b><small>pares em ${fmtN(K.linhas_repor)} SKU(s)${K.pares_sem_espaco ? ` · ${fmtN(K.pares_sem_espaco)} sem espaço` : ''}</small></div>
+      <div class="rs-kpi"><span>Devolver aos outros blocos</span><b>${fmtN(K.pares_devolver)}</b><small>pares em ${fmtN(K.linhas_devolver)} SKU(s) curva C / sem venda</small></div>
+      <div class="rs-kpi"><span>Curva A e B já cobertas</span><b>${fmtN(K.ab_cobertos)}<small style="display:inline;font-size:14px"> / ${fmtN(K.ab_total)}</small></b><small>${fmtN(K.skus_a)} A · ${fmtN(K.skus_b)} B (SKUs)</small></div>
+      <div class="rs-kpi"><span>Sem saldo para repor</span><b class="${K.sem_saldo ? 'is-ab' : ''}">${fmtN(K.sem_saldo)}</b><small>SKU(s) A/B sem estoque fora da área</small></div>
+      <div class="rs-kpi"><span>Na área hoje</span><b>${fmtN(K.area_pares)}</b><small>pares em ${fmtN(K.area_posicoes)} posições${K.capacidade ? ` · capacidade ${fmtN(K.capacidade)}` : ''}</small></div>
+      <div class="rs-kpi"><span>Vendido com saldo na área</span><b>${K.pct_vendido_area == null ? '—' : String(K.pct_vendido_area).replace('.', ',') + '%'}</b><small>dos ${fmtN(K.pares_periodo)} pares vendidos no período</small></div></div>`;
+  const par = edita ? `<details class="rs-par" ${C.areas.length ? '' : 'open'}><summary>⚙ Parâmetros de ${esc(nomeLoja(D.loja))}</summary>
+      <div class="g">
+        <label>Área de ressuprimento (começo do endereço)<input class="lg" id="rp-areas" value="${esc(C.areas.join(', '))}" placeholder="BL4 ou AR2-BL4"></label>
+        <label>Dias da curva<input id="rp-dias" type="number" min="7" max="90" value="${C.dias_curva}"></label>
+        <label>Corte A (% dos pares)<input id="rp-ca" type="number" min="50" max="95" value="${C.corte_a}"></label>
+        <label>Corte B (% acumulado)<input id="rp-cb" type="number" min="60" max="100" value="${C.corte_b}"></label>
+        <label>Cobertura A (dias)<input id="rp-qa" type="number" step="0.5" min="0.5" max="10" value="${C.cobertura_a}"></label>
+        <label>Cobertura B (dias)<input id="rp-qb" type="number" step="0.5" min="0" max="10" value="${C.cobertura_b}"></label>
+        <label>Mapa da área (uma rua por linha: rua: prédios)<textarea id="rp-mapa" rows="3" placeholder="1: 1-12&#10;2: 1-12" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:200px">${esc(C.mapa || '')}</textarea></label>
+        <label>Pares por andar (andar 1, 2, 3…)<input class="lg" id="rp-andares" value="${esc((C.cap_andares || []).join(', '))}" placeholder="80, 80, 20"></label>
+        <label>Capacidade total (sem mapa)<input id="rp-cap" type="number" min="1" value="${C.capacidade_pares ?? ''}" placeholder="sem limite" title="Use quando a área não tem mapa (ex.: uma posição só). Com mapa, a capacidade é a soma das posições."></label>
+        <button class="btn pri" id="rp-salvar">Salvar</button></div>
+      <div class="info" style="margin-top:8px">Curva: SKUs ordenados pelos pares vendidos; A até ${C.corte_a}% do total, B até ${C.corte_b}%. Alvo na área = venda média/dia × cobertura (ou a carteira em aberto, se for maior).
+        Origem sugerida = endereço com <b>maior saldo</b> fora da área (a mesma regra do Seenc). O endereço zerado (BL0/RUA0) nunca é origem.
+        Com o mapa, o destino sai posição a posição: o SKU fica junto de onde já está; curva A vai primeiro para o andar 1 (depois o 2), curva B prefere o último andar (o menor); dentro do andar, da rua e do prédio de número menor para o maior.</div></details>` : '';
+  const AB = D.linhas.filter(x => x.repor > 0), DEV = D.linhas.filter(x => x.devolver > 0), SS = D.linhas.filter(x => x.sem_saldo > 0);
+  const OC = D.ocupacao || [];
+  const abas = { repor:`Levar para a área (${AB.length})`, ...(OC.length ? { ocupacao:'Ocupação do bloco' } : {}), devolver:`Devolver (${DEV.length})`, semsaldo:`Sem saldo (${SS.length})`, curva:`Curva completa (${D.linhas.length})` };
+  let corpo = '';
+  if (s.aba === 'repor') {
+    // uma linha por origem; agrupado por bloco/rua para o reabastecedor fazer um roteiro só
+    const R = AB.flatMap(x => (x.de.length ? x.de : [{ pos:'?', q:x.repor }]).map((o, k) => ({ x, o, k })))
+      .sort((a, b) => a.o.pos.localeCompare(b.o.pos, 'pt', { numeric:true }) || a.x.sku.localeCompare(b.x.sku));
+    let grp = '';
+    corpo = R.length ? `<table class="rs-t"><thead><tr><th>✓</th><th>Pegar em</th><th>SKU</th><th>Produto</th><th>Curva</th><th class="n">Venda/dia</th><th class="n">Carteira</th><th class="n">Na área</th><th class="n">Alvo</th><th class="n">Levar</th><th>Guardar em</th></tr></thead><tbody>
+      ${R.map(({ x, o, k }) => { const p = partesPosPk(o.pos), g = p.bloco ? `Bloco ${p.bloco}${p.rua ? ` · Rua ${p.rua}` : ''}` : 'Outros';
+        const h = g !== grp ? `<tr class="grp"><td colspan="11">${esc(g)}</td></tr>` : ''; grp = g; const ch = `${x.sku}|${o.pos}`;
+        return `${h}<tr class="${feitos.has(ch) ? 'feito' : ''}"><td><input type="checkbox" data-feito="${esc(ch)}" ${feitos.has(ch) ? 'checked' : ''}></td><td class="pos">${esc(o.pos)}</td><td class="pos">${esc(x.sku)}</td><td>${prod(x)}</td><td>${cv(x.curva)}</td>
+          <td class="n">${String(x.media_dia).replace('.', ',')}</td><td class="n">${x.carteira || ''}</td><td class="n">${x.na_area || ''}</td><td class="n">${x.alvo}</td><td class="n lv">${fmtN(o.q)}</td><td class="pos">${k ? '<span class="info">(mesmo destino)</span>' : (x.para || []).map(d => `${esc(d.pos)}${(x.para || []).length > 1 ? ` <small>(${d.q})</small>` : ''}`).join('<br>') || '—'}</td></tr>`; }).join('')}</tbody></table>`
+      : '<div class="vazio" style="padding:16px">Nada a levar: as curvas A e B estão cobertas na área (ou falta carregar o estoque).</div>';
+  } else if (s.aba === 'devolver') {
+    corpo = DEV.length ? `<table class="rs-t"><thead><tr><th>✓</th><th>Na área em</th><th>SKU</th><th>Produto</th><th>Curva</th><th class="n">Venda/dia</th><th class="n">Na área</th><th class="n">Devolver</th></tr></thead><tbody>
+      ${DEV.sort((a, b) => (a.pos_area[0] || '').localeCompare(b.pos_area[0] || '', 'pt', { numeric:true })).map(x => { const ch = `dev|${x.sku}`;
+        return `<tr class="${feitos.has(ch) ? 'feito' : ''}"><td><input type="checkbox" data-feito="${esc(ch)}" ${feitos.has(ch) ? 'checked' : ''}></td><td class="pos">${x.pos_area.map(esc).join('<br>')}</td><td class="pos">${esc(x.sku)}</td><td>${prod(x)}</td><td>${cv(x.curva)}</td>
+          <td class="n">${String(x.media_dia).replace('.', ',')}</td><td class="n">${x.na_area}</td><td class="n lv">${fmtN(x.devolver)}</td></tr>`; }).join('')}</tbody></table>`
+      : '<div class="vazio" style="padding:16px">Nada a devolver: só tem curva A e B na área.</div>';
+  } else if (s.aba === 'ocupacao' && OC.length) {
+    // cada prédio = uma coluna com os andares empilhados (o de cima no alto); cor = ocupação depois da reposição
+    const ruas = [...new Set(OC.map(o => o.rua))].sort((a, b) => a - b), andares = [...new Set(OC.map(o => o.andar))].sort((a, b) => b - a);
+    const cel = o => { const dep = o.atual - o.sai + o.entra, pct = o.cap ? Math.min(100, Math.round(dep / o.cap * 100)) : 0;
+      return `<div class="rs-and" title="${esc(o.pos)} · agora ${o.atual} · sai ${o.sai} · entra ${o.entra} · fica ${dep} de ${o.cap}"><i style="width:${pct}%;background:${pct >= 95 ? '#d93025' : pct >= 75 ? '#f1c300' : '#2e7d32'}"></i><span>A${o.andar} · ${dep}/${o.cap}</span>${o.entra ? `<b>+${o.entra}</b>` : ''}</div>`; };
+    const tot = OC.reduce((t, o) => ({ cap:t.cap + o.cap, atual:t.atual + o.atual, dep:t.dep + o.atual - o.sai + o.entra }), { cap:0, atual:0, dep:0 });
+    corpo = `<div class="info" style="padding:8px 10px">Hoje: ${fmtN(tot.atual)} de ${fmtN(tot.cap)} pares (${Math.round(tot.atual / tot.cap * 100)}%) · depois de levar e devolver: <b>${fmtN(tot.dep)}</b> (${Math.round(tot.dep / tot.cap * 100)}%). Verde até 75%, amarelo até 95%, vermelho acima.</div>
+      ${ruas.map(r => `<div class="rs-rua"><div class="rs-rt">Rua ${r}</div><div class="rs-pr">${[...new Set(OC.filter(o => o.rua === r).map(o => o.predio))].sort((a, b) => a - b).map(p =>
+        `<div class="rs-pd"><div class="rs-pt">P${p}</div>${andares.map(a => { const o = OC.find(x => x.rua === r && x.predio === p && x.andar === a); return o ? cel(o) : ''; }).join('')}</div>`).join('')}</div></div>`).join('')}`;
+  } else if (s.aba === 'semsaldo') {
+    corpo = SS.length ? `<table class="rs-t"><thead><tr><th>SKU</th><th>Produto</th><th>Curva</th><th class="n">Venda/dia</th><th class="n">Carteira</th><th class="n">Na área</th><th class="n">Alvo</th><th class="n">Faltam</th></tr></thead><tbody>
+      ${SS.sort((a, b) => b.media_dia - a.media_dia).map(x => `<tr><td class="pos">${esc(x.sku)}</td><td>${prod(x)}</td><td>${cv(x.curva)}</td><td class="n">${String(x.media_dia).replace('.', ',')}</td><td class="n">${x.carteira || ''}</td><td class="n">${x.na_area || ''}</td><td class="n">${x.alvo}</td><td class="n lv">${x.sem_saldo}</td></tr>`).join('')}</tbody></table>
+      <div class="info" style="padding:8px">Vende bem e não tem saldo fora da área (nem no endereço zerado conta). É assunto de compras/recebimento — ou estoque que está no sistema em outro lugar.</div>`
+      : '<div class="vazio" style="padding:16px">Toda curva A e B que precisa de reposição tem saldo fora da área.</div>';
+  } else {
+    const b = semAcento(s.busca), L = D.linhas.filter(x => !b || semAcento(`${x.sku} ${x.produto} ${x.cor}`).includes(b)).sort((a, b) => b.pares_periodo - a.pares_periodo || b.na_area - a.na_area);
+    corpo = `<div style="padding:8px"><input id="rs-busca" placeholder="Buscar SKU ou produto" value="${esc(s.busca)}" style="font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;width:260px"></div>
+      <table class="rs-t"><thead><tr><th>SKU</th><th>Produto</th><th>Curva</th><th class="n">Pares no período</th><th class="n">Venda/dia</th><th class="n">Carteira</th><th class="n">Na área</th><th class="n">Fora</th><th class="n">Alvo</th><th class="n">Levar</th><th class="n">Devolver</th></tr></thead><tbody>
+      ${L.slice(0, 800).map(x => `<tr><td class="pos">${esc(x.sku)}</td><td>${prod(x)}</td><td>${cv(x.curva)}</td><td class="n">${fmtN(x.pares_periodo)}</td><td class="n">${String(x.media_dia).replace('.', ',')}</td><td class="n">${x.carteira || ''}</td>
+        <td class="n">${x.na_area || ''}</td><td class="n">${x.fora || ''}</td><td class="n">${x.alvo || ''}</td><td class="n">${x.repor || ''}</td><td class="n">${x.devolver || ''}</td></tr>`).join('')}</tbody></table>
+      ${L.length > 800 ? `<div class="info" style="padding:8px">Mostrando 800 de ${fmtN(L.length)} — use a busca ou o CSV.</div>` : ''}`;
+  }
+  $r.innerHTML = `${status}${aviso}${kpis}${par}
+    <div class="rs-tabs">${Object.entries(abas).map(([k, t]) => `<button class="rs-tab ${s.aba === k ? 'on' : ''}" data-aba="${k}">${t}</button>`).join('')}
+      <span style="flex:1"></span><button class="btn mini" id="rs-csv">⇩ CSV</button><button class="btn mini" id="rs-imp">🖨 Imprimir lista</button></div>
+    <div class="rs-scroll">${corpo}</div>`;
+  $r.querySelectorAll('[data-dias]').forEach(b => b.onclick = () => { s.dias = +b.dataset.dias; carregarRS(); });
+  $r.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; desenhaRS(); });
+  $r.querySelectorAll('[data-feito]').forEach(c => c.onchange = () => { const f = feitosRS(D.loja, D.hoje); c.checked ? f.add(c.dataset.feito) : f.delete(c.dataset.feito); gravaFeitosRS(D.loja, D.hoje, f); c.closest('tr').classList.toggle('feito', c.checked); });
+  const bu = document.getElementById('rs-busca'); if (bu) { bu.oninput = () => { s.busca = bu.value; clearTimeout(s.tb); s.tb = setTimeout(() => { desenhaRS(); const n = document.getElementById('rs-busca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); }; }
+  const sv = document.getElementById('rp-salvar');
+  if (sv) sv.onclick = async () => { const v = id => document.getElementById(id).value;
+    sv.disabled = true;
+    try { await apiRS('/ressuprimento/config', { cnpj_id:D.loja, areas:v('rp-areas'), dias_curva:v('rp-dias'), corte_a:v('rp-ca'), corte_b:v('rp-cb'), cobertura_a:v('rp-qa'), cobertura_b:v('rp-qb'), capacidade_pares:v('rp-cap'), mapa:v('rp-mapa'), cap_andares:v('rp-andares') });
+      avisar('Parâmetros salvos'); s.dias = null; carregarRS(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { sv.disabled = false; } };
+  document.getElementById('rs-csv').onclick = () => baixarCsv(`ressuprimento_${D.loja}_${D.hoje}.csv`, [
+    ['SKU', 'Produto', 'Cor', 'Tamanho', 'Curva', 'Pares no período', 'Venda/dia', 'Carteira', 'Na área', 'Fora da área', 'Alvo', 'Levar', 'Pegar em', 'Devolver', 'Sem saldo'],
+    D.linhas.map(x => [x.sku, x.produto || '', x.cor || '', x.tamanho || '', x.curva, x.pares_periodo, String(x.media_dia).replace('.', ','), x.carteira, x.na_area, x.fora, x.alvo, x.repor, x.de.map(o => `${o.pos} (${o.q})`).join(' + '), x.devolver, x.sem_saldo])]);
+  document.getElementById('rs-imp').onclick = () => imprimirHtml(listaRSHtml(D, s.aba === 'devolver' ? 'devolver' : 'repor'));
+}
+function listaRSHtml(D, tipo){
+  const L = tipo === 'devolver'
+    ? D.linhas.filter(x => x.devolver > 0).map(x => ({ pos:x.pos_area[0] || '', x, q:x.devolver })).sort((a, b) => a.pos.localeCompare(b.pos, 'pt', { numeric:true }))
+    : D.linhas.filter(x => x.repor > 0).flatMap(x => x.de.map((o, k) => ({ pos:o.pos, x, q:o.q, para:k ? '(mesmo)' : (x.para || []).map(d => (x.para.length > 1 ? `${d.pos} (${d.q})` : d.pos)).join(' + ') }))).sort((a, b) => a.pos.localeCompare(b.pos, 'pt', { numeric:true }));
+  const tot = L.reduce((t, l) => t + l.q, 0);
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Ressuprimento ${esc(nomeLoja(D.loja))}</title><style>${CSS_IMPRESSO}
+    body{padding:8mm 9mm} h1{font-size:15pt;margin:0;color:#02285a} .sub{font-size:9.5pt;color:#566074;margin:1mm 0 4mm}
+    .cab{display:flex;align-items:center;gap:5mm;border-bottom:1.2mm solid #f1c300;padding-bottom:3mm;margin-bottom:3mm} .cab img{height:12mm}
+    table{width:100%;border-collapse:collapse;font-size:9.5pt} th{background:#02285a;color:#fff;text-align:left;padding:1.6mm 2mm;font-size:8.5pt}
+    td{border-bottom:0.2mm solid #c9cfda;padding:1.6mm 2mm;vertical-align:middle} td.n{text-align:right;font-weight:800;font-size:11pt} td.m{font-family:Consolas,monospace;font-size:9pt}
+    td.ck{width:6mm} .box{display:inline-block;width:4mm;height:4mm;border:0.4mm solid #02285a;border-radius:0.6mm} tr{page-break-inside:avoid}
+    .rod{margin-top:4mm;font-size:8.5pt;color:#566074}</style></head><body>
+    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>${tipo === 'devolver' ? 'Devolver aos outros blocos' : 'Levar para a área de ressuprimento'} · ${esc(nomeLoja(D.loja))}</h1>
+      <div class="sub">${dataBR(D.hoje)} · área ${esc(D.config.areas.join(', '))} · ${fmtN(L.length)} linha(s) · ${fmtN(tot)} pares · estoque de ${dhRS(D.estoque?.fim || D.estoque?.inicio)}</div></div></div>
+    <table><thead><tr><th></th><th>${tipo === 'devolver' ? 'Está em' : 'Pegar em'}</th><th>SKU</th><th>Produto</th><th>Curva</th><th style="text-align:right">Qtd</th>${tipo === 'devolver' ? '' : '<th>Guardar em</th>'}</tr></thead><tbody>
+    ${L.map(l => `<tr><td class="ck"><span class="box"></span></td><td class="m">${esc(l.pos)}</td><td class="m">${esc(l.x.sku)}</td><td>${esc(l.x.produto || '')}${l.x.cor ? ' · ' + esc(l.x.cor) : ''}${l.x.tamanho ? ' · <b>' + esc(l.x.tamanho) + '</b>' : ''}</td><td>${l.x.curva}</td><td class="n">${l.q}</td>${tipo === 'devolver' ? '' : `<td class="m">${esc(l.para || '—')}</td>`}</tr>`).join('')}
+    </tbody></table><div class="rod">Movimente pelo sistema (transferência de endereço) — sem o registro, o Seenc continua mandando buscar no endereço antigo. Grupo Valenro · uso interno.</div></body></html>`;
+}
+
 // ===================== INTELIGÊNCIA DE SEPARAÇÃO (etapa 1: resumo dos pedidos) =====================
 // Lê /separacao: pedidos e pares (API Weesu, coletados pela operacoes-api a cada 15 min) por dia de coleta × coleta × loja × marketplace × forma.
 // Dia de coleta = regra das janelas da Gestão CROSS. "Em aberto" = ainda não enviado (a API não diz a etapa do WMS).
@@ -10770,6 +11004,7 @@ const MENU = [
       { view:'cross', titulo:'Gestão - CROSS', tela:'cross' },
       { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
       { view:'separacao', titulo:'Inteligência de Separação', tela:'separacao' },
+      { view:'ressuprimento', titulo:'Ressuprimento - Cross', tela:'ressuprimento' },
       { view:'layout', titulo:'Layout do galpão', tela:'layout' },
       { view:'mkt', titulo:'Marketing (Solicitações)', tela:'mkt' },
       { view:'picking', titulo:'Mapa de separação', tela:'seenc' },
@@ -10800,7 +11035,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separacao:'separacao', mkt:'mkt', seenc:'seenc', picking:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { separacao:'separacao', ressuprimento:'ressuprimento', mkt:'mkt', seenc:'seenc', picking:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => pode(tela, NIVEL_MIN_TELA[tela] || 'ver');
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -10849,7 +11084,7 @@ if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado
 // tela de entrada: a primeira desta lista que a pessoa pode abrir
 const TELA_INICIAL = ['separacao', 'full', 'cross', 'mkt', 'alocacao', 'oo', 'pessoas'];
 function irPara(view){
-  if (!['separacao', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc', 'mkt', 'picking'].includes(view) || (view === 'volume' && !DEMO)) view = TELA_INICIAL.find(viewLiberada) || 'nada';   // a Produtividade ("separados") saiu em 16/11/2026
+  if (!['separacao', 'ressuprimento', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc', 'mkt', 'picking'].includes(view) || (view === 'volume' && !DEMO)) view = TELA_INICIAL.find(viewLiberada) || 'nada';   // a Produtividade ("separados") saiu em 16/11/2026
   if (!viewLiberada(view)) view = TELA_INICIAL.find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -10874,6 +11109,7 @@ function irPara(view){
   if (view === 'mkt') return telaMkt();
   if (view === 'picking') return telaPicking();
   if (view === 'separacao') return telaSeparacao();
+  if (view === 'ressuprimento') return telaRessuprimento();
   if (view === 'prod') return telaProd();
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
 }
