@@ -339,7 +339,7 @@
   .pg-lista{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow:auto}
   .pg-lin{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px;border:1px solid var(--line);border-radius:8px}
   .pg-lin select,.pg-lin input{font:inherit;font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
-  .pg-lin input[data-c=titulo]{width:170px} .pg-lin input[data-c=nome]{width:130px} .pg-lin select[data-c=mk]{width:200px}
+  .pg-lin input[data-c=titulo]{width:170px} .pg-q{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--mute)} .pg-lin input[data-c=qtd]{width:58px;text-align:center;font-weight:700} .pg-lin input[data-c=nome]{width:130px} .pg-lin select[data-c=mk]{width:200px}
   .pg-n{min-width:22px;height:22px;border-radius:50%;background:var(--pri);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
   .pg-acs{display:inline-flex;gap:4px;margin-left:auto}
   .pg-logos{margin-top:10px} .pg-logos summary{cursor:pointer;font-weight:700}
@@ -2954,8 +2954,12 @@ const MK_PLACAS = {
   meli:          { rot:'Mercado Livre · Coleta',  nome:'Mercado Livre', forma:'Coleta',         fundo:'#ffe600', tinta:'#2d3277' },
   flex:          { rot:'Mercado Livre · Flex',    nome:'Mercado Livre', forma:'Flex',           fundo:'#ffe600', tinta:'#2d3277' },
   shopee:        { rot:'Shopee · Xpress',         nome:'Shopee',        forma:'Xpress',         fundo:'#ee4d2d', tinta:'#ffffff' },
+  shopee_rapida: { rot:'Shopee · Rápida',         nome:'Shopee',        forma:'Rápida',         fundo:'#ee4d2d', tinta:'#ffffff' },
+  shopee_turbo:  { rot:'Shopee · Turbo',          nome:'Shopee',        forma:'Turbo',          fundo:'#ee4d2d', tinta:'#ffffff' },
   shopee_direta: { rot:'Shopee · Entrega Direta', nome:'Shopee',        forma:'Entrega Direta', fundo:'#ee4d2d', tinta:'#ffffff' },
   shein:         { rot:'Shein',                   nome:'SHEIN',         forma:'',               fundo:'#111111', tinta:'#ffffff' },
+  tiktok:        { rot:'TikTok Shop',             nome:'TikTok Shop',   forma:'',               fundo:'#111111', tinta:'#ffffff' },
+  magalu:        { rot:'Magalu',                  nome:'Magalu',        forma:'',               fundo:'#0086ff', tinta:'#ffffff' },
   outro:         { rot:'Outro (escrever)',        nome:'',              forma:'',               fundo:'#02285a', tinta:'#ffffff' },
 };
 // um logo por FORMA (o Flex e a Entrega Direta têm logotipo próprio); a chave é o id da forma
@@ -2963,11 +2967,14 @@ const LOGOS_PLACA = Object.entries(MK_PLACAS).map(([k, m]) => [k, k === 'outro' 
 const LOJA_PLACA  = { sem:'Sem loja', todas:'Todas as lojas', DIGOS:'Digos', DROSA:"D'Rosa", CACAL:'Cacal' };
 // cor do NOME da loja na placa (a Cacal usa um tom mais escuro do bege da marca, senão some no papel branco)
 const COR_LOJA_PLACA = { DIGOS:'#b60a01', DROSA:'#192863', CACAL:'#7a6d5e', todas:'#02285a' };
+// kit padrão = a necessidade de 17/11/2026 (18 placas); a quantidade de cada linha é editável
 const KIT_PLACAS = () => [
-  ...ORDEM_LOJAS.map(l => ({ mk:'meli', loja:l })),
-  ...ORDEM_LOJAS.map(l => ({ mk:'flex', loja:l })),
-  { mk:'shopee', loja:'sem' }, { mk:'shopee_direta', loja:'sem' }, { mk:'shein', loja:'sem' },
+  { mk:'shein', loja:'DIGOS', qtd:2 }, { mk:'shopee_rapida', loja:'DIGOS', qtd:2 }, { mk:'shopee', loja:'DIGOS', qtd:3 },
+  { mk:'meli', loja:'DIGOS', qtd:3 }, { mk:'meli', loja:'CACAL', qtd:1 }, { mk:'meli', loja:'DROSA', qtd:1 },
+  ...ORDEM_LOJAS.map(l => ({ mk:'flex', loja:l, qtd:1 })),
+  { mk:'tiktok', loja:'DIGOS', qtd:1 }, { mk:'shopee_turbo', loja:'DIGOS', qtd:1 }, { mk:'magalu', loja:'DIGOS', qtd:1 },
 ];
+const qtdPlaca = p => Math.max(0, Math.min(99, parseInt(p.qtd ?? 1, 10) || 0));
 function lerPlacas(){
   let d = state._placas;
   if (!d) { try { d = JSON.parse(localStorage.getItem(PLACAS_KEY) || 'null'); } catch(e) {} }
@@ -2997,7 +3004,8 @@ function placaGaiolaHtml(p, logos){
 function placasGaiolaHtml(){
   const d = lerPlacas(), fila = d.fila.length ? d.fila : [{ mk:'outro', nome:'Adicione placas na fila', loja:'sem' }];
   const folhas = [];
-  const fl = fila.map(p => ({ ...p, alinha: d.alinha === 'direita' ? 'dir' : '' }));
+  const fl = fila.flatMap(p => Array(d.fila.length ? qtdPlaca(p) : 1).fill({ ...p, alinha: d.alinha === 'direita' ? 'dir' : '' }));
+  if (!fl.length) fl.push({ mk:'outro', nome:'Quantidade zerada em todas as linhas', loja:'sem' });
   for (let i = 0; i < fl.length; i += 2) folhas.push(`<div class="pag">${placaGaiolaHtml(fl[i], d.logos)}${fl[i + 1] ? placaGaiolaHtml(fl[i + 1], d.logos) : '<div class="pl vazia"></div>'}</div>`);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Placas das gaiolas</title><style>${CSS_IMPRESSO}
   .pag{width:210mm;height:297mm;overflow:hidden;page-break-after:always;break-after:page}
@@ -3057,15 +3065,21 @@ function configPlacasGaiola(el, redesenha){
   const d = lerPlacas();
   const salva = () => { const ok = gravarPlacas(); redesenha(); return ok; };
   const opc = (obj, sel) => Object.entries(obj).map(([v, t]) => `<option value="${v}" ${v === sel ? 'selected' : ''}>${esc(typeof t === 'string' ? t : t.rot)}</option>`).join('');
+  const atualizaTotal = () => {
+    const n = d.fila.reduce((s, p) => s + qtdPlaca(p), 0), f = Math.ceil(n / 2), b = el.querySelector('#pg-tot');
+    if (b) b.textContent = `${n} placa${n === 1 ? '' : 's'} · ${f} folha${f === 1 ? '' : 's'} A4`;
+    const i = el.querySelector('#pg-impar'); if (i) i.textContent = n % 2 ? 'A última folha sai com metade em branco.' : 'Duas placas por folha — corte na linha tracejada.';
+  };
   const desenha = () => {
-    const n = d.fila.length, folhas = Math.ceil(n / 2);
+    const n = d.fila.reduce((s, p) => s + qtdPlaca(p), 0), folhas = Math.ceil(n / 2);
     el.innerHTML = `
-      <div class="pg-topo"><b>${n} placa${n === 1 ? '' : 's'} · ${folhas} folha${folhas === 1 ? '' : 's'} A4</b>
-        <span class="info">${n % 2 ? 'A última folha sai com metade em branco.' : 'Duas placas por folha — corte na linha tracejada.'}</span><span style="flex:1"></span>
+      <div class="pg-topo"><b id="pg-tot">${n} placa${n === 1 ? '' : 's'} · ${folhas} folha${folhas === 1 ? '' : 's'} A4</b>
+        <span class="info" id="pg-impar">${n % 2 ? 'A última folha sai com metade em branco.' : 'Duas placas por folha — corte na linha tracejada.'}</span><span style="flex:1"></span>
         <label class="info">Nome da loja <select id="pg-alinha"><option value="centro" ${d.alinha !== 'direita' ? 'selected' : ''}>centralizado</option><option value="direita" ${d.alinha === 'direita' ? 'selected' : ''}>à direita</option></select></label>
-        <button class="btn" id="pg-add">+ Placa</button><button class="btn" id="pg-kit" title="Mercado Livre e Flex das 3 lojas, Shopee, Entrega Direta e Shein">Kit completo</button><button class="btn" id="pg-limpa">Limpar</button></div>
+        <button class="btn" id="pg-add">+ Placa</button><button class="btn" id="pg-kit" title="Troca a fila pelas 18 placas do kit padrão (dá para mudar a quantidade de cada linha)">Kit completo</button><button class="btn" id="pg-limpa">Limpar</button></div>
       <div class="pg-lista">${d.fila.map((p, i) => `
         <div class="pg-lin" data-i="${i}"><span class="pg-n">${i + 1}</span>
+          <label class="pg-q" title="Quantas placas iguais a esta">Qtd <input data-c="qtd" type="number" min="0" max="99" inputmode="numeric" value="${qtdPlaca(p)}"></label>
           <select data-c="mk">${opc(MK_PLACAS, p.mk)}</select>
           ${p.mk === 'outro' ? `<input data-c="nome" placeholder="Nome do marketplace" value="${esc(p.nome || '')}">` : ''}
           <input data-c="titulo" placeholder="Texto extra (opcional)" value="${esc(p.titulo || '')}" title="Linha opcional abaixo do logo">
@@ -3078,8 +3092,8 @@ function configPlacasGaiola(el, redesenha){
           <label class="btn mini">${d.logos[k] ? 'trocar' : 'enviar'}<input type="file" accept="image/*" data-lg="${k}" hidden></label></div>`).join('')}
       </details>`;
     el.querySelector('#pg-alinha').onchange = e => { d.alinha = e.target.value; salva(); };
-    el.querySelector('#pg-add').onclick = () => { const u = d.fila[d.fila.length - 1]; d.fila.push(u ? { ...u } : { mk:'meli', loja:'DIGOS' }); salva(); desenha(); };
-    el.querySelector('#pg-kit').onclick = () => { d.fila.push(...KIT_PLACAS()); salva(); desenha(); };
+    el.querySelector('#pg-add').onclick = () => { const u = d.fila[d.fila.length - 1]; d.fila.push(u ? { ...u, qtd:1 } : { mk:'meli', loja:'DIGOS', qtd:1 }); salva(); desenha(); };
+    el.querySelector('#pg-kit').onclick = e => { if (d.fila.length && !confirmaDupla(e.currentTarget, 'Substituir a fila?')) return; d.fila = KIT_PLACAS(); salva(); desenha(); };
     el.querySelector('#pg-limpa').onclick = e => confirmaDupla(e.currentTarget, 'Confirmar limpar?') && (d.fila = [], salva(), desenha());
     el.querySelectorAll('.pg-lin').forEach(lin => {
       const i = +lin.dataset.i, p = d.fila[i];
@@ -3088,7 +3102,7 @@ function configPlacasGaiola(el, redesenha){
         let t; c.addEventListener(ev, () => {
           p[c.dataset.c] = c.value;
           if (c.dataset.c === 'mk') { p.titulo = ''; salva(); desenha(); return; }
-          clearTimeout(t); t = setTimeout(salva, 350);
+          clearTimeout(t); t = setTimeout(() => { salva(); if (c.dataset.c === 'qtd') atualizaTotal(); }, 350);
         });
       });
       lin.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
