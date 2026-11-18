@@ -10250,7 +10250,7 @@ function telaRessuprimento(){
   if (sy) sy.onclick = async () => { sy.disabled = true; sy.textContent = 'Buscando na Weesu… (até 2 min)';
     try { const r = await apiRS('/ressuprimento/estoque', { cnpj_id:s.loja });
       const l = (r.lojas || [])[0];
-      avisar(r.pulou ? r.pulou : !l ? 'Nada a fazer' : l.status === 'ok' ? `Estoque atualizado: ${fmtN(l.total ?? l.ate)} linhas` : l.status === 'parcial' ? `Em etapas: ${fmtN(l.ate)} de ${fmtN(l.total)} linhas. A busca continua sozinha a cada 5–10 min; a tela mostra o andamento. Até terminar, vale o estoque anterior.` : l.status === 'sem_credencial' ? 'Esta loja está sem credencial da Weesu' : `⚠ ${l.erro || l.status}`, l && l.status === 'erro');
+      avisar(r.pulou ? r.pulou : !l ? 'Nada a fazer' : l.status === 'ok' ? `Estoque atualizado: ${fmtN(l.total ?? l.ate)} linhas` : l.status === 'parcial' ? `Em etapas: ${fmtN(l.ate)} de ${fmtN(l.total)} linhas. A busca continua sozinha a cada 5–10 min; a tela mostra o andamento. Até terminar, vale o estoque anterior.` : l.status === 'descartada' ? 'A busca terminou, mas já existe um estoque mais recente (arquivo do Seenc) — ele continua valendo.' : l.status === 'sem_credencial' ? 'Esta loja está sem credencial da Weesu' : `⚠ ${l.erro || l.status}`, l && l.status === 'erro');
       carregarRS(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { sy.disabled = false; sy.textContent = '⟳ Atualizar estoque'; } };
   const arq = document.getElementById('rs-arq');
