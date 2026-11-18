@@ -9895,13 +9895,17 @@ async function apiVF(path, corpo){
     if (corpo.status === 'cancelado') Object.assign(x, { status:'cancelado', cancelado_em:now, motivo_cancel:corpo.motivo });
     if (corpo.status === 'voltar') x.status = x.status === 'entregue' ? 'separado' : 'solicitado';
     return { ok:true }; }
+  if (path.startsWith('/vendafunc/legado')) { const g = {}; corpo.linhas.forEach(l => (g[l.funcionario] ||= []).push(l));
+    Object.entries(g).forEach(([f, ls]) => { ls.sort((a, b) => a.vencimento.localeCompare(b.vencimento)); const id = D.seq++;
+      D.pedidos.push({ id, funcionario:f, status:'entregue', origem:'legado', obs:corpo.descricao, forma:'pix', parcelas:ls.length, total:ls.reduce((t, l) => t + l.valor, 0), itens:[], parc:ls.map((l, k) => ({ id:id * 100 + k, n:k + 1, vencimento:l.vencimento, valor:l.valor, pago_em:null })) }); });
+    return { ok:true, funcionarios:Object.keys(g).length, parcelas:corpo.linhas.length }; }
   if (path.startsWith('/vendafunc/baixa')) { for (const x of D.pedidos) { const q = x.parc.find(p => p.id === corpo.parcela_id); if (!q) continue;
       if (corpo.estornar) { q.pago_em = null; if (x.status === 'pago') x.status = 'entregue'; } else { q.pago_em = corpo.pago_em || h; q.pago_valor = +corpo.valor || q.valor; if (x.parc.every(p => p.pago_em)) Object.assign(x, { status:'pago', pago_em:new Date().toISOString() }); } }
     return { ok:true }; }
   if (path.startsWith('/vendafunc/financeiro')) { const de = qs.get('de'), ate = qs.get('ate');
-    return { hoje:h, de, ate, formas:FORMAS_VF, parcelas:D.pedidos.filter(x => x.status !== 'cancelado').flatMap(x => x.parc.map(q => ({ ...q, pedido_id:x.id, funcionario:x.funcionario, parcelas:x.parcelas, forma:x.forma, status:x.status, total:x.total })))
+    return { hoje:h, de, ate, formas:FORMAS_VF, parcelas:D.pedidos.filter(x => x.status !== 'cancelado').flatMap(x => x.parc.map(q => ({ ...q, pedido_id:x.id, funcionario:x.funcionario, parcelas:x.parcelas, forma:x.forma, status:x.status, total:x.total, origem:x.origem || 'portal', pedido_obs:x.obs })))
       .filter(q => (q.vencimento >= de && q.vencimento <= ate) || (!q.pago_em && q.vencimento < de) || (q.pago_em && q.pago_em >= de && q.pago_em <= ate)).sort((a, b) => a.vencimento.localeCompare(b.vencimento)) }; }
-  return { hoje:h, valores:true, markup:35, formas:FORMAS_VF, pedidos:JSON.parse(JSON.stringify(D.pedidos)), funcionarios:[...new Set(D.pedidos.map(x => x.funcionario))] };
+  return { hoje:h, valores:true, markup:35, formas:FORMAS_VF, pedidos:JSON.parse(JSON.stringify(D.pedidos.filter(x => x.origem !== 'legado'))), funcionarios:[...new Set(D.pedidos.map(x => x.funcionario))] };
 }
 const verFinVF = () => pode('vendafunc_fin', 'ver');
 function telaVendaFunc(){
@@ -9972,7 +9976,7 @@ function abrirVF(id){
     <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">#${x.id} · ${esc(x.funcionario)}</h3><span class="mk-dias" style="background:${et ? et.cor : '#8a1f1f'};color:#fff">${et ? et.rot : 'Cancelado'}</span><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
     <div class="info">${x.retirada_prevista ? `Retirada: <b>${dataBR(x.retirada_prevista)}</b> · ` : ''}${fmtN(paresVF(x))} par(es)${V ? ` · Pix em <b>${x.parcelas}x</b> (5º dia útil)` : ''}${x.obs ? ` · Obs.: ${esc(x.obs)}` : ''}</div>
     <div style="overflow-x:auto;margin-top:8px"><table class="mk-itens"><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Qtd</th><th>Endereço</th>${V ? '<th class="n">Custo</th><th class="n">Venda (un.)</th><th class="n">Subtotal</th>' : ''}</tr></thead><tbody>
-      ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.sku)}</b></td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="end">${esc(i.posicao || '—')}</td>
+      ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.sku)}</b></td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="end">${i.posicao ? esc(i.posicao) : '<span class="vf-venc">SEM ENDEREÇO</span>'}</td>
         ${V ? `<td class="n">${brlVF(i.custo)}</td><td class="n">${brlVF(i.preco)}</td><td class="n"><b>${brlVF(i.preco * i.qtd)}</b></td>` : ''}</tr>`).join('')}</tbody></table></div>
     ${V ? `<div class="vf-tot"><span>Custo: ${brlVF(x.itens.reduce((t, i) => t + i.custo * i.qtd, 0))}</span><span>Venda (custo + ${x.markup ?? MARKUP_VF}%): <b>${brlVF(x.total)}</b></span></div>
       <h4 style="margin:6px 0 4px">Parcelas ${x.status === 'solicitado' || x.status === 'separado' ? '<span class="info">(provisórias: na entrega, a 1ª passa a ser o próximo dia de pagamento depois da entrega)</span>' : ''}</h4>
@@ -10013,6 +10017,9 @@ function formVF(x){
     <div class="vf-busca"><select id="vf-lj">${ORDEM_LOJAS.map(l => `<option value="${l}">${esc(nomeLoja(l))}</option>`).join('')}</select>
       <input id="vf-q" placeholder="SKU pai ou nome do produto" style="min-width:260px"><button class="btn" id="vf-buscar">Buscar no estoque</button><span class="info" id="vf-est"></span></div>
     <div id="vf-res"></div>
+    <details id="vf-semend" style="margin-top:6px"><summary class="info" style="cursor:pointer">Produto está no estoque físico mas <b>sem endereço</b> no Seenc? Lançar sem endereço</summary>
+      <div class="vf-busca"><input id="vf-se-sku" placeholder="SKU completo (ex.: 5338-211-23572-PT-37)" style="min-width:260px"><input id="vf-se-prod" placeholder="Produto (opcional)" style="min-width:200px">
+        <button class="btn" id="vf-se-add">+ Adicionar sem endereço</button><span class="info">Loja: a escolhida acima. Sai como <span class="vf-venc">SEM ENDEREÇO</span> na separação.</span></div></details>
     <h4 style="margin:12px 0 4px">Itens do pedido</h4><div id="vf-itens"></div>
     <div class="grade-form g2" style="margin-top:10px"><label>Parcelas (Pix, no dia de pagamento — 5º dia útil)<select id="vf-np">${[1, 2, 3].map(n => `<option value="${n}" ${+f.parcelas === n ? 'selected' : ''}>${n}x</option>`).join('')}</select></label>
       <label style="grid-column:1/-1">Observação<input id="vf-obs" maxlength="500" value="${esc(f.obs)}"></label></div>
@@ -10023,7 +10030,7 @@ function formVF(x){
   const $ = id => dlg.querySelector('#' + id);
   const desenhaItens = () => {
     $('vf-itens').innerHTML = itens.length ? `<div style="overflow-x:auto"><table class="mk-itens vf-it"><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th>Endereço</th><th class="n">Qtd</th><th class="n">Custo de compra</th><th class="n">Venda (+${MARKUP_VF}%)</th><th class="n">Subtotal</th><th></th></tr></thead><tbody>
-      ${itens.map((i, k) => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.sku)}</b></td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="end">${esc(i.posicao || '—')}</td>
+      ${itens.map((i, k) => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.sku)}</b></td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="end">${i.posicao ? esc(i.posicao) : '<span class="vf-venc">SEM ENDEREÇO</span>'}</td>
         <td class="n"><input type="number" min="1" max="20" value="${i.qtd}" data-q="${k}" style="width:56px"></td><td class="n"><input inputmode="decimal" placeholder="0,00" value="${i.custo ? String(i.custo).replace('.', ',') : ''}" data-c="${k}"></td>
         <td class="n" data-pv="${k}">${i.custo ? brlVF(precoVF(lerValorBR(i.custo))) : '—'}</td><td class="n" data-st="${k}"><b>${i.custo ? brlVF(precoVF(lerValorBR(i.custo)) * i.qtd) : '—'}</b></td><td><button class="btn mini" data-rm="${k}" title="Tirar">✕</button></td></tr>`).join('')}</tbody></table></div>`
       : '<div class="info">Nenhum par ainda. Busque acima e clique em “+” na numeração/endereço.</div>';
@@ -10050,14 +10057,14 @@ function formVF(x){
       $('vf-est').textContent = r.estoque ? `estoque de ${quando(r.estoque.em)} (${r.estoque.origem === 'arquivo' ? 'arquivo do Seenc' : 'API'})` : '';
       if (!r.estoque) { $('vf-res').innerHTML = `<div class="erro">Ainda não há estoque carregado de ${esc(nomeLoja(loja))} (Ressuprimento › Atualizar estoque ou Arquivo do Seenc).</div>`; return; }
       const L = r.linhas.filter(l => l.disponivel > 0);
-      if (!L.length) { $('vf-res').innerHTML = `<div class="info">Nada com saldo para "${esc(q)}" em ${esc(nomeLoja(loja))}.</div>`; return; }
+      if (!L.length) { $('vf-res').innerHTML = `<div class="info">Nada com saldo endereçado para "${esc(q)}" em ${esc(nomeLoja(loja))}. Se o par está no estoque físico, use “Lançar sem endereço”.</div>`; $('vf-semend').open = true; if (/-/.test(q)) $('vf-se-sku').value = q.toUpperCase(); return; }
       let ult = '';
       $('vf-res').innerHTML = `<div style="max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px"><table class="vf-res"><thead><tr><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th>Endereço</th><th class="n">Disponível</th><th></th></tr></thead><tbody>
         ${L.map((l, k) => { const novoSku = l.sku !== ult; ult = l.sku;
           return `<tr class="${l.area ? 'area' : ''}" ${novoSku ? 'style="border-top:2px solid #d5deeb"' : ''}><td>${novoSku ? `<b>${esc(l.sku)}</b>` : ''}</td><td>${novoSku ? esc(l.produto || '') : ''}</td><td>${novoSku ? esc(l.cor || '') : ''}</td><td>${novoSku ? `<b>${esc(l.tamanho || '')}</b>` : ''}</td>
             <td class="end">${esc(l.pos)}${l.area ? ' <span class="vf-pp" title="Área de ressuprimento">área</span>' : ''}${l.zerado ? ' <span class="vf-venc" title="Endereço zerado no Seenc">zerado</span>' : ''}</td>
             <td class="n">${fmtN(l.disponivel)}${l.reservado ? ` <span class="info" title="Já pedido em outro pedido de funcionário ainda não separado">(−${l.reservado})</span>` : ''}</td><td><button class="btn mini pri" data-add="${k}">+</button></td></tr>`; }).join('')}</tbody></table></div>
-        <div class="info" style="margin-top:3px">A faixa amarela marca o endereço da área de ressuprimento${loja === 'DIGOS' ? ' (Bloco 4)' : ''}, sugerido primeiro. O saldo é do último retrato do estoque.</div>`;
+        <div class="info" style="margin-top:3px">Não achou a numeração? Use “Lançar sem endereço” logo abaixo. A faixa amarela marca o endereço da área de ressuprimento${loja === 'DIGOS' ? ' (Bloco 4)' : ''}, sugerido primeiro. O saldo é do último retrato do estoque.</div>`;
       $('vf-res').querySelectorAll('[data-add]').forEach(b => b.onclick = () => { const l = L[+b.dataset.add];
         const ja = itens.find(i => i.cnpj_id === loja && i.sku === l.sku && i.posicao === l.pos); if (ja) ja.qtd++;
         else itens.push({ cnpj_id:loja, sku:l.sku, produto:l.produto, cor:l.cor, tamanho:l.tamanho, posicao:l.pos, qtd:1, custo:null });
@@ -10065,6 +10072,11 @@ function formVF(x){
     } catch (e) { if (e instanceof SemSessao) throw e; $('vf-res').innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
   };
   $('vf-buscar').onclick = buscar; $('vf-q').onkeydown = e => { if (e.key === 'Enter') buscar(); };
+  $('vf-se-add').onclick = () => {
+    const sku = $('vf-se-sku').value.trim().toUpperCase().replace(/\s+/g, ''), loja = $('vf-lj').value; if (sku.length < 4) return avisar('Digite o SKU completo', true);
+    const ja = itens.find(i => i.cnpj_id === loja && i.sku === sku && !i.posicao); if (ja) ja.qtd++;
+    else itens.push({ cnpj_id:loja, sku, produto:$('vf-se-prod').value.trim() || null, ...corTamVF(sku), posicao:null, qtd:1, custo:null });
+    $('vf-se-sku').value = ''; $('vf-se-prod').value = ''; desenhaItens(); };
   desenhaItens();
   $('vf-salvar').onclick = async () => {
     const corpo = { id:x?.id, funcionario:$('vf-fn').value.trim(), retirada_prevista:$('vf-ret').value || null, forma:'pix', parcelas:+$('vf-np').value, obs:$('vf-obs').value.trim(),
@@ -10078,40 +10090,89 @@ function formVF(x){
 }
 // ---- fichas (A4): separação de vários pedidos numa folha só (sem valores) e ficha de venda (com valores e assinaturas)
 const CSS_FICHA_VF = `${CSS_IMPRESSO}
-  body{padding:8mm 9mm} .cab{display:flex;align-items:center;gap:5mm;border-bottom:1.2mm solid #f1c300;padding-bottom:3mm;margin-bottom:3mm} .cab img{height:12mm}
-  h1{font-size:14pt;margin:0;color:#02285a} .sub{font-size:9pt;color:#566074;margin-top:1mm}
-  table{width:100%;border-collapse:collapse;font-size:9.5pt} th{background:#02285a;color:#fff;text-align:left;padding:1.4mm 2mm;font-size:8.5pt}
-  td{border-bottom:0.2mm solid #c9cfda;padding:1.4mm 2mm;vertical-align:middle} td.n,th.n{text-align:right} td.m{font-family:Consolas,monospace;font-size:9pt}
-  .box{display:inline-block;width:4mm;height:4mm;border:0.4mm solid #02285a;border-radius:0.6mm}
-  .ped{border:0.3mm solid #9aa3b2;border-radius:2mm;margin:0 0 3mm;page-break-inside:avoid;overflow:hidden}
-  .ped h2{margin:0;padding:1.6mm 3mm;background:#eef2f8;font-size:10.5pt;color:#02285a;display:flex;gap:4mm} .ped h2 span{font-weight:500;color:#566074}
-  .ass{display:flex;gap:10mm;margin-top:10mm} .ass div{flex:1;border-top:0.3mm solid #1b2333;padding-top:1.2mm;font-size:8.5pt;color:#3a4558;text-align:center}
-  .venda{page-break-inside:avoid;padding-bottom:6mm;margin-bottom:6mm;border-bottom:0.3mm dashed #9aa3b2} .venda:last-child{border-bottom:0}   /* cabem 2 por folha */ .tot{text-align:right;font-size:12pt;margin:2mm 0} .tot b{color:#02285a;font-size:14pt}
-  .decl{font-size:9pt;color:#1b2333;margin-top:4mm;line-height:1.4} .rod{font-size:8pt;color:#566074;margin-top:4mm}`;
+  @page{size:A4 portrait;margin:8mm}
+  body{padding:0} .cab{display:flex;align-items:center;gap:4mm;border-bottom:1mm solid #f1c300;padding-bottom:2mm;margin-bottom:3mm} .cab img{height:10mm}
+  h1{font-size:13pt;margin:0;color:#02285a} .sub{font-size:8.5pt;color:#566074;margin-top:0.8mm}
+  table{width:100%;border-collapse:collapse;font-size:8.5pt} th{background:#02285a;color:#fff;text-align:left;padding:1mm 1.6mm;font-size:7.5pt;white-space:nowrap}
+  td{border-bottom:0.2mm solid #c9cfda;padding:0.8mm 1.6mm;vertical-align:middle;white-space:nowrap} td.n,th.n{text-align:right}
+  td.m{font-family:Consolas,"Courier New",monospace;font-size:8.5pt} td.pr{width:99%;max-width:0;overflow:hidden;text-overflow:ellipsis}
+  .sem{display:inline-block;background:#fde7e7;color:#a11d1d;border:0.3mm solid #e5a3a3;border-radius:1mm;padding:0 1.5mm;font-family:inherit;font-weight:800;font-size:7.5pt}
+  .box{display:inline-block;width:3mm;height:3mm;border:0.35mm solid #02285a;border-radius:0.5mm;vertical-align:middle}
+  table.ped{margin:0 0 3mm;border:0.3mm solid #9aa3b2;break-inside:avoid;page-break-inside:avoid}
+  table.ped .tit td{background:#eef2f8;font-size:10pt;font-weight:800;color:#02285a;padding:1.4mm 2mm;border-bottom:0.3mm solid #9aa3b2;white-space:normal} table.ped .tit span{font-weight:500;color:#566074;font-size:8.5pt}
+  .ass{display:flex;gap:8mm;margin-top:9mm;break-inside:avoid} .ass div{flex:1;border-top:0.3mm solid #1b2333;padding-top:1.2mm;font-size:8pt;color:#3a4558;text-align:center}
+  .venda{page-break-after:always;break-after:page;display:flex;flex-direction:column;min-height:276mm} .venda:last-child{page-break-after:auto;break-after:auto}
+  .tot{text-align:right;font-size:11pt;margin:2mm 0} .tot b{color:#02285a;font-size:14pt}
+  .decl{font-size:9pt;color:#1b2333;margin-top:4mm;line-height:1.4} .rod{font-size:7.5pt;color:#566074;margin-top:3mm}
+  .corte{margin-top:auto;border-top:0.4mm dashed #566074;position:relative;padding-top:4mm} .corte::before{content:'✂ recorte aqui — canhoto do funcionário';position:absolute;top:-2.6mm;left:6mm;background:#fff;padding:0 2mm;font-size:7.5pt;color:#566074}
+  .canhoto{border:0.4mm solid #02285a;border-radius:2mm;padding:3mm 4mm;display:grid;grid-template-columns:1.1fr 1fr;gap:4mm}
+  .canhoto h2{margin:0 0 1mm;font-size:11pt;color:#02285a} .canhoto .val{font-size:16pt;font-weight:900;color:#02285a} .canhoto small{font-size:8pt;color:#566074}
+  .canhoto table{font-size:8pt} .canhoto th{font-size:7pt;padding:0.6mm 1.2mm} .canhoto td{padding:0.5mm 1.2mm}`;
+const endVF = p => p ? `<b>${esc(semArRS(p))}</b>` : '<span class="sem">SEM ENDEREÇO</span>';
 function fichaSepVF(L){
   const ped = [...L].sort((a, b) => String(a.retirada_prevista || '9').localeCompare(String(b.retirada_prevista || '9')) || a.id - b.id);
   const pares = ped.reduce((t, x) => t + paresVF(x), 0);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Separação · Venda Funcionários</title><style>${CSS_FICHA_VF}</style></head><body>
     <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Separação · Venda Funcionários</h1><div class="sub">${ped.length} pedido(s) · ${pares} par(es) · impresso em ${quando(new Date().toISOString())}</div></div></div>
-    ${ped.map(x => `<div class="ped"><h2>#${x.id} · ${esc(x.funcionario)}<span>${x.retirada_prevista ? `retirada ${dataBR(x.retirada_prevista)}` : ''} · ${paresVF(x)} par(es)</span></h2>
-      <table><thead><tr><th style="width:6mm"></th><th>Endereço</th><th>Loja</th><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Qtd</th></tr></thead><tbody>
-      ${[...x.itens].sort((a, b) => String(a.posicao || '').localeCompare(String(b.posicao || ''), 'pt', { numeric:true })).map(i => `<tr><td><span class="box"></span></td><td class="m"><b>${esc(i.posicao || '—')}</b></td><td>${esc(nomeLoja(i.cnpj_id))}</td><td class="m">${esc(i.sku)}</td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td><b>${esc(i.tamanho || '')}</b></td><td class="n"><b>${i.qtd}</b></td></tr>`).join('')}</tbody></table></div>`).join('')}
+    ${ped.map(x => `<table class="ped"><tbody><tr class="tit"><td colspan="7">#${x.id} · ${esc(x.funcionario)} <span>${x.retirada_prevista ? `· retirada ${dataBR(x.retirada_prevista)} ` : ''}· ${paresVF(x)} par(es)</span></td></tr>
+      <tr><th style="width:4mm"></th><th>Endereço</th><th>Loja</th><th>SKU</th><th>Produto</th><th>Nº</th><th class="n">Qtd</th></tr>
+      ${[...x.itens].sort((a, b) => String(a.posicao || 'ZZZ').localeCompare(String(b.posicao || 'ZZZ'), 'pt', { numeric:true })).map(i => `<tr><td><span class="box"></span></td><td class="m">${endVF(i.posicao)}</td><td>${esc(nomeLoja(i.cnpj_id))}</td><td class="m"><b>${esc(i.sku)}</b></td><td class="pr">${esc(i.produto || '')}${i.cor ? ' · ' + esc(i.cor) : ''}</td><td><b>${esc(i.tamanho || '')}</b></td><td class="n"><b>${i.qtd}</b></td></tr>`).join('')}</tbody></table>`).join('')}
     <div class="ass"><div>Separado por (nome e assinatura)</div><div>Data / hora</div></div>
-    <div class="rod">Sem valores — a ficha de venda (com preço e parcelas) é impressa à parte. Grupo Valenro · uso interno.</div></body></html>`;
+    <div class="rod">Sem valores — a ficha de venda (com preço e parcelas) é impressa à parte. "SEM ENDEREÇO" = produto no estoque físico sem alocação no Seenc: procurar e alocar. Grupo Valenro · uso interno.</div></body></html>`;
 }
 function fichaVendaVF(L){
+  const prev = x => ['solicitado', 'separado'].includes(x.status);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Venda Funcionários</title><style>${CSS_FICHA_VF}</style></head><body>
-    ${L.map(x => `<div class="venda"><div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Venda a Funcionário · Pedido #${x.id}</h1>
+    ${L.map(x => { const parc = x.parc || [], its = x.itens || [];
+      return `<div class="venda"><div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Venda a Funcionário · Pedido #${x.id}</h1>
         <div class="sub">Funcionário: <b>${esc(x.funcionario)}</b> · pedido em ${quando(x.solicitado_em)}${x.retirada_prevista ? ` · retirada ${dataBR(x.retirada_prevista)}` : ''}</div></div></div>
-      <table><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Qtd</th><th class="n">Valor un.</th><th class="n">Subtotal</th></tr></thead><tbody>
-      ${x.itens.map(i => `<tr><td>${esc(nomeLoja(i.cnpj_id))}</td><td class="m">${esc(i.sku)}</td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${brlVF(i.preco)}</td><td class="n"><b>${brlVF(i.preco * i.qtd)}</b></td></tr>`).join('')}</tbody></table>
+      <table><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th>Nº</th><th class="n">Qtd</th><th class="n">Valor un.</th><th class="n">Subtotal</th></tr></thead><tbody>
+      ${its.map(i => `<tr><td>${esc(nomeLoja(i.cnpj_id))}</td><td class="m">${esc(i.sku)}</td><td class="pr">${esc(i.produto || '')}${i.cor ? ' · ' + esc(i.cor) : ''}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${brlVF(i.preco)}</td><td class="n"><b>${brlVF(i.preco * i.qtd)}</b></td></tr>`).join('')}</tbody></table>
       <div class="tot">Total: <b>${brlVF(x.total)}</b></div>
-      <table style="width:60%;margin-left:auto"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor</th></tr></thead><tbody>
-      ${(x.parc || []).map(q => `<tr><td>${q.n}/${x.parcelas}</td><td>${dataBR(q.vencimento)}${['solicitado', 'separado'].includes(x.status) ? ' *' : ''}</td><td class="n">${brlVF(q.valor)}</td></tr>`).join('')}</tbody></table>
-      <div class="sub" style="text-align:right">Pagamento: <b>Pix</b>, no dia de pagamento dos funcionários (5º dia útil do mês)${['solicitado', 'separado'].includes(x.status) ? ' · * previsão: a 1ª parcela é o próximo dia de pagamento depois da entrega' : ''}</div>
+      <table style="width:62%;margin-left:auto"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor</th></tr></thead><tbody>
+      ${parc.map(q => `<tr><td>${q.n}/${x.parcelas}</td><td>${dataBR(q.vencimento)}${prev(x) ? ' *' : ''}</td><td class="n">${brlVF(q.valor)}</td></tr>`).join('')}</tbody></table>
+      <div class="sub" style="text-align:right">Pagamento: <b>Pix</b>, no dia de pagamento dos funcionários (5º dia útil do mês)${prev(x) ? ' · * previsão: a 1ª parcela é o próximo dia de pagamento depois da entrega' : ''}</div>
       <div class="decl">Declaro que recebi os produtos acima, em perfeito estado, e que pagarei o valor de <b>${brlVF(x.total)}</b> por Pix, em ${x.parcelas} parcela(s), nas datas indicadas.</div>
       <div class="ass"><div>${esc(x.funcionario)}<br>Funcionário (assinatura)</div><div>Entregue por (nome e assinatura)</div><div>Data da entrega<br>____/____/________</div></div>
-      <div class="rod">Grupo Valenro · venda a funcionário · uso interno. Impresso em ${quando(new Date().toISOString())}.</div></div>`).join('')}</body></html>`;
+      <div class="rod">Via da empresa · Grupo Valenro · uso interno. Impresso em ${quando(new Date().toISOString())}.</div>
+      <div class="corte"><div class="canhoto">
+        <div><h2>Canhoto · Pedido #${x.id}</h2><div>${esc(x.funcionario)}</div><div class="val">${brlVF(x.total)}</div><small>Pix · ${x.parcelas} parcela(s) no 5º dia útil do mês</small>
+          ${its.length ? `<table style="margin-top:2mm"><tbody>${its.slice(0, 6).map(i => `<tr><td>${esc(i.produto || i.sku)}${i.tamanho ? ` · nº ${esc(i.tamanho)}` : ''}</td><td class="n">${i.qtd}x</td></tr>`).join('')}${its.length > 6 ? `<tr><td colspan="2"><small>+ ${its.length - 6} item(ns)</small></td></tr>` : ''}</tbody></table>` : ''}</div>
+        <div><table><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor</th></tr></thead><tbody>
+          ${parc.map(q => `<tr><td>${q.n}/${x.parcelas}</td><td>${dataBR(q.vencimento)}${prev(x) ? ' *' : ''}</td><td class="n"><b>${brlVF(q.valor)}</b></td></tr>`).join('')}</tbody></table>
+          <small style="display:block;margin-top:2mm">Guarde este canhoto. Dúvidas sobre as parcelas: Financeiro.</small></div></div></div></div>`; }).join('')}</body></html>`;
+}
+// ---- saldo anterior: parcelas pendentes do controle em Excel (sem SKU). Cola do Excel: Funcionário | Vencimento | Valor
+function legadoVFDialog(){
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  dlg.innerHTML = `<div class="painel" style="width:min(820px,100%)"><div class="barra" style="margin:0 0 6px"><h3 style="margin:0">Lançar saldo anterior (parcelas pendentes)</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+    <div class="info">Copie do Excel 3 colunas — <b>Funcionário · Vencimento · Valor</b> — e cole abaixo (uma parcela por linha). Também dá para digitar: <code>Maria Souza;07/12/2026;150,00</code>.
+      Cada funcionário vira um lançamento de "saldo anterior" no Financeiro (não aparece no quadro), com baixa normal.</div>
+    <label style="display:block;margin:8px 0">Descrição <input id="lg-desc" class="campo" value="Saldo anterior (controle em Excel)" maxlength="200" style="width:100%"></label>
+    <textarea id="lg-txt" rows="8" style="width:100%;font:inherit;font-family:Consolas,monospace;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="Maria Souza	07/12/2026	150,00&#10;Maria Souza	08/01/2027	150,00&#10;João Lima	07/12/2026	89,90"></textarea>
+    <div id="lg-prev" style="margin-top:8px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" data-x>Cancelar</button><button class="btn pri" id="lg-ok" disabled>Lançar</button></div></div>`;
+  document.body.appendChild(dlg); dlg.querySelectorAll('[data-x]').forEach(b => b.onclick = () => dlg.remove());
+  let L = [];
+  const lerData = s => { s = String(s || '').trim(); let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[1]}-${m[2]}-${m[3]}` : null; };
+  const ler = () => {
+    L = dlg.querySelector('#lg-txt').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map((l, k) => {
+      const c = l.split(/\t|;/).map(x => x.trim()); const venc = lerData(c[1]), valor = lerValorBR(String(c[2] || '').replace(/R\$\s*/i, ''));
+      return { k:k + 1, funcionario:c[0] || '', vencimento:venc, valor, erro:!c[0] ? 'sem nome' : !venc ? 'data inválida' : !(valor > 0) ? 'valor inválido' : '' }; })
+      .filter(l => !(l.k === 1 && /funcion|nome/i.test(l.funcionario) && !l.vencimento));   // ignora o cabeçalho, se colado junto
+    const er = L.filter(l => l.erro), fn = new Set(L.map(l => l.funcionario)), tot = L.reduce((t, l) => t + (l.valor || 0), 0);
+    dlg.querySelector('#lg-prev').innerHTML = L.length ? `<div class="${er.length ? 'erro' : 'info'}">${L.length} parcela(s) de ${fn.size} funcionário(s) · total ${brlVF(tot)}${er.length ? ` · <b>${er.length} linha(s) com erro</b> — corrija antes de lançar` : ''}</div>
+      <div style="max-height:220px;overflow:auto;margin-top:4px"><table class="mk-itens"><thead><tr><th>#</th><th>Funcionário</th><th>Vencimento</th><th class="n">Valor</th><th></th></tr></thead><tbody>
+      ${L.map(l => `<tr><td>${l.k}</td><td>${esc(l.funcionario)}</td><td>${l.vencimento ? dataBR(l.vencimento) : '—'}</td><td class="n">${l.valor > 0 ? brlVF(l.valor) : '—'}</td><td style="color:#a11d1d">${esc(l.erro)}</td></tr>`).join('')}</tbody></table></div>` : '';
+    dlg.querySelector('#lg-ok').disabled = !L.length || !!er.length;
+  };
+  dlg.querySelector('#lg-txt').oninput = ler;
+  dlg.querySelector('#lg-ok').onclick = async () => {
+    try { const r = await apiVF('/vendafunc/legado', { descricao:dlg.querySelector('#lg-desc').value, linhas:L.map(l => ({ funcionario:l.funcionario, vencimento:l.vencimento, valor:l.valor })) });
+      avisar(`Saldo anterior lançado: ${r.parcelas} parcela(s) de ${r.funcionarios} funcionário(s)`); dlg.remove(); carregarFinVF(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
+  };
 }
 // ---- financeiro: parcelas por vencimento (fluxo de caixa) e baixa
 async function carregarFinVF(){
@@ -10131,7 +10192,7 @@ function renderFinVF(){
   const dias = [...new Set(L.map(q => s.fsit === 'pago' ? q.pago_em : q.vencimento))].sort();
   $c.innerHTML = `<div class="mk-filtros"><label>Vencimento de <input type="date" id="vf-fde" value="${s.fde}"></label><label>até <input type="date" id="vf-fate" value="${s.fate}"></label>
       <label>Situação <select id="vf-fsit">${[['aberto', 'Em aberto'], ['vencido', 'Vencidas'], ['pago', 'Pagas (baixadas no período)'], ['todas', 'Todas']].map(([k, t]) => `<option value="${k}" ${s.fsit === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-      <input id="vf-fbusca" placeholder="Funcionário ou nº" value="${esc(s.fbusca || '')}" style="min-width:200px"><span style="flex:1"></span><button class="btn" id="vf-fcsv">⇩ CSV</button></div>
+      <input id="vf-fbusca" placeholder="Funcionário ou nº" value="${esc(s.fbusca || '')}" style="min-width:200px"><span style="flex:1"></span>${baixa ? '<button class="btn" id="vf-leg" title="Parcelas pendentes do controle anterior (Excel), sem SKU">+ Saldo anterior</button>' : ''}<button class="btn" id="vf-fcsv">⇩ CSV</button></div>
     <div class="mk-kpis">
       <div class="mk-kpi"><span class="info">Vencido (em aberto)</span><b style="color:${vencido.length ? '#a11d1d' : 'inherit'}">${brlVF(soma(vencido))}</b><span class="info">${vencido.length} parcela(s)</span></div>
       <div class="mk-kpi"><span class="info">Vence hoje</span><b>${brlVF(soma(vHoje))}</b><span class="info">${vHoje.length} parcela(s)</span></div>
@@ -10140,7 +10201,7 @@ function renderFinVF(){
     <div style="overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:10px;background:#fff"><table class="mk-tab vf-fin"><thead><tr><th>${s.fsit === 'pago' ? 'Pago em' : 'Vencimento'}</th><th>Funcionário</th><th>Pedido</th><th>Parcela</th><th class="n">Valor</th><th>Situação</th>${baixa ? '<th></th>' : ''}</tr></thead><tbody>
     ${dias.map(d => { const g = L.filter(q => (s.fsit === 'pago' ? q.pago_em : q.vencimento) === d);
       return `<tr class="vf-dia"><td colspan="${baixa ? 7 : 6}">${dataBR(d)} · ${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d + 'T12:00:00Z').getUTCDay()]} — ${brlVF(soma(g))} (${g.length})${d < hoje && s.fsit !== 'pago' ? ' · vencido' : d === hoje ? ' · hoje' : ''}</td></tr>
-        ${g.map(q => `<tr class="${sit(q) === 'vencido' ? 'venc' : q.pago_em ? 'pago' : ''}"><td>${dataBR(q.vencimento)}</td><td>${esc(q.funcionario)}</td><td><span class="mk-lnk" data-ped="${q.pedido_id}">#${q.pedido_id}</span></td><td>${q.n}/${q.parcelas}</td>
+        ${g.map(q => `<tr class="${sit(q) === 'vencido' ? 'venc' : q.pago_em ? 'pago' : ''}"><td>${dataBR(q.vencimento)}</td><td>${esc(q.funcionario)}</td><td>${q.origem === 'legado' ? `<span class="vf-pp" title="${esc(q.pedido_obs || '')}">saldo anterior</span>` : `<span class="mk-lnk" data-ped="${q.pedido_id}">#${q.pedido_id}</span>`}</td><td>${q.n}/${q.parcelas}</td>
           <td class="n"><b>${brlVF(q.pago_em ? (q.pago_valor ?? q.valor) : q.valor)}</b></td><td>${q.pago_em ? `✓ paga em ${dataBR(q.pago_em)}` : sit(q) === 'vencido' ? `⚠ vencida há ${Math.round((new Date(hoje + 'T12:00:00Z') - new Date(q.vencimento + 'T12:00:00Z')) / 864e5)} dia(s)` : sit(q) === 'hoje' ? 'vence hoje' : q.status === 'entregue' ? 'a vencer' : '<span class="info">pedido ainda não entregue</span>'}</td>
           ${baixa ? `<td>${q.pago_em ? `<button class="btn mini" data-est="${q.id}">estornar</button>` : ['entregue', 'pago'].includes(q.status) ? `<span class="vf-bx"><input type="date" value="${hoje}" max="${hoje}" data-bxd="${q.id}"><input inputmode="decimal" value="${String(q.valor.toFixed(2)).replace('.', ',')}" data-bxv="${q.id}" style="width:80px"><button class="btn mini pri" data-bx="${q.id}">dar baixa</button></span>` : ''}</td>` : ''}</tr>`).join('')}`; }).join('') || `<tr><td colspan="7" class="info" style="padding:12px">Nenhuma parcela nesta seleção.</td></tr>`}</tbody></table></div>
     <div class="info" style="margin-top:6px">Em aberto e vencidas aparecem mesmo antes do período. Valores de pedidos ainda não entregues são previsões (o vencimento conta da entrega).</div>`;
@@ -10154,6 +10215,7 @@ function renderFinVF(){
   const vai = async (corpo, ok) => { try { await apiVF('/vendafunc/baixa', corpo); avisar(ok); await carregarFinVF(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
   $c.querySelectorAll('[data-bx]').forEach(bt => bt.onclick = () => { const id = bt.dataset.bx; vai({ parcela_id:+id, pago_em:$c.querySelector(`[data-bxd="${id}"]`).value, valor:lerValorBR($c.querySelector(`[data-bxv="${id}"]`).value) }, 'Baixa registrada'); });
   $c.querySelectorAll('[data-est]').forEach(bt => bt.onclick = () => confirmaDupla(bt, 'Confirmar estorno?') && vai({ parcela_id:+bt.dataset.est, estornar:true }, 'Baixa estornada'));
+  const lg = document.getElementById('vf-leg'); if (lg) lg.onclick = () => legadoVFDialog();
   $c.querySelectorAll('[data-ped]').forEach(a => a.onclick = async () => { if (!pode('vendafunc', 'ver')) return; if (!state.vfDados) state.vfDados = await apiVF(`/vendafunc?dias=90`); abrirVF(+a.dataset.ped); });
 }
 
