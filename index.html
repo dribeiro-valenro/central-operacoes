@@ -9895,19 +9895,21 @@ async function apiVF(path, corpo){
     if (corpo.status === 'cancelado') Object.assign(x, { status:'cancelado', cancelado_em:now, motivo_cancel:corpo.motivo });
     if (corpo.status === 'voltar') x.status = x.status === 'entregue' ? 'separado' : 'solicitado';
     return { ok:true }; }
-  if (path.startsWith('/vendafunc/legado')) { const g = {}; corpo.linhas.forEach(l => (g[l.funcionario] ||= []).push(l));
-    Object.entries(g).forEach(([f, ls]) => { ls.sort((a, b) => a.vencimento.localeCompare(b.vencimento)); const id = D.seq++;
-      D.pedidos.push({ id, funcionario:f, status:'entregue', origem:'legado', obs:corpo.descricao, forma:'pix', parcelas:ls.length, total:ls.reduce((t, l) => t + l.valor, 0), itens:[], parc:ls.map((l, k) => ({ id:id * 100 + k, n:k + 1, vencimento:l.vencimento, valor:l.valor, pago_em:null })) }); });
+  if (path.startsWith('/vendafunc/nf')) { const x = D.pedidos.find(p => p.id === corpo.id); if (x) x.nf = corpo.nf || null; return { ok:true }; }
+  if (path.startsWith('/vendafunc/legado')) { const g = {}; corpo.linhas.forEach(l => (g[l.funcionario + '|' + (l.nf || '')] ||= []).push(l));
+    Object.entries(g).forEach(([k, ls]) => { const f = ls[0].funcionario; ls.sort((a, b) => a.vencimento.localeCompare(b.vencimento)); const id = D.seq++;
+      D.pedidos.push({ id, funcionario:f, nf:ls[0].nf || null, status:'entregue', origem:'legado', obs:corpo.descricao, forma:'pix', parcelas:ls.length, total:ls.reduce((t, l) => t + l.valor, 0), itens:[], parc:ls.map((l, k) => ({ id:id * 100 + k, n:k + 1, vencimento:l.vencimento, valor:l.valor, pago_em:null })) }); });
     return { ok:true, funcionarios:Object.keys(g).length, parcelas:corpo.linhas.length }; }
   if (path.startsWith('/vendafunc/baixa')) { for (const x of D.pedidos) { const q = x.parc.find(p => p.id === corpo.parcela_id); if (!q) continue;
       if (corpo.estornar) { q.pago_em = null; if (x.status === 'pago') x.status = 'entregue'; } else { q.pago_em = corpo.pago_em || h; q.pago_valor = +corpo.valor || q.valor; if (x.parc.every(p => p.pago_em)) Object.assign(x, { status:'pago', pago_em:new Date().toISOString() }); } }
     return { ok:true }; }
   if (path.startsWith('/vendafunc/financeiro')) { const de = qs.get('de'), ate = qs.get('ate');
-    return { hoje:h, de, ate, formas:FORMAS_VF, parcelas:D.pedidos.filter(x => x.status !== 'cancelado').flatMap(x => x.parc.map(q => ({ ...q, pedido_id:x.id, funcionario:x.funcionario, parcelas:x.parcelas, forma:x.forma, status:x.status, total:x.total, origem:x.origem || 'portal', pedido_obs:x.obs })))
+    return { hoje:h, de, ate, formas:FORMAS_VF, parcelas:D.pedidos.filter(x => x.status !== 'cancelado').flatMap(x => x.parc.map(q => ({ ...q, pedido_id:x.id, funcionario:x.funcionario, parcelas:x.parcelas, forma:x.forma, status:x.status, total:x.total, origem:x.origem || 'portal', pedido_obs:x.obs, nf:x.nf || null })))
       .filter(q => (q.vencimento >= de && q.vencimento <= ate) || (!q.pago_em && q.vencimento < de) || (q.pago_em && q.pago_em >= de && q.pago_em <= ate)).sort((a, b) => a.vencimento.localeCompare(b.vencimento)) }; }
   return { hoje:h, valores:true, markup:35, formas:FORMAS_VF, pedidos:JSON.parse(JSON.stringify(D.pedidos.filter(x => x.origem !== 'legado'))), funcionarios:[...new Set(D.pedidos.map(x => x.funcionario))] };
 }
 const verFinVF = () => pode('vendafunc_fin', 'ver');
+const podeNfVF = () => pode('vendafunc', 'gerir') || pode('vendafunc_fin', 'editar');
 function telaVendaFunc(){
   ['css-mk', 'css-vf'].forEach((id, k) => { if (!document.getElementById(id)) { const st = document.createElement('style'); st.id = id; st.textContent = k ? CSS_VF : CSS_MK; document.head.appendChild(st); } });
   const s = state.vf ||= { modo:'quadro', dias:30, busca:'', sel:new Set() };
@@ -9941,7 +9943,7 @@ function renderVF(){
   const vencidas = aReceber.filter(q => q.vencimento < hoje);
   const card = x => { const pares = paresVF(x), atr = ['solicitado', 'separado'].includes(x.status) && x.retirada_prevista && x.retirada_prevista < hoje, vv = venc(x), pagas = (x.parc || []).filter(q => q.pago_em).length;
     return `<div class="mk-card vf-card" data-vf="${x.id}"><div class="t"><b>#${x.id} · ${esc(x.funcionario)}</b><span>${fmtN(pares)} par${pares === 1 ? '' : 'es'}</span></div>
-      <div>${[...new Set(x.itens.map(i => i.cnpj_id))].map(tagLoja).join(' ')}</div>
+      <div>${[...new Set(x.itens.map(i => i.cnpj_id))].map(tagLoja).join(' ')}${x.nf ? ` <span class="vf-pp">NF ${esc(x.nf)}</span>` : ''}</div>
       ${x.retirada_prevista && ['solicitado', 'separado'].includes(x.status) ? `<div class="mk-ret ${atr ? 'atr' : ''}">📅 retirar ${dataBR(x.retirada_prevista).slice(0, 5)}${atr ? ' (atrasado)' : ''}</div>` : ''}
       <small>${x.status === 'solicitado' ? `pedido ${quando(x.solicitado_em)}` : x.status === 'separado' ? `separado ${quando(x.separado_em)}` : x.status === 'entregue' ? `entregue ${quando(x.entregue_em)}` : `pago ${quando(x.pago_em)}`}</small>
       ${V ? `<div><span class="vf-val">${brlVF(x.total)}</span> <span class="vf-pp" title="Pix, no dia de pagamento (5º dia útil)">${x.parcelas}x Pix</span>
@@ -9974,7 +9976,7 @@ function abrirVF(id){
   const passo = (rot, em, por) => em ? `<div><b>${rot}</b><span>${quando(em)}${por ? ` · ${esc(quemTxt(por))}` : ''}</span></div>` : '';
   dlg.innerHTML = `<div class="painel" style="width:min(860px,100%)">
     <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">#${x.id} · ${esc(x.funcionario)}</h3><span class="mk-dias" style="background:${et ? et.cor : '#8a1f1f'};color:#fff">${et ? et.rot : 'Cancelado'}</span><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
-    <div class="info">${x.retirada_prevista ? `Retirada: <b>${dataBR(x.retirada_prevista)}</b> · ` : ''}${fmtN(paresVF(x))} par(es)${V ? ` · Pix em <b>${x.parcelas}x</b> (5º dia útil)` : ''}${x.obs ? ` · Obs.: ${esc(x.obs)}` : ''}</div>
+    <div class="info">${x.retirada_prevista ? `Retirada: <b>${dataBR(x.retirada_prevista)}</b> · ` : ''}${fmtN(paresVF(x))} par(es)${V ? ` · Pix em <b>${x.parcelas}x</b> (5º dia útil)` : ''} · NF: <b>${x.nf ? esc(x.nf) : '—'}</b>${podeNfVF() && x.status !== 'cancelado' ? ' <span class="mk-lnk" data-nf>editar NF</span>' : ''}${x.obs ? ` · Obs.: ${esc(x.obs)}` : ''}</div>
     <div style="overflow-x:auto;margin-top:8px"><table class="mk-itens"><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Qtd</th><th>Endereço</th>${V ? '<th class="n">Custo</th><th class="n">Venda (un.)</th><th class="n">Subtotal</th>' : ''}</tr></thead><tbody>
       ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.sku)}</b></td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="end">${i.posicao ? esc(i.posicao) : '<span class="vf-venc">SEM ENDEREÇO</span>'}</td>
         ${V ? `<td class="n">${brlVF(i.custo)}</td><td class="n">${brlVF(i.preco)}</td><td class="n"><b>${brlVF(i.preco * i.qtd)}</b></td>` : ''}</tr>`).join('')}</tbody></table></div>
@@ -10001,6 +10003,7 @@ function abrirVF(id){
   dlg.querySelectorAll('[data-st]').forEach(b => b.onclick = () => vai({ id:x.id, status:b.dataset.st }, { separado:'Marcado como separado', entregue:'Entregue — 1ª parcela no próximo dia de pagamento', voltar:'Voltou uma etapa' }[b.dataset.st]));
   const cc = dlg.querySelector('[data-canc]'); if (cc) cc.onclick = () => { const m = prompt('Motivo do cancelamento:'); if (m && m.trim()) vai({ id:x.id, status:'cancelado', motivo:m.trim() }, 'Pedido cancelado'); };
   const ed = dlg.querySelector('[data-ed]'); if (ed) ed.onclick = () => { fecha(); formVF(x); };
+  const nfb = dlg.querySelector('[data-nf]'); if (nfb) nfb.onclick = () => { const v = prompt('Número da NF (deixe vazio para tirar):', x.nf || ''); if (v !== null) vai({ id:x.id, nf:v.trim() }, 'NF salva', '/vendafunc/nf'); };
   dlg.querySelectorAll('[data-imp]').forEach(b => b.onclick = () => imprimirHtml(b.dataset.imp === 'sep' ? fichaSepVF([x]) : fichaVendaVF([x])));
   dlg.querySelectorAll('[data-bx]').forEach(b => b.onclick = () => vai({ parcela_id:+b.dataset.bx, pago_em:dlg.querySelector(`[data-bxd="${b.dataset.bx}"]`).value }, 'Baixa registrada', '/vendafunc/baixa'));
   dlg.querySelectorAll('[data-est]').forEach(b => b.onclick = () => confirmaDupla(b, 'Confirmar estorno?') && vai({ parcela_id:+b.dataset.est, estornar:true }, 'Baixa estornada', '/vendafunc/baixa'));
@@ -10012,7 +10015,8 @@ function formVF(x){
   const dlg = document.createElement('div'); dlg.className = 'pl-modal';
   dlg.innerHTML = `<div class="painel mk-form" style="width:min(1000px,100%)"><div class="barra" style="margin:0 0 6px"><h3 style="margin:0">${novo ? 'Novo pedido de funcionário' : `Editar pedido #${x.id}`}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
     <div class="grade-form g2"><label>Funcionário *<input id="vf-fn" list="vf-fns" maxlength="100" value="${esc(f.funcionario)}"><datalist id="vf-fns">${(D.funcionarios || []).map(n => `<option value="${esc(n)}">`).join('')}</datalist></label>
-      <label>Data de retirada<input type="date" id="vf-ret" value="${esc(f.retirada)}"></label></div>
+      <label>Data de retirada<input type="date" id="vf-ret" value="${esc(f.retirada)}"></label>
+      <label>Nº da NF <span class="info">(opcional)</span><input id="vf-nf" maxlength="40" value="${esc(x?.nf || '')}" placeholder="ex.: 001234"></label></div>
     <h4 style="margin:10px 0 4px">Adicionar pares <span class="info">— digite o SKU pai (ex.: 5338-211) ou parte do nome; mostra as numerações com estoque e o endereço (área de ressuprimento primeiro)</span></h4>
     <div class="vf-busca"><select id="vf-lj">${ORDEM_LOJAS.map(l => `<option value="${l}">${esc(nomeLoja(l))}</option>`).join('')}</select>
       <input id="vf-q" placeholder="SKU pai ou nome do produto" style="min-width:260px"><button class="btn" id="vf-buscar">Buscar no estoque</button><span class="info" id="vf-est"></span></div>
@@ -10079,7 +10083,7 @@ function formVF(x){
     $('vf-se-sku').value = ''; $('vf-se-prod').value = ''; desenhaItens(); };
   desenhaItens();
   $('vf-salvar').onclick = async () => {
-    const corpo = { id:x?.id, funcionario:$('vf-fn').value.trim(), retirada_prevista:$('vf-ret').value || null, forma:'pix', parcelas:+$('vf-np').value, obs:$('vf-obs').value.trim(),
+    const corpo = { id:x?.id, funcionario:$('vf-fn').value.trim(), retirada_prevista:$('vf-ret').value || null, nf:$('vf-nf').value.trim(), forma:'pix', parcelas:+$('vf-np').value, obs:$('vf-obs').value.trim(),
       itens:itens.map(i => ({ cnpj_id:i.cnpj_id, sku:i.sku, produto:i.produto, cor:i.cor, tamanho:i.tamanho, posicao:i.posicao, qtd:i.qtd, custo:i.custo })) };
     if (!corpo.funcionario) return avisar('Informe o funcionário', true);
     if (!itens.length) return avisar('Inclua ao menos um par', true);
@@ -10125,7 +10129,7 @@ function fichaVendaVF(L){
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Venda Funcionários</title><style>${CSS_FICHA_VF}</style></head><body>
     ${L.map(x => { const parc = x.parc || [], its = x.itens || [];
       return `<div class="venda"><div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Venda a Funcionário · Pedido #${x.id}</h1>
-        <div class="sub">Funcionário: <b>${esc(x.funcionario)}</b> · pedido em ${quando(x.solicitado_em)}${x.retirada_prevista ? ` · retirada ${dataBR(x.retirada_prevista)}` : ''}</div></div></div>
+        <div class="sub">Funcionário: <b>${esc(x.funcionario)}</b> · pedido em ${quando(x.solicitado_em)}${x.retirada_prevista ? ` · retirada ${dataBR(x.retirada_prevista)}` : ''} · NF: <b>${x.nf ? esc(x.nf) : '________'}</b></div></div></div>
       <table><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th>Nº</th><th class="n">Qtd</th><th class="n">Valor un.</th><th class="n">Subtotal</th></tr></thead><tbody>
       ${its.map(i => `<tr><td>${esc(nomeLoja(i.cnpj_id))}</td><td class="m">${esc(i.sku)}</td><td class="pr">${esc(i.produto || '')}${i.cor ? ' · ' + esc(i.cor) : ''}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${brlVF(i.preco)}</td><td class="n"><b>${brlVF(i.preco * i.qtd)}</b></td></tr>`).join('')}</tbody></table>
       <div class="tot">Total: <b>${brlVF(x.total)}</b></div>
@@ -10136,7 +10140,7 @@ function fichaVendaVF(L){
       <div class="ass"><div>${esc(x.funcionario)}<br>Funcionário (assinatura)</div><div>Entregue por (nome e assinatura)</div><div>Data da entrega<br>____/____/________</div></div>
       <div class="rod">Via da empresa · Grupo Valenro · uso interno. Impresso em ${quando(new Date().toISOString())}.</div>
       <div class="corte"><div class="canhoto">
-        <div><h2>Canhoto · Pedido #${x.id}</h2><div>${esc(x.funcionario)}</div><div class="val">${brlVF(x.total)}</div><small>Pix · ${x.parcelas} parcela(s) no 5º dia útil do mês</small>
+        <div><h2>Canhoto · Pedido #${x.id}${x.nf ? ` · NF ${esc(x.nf)}` : ''}</h2><div>${esc(x.funcionario)}</div><div class="val">${brlVF(x.total)}</div><small>Pix · ${x.parcelas} parcela(s) no 5º dia útil do mês</small>
           ${its.length ? `<table style="margin-top:2mm"><tbody>${its.slice(0, 6).map(i => `<tr><td>${esc(i.produto || i.sku)}${i.tamanho ? ` · nº ${esc(i.tamanho)}` : ''}</td><td class="n">${i.qtd}x</td></tr>`).join('')}${its.length > 6 ? `<tr><td colspan="2"><small>+ ${its.length - 6} item(ns)</small></td></tr>` : ''}</tbody></table>` : ''}</div>
         <div><table><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor</th></tr></thead><tbody>
           ${parc.map(q => `<tr><td>${q.n}/${x.parcelas}</td><td>${dataBR(q.vencimento)}${prev(x) ? ' *' : ''}</td><td class="n"><b>${brlVF(q.valor)}</b></td></tr>`).join('')}</tbody></table>
@@ -10146,10 +10150,10 @@ function fichaVendaVF(L){
 function legadoVFDialog(){
   const dlg = document.createElement('div'); dlg.className = 'pl-modal';
   dlg.innerHTML = `<div class="painel" style="width:min(820px,100%)"><div class="barra" style="margin:0 0 6px"><h3 style="margin:0">Lançar saldo anterior (parcelas pendentes)</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
-    <div class="info">Copie do Excel 3 colunas — <b>Funcionário · Vencimento · Valor</b> — e cole abaixo (uma parcela por linha). Também dá para digitar: <code>Maria Souza;07/12/2026;150,00</code>.
-      Cada funcionário vira um lançamento de "saldo anterior" no Financeiro (não aparece no quadro), com baixa normal.</div>
+    <div class="info">Copie do Excel as colunas — <b>Funcionário · Vencimento · Valor · NF</b> (a NF é opcional) — e cole abaixo (uma parcela por linha). Também dá para digitar: <code>Maria Souza;07/12/2026;150,00;001234</code>.
+      Cada funcionário (e cada NF dele) vira um lançamento de "saldo anterior" no Financeiro (não aparece no quadro), com baixa normal.</div>
     <label style="display:block;margin:8px 0">Descrição <input id="lg-desc" class="campo" value="Saldo anterior (controle em Excel)" maxlength="200" style="width:100%"></label>
-    <textarea id="lg-txt" rows="8" style="width:100%;font:inherit;font-family:Consolas,monospace;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="Maria Souza	07/12/2026	150,00&#10;Maria Souza	08/01/2027	150,00&#10;João Lima	07/12/2026	89,90"></textarea>
+    <textarea id="lg-txt" rows="8" style="width:100%;font:inherit;font-family:Consolas,monospace;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px" placeholder="Maria Souza	07/12/2026	150,00	001234&#10;Maria Souza	08/01/2027	150,00	001234&#10;João Lima	07/12/2026	89,90"></textarea>
     <div id="lg-prev" style="margin-top:8px"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" data-x>Cancelar</button><button class="btn pri" id="lg-ok" disabled>Lançar</button></div></div>`;
   document.body.appendChild(dlg); dlg.querySelectorAll('[data-x]').forEach(b => b.onclick = () => dlg.remove());
@@ -10159,17 +10163,17 @@ function legadoVFDialog(){
   const ler = () => {
     L = dlg.querySelector('#lg-txt').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map((l, k) => {
       const c = l.split(/\t|;/).map(x => x.trim()); const venc = lerData(c[1]), valor = lerValorBR(String(c[2] || '').replace(/R\$\s*/i, ''));
-      return { k:k + 1, funcionario:c[0] || '', vencimento:venc, valor, erro:!c[0] ? 'sem nome' : !venc ? 'data inválida' : !(valor > 0) ? 'valor inválido' : '' }; })
+      return { k:k + 1, funcionario:c[0] || '', vencimento:venc, valor, nf:String(c[3] || '').trim(), erro:!c[0] ? 'sem nome' : !venc ? 'data inválida' : !(valor > 0) ? 'valor inválido' : '' }; })
       .filter(l => !(l.k === 1 && /funcion|nome/i.test(l.funcionario) && !l.vencimento));   // ignora o cabeçalho, se colado junto
     const er = L.filter(l => l.erro), fn = new Set(L.map(l => l.funcionario)), tot = L.reduce((t, l) => t + (l.valor || 0), 0);
     dlg.querySelector('#lg-prev').innerHTML = L.length ? `<div class="${er.length ? 'erro' : 'info'}">${L.length} parcela(s) de ${fn.size} funcionário(s) · total ${brlVF(tot)}${er.length ? ` · <b>${er.length} linha(s) com erro</b> — corrija antes de lançar` : ''}</div>
-      <div style="max-height:220px;overflow:auto;margin-top:4px"><table class="mk-itens"><thead><tr><th>#</th><th>Funcionário</th><th>Vencimento</th><th class="n">Valor</th><th></th></tr></thead><tbody>
-      ${L.map(l => `<tr><td>${l.k}</td><td>${esc(l.funcionario)}</td><td>${l.vencimento ? dataBR(l.vencimento) : '—'}</td><td class="n">${l.valor > 0 ? brlVF(l.valor) : '—'}</td><td style="color:#a11d1d">${esc(l.erro)}</td></tr>`).join('')}</tbody></table></div>` : '';
+      <div style="max-height:220px;overflow:auto;margin-top:4px"><table class="mk-itens"><thead><tr><th>#</th><th>Funcionário</th><th>Vencimento</th><th class="n">Valor</th><th>NF</th><th></th></tr></thead><tbody>
+      ${L.map(l => `<tr><td>${l.k}</td><td>${esc(l.funcionario)}</td><td>${l.vencimento ? dataBR(l.vencimento) : '—'}</td><td class="n">${l.valor > 0 ? brlVF(l.valor) : '—'}</td><td>${esc(l.nf || '')}</td><td style="color:#a11d1d">${esc(l.erro)}</td></tr>`).join('')}</tbody></table></div>` : '';
     dlg.querySelector('#lg-ok').disabled = !L.length || !!er.length;
   };
   dlg.querySelector('#lg-txt').oninput = ler;
   dlg.querySelector('#lg-ok').onclick = async () => {
-    try { const r = await apiVF('/vendafunc/legado', { descricao:dlg.querySelector('#lg-desc').value, linhas:L.map(l => ({ funcionario:l.funcionario, vencimento:l.vencimento, valor:l.valor })) });
+    try { const r = await apiVF('/vendafunc/legado', { descricao:dlg.querySelector('#lg-desc').value, linhas:L.map(l => ({ funcionario:l.funcionario, vencimento:l.vencimento, valor:l.valor, nf:l.nf })) });
       avisar(`Saldo anterior lançado: ${r.parcelas} parcela(s) de ${r.funcionarios} funcionário(s)`); dlg.remove(); carregarFinVF(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
   };
@@ -10183,40 +10187,144 @@ async function carregarFinVF(){
 function renderFinVF(){
   const $c = document.getElementById('vf'), F = state.vfFin, s = state.vf; if (!$c || !F) return;
   const hoje = F.hoje, baixa = pode('vendafunc_fin', 'editar'), b = semAcento(s.fbusca || '');
+  s.fsel ||= new Set();
   const sit = q => q.pago_em ? 'pago' : q.vencimento < hoje ? 'vencido' : q.vencimento === hoje ? 'hoje' : 'aberto';
-  const L = F.parcelas.filter(q => (!b || semAcento(`${q.funcionario} #${q.pedido_id}`).includes(b))
+  const funcs = [...new Set(F.parcelas.map(q => q.funcionario))].sort((a, b2) => a.localeCompare(b2, 'pt'));
+  if (s.ffunc && !funcs.includes(s.ffunc)) s.ffunc = '';
+  const L = F.parcelas.filter(q => (!s.ffunc || q.funcionario === s.ffunc) && (!b || semAcento(`${q.funcionario} #${q.pedido_id} nf ${q.nf || ''}`).includes(b))
     && (s.fsit === 'todas' || (s.fsit === 'aberto' ? !q.pago_em : s.fsit === 'vencido' ? sit(q) === 'vencido' : !!q.pago_em)));
-  const abertas = F.parcelas.filter(q => !q.pago_em), soma = l => l.reduce((t, q) => t + (q.pago_em ? (q.pago_valor ?? q.valor) : q.valor), 0);
+  [...s.fsel].forEach(id => { if (!L.some(q => q.id === id && !q.pago_em)) s.fsel.delete(id); });
+  const base = F.parcelas.filter(q => !s.ffunc || q.funcionario === s.ffunc);
+  const abertas = base.filter(q => !q.pago_em), soma = l => l.reduce((t, q) => t + (q.pago_em ? (q.pago_valor ?? q.valor) : q.valor), 0);
   const vencido = abertas.filter(q => q.vencimento < hoje), vHoje = abertas.filter(q => q.vencimento === hoje), prox7 = abertas.filter(q => q.vencimento > hoje && q.vencimento <= addDias(hoje, 7));
-  const rec = F.parcelas.filter(q => q.pago_em && q.pago_em >= F.de && q.pago_em <= F.ate);
+  const rec = base.filter(q => q.pago_em && q.pago_em >= F.de && q.pago_em <= F.ate);
   const dias = [...new Set(L.map(q => s.fsit === 'pago' ? q.pago_em : q.vencimento))].sort();
+  const cols = baixa ? 9 : 7;
   $c.innerHTML = `<div class="mk-filtros"><label>Vencimento de <input type="date" id="vf-fde" value="${s.fde}"></label><label>até <input type="date" id="vf-fate" value="${s.fate}"></label>
+      <label>Funcionário <select id="vf-ffunc"><option value="">Todos (${funcs.length})</option>${funcs.map(f => `<option ${s.ffunc === f ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
       <label>Situação <select id="vf-fsit">${[['aberto', 'Em aberto'], ['vencido', 'Vencidas'], ['pago', 'Pagas (baixadas no período)'], ['todas', 'Todas']].map(([k, t]) => `<option value="${k}" ${s.fsit === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-      <input id="vf-fbusca" placeholder="Funcionário ou nº" value="${esc(s.fbusca || '')}" style="min-width:200px"><span style="flex:1"></span>${baixa ? '<button class="btn" id="vf-leg" title="Parcelas pendentes do controle anterior (Excel), sem SKU">+ Saldo anterior</button>' : ''}<button class="btn" id="vf-fcsv">⇩ CSV</button></div>
+       <input id="vf-fbusca" placeholder="Buscar nome, nº ou NF" value="${esc(s.fbusca || '')}" style="min-width:160px"><span style="flex:1"></span>
+      <button class="btn pri" id="vf-resumo" title="Imagem (WhatsApp/Teams) ou PDF das parcelas em aberto do período">📤 Resumo para envio</button>
+      ${baixa ? '<button class="btn" id="vf-leg" title="Parcelas pendentes do controle anterior (Excel), sem SKU">+ Saldo anterior</button>' : ''}<button class="btn" id="vf-fcsv">⇩ CSV</button></div>
     <div class="mk-kpis">
       <div class="mk-kpi"><span class="info">Vencido (em aberto)</span><b style="color:${vencido.length ? '#a11d1d' : 'inherit'}">${brlVF(soma(vencido))}</b><span class="info">${vencido.length} parcela(s)</span></div>
       <div class="mk-kpi"><span class="info">Vence hoje</span><b>${brlVF(soma(vHoje))}</b><span class="info">${vHoje.length} parcela(s)</span></div>
       <div class="mk-kpi"><span class="info">Próximos 7 dias</span><b>${brlVF(soma(prox7))}</b><span class="info">${prox7.length} parcela(s)</span></div>
       <div class="mk-kpi"><span class="info">Recebido no período</span><b style="color:#2e7d32">${brlVF(soma(rec))}</b><span class="info">${rec.length} parcela(s) · ${dataBR(F.de).slice(0, 5)} a ${dataBR(F.ate).slice(0, 5)}</span></div></div>
-    <div style="overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:10px;background:#fff"><table class="mk-tab vf-fin"><thead><tr><th>${s.fsit === 'pago' ? 'Pago em' : 'Vencimento'}</th><th>Funcionário</th><th>Pedido</th><th>Parcela</th><th class="n">Valor</th><th>Situação</th>${baixa ? '<th></th>' : ''}</tr></thead><tbody>
+    ${baixa && s.fsel.size ? `<div class="vf-sel" style="position:static;margin:0 0 8px"><b>${s.fsel.size} parcela(s) · ${brlVF(soma(L.filter(q => s.fsel.has(q.id))))}</b><span style="flex:1"></span>
+      <label style="display:inline-flex;gap:6px;align-items:center">Pago em <input type="date" id="vf-lote-d" value="${hoje}" max="${hoje}" style="font:inherit;padding:3px 6px;border-radius:6px;border:0"></label>
+      <button class="btn" id="vf-lote">✓ Dar baixa nas selecionadas</button><button class="btn" id="vf-lote-x">Limpar</button></div>` : ''}
+    <div style="overflow:auto;max-height:66vh;border:1px solid var(--line);border-radius:10px;background:#fff"><table class="mk-tab vf-fin"><thead><tr>${baixa ? `<th style="width:26px"><input type="checkbox" id="vf-todas" title="Selecionar todas em aberto"></th>` : ''}<th>${s.fsit === 'pago' ? 'Pago em' : 'Vencimento'}</th><th>Funcionário</th><th>Pedido</th><th>NF</th><th>Parcela</th><th class="n">Valor</th><th>Situação</th>${baixa ? '<th></th>' : ''}</tr></thead><tbody>
     ${dias.map(d => { const g = L.filter(q => (s.fsit === 'pago' ? q.pago_em : q.vencimento) === d);
-      return `<tr class="vf-dia"><td colspan="${baixa ? 7 : 6}">${dataBR(d)} · ${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d + 'T12:00:00Z').getUTCDay()]} — ${brlVF(soma(g))} (${g.length})${d < hoje && s.fsit !== 'pago' ? ' · vencido' : d === hoje ? ' · hoje' : ''}</td></tr>
-        ${g.map(q => `<tr class="${sit(q) === 'vencido' ? 'venc' : q.pago_em ? 'pago' : ''}"><td>${dataBR(q.vencimento)}</td><td>${esc(q.funcionario)}</td><td>${q.origem === 'legado' ? `<span class="vf-pp" title="${esc(q.pedido_obs || '')}">saldo anterior</span>` : `<span class="mk-lnk" data-ped="${q.pedido_id}">#${q.pedido_id}</span>`}</td><td>${q.n}/${q.parcelas}</td>
-          <td class="n"><b>${brlVF(q.pago_em ? (q.pago_valor ?? q.valor) : q.valor)}</b></td><td>${q.pago_em ? `✓ paga em ${dataBR(q.pago_em)}` : sit(q) === 'vencido' ? `⚠ vencida há ${Math.round((new Date(hoje + 'T12:00:00Z') - new Date(q.vencimento + 'T12:00:00Z')) / 864e5)} dia(s)` : sit(q) === 'hoje' ? 'vence hoje' : q.status === 'entregue' ? 'a vencer' : '<span class="info">pedido ainda não entregue</span>'}</td>
-          ${baixa ? `<td>${q.pago_em ? `<button class="btn mini" data-est="${q.id}">estornar</button>` : ['entregue', 'pago'].includes(q.status) ? `<span class="vf-bx"><input type="date" value="${hoje}" max="${hoje}" data-bxd="${q.id}"><input inputmode="decimal" value="${String(q.valor.toFixed(2)).replace('.', ',')}" data-bxv="${q.id}" style="width:80px"><button class="btn mini pri" data-bx="${q.id}">dar baixa</button></span>` : ''}</td>` : ''}</tr>`).join('')}`; }).join('') || `<tr><td colspan="7" class="info" style="padding:12px">Nenhuma parcela nesta seleção.</td></tr>`}</tbody></table></div>
-    <div class="info" style="margin-top:6px">Em aberto e vencidas aparecem mesmo antes do período. Valores de pedidos ainda não entregues são previsões (o vencimento conta da entrega).</div>`;
+      return `<tr class="vf-dia"><td colspan="${cols}">${dataBR(d)} · ${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d + 'T12:00:00Z').getUTCDay()]} — ${brlVF(soma(g))} (${g.length})${d < hoje && s.fsit !== 'pago' ? ' · vencido' : d === hoje ? ' · hoje' : ''}</td></tr>
+        ${g.map(q => `<tr class="${sit(q) === 'vencido' ? 'venc' : q.pago_em ? 'pago' : ''}">${baixa ? `<td>${q.pago_em ? '' : `<input type="checkbox" data-fsel="${q.id}" ${s.fsel.has(q.id) ? 'checked' : ''}>`}</td>` : ''}<td>${dataBR(q.vencimento)}</td><td>${esc(q.funcionario)}</td>
+          <td>${q.origem === 'legado' ? `<span class="vf-pp" title="${esc(q.pedido_obs || '')}">saldo anterior</span>` : `<span class="mk-lnk" data-ped="${q.pedido_id}">#${q.pedido_id}</span>`}</td>
+          <td>${q.nf ? esc(q.nf) : ''}${podeNfVF() ? ` <span class="mk-lnk" data-nfp="${q.pedido_id}" data-nfv="${esc(q.nf || '')}" title="${q.nf ? 'Editar' : 'Digitar'} a NF">${q.nf ? '✎' : '+ NF'}</span>` : ''}</td><td>${q.n}/${q.parcelas}</td>
+          <td class="n"><b>${brlVF(q.pago_em ? (q.pago_valor ?? q.valor) : q.valor)}</b></td><td>${q.pago_em ? `✓ paga em ${dataBR(q.pago_em)}` : sit(q) === 'vencido' ? `⚠ vencida há ${Math.round((new Date(hoje + 'T12:00:00Z') - new Date(q.vencimento + 'T12:00:00Z')) / 864e5)} dia(s)` : sit(q) === 'hoje' ? 'vence hoje' : q.status === 'entregue' || q.origem === 'legado' ? 'a vencer' : '<span class="info" title="Dá para dar baixa adiantada; o pedido vira Pago depois de entregue">a vencer · pedido ainda não entregue</span>'}</td>
+          ${baixa ? `<td>${q.pago_em ? `<button class="btn mini" data-est="${q.id}">estornar</button>` : `<span class="vf-bx"><input type="date" value="${hoje}" max="${hoje}" data-bxd="${q.id}"><input inputmode="decimal" value="${String(q.valor.toFixed(2)).replace('.', ',')}" data-bxv="${q.id}" style="width:80px"><button class="btn mini pri" data-bx="${q.id}">dar baixa</button></span>`}</td>` : ''}</tr>`).join('')}`; }).join('') || `<tr><td colspan="${cols}" class="info" style="padding:12px">Nenhuma parcela nesta seleção.</td></tr>`}</tbody></table></div>
+    <div class="info" style="margin-top:6px">Em aberto e vencidas aparecem mesmo antes do período. Pedido ainda não entregue: o vencimento é previsão (conta da entrega); a baixa adiantada é aceita.</div>`;
   const re = () => carregarFinVF();
   document.getElementById('vf-fde').onchange = e => { s.fde = e.target.value; re(); };
   document.getElementById('vf-fate').onchange = e => { s.fate = e.target.value; re(); };
+  document.getElementById('vf-ffunc').onchange = e => { s.ffunc = e.target.value; s.fsel.clear(); renderFinVF(); };
   document.getElementById('vf-fsit').onchange = e => { s.fsit = e.target.value; renderFinVF(); };
   document.getElementById('vf-fbusca').oninput = e => { s.fbusca = e.target.value; clearTimeout(s.tfb); s.tfb = setTimeout(() => { renderFinVF(); const n = document.getElementById('vf-fbusca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); };
-  document.getElementById('vf-fcsv').onclick = () => baixarCsv(`venda_funcionarios_parcelas_${F.de}_${F.ate}.csv`, [['Vencimento', 'Funcionário', 'Pedido', 'Parcela', 'Valor', 'Pago em', 'Valor pago', 'Situação'],
-    ...L.map(q => [dataBR(q.vencimento), q.funcionario, q.pedido_id, `${q.n}/${q.parcelas}`, String(q.valor.toFixed(2)).replace('.', ','), q.pago_em ? dataBR(q.pago_em) : '', q.pago_em ? String((q.pago_valor ?? q.valor).toFixed(2)).replace('.', ',') : '', sit(q)])]);
+  document.getElementById('vf-fcsv').onclick = () => baixarCsv(`venda_funcionarios_parcelas_${F.de}_${F.ate}.csv`, [['Vencimento', 'Funcionário', 'Pedido', 'NF', 'Parcela', 'Valor', 'Pago em', 'Valor pago', 'Situação'],
+    ...L.map(q => [dataBR(q.vencimento), q.funcionario, q.origem === 'legado' ? 'saldo anterior' : q.pedido_id, q.nf || '', `${q.n}/${q.parcelas}`, String(q.valor.toFixed(2)).replace('.', ','), q.pago_em ? dataBR(q.pago_em) : '', q.pago_em ? String((q.pago_valor ?? q.valor).toFixed(2)).replace('.', ',') : '', sit(q)])]);
+  document.getElementById('vf-resumo').onclick = () => resumoVFDialog(F, s.ffunc);
   const vai = async (corpo, ok) => { try { await apiVF('/vendafunc/baixa', corpo); avisar(ok); await carregarFinVF(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
   $c.querySelectorAll('[data-bx]').forEach(bt => bt.onclick = () => { const id = bt.dataset.bx; vai({ parcela_id:+id, pago_em:$c.querySelector(`[data-bxd="${id}"]`).value, valor:lerValorBR($c.querySelector(`[data-bxv="${id}"]`).value) }, 'Baixa registrada'); });
   $c.querySelectorAll('[data-est]').forEach(bt => bt.onclick = () => confirmaDupla(bt, 'Confirmar estorno?') && vai({ parcela_id:+bt.dataset.est, estornar:true }, 'Baixa estornada'));
+  $c.querySelectorAll('[data-fsel]').forEach(c => c.onchange = () => { c.checked ? s.fsel.add(+c.dataset.fsel) : s.fsel.delete(+c.dataset.fsel); renderFinVF(); });
+  const td = document.getElementById('vf-todas'); if (td) { const ab = L.filter(q => !q.pago_em); td.checked = ab.length && ab.every(q => s.fsel.has(q.id)); td.onchange = () => { ab.forEach(q => td.checked ? s.fsel.add(q.id) : s.fsel.delete(q.id)); renderFinVF(); }; }
+  const lt = document.getElementById('vf-lote');
+  if (lt) lt.onclick = async () => { if (!confirmaDupla(lt, `Confirmar ${s.fsel.size} baixa(s)?`)) return;
+    const d = document.getElementById('vf-lote-d').value, ids = [...s.fsel]; lt.disabled = true; let ok = 0;
+    try { for (const id of ids) { await apiVF('/vendafunc/baixa', { parcela_id:id, pago_em:d }); ok++; } avisar(`${ok} baixa(s) registrada(s)`); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(`${ok} de ${ids.length} registradas — parou em: ${e.message}`, true); }
+    s.fsel.clear(); await carregarFinVF(); };
+  const lx = document.getElementById('vf-lote-x'); if (lx) lx.onclick = () => { s.fsel.clear(); renderFinVF(); };
   const lg = document.getElementById('vf-leg'); if (lg) lg.onclick = () => legadoVFDialog();
+  $c.querySelectorAll('[data-nfp]').forEach(a => a.onclick = async () => { const v = prompt('Número da NF (vale para todas as parcelas deste lançamento; vazio = tirar):', a.dataset.nfv || ''); if (v === null) return;
+    try { await apiVF('/vendafunc/nf', { id:+a.dataset.nfp, nf:v.trim() }); avisar('NF salva'); await carregarFinVF(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
   $c.querySelectorAll('[data-ped]').forEach(a => a.onclick = async () => { if (!pode('vendafunc', 'ver')) return; if (!state.vfDados) state.vfDados = await apiVF(`/vendafunc?dias=90`); abrirVF(+a.dataset.ped); });
+}
+// ---- resumo para envio: parcelas EM ABERTO do funcionário com vencimento até a data escolhida (e as já vencidas) → imagem (WhatsApp/Teams) ou PDF
+function gruposResumoVF(F, func, ate){
+  const P = F.parcelas.filter(q => !q.pago_em && q.vencimento <= ate && (!func || q.funcionario === func)).sort((a, b) => a.vencimento.localeCompare(b.vencimento) || a.n - b.n);
+  const g = new Map(); for (const q of P) { if (!g.has(q.funcionario)) g.set(q.funcionario, []); g.get(q.funcionario).push(q); }
+  return [...g.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt'));
+}
+function canvasResumoVF(func, P, ate, hoje){
+  const W = 900, linha = 46, topo = 210, rod = 200, H = topo + (P.length + 1) * linha + rod, sc = 2;
+  const cv = document.createElement('canvas'); cv.width = W * sc; cv.height = H * sc; const x = cv.getContext('2d'); x.scale(sc, sc);
+  const F_ = (pes, peso = 500) => `${peso} ${pes}px "Segoe UI", Roboto, Arial, sans-serif`;
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#02285a'; x.fillRect(0, 0, W, 120); x.fillStyle = '#f1c300'; x.fillRect(0, 120, W, 8);
+  x.fillStyle = '#ffffff'; x.font = F_(30, 800); x.fillText('Parcelas em aberto', 40, 58);
+  x.font = F_(19, 500); x.fillText(`Grupo Valenro · Venda a funcionários · até ${dataBR(ate)}`, 40, 92);
+  x.fillStyle = '#1b2333'; x.font = F_(26, 800); x.fillText(func, 40, 170);
+  x.fillStyle = '#566074'; x.font = F_(16, 500); x.fillText(`Posição em ${dataBR(hoje)} · pagamento por Pix, no 5º dia útil do mês`, 40, 196);
+  const cx = [40, 230, 470, 620, 860]; let y = topo + 8;
+  x.fillStyle = '#eef2f8'; x.fillRect(30, y, W - 60, linha); x.fillStyle = '#02285a'; x.font = F_(16, 800);
+  x.fillText('VENCIMENTO', cx[0], y + 29); x.fillText('REFERÊNCIA', cx[1], y + 29); x.fillText('PARCELA', cx[2], y + 29); x.textAlign = 'right'; x.fillText('VALOR', cx[4], y + 29); x.textAlign = 'left';
+  let tot = 0, venc = 0;
+  for (const q of P) { y += linha; const vc = q.vencimento < hoje; tot += q.valor; if (vc) venc += q.valor;
+    x.strokeStyle = '#e3e7ee'; x.beginPath(); x.moveTo(30, y + linha); x.lineTo(W - 30, y + linha); x.stroke();
+    x.fillStyle = vc ? '#a11d1d' : '#1b2333'; x.font = F_(19, 700); x.fillText(dataBR(q.vencimento), cx[0], y + 30);
+    x.font = F_(17, 500); x.fillStyle = '#3a4558'; x.fillText(`${q.origem === 'legado' ? 'Saldo anterior' : `Pedido #${q.pedido_id}`}${q.nf ? ` · NF ${q.nf}` : ''}`, cx[1], y + 30);
+    x.fillText(`${q.n}/${q.parcelas}${vc ? '  · vencida' : q.vencimento === hoje ? '  · hoje' : ''}`, cx[2], y + 30);
+    x.textAlign = 'right'; x.fillStyle = vc ? '#a11d1d' : '#1b2333'; x.font = F_(19, 800); x.fillText(brlVF(q.valor), cx[4], y + 30); x.textAlign = 'left'; }
+  y += linha + 26;
+  x.fillStyle = '#fff3c4'; x.fillRect(30, y, W - 60, 66); x.fillStyle = '#f1c300'; x.fillRect(30, y, 8, 66);
+  x.fillStyle = '#02285a'; x.font = F_(20, 700); x.fillText(`Total em aberto (${P.length} parcela${P.length === 1 ? '' : 's'})`, 56, y + 41);
+  x.textAlign = 'right'; x.font = F_(30, 900); x.fillText(brlVF(tot), W - 46, y + 44); x.textAlign = 'left';
+  x.fillStyle = venc ? '#a11d1d' : '#566074'; x.font = F_(15, 600); x.fillText(venc ? `Dos quais ${brlVF(venc)} já vencidos.` : 'Nenhuma parcela vencida.', 40, y + 96);
+  x.fillStyle = '#8a93a3'; x.font = F_(13, 500); x.fillText('Dúvidas: Financeiro · Grupo Valenro', 40, H - 18);
+  return cv;
+}
+function htmlResumoVF(G, ate, hoje){
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Parcelas em aberto</title><style>${CSS_FICHA_VF}
+    .bl{page-break-after:always;break-after:page} .bl:last-child{page-break-after:auto;break-after:auto} h2{font-size:15pt;color:#1b2333;margin:2mm 0 1mm}
+    .tt{display:flex;justify-content:space-between;align-items:center;background:#fff3c4;border-left:2mm solid #f1c300;padding:2.5mm 4mm;margin-top:3mm;font-size:11pt;font-weight:700;color:#02285a} .tt b{font-size:16pt}
+    tr.v td{color:#a11d1d} td,th{font-size:10pt;padding:1.6mm 2mm}</style></head><body>
+    ${G.map(([func, P]) => { const tot = P.reduce((t, q) => t + q.valor, 0), venc = P.filter(q => q.vencimento < hoje).reduce((t, q) => t + q.valor, 0);
+      return `<div class="bl"><div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>Parcelas em aberto · até ${dataBR(ate)}</h1><div class="sub">Venda a funcionários · posição em ${dataBR(hoje)} · Pix, no 5º dia útil do mês</div></div></div>
+        <h2>${esc(func)}</h2><table><thead><tr><th>Vencimento</th><th>Referência</th><th>Parcela</th><th class="n">Valor</th></tr></thead><tbody>
+        ${P.map(q => `<tr class="${q.vencimento < hoje ? 'v' : ''}"><td><b>${dataBR(q.vencimento)}</b></td><td>${q.origem === 'legado' ? 'Saldo anterior' : `Pedido #${q.pedido_id}`}${q.nf ? ` · NF ${esc(q.nf)}` : ''}</td><td>${q.n}/${q.parcelas}${q.vencimento < hoje ? ' · vencida' : ''}</td><td class="n"><b>${brlVF(q.valor)}</b></td></tr>`).join('')}</tbody></table>
+        <div class="tt">Total em aberto (${P.length} parcela${P.length === 1 ? '' : 's'})<b>${brlVF(tot)}</b></div>
+        <div class="sub" style="margin-top:2mm;${venc ? 'color:#a11d1d' : ''}">${venc ? `Dos quais ${brlVF(venc)} já vencidos.` : 'Nenhuma parcela vencida.'} Dúvidas: Financeiro.</div></div>`; }).join('')}</body></html>`;
+}
+function resumoVFDialog(F, funcIni){
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  const funcs = [...new Set(F.parcelas.filter(q => !q.pago_em).map(q => q.funcionario))].sort((a, b) => a.localeCompare(b, 'pt'));
+  let func = funcIni && funcs.includes(funcIni) ? funcIni : '', ate = state.vf.fate || F.ate;
+  const desenha = () => {
+    const G = gruposResumoVF(F, func, ate), um = func && G.length ? G[0][1] : null;
+    dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)"><div class="barra" style="margin:0 0 6px"><h3 style="margin:0">Resumo para envio</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+      <div class="vf-busca"><label>Funcionário <select id="rz-f"><option value="">Todos (PDF, um por página)</option>${funcs.map(f => `<option ${f === func ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
+        <label>Vencimento até <input type="date" id="rz-ate" value="${ate}"></label></div>
+      <div class="info">Parcelas <b>em aberto</b> com vencimento até a data escolhida (inclui as já vencidas). ${func ? '' : 'Escolha um funcionário para gerar a imagem.'}</div>
+      <div id="rz-prev" style="margin-top:8px;max-height:52vh;overflow:auto;text-align:center;background:#e7eaf0;border-radius:8px;padding:8px">${!G.length ? '<div class="info" style="padding:20px">Nenhuma parcela em aberto nesta seleção.</div>' : func ? '' : `<div class="info" style="padding:14px">${G.length} funcionário(s) · ${G.reduce((t, g) => t + g[1].length, 0)} parcela(s) — gere o PDF.</div>`}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:8px">
+        ${um ? '<button class="btn" id="rz-copy" title="Copia a imagem: cole direto no WhatsApp Web ou no Teams (Ctrl+V)">📋 Copiar imagem</button><button class="btn" id="rz-png">⇩ Baixar imagem</button>' : ''}
+        <button class="btn pri" id="rz-pdf" ${G.length ? '' : 'disabled'}>🖨 PDF</button></div></div>`;
+    dlg.querySelector('[data-x]').onclick = () => dlg.remove();
+    dlg.querySelector('#rz-f').onchange = e => { func = e.target.value; desenha(); };
+    dlg.querySelector('#rz-ate').onchange = e => { ate = e.target.value || ate; desenha(); };
+    dlg.querySelector('#rz-pdf').onclick = () => imprimirHtml(htmlResumoVF(G, ate, F.hoje));
+    if (um) {
+      const cv = canvasResumoVF(func, um, ate, F.hoje); cv.style.cssText = 'width:100%;max-width:560px;height:auto;box-shadow:0 2px 10px rgba(0,0,0,.18);background:#fff';
+      dlg.querySelector('#rz-prev').appendChild(cv);
+      const nome = `parcelas_${semAcento(func).replace(/[^a-z0-9]+/gi, '_')}_${ate}.png`;
+      dlg.querySelector('#rz-png').onclick = () => { const a = document.createElement('a'); a.download = nome; a.href = cv.toDataURL('image/png'); a.click(); };
+      dlg.querySelector('#rz-copy').onclick = () => cv.toBlob(async bl => {
+        try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': bl })]); avisar('Imagem copiada — cole no WhatsApp ou no Teams (Ctrl+V)'); }
+        catch (e) { avisar('O navegador não deixou copiar; use “Baixar imagem”.', true); } }, 'image/png');
+    }
+  };
+  document.body.appendChild(dlg); dlg.onclick = e => { if (e.target === dlg) dlg.remove(); };
+  desenha();
 }
 
 // ===================== RESSUPRIMENTO - CROSS =====================
