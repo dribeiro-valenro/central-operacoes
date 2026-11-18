@@ -3185,7 +3185,7 @@ function placaRuaHtml(p){
   const ar = String(p.ar || '').trim(), bl = String(p.bloco || '').trim();
   return `<div class="pl"><div class="pm">
     <div class="mio"><div class="topo-r"><span class="rk">RUA</span><div class="rn">${esc(String(p.rua || '?').trim())}</div></div>
-    <div class="bl">${ar ? `<span class="ar">ARMAZÉM ${esc(ar)}</span>` : ''}<b>BLOCO ${esc(bl || '?')}</b></div>
+    <div class="bl"><b>BLOCO ${esc(bl || '?')}</b></div>
     <div class="lados n${lados.length}">${lados.map(l => `
       <div class="lado ${l.par == null ? 'mis' : l.par ? 'par' : 'imp'}">${l.nome ? `<div class="ln">${l.nome}</div>` : ''}
         <div class="lp"><small>PRÉDIOS</small><b>${l.f ? (l.f.de === l.f.ate ? l.f.de : `${l.f.de} <i>a</i> ${l.f.ate}`) : '—'}</b></div>${l.seta ? `<div class="sta">${setaRuaSvg(l.seta)}</div>` : ''}${l.f && seq(l.f, l.par == null) && !(l.seta && lados.length > 1) ? `<div class="sq">${seq(l.f, l.par == null)}</div>` : ''}
@@ -3206,35 +3206,35 @@ function placasRuaHtml(){
   .pl{width:148.5mm;height:210mm;padding:6mm;position:relative}
   .pl + .pl{border-left:0.3mm dashed #9aa3b2}
   .pm{height:100%;border:3mm solid #02285a;outline:0.6mm solid #f1c300;outline-offset:-3.8mm;border-radius:3mm;display:flex;flex-direction:column;overflow:hidden}
-  .mio{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;padding:3mm 6mm}
+  .mio{flex:1;min-height:0;display:flex;flex-direction:column;gap:2.5mm;padding:2mm 6mm 3mm}
   .topo-r{display:flex;flex-direction:column;align-items:center}
-  .rk{font-size:22pt;font-weight:800;letter-spacing:8pt;color:#566074;margin-left:8pt}
-  .rn{font-size:290pt;font-weight:900;color:#02285a;line-height:.8;letter-spacing:-6pt;white-space:nowrap;margin-top:2mm}
-  .bl{background:#02285a;color:#fff;border-radius:2.5mm;border-bottom:1.5mm solid #f1c300;display:flex;flex-direction:column;align-items:center;padding:2mm 3mm}
+  .topo-r{flex:1;min-height:0;justify-content:center;overflow:hidden}
+  .rk{font-size:16pt;font-weight:800;letter-spacing:8pt;color:#566074;margin-left:8pt}
+  .rn{font-size:600pt;font-weight:900;color:#02285a;line-height:.8;letter-spacing:-6pt;white-space:nowrap;margin-top:1mm}
+  .bl{background:#02285a;color:#fff;border-radius:2mm;border-bottom:1.2mm solid #f1c300;display:flex;flex-direction:column;align-items:center;padding:1mm 3mm}
   .bl .ar{font-size:10pt;font-weight:700;letter-spacing:3pt;opacity:.85}
-  .bl b{font-size:32pt;font-weight:900;letter-spacing:2pt;line-height:1.05}
+  .bl b{font-size:20pt;font-weight:900;letter-spacing:2pt;line-height:1.1}
   .lados{display:flex;flex-direction:column}
   .lado{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 0}
   .lado + .lado{border-top:0.5mm solid #c9cfda;margin-top:2mm;padding-top:4mm}
-  .ln{font-size:14pt;font-weight:900;letter-spacing:2.5pt;padding:0.6mm 5mm;border-radius:1.5mm}
+  .ln{font-size:11pt;font-weight:900;letter-spacing:2pt;padding:0.4mm 4mm;border-radius:1.5mm}
   .lado.imp .ln{background:#f1c300;color:#02285a} .lado.par .ln{background:#02285a;color:#fff}
   .lp{display:flex;flex-direction:column;align-items:center;margin-top:1.5mm}
-  .lp small{font-size:11pt;font-weight:800;letter-spacing:3pt;color:#566074}
-  .lp b{font-size:52pt;font-weight:900;color:#1b2333;line-height:1;white-space:nowrap}
-  .sta{line-height:0;margin-top:1.5mm} .sta .st{height:11mm;width:auto} .lados.n1 .sta .st{height:18mm} .lp i{font-style:normal;font-size:24pt;color:#566074;font-weight:700}
-  .lados.n1 .lp b{font-size:68pt} .lados.n2 .lp b{font-size:42pt} .lados.n2 .lp i{font-size:20pt} .lados.n2 .lado{padding:1mm 0} .lados.n2 .lado + .lado{padding-top:2.5mm}
-  .sq{font-size:11pt;font-weight:700;color:#566074;letter-spacing:.5pt;margin-top:1mm}
+  .lp small{font-size:9pt;font-weight:800;letter-spacing:3pt;color:#566074}
+  .lp b{font-size:44pt;font-weight:900;color:#1b2333;line-height:1;white-space:nowrap}
+  .sta{line-height:0;margin-top:1.5mm} .sta .st{height:8mm;width:auto} .lados.n1 .sta .st{height:11mm} .lp i{font-style:normal;font-size:20pt;color:#566074;font-weight:700}
+  .lados.n1 .lp b{font-size:52pt} .lados.n2 .lp b{font-size:38pt} .lados.n2 .lp i{font-size:16pt} .lados.n2 .lado{padding:1mm 0} .lados.n2 .lado + .lado{padding-top:2.5mm}
+  .sq{font-size:9pt;font-weight:700;color:#566074;letter-spacing:.5pt;margin-top:1mm}
   .rod{height:7mm;background:#02285a;color:#fff;display:flex;align-items:center;gap:3mm;padding:0 5mm;font-size:7pt;font-weight:700;letter-spacing:1.5pt}
   .rod img{height:5mm} .rod .esp{flex:1}
   </style></head><body>${folhas.join('')}
-  <script>/* número da rua: encolhe até caber na largura (ruas com 2-3 dígitos) */
-  document.querySelectorAll('.rn').forEach(t => { let f = 290; const w = t.parentNode.clientWidth - 4;
-    while (f > 60 && t.scrollWidth > w) { f -= 6; t.style.fontSize = f + 'pt'; } });
+  <script>/* número da rua: o maior possível — começa enorme e encolhe até caber na largura e na altura que sobra */
+  document.querySelectorAll('.topo-r').forEach(tp => { const r = tp.querySelector('.rn'); let f = 600;
+    const k = tp.querySelector('.rk'), alt = () => (k ? k.offsetHeight : 0) + r.offsetHeight + 6;
+    while (f > 60 && (r.scrollWidth > tp.clientWidth - 2 || alt() > tp.clientHeight)) { f -= 4; r.style.fontSize = f + 'pt'; } });
   document.querySelectorAll('.lp b').forEach(t => { let f = parseFloat(getComputedStyle(t).fontSize) * 0.75; const w = t.closest('.lado').clientWidth - 10;
     while (f > 14 && t.scrollWidth > w) { f -= 2; t.style.fontSize = f + 'pt'; } });
-  /* se ainda assim passar da altura (rua com os dois lados), encolhe o número da rua */
-  document.querySelectorAll('.mio').forEach(m => { const r = m.querySelector('.rn'); let f = parseFloat(r.style.fontSize || 290);
-    while (f > 80 && m.scrollHeight > m.clientHeight + 1) { f -= 6; r.style.fontSize = f + 'pt'; } });<\/script></body></html>`;
+<\/script></body></html>`;
 }
 function inverterRua(p){
   const q = { ...p }, esp = s => s === 'esq' ? 'dir' : s === 'dir' ? 'esq' : (s || '');
