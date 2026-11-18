@@ -9817,7 +9817,7 @@ const DESTINOS_MK = { logistica:'Devolve para a logística', marketing:'Fica arm
 const motivoMk = x => x.motivo ? (x.motivo === 'outro' ? `Outro: ${x.motivo_outro || ''}` : MOTIVOS_MK[x.motivo]) : (x.finalidade ? `(antigo) ${x.finalidade}` : '—');
 const tagDestMk = x => x.destino === 'marketing' ? '<span class="mk-dest arm" title="Os pares ficam armazenados no Marketing (não voltam)">📦 fica no MKT</span>' : '<span class="mk-dest" title="Os pares voltam para a logística">↩ volta</span>';
 // ===================== GESTÃO - VENDA FUNCIONÁRIOS (Comercial) =====================
-// Solicitado → Separado → Entregue (aguardando pagamento) → Pago. Preço = custo + 35%. Até 3 parcelas em dias úteis seguidos a partir da entrega.
+// Solicitado → Separado → Entregue (aguardando pagamento) → Pago. Preço = custo + 35%. Só Pix, até 3 parcelas no dia de pagamento dos funcionários (5º dia útil do mês).
 // Logística (vendafunc ver/editar) vê o quadro sem valores; quem lança (gerir) e o financeiro (vendafunc_fin) veem os valores.
 const ETAPAS_VF = [
   { id:'solicitado', rot:'Solicitado', cor:'#0b6bcb' }, { id:'separado', rot:'Separado', cor:'#7a4fd6' },
@@ -9850,8 +9850,11 @@ function feriadosVF(ano){
   return new Set([`${ano}-01-01`, `${ano}-04-21`, `${ano}-05-01`, `${ano}-09-07`, `${ano}-10-12`, `${ano}-11-02`, `${ano}-11-15`, `${ano}-11-20`, `${ano}-12-25`, addDias(p, -48), addDias(p, -47), addDias(p, -2), addDias(p, 60)]);
 }
 function proxUtilVF(d){ let x = addDias(d, 1); for (let k = 0; k < 15; k++) { const w = new Date(x + 'T12:00:00Z').getUTCDay(); if (w && w !== 6 && !feriadosVF(+x.slice(0, 4)).has(x)) return x; x = addDias(x, 1); } return x; }
-function parcelasVF(total, n, base){ const c = Math.round(total * 100), pt = Math.floor(c / n), sb = c - pt * n, P = []; let d = base;
-  for (let i = 1; i <= n; i++) { d = proxUtilVF(d); P.push({ n:i, vencimento:d, valor:(pt + (i === 1 ? sb : 0)) / 100 }); } return P; }
+// dia de pagamento dos funcionários = 5º dia útil do mês; 1ª parcela no próximo depois da entrega (mesma regra da API)
+function quintoUtilVF(ano, mes){ let d = addDias(`${ano}-${String(mes).padStart(2, '0')}-01`, -1); for (let k = 0; k < 5; k++) d = proxUtilVF(d); return d; }
+function parcelasVF(total, n, base){ const c = Math.round(total * 100), pt = Math.floor(c / n), sb = c - pt * n, P = [];
+  let ano = +base.slice(0, 4), mes = +base.slice(5, 7); if (quintoUtilVF(ano, mes) <= base) { mes++; if (mes > 12) { mes = 1; ano++; } }
+  for (let i = 1; i <= n; i++) { P.push({ n:i, vencimento:quintoUtilVF(ano, mes), valor:(pt + (i === 1 ? sb : 0)) / 100 }); mes++; if (mes > 12) { mes = 1; ano++; } } return P; }
 const corTamVF = sku => { const s = String(sku || '').toUpperCase().split('-'); let tam = ''; const cor = [];
   if (s.length > 1 && /^\d{1,2}([.,]5)?$/.test(s[s.length - 1])) tam = s.pop();
   while (s.length > 1 && /^[A-Z]{1,3}$/.test(s[s.length - 1]) && cor.length < 3) cor.unshift(s.pop()); return { cor:cor.join('-'), tamanho:tam }; };
@@ -9867,7 +9870,7 @@ const DEMO_VF = (() => { const h = hojeBRT(), P = [];
       solicitado_em:new Date(Date.now() - (dias + 1) * 864e5).toISOString(), solicitado_por:'comercial@valenro', separado_em:st !== 'solicitado' ? new Date(Date.now() - dias * 864e5).toISOString() : null,
       entregue_em:ent ? ent + 'T15:00:00Z' : null, pago_em:st === 'pago' ? new Date().toISOString() : null, parc }); };
   mk(41, 'Ana Paula Souza', 'solicitado', 0, [it('5338-211-23572-PT-37', 'AR2-BL4-RUA4-P3-A2', 89.9), it('5561-101-31026-PT-37', 'AR2-BL4-RUA5-P7-A1', 49.9, 1, 'DIGOS', 'Sandália Moleca')], 2);
-  mk(42, 'Carlos Henrique', 'solicitado', 0, [it('1320-696-VORTEX-BC-CZ-42', 'AR2-BL1-RUA3-P12-A1', 159, 1, 'DIGOS', 'Tênis Fila Vortex')], 3, 'folha');
+  mk(42, 'Carlos Henrique', 'solicitado', 0, [it('1320-696-VORTEX-BC-CZ-42', 'AR2-BL1-RUA3-P12-A1', 159, 1, 'DIGOS', 'Tênis Fila Vortex')], 3);
   mk(43, 'Juliana Martins', 'separado', 1, [it('T1038-547-BL-36', 'BL0-R0-P0', 65, 2, 'CACAL', 'Sandália Bebecê')], 1);
   mk(38, 'Rafael Lima', 'entregue', 3, [it('2164-143-31226-RS-36', 'AR2-BL4-RUA2-P5-A2', 119.9, 1, 'DIGOS', 'Bota Molekinha')], 3);
   mk(35, 'Patrícia Gomes', 'pago', 6, [it('7226-102-29516-ND-36', 'AR2-BL4-RUA6-P2-A1', 39.9, 1, 'DIGOS', 'Tamanco Modare')], 1);
@@ -9937,7 +9940,7 @@ function renderVF(){
       <div>${[...new Set(x.itens.map(i => i.cnpj_id))].map(tagLoja).join(' ')}</div>
       ${x.retirada_prevista && ['solicitado', 'separado'].includes(x.status) ? `<div class="mk-ret ${atr ? 'atr' : ''}">📅 retirar ${dataBR(x.retirada_prevista).slice(0, 5)}${atr ? ' (atrasado)' : ''}</div>` : ''}
       <small>${x.status === 'solicitado' ? `pedido ${quando(x.solicitado_em)}` : x.status === 'separado' ? `separado ${quando(x.separado_em)}` : x.status === 'entregue' ? `entregue ${quando(x.entregue_em)}` : `pago ${quando(x.pago_em)}`}</small>
-      ${V ? `<div><span class="vf-val">${brlVF(x.total)}</span> <span class="vf-pp" title="${esc(FORMAS_VF[x.forma] || x.forma)}">${x.parcelas}x · ${esc(FORMAS_VF[x.forma] || x.forma)}</span>
+      ${V ? `<div><span class="vf-val">${brlVF(x.total)}</span> <span class="vf-pp" title="Pix, no dia de pagamento (5º dia útil)">${x.parcelas}x Pix</span>
         ${x.status === 'entregue' ? ` <span class="vf-pp">${pagas}/${x.parcelas} paga(s)</span>` : ''}${vv.length ? ` <span class="vf-venc">${vv.length} vencida(s)</span>` : ''}</div>` : ''}
       ${['solicitado', 'separado'].includes(x.status) ? `<input type="checkbox" class="ck" data-ck="${x.id}" ${s.sel.has(x.id) ? 'checked' : ''} title="Selecionar para imprimir a ficha de separação">` : ''}</div>`; };
   const canc = L.filter(x => x.status === 'cancelado');
@@ -9967,12 +9970,12 @@ function abrirVF(id){
   const passo = (rot, em, por) => em ? `<div><b>${rot}</b><span>${quando(em)}${por ? ` · ${esc(quemTxt(por))}` : ''}</span></div>` : '';
   dlg.innerHTML = `<div class="painel" style="width:min(860px,100%)">
     <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">#${x.id} · ${esc(x.funcionario)}</h3><span class="mk-dias" style="background:${et ? et.cor : '#8a1f1f'};color:#fff">${et ? et.rot : 'Cancelado'}</span><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
-    <div class="info">${x.retirada_prevista ? `Retirada: <b>${dataBR(x.retirada_prevista)}</b> · ` : ''}${fmtN(paresVF(x))} par(es)${V ? ` · ${esc(FORMAS_VF[x.forma] || x.forma)} em <b>${x.parcelas}x</b>` : ''}${x.obs ? ` · Obs.: ${esc(x.obs)}` : ''}</div>
+    <div class="info">${x.retirada_prevista ? `Retirada: <b>${dataBR(x.retirada_prevista)}</b> · ` : ''}${fmtN(paresVF(x))} par(es)${V ? ` · Pix em <b>${x.parcelas}x</b> (5º dia útil)` : ''}${x.obs ? ` · Obs.: ${esc(x.obs)}` : ''}</div>
     <div style="overflow-x:auto;margin-top:8px"><table class="mk-itens"><thead><tr><th>Loja</th><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Qtd</th><th>Endereço</th>${V ? '<th class="n">Custo</th><th class="n">Venda (un.)</th><th class="n">Subtotal</th>' : ''}</tr></thead><tbody>
       ${x.itens.map(i => `<tr><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.sku)}</b></td><td>${esc(i.produto || '')}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="end">${esc(i.posicao || '—')}</td>
         ${V ? `<td class="n">${brlVF(i.custo)}</td><td class="n">${brlVF(i.preco)}</td><td class="n"><b>${brlVF(i.preco * i.qtd)}</b></td>` : ''}</tr>`).join('')}</tbody></table></div>
     ${V ? `<div class="vf-tot"><span>Custo: ${brlVF(x.itens.reduce((t, i) => t + i.custo * i.qtd, 0))}</span><span>Venda (custo + ${x.markup ?? MARKUP_VF}%): <b>${brlVF(x.total)}</b></span></div>
-      <h4 style="margin:6px 0 4px">Parcelas ${x.status === 'solicitado' || x.status === 'separado' ? '<span class="info">(provisórias: na entrega, os vencimentos passam a contar do dia da entrega)</span>' : ''}</h4>
+      <h4 style="margin:6px 0 4px">Parcelas ${x.status === 'solicitado' || x.status === 'separado' ? '<span class="info">(provisórias: na entrega, a 1ª passa a ser o próximo dia de pagamento depois da entrega)</span>' : ''}</h4>
       <table class="mk-itens vf-fin"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor</th><th>Situação</th>${baixa ? '<th></th>' : ''}</tr></thead><tbody>
       ${(x.parc || []).map(q => `<tr class="${q.pago_em ? 'pago' : q.vencimento < D.hoje ? 'venc' : ''}"><td>${q.n}/${x.parcelas}</td><td>${dataBR(q.vencimento)}</td><td class="n">${brlVF(q.valor)}</td>
         <td>${q.pago_em ? `✓ paga em ${dataBR(q.pago_em)}${q.pago_valor != null && Math.abs(q.pago_valor - q.valor) > .009 ? ` (${brlVF(q.pago_valor)})` : ''}` : q.vencimento < D.hoje ? '⚠ vencida' : 'em aberto'}</td>
@@ -9991,7 +9994,7 @@ function abrirVF(id){
   const fecha = () => dlg.remove(), rec = async () => { fecha(); await carregarVF(); };
   dlg.querySelector('[data-x]').onclick = fecha; dlg.onclick = e => { if (e.target === dlg) fecha(); };
   const vai = async (corpo, ok, path = '/vendafunc/status') => { try { await apiVF(path, corpo); avisar(ok); await rec(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
-  dlg.querySelectorAll('[data-st]').forEach(b => b.onclick = () => vai({ id:x.id, status:b.dataset.st }, { separado:'Marcado como separado', entregue:'Entregue — parcelas contam a partir de hoje', voltar:'Voltou uma etapa' }[b.dataset.st]));
+  dlg.querySelectorAll('[data-st]').forEach(b => b.onclick = () => vai({ id:x.id, status:b.dataset.st }, { separado:'Marcado como separado', entregue:'Entregue — 1ª parcela no próximo dia de pagamento', voltar:'Voltou uma etapa' }[b.dataset.st]));
   const cc = dlg.querySelector('[data-canc]'); if (cc) cc.onclick = () => { const m = prompt('Motivo do cancelamento:'); if (m && m.trim()) vai({ id:x.id, status:'cancelado', motivo:m.trim() }, 'Pedido cancelado'); };
   const ed = dlg.querySelector('[data-ed]'); if (ed) ed.onclick = () => { fecha(); formVF(x); };
   dlg.querySelectorAll('[data-imp]').forEach(b => b.onclick = () => imprimirHtml(b.dataset.imp === 'sep' ? fichaSepVF([x]) : fichaVendaVF([x])));
@@ -10011,8 +10014,7 @@ function formVF(x){
       <input id="vf-q" placeholder="SKU pai ou nome do produto" style="min-width:260px"><button class="btn" id="vf-buscar">Buscar no estoque</button><span class="info" id="vf-est"></span></div>
     <div id="vf-res"></div>
     <h4 style="margin:12px 0 4px">Itens do pedido</h4><div id="vf-itens"></div>
-    <div class="grade-form g2" style="margin-top:10px"><label>Forma de pagamento *<select id="vf-forma"><option value="">— escolha —</option>${Object.entries(FORMAS_VF).map(([k, t]) => `<option value="${k}" ${f.forma === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-      <label>Parcelas<select id="vf-np">${[1, 2, 3].map(n => `<option value="${n}" ${+f.parcelas === n ? 'selected' : ''}>${n}x</option>`).join('')}</select></label>
+    <div class="grade-form g2" style="margin-top:10px"><label>Parcelas (Pix, no dia de pagamento — 5º dia útil)<select id="vf-np">${[1, 2, 3].map(n => `<option value="${n}" ${+f.parcelas === n ? 'selected' : ''}>${n}x</option>`).join('')}</select></label>
       <label style="grid-column:1/-1">Observação<input id="vf-obs" maxlength="500" value="${esc(f.obs)}"></label></div>
     <div id="vf-resumo"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="btn" data-x>Cancelar</button><button class="btn pri" id="vf-salvar">${novo ? 'Criar pedido' : 'Salvar'}</button></div></div>`;
@@ -10034,9 +10036,9 @@ function formVF(x){
     itens.forEach((i, k) => { const pv = dlg.querySelector(`[data-pv="${k}"]`), st = dlg.querySelector(`[data-st="${k}"]`);
       if (pv) pv.textContent = i.custo ? brlVF(precoVF(i.custo)) : '—'; if (st) st.innerHTML = i.custo ? `<b>${brlVF(precoVF(i.custo) * i.qtd)}</b>` : '—'; });
     const custo = itens.reduce((t, i) => t + (i.custo || 0) * i.qtd, 0), total = Math.round(itens.reduce((t, i) => t + precoVF(i.custo) * i.qtd, 0) * 100) / 100, n = +$('vf-np').value;
-    const ret = $('vf-ret').value, base = ret && ret > hoje ? addDias(ret, -1) : hoje, P = total ? parcelasVF(total, n, base) : [];
+    const ret = $('vf-ret').value, base = ret && ret > hoje ? ret : hoje, P = total ? parcelasVF(total, n, base) : [];
     $('vf-resumo').innerHTML = `<div class="vf-tot"><span>${fmtN(itens.reduce((t, i) => t + i.qtd, 0))} par(es)</span><span>Custo: ${brlVF(custo)}</span><span>Subtotal (venda): <b>${brlVF(total)}</b></span></div>
-      ${P.length ? `<div class="vf-parc"><span class="info" style="background:none;border:0">Previsão (${n}x, dias úteis seguidos a partir da ${ret && ret > hoje ? 'retirada' : 'entrega'}):</span>${P.map(q => `<span>${q.n}ª ${dataBR(q.vencimento).slice(0, 5)} · ${brlVF(q.valor)}</span>`).join('')}</div>
+      ${P.length ? `<div class="vf-parc"><span class="info" style="background:none;border:0">Previsão (${n}x no Pix, 5º dia útil de cada mês, a partir da ${ret && ret > hoje ? 'retirada' : 'entrega'}):</span>${P.map(q => `<span>${q.n}ª ${dataBR(q.vencimento).slice(0, 5)} · ${brlVF(q.valor)}</span>`).join('')}</div>
         <div class="info" style="margin-top:4px">Os vencimentos definitivos contam do dia em que o pedido for marcado como <b>Entregue</b>.</div>` : ''}`;
   };
   ['vf-np', 'vf-ret'].forEach(id => $(id).addEventListener('input', atualiza));
@@ -10065,12 +10067,11 @@ function formVF(x){
   $('vf-buscar').onclick = buscar; $('vf-q').onkeydown = e => { if (e.key === 'Enter') buscar(); };
   desenhaItens();
   $('vf-salvar').onclick = async () => {
-    const corpo = { id:x?.id, funcionario:$('vf-fn').value.trim(), retirada_prevista:$('vf-ret').value || null, forma:$('vf-forma').value, parcelas:+$('vf-np').value, obs:$('vf-obs').value.trim(),
+    const corpo = { id:x?.id, funcionario:$('vf-fn').value.trim(), retirada_prevista:$('vf-ret').value || null, forma:'pix', parcelas:+$('vf-np').value, obs:$('vf-obs').value.trim(),
       itens:itens.map(i => ({ cnpj_id:i.cnpj_id, sku:i.sku, produto:i.produto, cor:i.cor, tamanho:i.tamanho, posicao:i.posicao, qtd:i.qtd, custo:i.custo })) };
     if (!corpo.funcionario) return avisar('Informe o funcionário', true);
     if (!itens.length) return avisar('Inclua ao menos um par', true);
     if (itens.some(i => !(i.custo > 0))) return avisar('Informe o custo de compra de todos os pares', true);
-    if (!corpo.forma) return avisar('Escolha a forma de pagamento', true);
     try { await apiVF('/vendafunc/salvar', corpo); avisar(novo ? 'Pedido criado' : 'Pedido salvo'); dlg.remove(); await carregarVF(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
   };
@@ -10107,8 +10108,8 @@ function fichaVendaVF(L){
       <div class="tot">Total: <b>${brlVF(x.total)}</b></div>
       <table style="width:60%;margin-left:auto"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor</th></tr></thead><tbody>
       ${(x.parc || []).map(q => `<tr><td>${q.n}/${x.parcelas}</td><td>${dataBR(q.vencimento)}${['solicitado', 'separado'].includes(x.status) ? ' *' : ''}</td><td class="n">${brlVF(q.valor)}</td></tr>`).join('')}</tbody></table>
-      <div class="sub" style="text-align:right">Forma de pagamento: <b>${esc(FORMAS_VF[x.forma] || x.forma)}</b>${['solicitado', 'separado'].includes(x.status) ? ' · * vencimentos previstos: contam a partir do dia da entrega (dias úteis seguidos)' : ''}</div>
-      <div class="decl">Declaro que recebi os produtos acima, em perfeito estado, e que pagarei o valor de <b>${brlVF(x.total)}</b> em ${x.parcelas} parcela(s), nas datas indicadas.</div>
+      <div class="sub" style="text-align:right">Pagamento: <b>Pix</b>, no dia de pagamento dos funcionários (5º dia útil do mês)${['solicitado', 'separado'].includes(x.status) ? ' · * previsão: a 1ª parcela é o próximo dia de pagamento depois da entrega' : ''}</div>
+      <div class="decl">Declaro que recebi os produtos acima, em perfeito estado, e que pagarei o valor de <b>${brlVF(x.total)}</b> por Pix, em ${x.parcelas} parcela(s), nas datas indicadas.</div>
       <div class="ass"><div>${esc(x.funcionario)}<br>Funcionário (assinatura)</div><div>Entregue por (nome e assinatura)</div><div>Data da entrega<br>____/____/________</div></div>
       <div class="rod">Grupo Valenro · venda a funcionário · uso interno. Impresso em ${quando(new Date().toISOString())}.</div></div>`).join('')}</body></html>`;
 }
@@ -10136,20 +10137,20 @@ function renderFinVF(){
       <div class="mk-kpi"><span class="info">Vence hoje</span><b>${brlVF(soma(vHoje))}</b><span class="info">${vHoje.length} parcela(s)</span></div>
       <div class="mk-kpi"><span class="info">Próximos 7 dias</span><b>${brlVF(soma(prox7))}</b><span class="info">${prox7.length} parcela(s)</span></div>
       <div class="mk-kpi"><span class="info">Recebido no período</span><b style="color:#2e7d32">${brlVF(soma(rec))}</b><span class="info">${rec.length} parcela(s) · ${dataBR(F.de).slice(0, 5)} a ${dataBR(F.ate).slice(0, 5)}</span></div></div>
-    <div style="overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:10px;background:#fff"><table class="mk-tab vf-fin"><thead><tr><th>${s.fsit === 'pago' ? 'Pago em' : 'Vencimento'}</th><th>Funcionário</th><th>Pedido</th><th>Parcela</th><th>Forma</th><th class="n">Valor</th><th>Situação</th>${baixa ? '<th></th>' : ''}</tr></thead><tbody>
+    <div style="overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:10px;background:#fff"><table class="mk-tab vf-fin"><thead><tr><th>${s.fsit === 'pago' ? 'Pago em' : 'Vencimento'}</th><th>Funcionário</th><th>Pedido</th><th>Parcela</th><th class="n">Valor</th><th>Situação</th>${baixa ? '<th></th>' : ''}</tr></thead><tbody>
     ${dias.map(d => { const g = L.filter(q => (s.fsit === 'pago' ? q.pago_em : q.vencimento) === d);
-      return `<tr class="vf-dia"><td colspan="${baixa ? 8 : 7}">${dataBR(d)} · ${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d + 'T12:00:00Z').getUTCDay()]} — ${brlVF(soma(g))} (${g.length})${d < hoje && s.fsit !== 'pago' ? ' · vencido' : d === hoje ? ' · hoje' : ''}</td></tr>
-        ${g.map(q => `<tr class="${sit(q) === 'vencido' ? 'venc' : q.pago_em ? 'pago' : ''}"><td>${dataBR(q.vencimento)}</td><td>${esc(q.funcionario)}</td><td><span class="mk-lnk" data-ped="${q.pedido_id}">#${q.pedido_id}</span></td><td>${q.n}/${q.parcelas}</td><td>${esc(F.formas[q.forma] || q.forma)}</td>
+      return `<tr class="vf-dia"><td colspan="${baixa ? 7 : 6}">${dataBR(d)} · ${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d + 'T12:00:00Z').getUTCDay()]} — ${brlVF(soma(g))} (${g.length})${d < hoje && s.fsit !== 'pago' ? ' · vencido' : d === hoje ? ' · hoje' : ''}</td></tr>
+        ${g.map(q => `<tr class="${sit(q) === 'vencido' ? 'venc' : q.pago_em ? 'pago' : ''}"><td>${dataBR(q.vencimento)}</td><td>${esc(q.funcionario)}</td><td><span class="mk-lnk" data-ped="${q.pedido_id}">#${q.pedido_id}</span></td><td>${q.n}/${q.parcelas}</td>
           <td class="n"><b>${brlVF(q.pago_em ? (q.pago_valor ?? q.valor) : q.valor)}</b></td><td>${q.pago_em ? `✓ paga em ${dataBR(q.pago_em)}` : sit(q) === 'vencido' ? `⚠ vencida há ${Math.round((new Date(hoje + 'T12:00:00Z') - new Date(q.vencimento + 'T12:00:00Z')) / 864e5)} dia(s)` : sit(q) === 'hoje' ? 'vence hoje' : q.status === 'entregue' ? 'a vencer' : '<span class="info">pedido ainda não entregue</span>'}</td>
-          ${baixa ? `<td>${q.pago_em ? `<button class="btn mini" data-est="${q.id}">estornar</button>` : ['entregue', 'pago'].includes(q.status) ? `<span class="vf-bx"><input type="date" value="${hoje}" max="${hoje}" data-bxd="${q.id}"><input inputmode="decimal" value="${String(q.valor.toFixed(2)).replace('.', ',')}" data-bxv="${q.id}" style="width:80px"><button class="btn mini pri" data-bx="${q.id}">dar baixa</button></span>` : ''}</td>` : ''}</tr>`).join('')}`; }).join('') || `<tr><td colspan="8" class="info" style="padding:12px">Nenhuma parcela nesta seleção.</td></tr>`}</tbody></table></div>
+          ${baixa ? `<td>${q.pago_em ? `<button class="btn mini" data-est="${q.id}">estornar</button>` : ['entregue', 'pago'].includes(q.status) ? `<span class="vf-bx"><input type="date" value="${hoje}" max="${hoje}" data-bxd="${q.id}"><input inputmode="decimal" value="${String(q.valor.toFixed(2)).replace('.', ',')}" data-bxv="${q.id}" style="width:80px"><button class="btn mini pri" data-bx="${q.id}">dar baixa</button></span>` : ''}</td>` : ''}</tr>`).join('')}`; }).join('') || `<tr><td colspan="7" class="info" style="padding:12px">Nenhuma parcela nesta seleção.</td></tr>`}</tbody></table></div>
     <div class="info" style="margin-top:6px">Em aberto e vencidas aparecem mesmo antes do período. Valores de pedidos ainda não entregues são previsões (o vencimento conta da entrega).</div>`;
   const re = () => carregarFinVF();
   document.getElementById('vf-fde').onchange = e => { s.fde = e.target.value; re(); };
   document.getElementById('vf-fate').onchange = e => { s.fate = e.target.value; re(); };
   document.getElementById('vf-fsit').onchange = e => { s.fsit = e.target.value; renderFinVF(); };
   document.getElementById('vf-fbusca').oninput = e => { s.fbusca = e.target.value; clearTimeout(s.tfb); s.tfb = setTimeout(() => { renderFinVF(); const n = document.getElementById('vf-fbusca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); };
-  document.getElementById('vf-fcsv').onclick = () => baixarCsv(`venda_funcionarios_parcelas_${F.de}_${F.ate}.csv`, [['Vencimento', 'Funcionário', 'Pedido', 'Parcela', 'Forma', 'Valor', 'Pago em', 'Valor pago', 'Situação'],
-    ...L.map(q => [dataBR(q.vencimento), q.funcionario, q.pedido_id, `${q.n}/${q.parcelas}`, F.formas[q.forma] || q.forma, String(q.valor.toFixed(2)).replace('.', ','), q.pago_em ? dataBR(q.pago_em) : '', q.pago_em ? String((q.pago_valor ?? q.valor).toFixed(2)).replace('.', ',') : '', sit(q)])]);
+  document.getElementById('vf-fcsv').onclick = () => baixarCsv(`venda_funcionarios_parcelas_${F.de}_${F.ate}.csv`, [['Vencimento', 'Funcionário', 'Pedido', 'Parcela', 'Valor', 'Pago em', 'Valor pago', 'Situação'],
+    ...L.map(q => [dataBR(q.vencimento), q.funcionario, q.pedido_id, `${q.n}/${q.parcelas}`, String(q.valor.toFixed(2)).replace('.', ','), q.pago_em ? dataBR(q.pago_em) : '', q.pago_em ? String((q.pago_valor ?? q.valor).toFixed(2)).replace('.', ',') : '', sit(q)])]);
   const vai = async (corpo, ok) => { try { await apiVF('/vendafunc/baixa', corpo); avisar(ok); await carregarFinVF(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
   $c.querySelectorAll('[data-bx]').forEach(bt => bt.onclick = () => { const id = bt.dataset.bx; vai({ parcela_id:+id, pago_em:$c.querySelector(`[data-bxd="${id}"]`).value, valor:lerValorBR($c.querySelector(`[data-bxv="${id}"]`).value) }, 'Baixa registrada'); });
   $c.querySelectorAll('[data-est]').forEach(bt => bt.onclick = () => confirmaDupla(bt, 'Confirmar estorno?') && vai({ parcela_id:+bt.dataset.est, estornar:true }, 'Baixa estornada'));
