@@ -10417,26 +10417,76 @@ function desenhaRS(){
   document.getElementById('rs-csv').onclick = () => baixarCsv(`ressuprimento_${D.loja}_${D.hoje}.csv`, [
     ['SKU', 'Produto', 'Cor', 'Tamanho', 'Curva', 'Pares no período', 'Venda/dia', 'Carteira', 'Na área', 'Fora da área', 'Alvo', 'Levar', 'Pegar em', 'Devolver', 'Sem saldo'],
     D.linhas.map(x => [x.sku, x.produto || '', x.cor || '', x.tamanho || '', x.curva, x.pares_periodo, String(x.media_dia).replace('.', ','), x.carteira, x.na_area, x.fora, x.alvo, x.repor, x.de.map(o => `${o.pos} (${o.q})`).join(' + '), x.devolver, x.sem_saldo])]);
-  document.getElementById('rs-imp').onclick = () => imprimirHtml(listaRSHtml(D, s.aba === 'devolver' ? 'devolver' : 'repor'));
+  document.getElementById('rs-imp').onclick = () => imprimirListaRS(D, s.aba === 'devolver' ? 'devolver' : 'repor');
 }
-function listaRSHtml(D, tipo){
+// linhas da lista impressa (Levar: uma por origem · Devolver: uma por SKU na área), com bloco/rua do endereço que o operador visita
+const semArRS = p => String(p || '').replace(/^AR\d+-/, '');   // todos são do armazém 2: "AR2-" só ocupa espaço
+function linhasListaRS(D, tipo){
   const L = tipo === 'devolver'
-    ? D.linhas.filter(x => x.devolver > 0).map(x => ({ pos:x.pos_area[0] || '', x, q:x.devolver })).sort((a, b) => a.pos.localeCompare(b.pos, 'pt', { numeric:true }))
-    : D.linhas.filter(x => x.repor > 0).flatMap(x => x.de.map((o, k) => ({ pos:o.pos, x, q:o.q, para:k ? '(mesmo)' : (x.para || []).map(d => (x.para.length > 1 ? `${d.pos} (${d.q})` : d.pos)).join(' + ') }))).sort((a, b) => a.pos.localeCompare(b.pos, 'pt', { numeric:true }));
-  const tot = L.reduce((t, l) => t + l.q, 0);
+    ? D.linhas.filter(x => x.devolver > 0).map(x => ({ pos:x.pos_area[0] || '', x, q:x.devolver }))
+    : D.linhas.filter(x => x.repor > 0).flatMap(x => x.de.map((o, k) => ({ pos:o.pos, x, q:o.q, para:k ? '(mesmo destino)' : (x.para || []).map(d => semArRS(d.pos) + (x.para.length > 1 ? ` (${d.q})` : '')).join(' + ') })));
+  return L.map(l => { const p = partesPosPk(l.pos); return { ...l, bloco:p.bloco || '?', rua:p.rua || '?' }; })
+    .sort((a, b) => a.pos.localeCompare(b.pos, 'pt', { numeric:true }) || a.x.sku.localeCompare(b.x.sku));
+}
+function filtroTxtRS(f){
+  const p = [];
+  if (f.blocos?.length) p.push(`Bloco ${f.blocos.join(', ')}`);
+  if (f.ruas?.length) p.push(`Rua ${f.ruas.map(k => { const [bl, r] = k.split('|'); return f.blocos?.length === 1 ? r : `${r} (BL${bl})`; }).join(', ')}`);
+  if (f.curvas?.length) p.push(`Curva ${f.curvas.map(c => c === 'S' ? 'sem venda' : c).join(', ')}`);
+  return p.join(' · ') || 'Lista completa (sem filtro)';
+}
+function listaRSHtml(D, tipo, f = {}){
+  const L = linhasListaRS(D, tipo).filter(l => (!f.blocos?.length || f.blocos.includes(l.bloco)) && (!f.ruas?.length || f.ruas.includes(`${l.bloco}|${l.rua}`)) && (!f.curvas?.length || f.curvas.includes(l.x.curva)));
+  const tot = L.reduce((t, l) => t + l.q, 0), dev = tipo === 'devolver';
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Ressuprimento ${esc(nomeLoja(D.loja))}</title><style>${CSS_IMPRESSO}
-    body{padding:8mm 9mm} h1{font-size:15pt;margin:0;color:#02285a} .sub{font-size:9.5pt;color:#566074;margin:1mm 0 4mm}
-    .cab{display:flex;align-items:center;gap:5mm;border-bottom:1.2mm solid #f1c300;padding-bottom:3mm;margin-bottom:3mm} .cab img{height:12mm}
-    table{width:100%;border-collapse:collapse;font-size:9.5pt} th{background:#02285a;color:#fff;text-align:left;padding:1.6mm 2mm;font-size:8.5pt}
-    td{border-bottom:0.2mm solid #c9cfda;padding:1.6mm 2mm;vertical-align:middle} td.n{text-align:right;font-weight:800;font-size:11pt} td.m{font-family:Consolas,monospace;font-size:9pt}
-    td.ck{width:6mm} .box{display:inline-block;width:4mm;height:4mm;border:0.4mm solid #02285a;border-radius:0.6mm} tr{page-break-inside:avoid}
-    .rod{margin-top:4mm;font-size:8.5pt;color:#566074}</style></head><body>
-    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>${tipo === 'devolver' ? 'Devolver aos outros blocos' : 'Levar para a área de ressuprimento'} · ${esc(nomeLoja(D.loja))}</h1>
-      <div class="sub">${dataBR(D.hoje)} · área ${esc(D.config.areas.join(', '))} · ${fmtN(L.length)} linha(s) · ${fmtN(tot)} pares · estoque de ${dhRS(D.estoque?.fim || D.estoque?.inicio)}</div>
-      <div class="sub" style="margin-top:-2mm">Base: ${fmtN(D.base_info?.pedidos || 0)} pedidos · ${fmtN(Math.round(D.base_info?.pares || 0))} pares de ${D.base_info?.de ? dataBR(D.base_info.de) : '—'} a ${D.base_info?.ate ? dataBR(D.base_info.ate) : '—'} (${D.base_info?.fonte === 'seenc' ? 'relatório do Seenc' : 'pedidos da API'})</div></div></div>
-    <table><thead><tr><th></th><th>${tipo === 'devolver' ? 'Está em' : 'Pegar em'}</th><th>SKU</th><th>Produto</th><th>Curva</th><th style="text-align:right">Qtd</th>${tipo === 'devolver' ? '' : '<th>Guardar em</th>'}</tr></thead><tbody>
-    ${L.map(l => `<tr><td class="ck"><span class="box"></span></td><td class="m">${esc(l.pos)}</td><td class="m">${esc(l.x.sku)}</td><td>${esc(l.x.produto || '')}${l.x.cor ? ' · ' + esc(l.x.cor) : ''}${l.x.tamanho ? ' · <b>' + esc(l.x.tamanho) + '</b>' : ''}</td><td>${l.x.curva}</td><td class="n">${l.q}</td>${tipo === 'devolver' ? '' : `<td class="m">${esc(l.para || '—')}</td>`}</tr>`).join('')}
-    </tbody></table><div class="rod">Movimente pelo sistema (transferência de endereço) — sem o registro, o Seenc continua mandando buscar no endereço antigo. Grupo Valenro · uso interno.</div></body></html>`;
+    @page{size:A4 portrait;margin:7mm 7mm 8mm}
+    body{padding:0} h1{font-size:12.5pt;margin:0;color:#02285a} .sub{font-size:8pt;color:#566074;margin-top:0.6mm}
+    .cab{display:flex;align-items:center;gap:4mm;border-bottom:1mm solid #f1c300;padding-bottom:2mm;margin-bottom:2mm} .cab img{height:9mm} .cab>div{flex:1;min-width:0}
+    .filtro{display:flex;align-items:center;gap:4mm;background:#fff3c4;border:0.5mm solid #f1c300;border-radius:1.5mm;padding:1.5mm 3mm;margin:0 0 2mm;font-size:11pt;font-weight:800;color:#02285a}
+    .filtro span{font-size:8pt;font-weight:600;color:#566074} .filtro .op{margin-left:auto;font-size:8.5pt;font-weight:600;color:#1b2333;white-space:nowrap}
+    table{width:100%;border-collapse:collapse;font-size:8pt} thead{display:table-header-group}
+    th{background:#02285a;color:#fff;text-align:left;padding:0.9mm 1.4mm;font-size:7.5pt;white-space:nowrap}
+    td{border-bottom:0.2mm solid #c9cfda;padding:0.35mm 1.4mm;vertical-align:middle;white-space:nowrap;line-height:1.15}
+    td.m{font-family:Consolas,"Courier New",monospace;font-size:8pt} td.sku{font-weight:700}
+    td.n{text-align:right;font-weight:800;font-size:9pt} td.c{text-align:center;font-weight:700}
+    td.pr{width:99%;max-width:0;overflow:hidden;text-overflow:ellipsis;color:#3a4558}            /* produto: fica com o que sobra, cortado com … */
+    td.gd{white-space:normal;max-width:60mm} td.gd div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden} td.gd i{font-style:normal;white-space:nowrap}   /* destino: endereço inteiro, no máximo 2 linhas */
+    td.ck{width:4mm} .box{display:inline-block;width:2.8mm;height:2.8mm;border:0.35mm solid #02285a;border-radius:0.5mm;vertical-align:middle}
+    tr{page-break-inside:avoid} tbody tr:nth-child(even) td{background:#f6f8fb}
+    .rod{margin-top:2mm;font-size:7.5pt;color:#566074}</style></head><body>
+    <div class="cab"><img src="${LOGOS.VALENRO}" alt=""><div><h1>${dev ? 'Devolver aos outros blocos' : 'Levar para a área de ressuprimento'} · ${esc(nomeLoja(D.loja))}</h1>
+      <div class="sub">${dataBR(D.hoje)} · área ${esc(D.config.areas.join(', '))} · estoque de ${dhRS(D.estoque?.fim || D.estoque?.inicio)} · base: ${fmtN(Math.round(D.base_info?.pares || 0))} pares de ${D.base_info?.de ? dataBR(D.base_info.de) : '—'} a ${D.base_info?.ate ? dataBR(D.base_info.ate) : '—'} (${D.base_info?.fonte === 'seenc' ? 'relatório do Seenc' : 'pedidos da API'})</div></div></div>
+    <div class="filtro">${esc(filtroTxtRS(f))}<span>${fmtN(L.length)} linha(s) · ${fmtN(tot)} pares</span><span class="op">Operador: ______________________</span></div>
+    <table><thead><tr><th></th><th>${dev ? 'Está em' : 'Pegar em'}</th><th>SKU</th><th>Produto</th><th>Cv</th><th style="text-align:right">Qtd</th>${dev ? '' : '<th>Guardar em</th>'}</tr></thead><tbody>
+    ${L.map(l => `<tr><td class="ck"><span class="box"></span></td><td class="m"><b>${esc(semArRS(l.pos))}</b></td><td class="m sku">${esc(l.x.sku)}</td><td class="pr">${esc(l.x.produto || '')}${l.x.cor && !String(l.x.sku).includes(l.x.cor) ? ' · ' + esc(l.x.cor) : ''}</td><td class="c">${l.x.curva === 'S' ? '—' : l.x.curva}</td><td class="n">${l.q}</td>${dev ? '' : `<td class="m gd"><div>${String(l.para || '—').split(' + ').map(d => `<i>${esc(d)}</i>`).join(' + ')}</div></td>`}</tr>`).join('')}
+    </tbody></table><div class="rod">${esc(filtroTxtRS(f))} · Movimente pelo sistema (transferência de endereço) — sem o registro, o Seenc continua mandando buscar no endereço antigo. Grupo Valenro · uso interno.</div></body></html>`;
+}
+// antes de imprimir: escolher Bloco, Rua e Curva (para dividir a lista entre operadores)
+function imprimirListaRS(D, tipo){
+  const L = linhasListaRS(D, tipo), f = state.rs.filtroImp?.[tipo] || { blocos:[], ruas:[], curvas:[] };
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal';
+  const conta = (pred) => { const l = L.filter(pred); return `${l.length} · ${l.reduce((t, x) => t + x.q, 0)}p`; };
+  const blocos = [...new Set(L.map(l => l.bloco))].sort((a, b) => a.localeCompare(b, 'pt', { numeric:true }));
+  const desenha = () => {
+    const vis = L.filter(l => (!f.blocos.length || f.blocos.includes(l.bloco)) && (!f.ruas.length || f.ruas.includes(`${l.bloco}|${l.rua}`)) && (!f.curvas.length || f.curvas.includes(l.x.curva)));
+    const blVis = f.blocos.length ? f.blocos : blocos;
+    dlg.innerHTML = `<div class="painel" style="width:min(720px,100%)"><div class="barra" style="margin:0 0 6px"><h3 style="margin:0">Imprimir · ${tipo === 'devolver' ? 'Devolver' : 'Levar para a área'}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+      <div class="info" style="margin-bottom:8px">${tipo === 'devolver' ? 'Bloco/rua de onde o par está (na área).' : 'Bloco/rua de onde o operador vai <b>pegar</b> os pares.'} Sem marcar nada = lista inteira. O filtro sai em destaque no cabeçalho da folha.</div>
+      <div style="margin:6px 0"><b>Bloco</b> <span class="is-chips">${blocos.map(b => `<button class="is-chip ${f.blocos.includes(b) ? 'on' : ''}" data-bl="${esc(b)}">Bloco ${esc(b)} <small>(${conta(l => l.bloco === b)})</small></button>`).join('')}</span></div>
+      <div style="margin:6px 0"><b>Rua</b> ${blVis.map(b => `<div style="margin:3px 0"><span class="info">Bloco ${esc(b)}:</span> <span class="is-chips">${[...new Set(L.filter(l => l.bloco === b).map(l => l.rua))].sort((x, y) => x.localeCompare(y, 'pt', { numeric:true })).map(r => `<button class="is-chip ${f.ruas.includes(`${b}|${r}`) ? 'on' : ''}" data-ru="${esc(b)}|${esc(r)}">Rua ${esc(r)} <small>(${conta(l => l.bloco === b && l.rua === r)})</small></button>`).join('')}</span></div>`).join('')}</div>
+      <div style="margin:6px 0"><b>Curva</b> <span class="is-chips">${['A', 'B', 'C', 'S'].filter(c => L.some(l => l.x.curva === c)).map(c => `<button class="is-chip ${f.curvas.includes(c) ? 'on' : ''}" data-cv="${c}">${c === 'S' ? 'Sem venda' : 'Curva ' + c} <small>(${conta(l => l.x.curva === c)})</small></button>`).join('')}</span></div>
+      <div class="rs-av" style="margin-top:10px"><b>${esc(filtroTxtRS(f))}</b> — ${fmtN(vis.length)} linha(s), ${fmtN(vis.reduce((t, l) => t + l.q, 0))} pares</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" data-limpa>Limpar filtro</button><button class="btn pri" data-imp ${vis.length ? '' : 'disabled'}>🖨 Imprimir</button></div></div>`;
+    const tg = (arr, v) => { const i = arr.indexOf(v); i < 0 ? arr.push(v) : arr.splice(i, 1); };
+    dlg.querySelector('[data-x]').onclick = () => dlg.remove();
+    dlg.querySelectorAll('[data-bl]').forEach(b => b.onclick = () => { tg(f.blocos, b.dataset.bl); f.ruas = f.ruas.filter(k => !f.blocos.length || f.blocos.includes(k.split('|')[0])); desenha(); });
+    dlg.querySelectorAll('[data-ru]').forEach(b => b.onclick = () => { tg(f.ruas, b.dataset.ru); desenha(); });
+    dlg.querySelectorAll('[data-cv]').forEach(b => b.onclick = () => { tg(f.curvas, b.dataset.cv); desenha(); });
+    dlg.querySelector('[data-limpa]').onclick = () => { f.blocos = []; f.ruas = []; f.curvas = []; desenha(); };
+    dlg.querySelector('[data-imp]').onclick = () => { (state.rs.filtroImp ||= {})[tipo] = f; imprimirHtml(listaRSHtml(D, tipo, f)); };
+  };
+  document.body.appendChild(dlg); dlg.onclick = e => { if (e.target === dlg) dlg.remove(); };
+  desenha();
 }
 
 // ===================== INTELIGÊNCIA DE SEPARAÇÃO (etapa 1: resumo dos pedidos) =====================
