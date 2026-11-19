@@ -391,6 +391,8 @@
   .pl-tab th{font-size:11px;color:var(--mute);text-transform:uppercase;padding:4px 3px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
   .pl-tab th.pl-n,.pl-tab td.pl-n{text-align:center;width:46px;min-width:42px}
   .pl-tab td{padding:2px 3px;border-bottom:1px solid #eef0f4;white-space:nowrap}
+  .pl-tab tr.pl-outra td{background:inherit} .pl-tab tr.pl-outra .pl-in{background:transparent}
+  .pl-leg{font-size:12px;color:var(--mute);display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap} .pl-leg-i{padding:1px 8px;border-radius:4px;color:#222;font-weight:600;border:1px solid rgba(0,0,0,.08)}
   .pl-tab tfoot td{font-weight:700;color:var(--mute);border-top:2px solid var(--line);padding:5px 3px}
   .pl-in{width:100%;border:1px solid transparent;background:#f6f8fb;border-radius:5px;padding:5px 6px;font:inherit;font-size:13px;color:var(--ink)}
   .pl-in:focus{outline:none;border-color:#0b4fa8;background:#fff} .pl-in:disabled{background:transparent;color:var(--ink);opacity:1}
@@ -2211,7 +2213,7 @@ function editorPlano(d){
   const ro = podeEditar ? '' : 'disabled';
   const endSug = i => { const cat = state.planCat; if (!cat || !i.produto) return ''; const L = (i.mlb && cat.porMlb.get(i.mlb)) || cat.porProd.get(i.produto) || []; const x = L.find(e => e.produto === i.produto && e.cor === i.cor && e.end); return x ? 'últ.: ' + x.end : ''; };
   const linhaHtml = (i, idx, nums) => { const tot = paresIt(i);
-    return `<tr data-li="${idx}">
+    return `<tr data-li="${idx}" class="${i.loja ? 'pl-outra' : ''}" style="${corLojaEstq(i.loja)}">
       <td><input class="pl-in pl-mlb" data-c="mlb" value="${esc(i.mlb || '')}" inputmode="numeric" placeholder="MLB" ${ro}></td>
       <td><input class="pl-in pl-prod" data-c="produto" value="${esc(i.produto || '')}" list="pl-dl-prod" placeholder="Produto" ${ro}></td>
       <td><input class="pl-in pl-cor" data-c="cor" value="${esc(i.cor || '')}" list="pl-dl-cor" placeholder="Cor" ${ro}></td>
@@ -2266,7 +2268,7 @@ function editorPlano(d){
       ${usadas.map(secaoHtml).join('') || `<div class="painel info">Nenhuma linha ainda. ${podeEditar ? 'Escolha a grade abaixo para começar. Dica: dá para colar as linhas direto do Excel (MLB, produto, cor e a grade) no campo MLB.' : ''}</div>`}
       ${podeEditar ? `<div class="pl-add">${ORDEM_FAIXA.map(f => `<button class="btn" data-addsec="${f}">+ ${rotFaixa(f)}</button>`).join('')}</div>` : ''}
       <div class="pl-rodape">
-        <div class="pl-tots"><span><b>${fmtN(t.pares)}</b> pares</span><span><b>${cxTxt(t.pares)}</b> caixas</span><span><b>${t.linhas}</b> linhas</span>${skuTxt()}${usadas.length > 1 ? usadas.map(f => `<span class="info fx-tot" title="${NOME_FAIXA[f]}"><span class="fx-ico">${ICO_FAIXA[f]}</span>${fmtN(t.porFaixa[f])}</span>`).join('') : ''}${t.outra ? `<span class="info">${t.outra} com estoque de outra loja</span>` : ''}<span class="info" id="pl-salvo">${sujo ? 'alterações não salvas' : ''}</span></div>
+        <div class="pl-tots"><span><b>${fmtN(t.pares)}</b> pares</span><span><b>${cxTxt(t.pares)}</b> caixas</span><span><b>${t.linhas}</b> linhas</span>${skuTxt()}${usadas.length > 1 ? usadas.map(f => `<span class="info fx-tot" title="${NOME_FAIXA[f]}"><span class="fx-ico">${ICO_FAIXA[f]}</span>${fmtN(t.porFaixa[f])}</span>`).join('') : ''}<span class="info" id="pl-outra">${t.outra ? `${t.outra} com estoque de outra loja` : ''}</span>${legendaLojaEstq(ed.cnpj_id)}<span class="info" id="pl-salvo">${sujo ? 'alterações não salvas' : ''}</span></div>
         <div class="pl-bts">${acoes()}</div>
       </div>
       <div id="pl-hist-box" ${histAberto ? '' : 'hidden'}>${historicoPlanHtml(d.eventos)}</div>
@@ -2355,6 +2357,7 @@ function editorPlano(d){
       });
       tr.querySelectorAll('[data-c]').forEach(inp => {
         inp.addEventListener('input', () => { it[inp.dataset.c] = inp.dataset.c === 'loja' ? (inp.value || null) : inp.value; marcarSujo();
+          if (inp.dataset.c === 'loja') { tr.style.cssText = corLojaEstq(it.loja); tr.classList.toggle('pl-outra', !!it.loja); const n = totais().outra, o = $('pl-outra'); if (o) o.textContent = n ? `${n} com estoque de outra loja` : ''; }
           if (inp.dataset.c === 'end') { it.end = inp.value.toUpperCase(); inp.style.cssText = corEnd(it.end); } });
         if (inp.tagName === 'INPUT') inp.onpaste = ev => colar(ev, idx, inp.dataset.c);
       });
@@ -2465,11 +2468,15 @@ function historicoPlanHtml(evs){
     return `<div class="pl-ev"><div><b>${esc(quemTxt(e.por))}</b> ${esc(ROT_ACAO_PLAN[e.acao] || e.acao)} <span class="info">· ${quando(e.em)}</span></div>${linhas.length ? `<ul>${linhas.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}</div>`; }).join('') || '<div class="info">Sem registros.</div>'}</div>`;
 }
 // folha para a separação (o mesmo formato da aba "Impressão" da planilha)
+// linha de produto que sai do estoque de outra loja: cor da loja de origem (pedido do analista do FULL)
+const COR_LOJA_ESTQ = { CACAL:'#fff3b0', DROSA:'#dbe8ff', DIGOS:'#fde2e2' };
+const corLojaEstq = loja => loja && COR_LOJA_ESTQ[loja] ? `background:${COR_LOJA_ESTQ[loja]}` : '';
+const legendaLojaEstq = (propria) => `<span class="pl-leg">Estoque de outra loja: ${Object.keys(COR_LOJA_ESTQ).filter(l => l !== propria).map(l => `<span class="pl-leg-i" style="${corLojaEstq(l)}">${esc(nomeLoja(l))}</span>`).join('')}</span>`;
 function folhaPlanoHtml(p){
   const quem = quemImprime(), aprov = p.status === 'aprovado';
   const secoes = ORDEM_FAIXA.filter(f => p.itens.some(i => i.faixa === f)).map(f => { const L = p.itens.filter(i => i.faixa === f), nums = numsSecao(p, f), t = L.reduce((s, i) => s + paresIt(i), 0);
     return `<table><thead><tr><th class="l">MLB</th><th class="l">Produto</th><th class="l">Cor</th>${nums.map(n => `<th>${n}</th>`).join('')}<th>Total</th><th>Cx</th><th>Endereço</th><th>Estoque</th><th>✓</th></tr></thead><tbody>
-      ${L.map(i => `<tr><td class="l mlb">${esc(i.mlb || '')}</td><td class="l"><b>${esc(i.produto)}</b></td><td class="l">${esc(i.cor || '')}</td>${nums.map(n => `<td>${i.q[n] || ''}</td>`).join('')}<td><b>${paresIt(i)}</b></td><td>${cxTxt(paresIt(i))}</td><td class="end" style="${corEnd(i.end)}">${esc(i.end || '')}</td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td><td class="ck"></td></tr>`).join('')}
+      ${L.map(i => `<tr style="${corLojaEstq(i.loja)}"><td class="l mlb">${esc(i.mlb || '')}</td><td class="l"><b>${esc(i.produto)}</b></td><td class="l">${esc(i.cor || '')}</td>${nums.map(n => `<td>${i.q[n] || ''}</td>`).join('')}<td><b>${paresIt(i)}</b></td><td>${cxTxt(paresIt(i))}</td><td class="end" style="${corEnd(i.end)}">${esc(i.end || '')}</td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td><td class="ck"></td></tr>`).join('')}
       </tbody><tfoot><tr><td class="l" colspan="3"><span class="fxg"><span class="fx-ico">${ICO_FAIXA[f]}</span>${NOME_FAIXA[f]} ${nums[0]} a ${nums.at(-1)}</span></td>${nums.map(n => `<td>${L.reduce((s, i) => s + (Number(i.q[n]) || 0), 0) || ''}</td>`).join('')}<td><b>${t}</b></td><td>${cxTxt(t)}</td><td colspan="3"></td></tr></tfoot></table>`; }).join('');
   const total = p.itens.reduce((s, i) => s + paresIt(i), 0);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Coleta ${esc(p.pedido || nPlan(p.id))}</title><style>${CSS_IMPRESSO}
@@ -2483,11 +2490,13 @@ function folhaPlanoHtml(p){
   .fxg{display:inline-flex;align-items:center;gap:2mm} .fx-ico{display:inline-flex;width:9mm;height:6.5mm} .fx-ico svg{width:100%;height:100%}
   td.end{font-size:8.5pt;white-space:nowrap;border-radius:1mm}
   td.ck{width:8mm} .ck::after{content:'';display:inline-block;width:4mm;height:4mm;border:0.4mm solid #1b2333;border-radius:0.6mm}
+  .leg{font-size:9pt;color:#566074} .leg span{padding:0.5mm 2.5mm;border-radius:1mm;color:#1b2333;font-weight:700;margin-left:1mm}
   .marca{margin-top:3mm;padding:2mm;text-align:center;font-weight:700;color:#8a5a00;background:#fff3d1;border-radius:2mm}
   </style></head><body><div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">SEPARAÇÃO · ENVIO FULL</div><div class="t2">${esc(nomeLoja(p.cnpj_id)).toUpperCase()} · MERCADO LIVRE</div></div><span class="esp"></span>
     <span class="st"><small>ENVIO</small><b>${esc(p.pedido || 'SEM Nº')}</b></span></div>
   <div class="folha">
     <div class="cab"><span>Coleta planejada <b>${p.id ? nPlan(p.id) : '–'}</b></span><span>Finalizar até <b>${p.data_limite ? dataBR(p.data_limite) : '–'}</b></span><span>Coleta <b>${p.data_expedicao ? dataBR(p.data_expedicao) : '–'}</b></span><span>Total <b>${fmtN(total)} pares · ${cxTxt(total)} cx</b></span></div>
+    ${p.itens.some(i => i.loja) ? `<div class="leg">Linha colorida = sai do estoque de outra loja: ${Object.keys(COR_LOJA_ESTQ).filter(l => l !== p.cnpj_id).map(l => `<span style="${corLojaEstq(l)}">${esc(nomeLoja(l))}</span>`).join(' ')}</div>` : ''}
     ${aprov ? '' : `<div class="marca">${esc((ST_PLAN[p.status]?.rot || '').toUpperCase())}: ainda não aprovada para separação</div>`}
     ${secoes}
   </div>
@@ -2502,7 +2511,7 @@ async function itensPlanejadosEnvio(el, e){
     el.innerHTML = `<div class="gv-sec">Planejamento <span class="info">coleta ${nPlan(plano.id)} · aprovada por ${esc(quemTxt(plano.aprovado_por))}</span></div>
       <div class="info">${plano.linhas} linha(s) · ${fmtN(plano.pares)} pares${plano.data_limite ? ` · finalizar até <b>${dataBR(plano.data_limite)}</b>` : ''}</div>
       <details class="pl-det"><summary>Ver as linhas</summary>${porFaixa.map(f => `<div class="pl-wrap"><table class="pl-tab ro"><thead><tr><th>Produto</th><th>Cor</th>${numsSecao(plano, f).map(n => `<th class="pl-n">${n}</th>`).join('')}<th>Total</th><th>Endereço</th><th>Estoque</th></tr></thead><tbody>
-        ${plano.itens.filter(i => i.faixa === f).map(i => `<tr><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td>${numsSecao(plano, f).map(n => `<td class="pl-n">${i.q[n] || ''}</td>`).join('')}<td class="pl-tot"><b>${paresIt(i)}</b></td><td><span class="pl-endtag" style="${corEnd(i.end)}">${esc(i.end || '')}</span></td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>
+        ${plano.itens.filter(i => i.faixa === f).map(i => `<tr style="${corLojaEstq(i.loja)}"><td><b>${esc(i.produto)}</b></td><td>${esc(i.cor || '')}</td>${numsSecao(plano, f).map(n => `<td class="pl-n">${i.q[n] || ''}</td>`).join('')}<td class="pl-tot"><b>${paresIt(i)}</b></td><td><span class="pl-endtag" style="${corEnd(i.end)}">${esc(i.end || '')}</span></td><td>${i.loja ? esc(nomeLoja(i.loja)) : ''}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>
       <div class="gv-acoes" style="justify-content:flex-start;margin-top:6px"><button class="btn" id="gv-imp-plan">🖨 Folha de separação</button></div>`;
     el.querySelector('#gv-imp-plan').onclick = () => imprimirHtml(folhaPlanoHtml({ ...plano, status:'aprovado' }));
   } catch (x) { if (x instanceof SemSessao) throw x; el.innerHTML = `<div class="info">Não consegui carregar o planejamento: ${esc(x.message)}</div>`; }
@@ -9841,7 +9850,16 @@ const CSS_VF = `
   .vf-parc{display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px} .vf-parc span{background:#f3f6fb;border:1px solid #dbe4f2;border-radius:8px;padding:3px 8px}
   .vf-fin td .btn.mini{padding:2px 8px} .vf-fin tr.venc td{color:#a11d1d} .vf-fin tr.pago td{color:#5b6b7f}
   .vf-dia td{background:#f3f6fb;font-weight:700;border-top:2px solid #d5deeb}
-  .vf-bx{display:inline-flex;gap:4px;align-items:center} .vf-bx input{font:inherit;font-size:12px;padding:2px 4px;border:1px solid var(--line);border-radius:5px;width:110px}`;
+  .vf-bx{display:inline-flex;gap:4px;align-items:center} .vf-bx input{font:inherit;font-size:12px;padding:2px 4px;border:1px solid var(--line);border-radius:5px;width:110px}
+  .vr-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:8px 0 12px}
+  .vr-k{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px} .vr-k span{display:block;font-size:11px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.03em}
+  .vr-k b{display:block;font-size:22px;color:#02285a;margin:2px 0} .vr-k small{color:var(--mute);font-size:12px} .vr-k.alerta b{color:#a11d1d}
+  .vr-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:12px;margin-bottom:12px}
+  .vr-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0} .vr-box h3{margin:0 0 2px;font-size:14px;color:#02285a} .vr-box .info{margin-bottom:6px}
+  .vr-svg{width:100%;height:auto;display:block} .vr-svg text{font-family:inherit} .vr-svg rect.b:hover{opacity:.8}
+  .vr-leg{display:flex;gap:14px;font-size:12px;color:#3c4a5e;margin:2px 0 4px} .vr-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .vr-st{display:grid;grid-template-columns:110px 1fr 90px;gap:6px 10px;align-items:center;font-size:13px} .vr-st .bar{height:12px;border-radius:4px;background:#eef1f5;overflow:hidden} .vr-st .bar i{display:block;height:100%;border-radius:4px;background:#0b4fa8}
+  .vr-st .v{text-align:right;color:#3c4a5e;white-space:nowrap}`;
 // ---- dias úteis (fim de semana + feriados nacionais, fixos e móveis pela Páscoa) — mesma regra da API
 function feriadosVF(ano){
   const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3),
@@ -9907,6 +9925,25 @@ async function apiVF(path, corpo){
   if (path.startsWith('/vendafunc/baixa')) { for (const x of D.pedidos) { const q = x.parc.find(p => p.id === corpo.parcela_id); if (!q) continue;
       if (corpo.estornar) { q.pago_em = null; if (x.status === 'pago') x.status = 'entregue'; } else { q.pago_em = corpo.pago_em || h; q.pago_valor = +corpo.valor || q.valor; if (x.parc.every(p => p.pago_em)) Object.assign(x, { status:'pago', pago_em:new Date().toISOString() }); } }
     return { ok:true }; }
+  if (path.startsWith('/vendafunc/resumo')) { const de = qs.get('de') || addDias(h.slice(0, 7) + '-01', -150).slice(0, 7), ate = qs.get('ate') || h.slice(0, 7);
+    const P = D.pedidos.filter(x => x.status !== 'cancelado'), port = P.filter(x => x.origem !== 'legado'), mes = x => (x.solicitado_em || '').slice(0, 7), noP = x => mes(x) >= de && mes(x) <= ate;
+    const pares = x => x.itens.reduce((t, i) => t + i.qtd, 0), custo = x => x.itens.reduce((t, i) => t + i.qtd * i.custo, 0), Q = P.flatMap(x => x.parc.map(q => ({ ...q, f:x.funcionario, leg:x.origem === 'legado' })));
+    const grp = (L, k) => L.reduce((m, x) => ((m[k(x)] ||= []).push(x), m), {});
+    const vendas = Object.entries(grp(port.filter(noP), mes)).sort().map(([m, L]) => ({ mes:m, pedidos:L.length, pares:L.reduce((t, x) => t + pares(x), 0), valor:L.reduce((t, x) => t + x.total, 0), custo:L.reduce((t, x) => t + custo(x), 0), pessoas:new Set(L.map(x => x.funcionario)).size }));
+    const status = Object.entries(grp(D.pedidos.filter(x => x.origem !== 'legado' && noP(x)), x => x.status)).map(([st, L]) => ({ status:st, n:L.length, valor:L.reduce((t, x) => t + x.total, 0), pares:L.reduce((t, x) => t + pares(x), 0) }));
+    const meses = [...new Set([...Q.map(q => q.vencimento.slice(0, 7)), ...Q.filter(q => q.pago_em).map(q => q.pago_em.slice(0, 7))])].filter(m => m >= de).sort();
+    const fluxo = meses.map(m => { const V = Q.filter(q => q.vencimento.slice(0, 7) === m); return { mes:m, previsto:V.reduce((t, q) => t + q.valor, 0), aberto:V.filter(q => !q.pago_em).reduce((t, q) => t + q.valor, 0),
+      vencido:V.filter(q => !q.pago_em && q.vencimento < h).reduce((t, q) => t + q.valor, 0), legado:V.filter(q => q.leg).reduce((t, q) => t + q.valor, 0), recebido:Q.filter(q => q.pago_em && q.pago_em.slice(0, 7) === m).reduce((t, q) => t + (q.pago_valor || q.valor), 0) }; });
+    const ab = Q.filter(q => !q.pago_em), vc = ab.filter(q => q.vencimento < h), noM = d => d && d.slice(0, 7) >= de && d.slice(0, 7) <= ate, ateH = Q.filter(q => noM(q.vencimento) && q.vencimento <= h);
+    const saldo = { aberto:ab.reduce((t, q) => t + q.valor, 0), vencido:vc.reduce((t, q) => t + q.valor, 0), pessoas_aberto:new Set(ab.map(q => q.f)).size, pessoas_vencido:new Set(vc.map(q => q.f)).size,
+      recebido_periodo:Q.filter(q => noM(q.pago_em)).reduce((t, q) => t + (q.pago_valor || q.valor), 0), previsto_periodo:Q.filter(q => noM(q.vencimento)).reduce((t, q) => t + q.valor, 0),
+      vencer_ate_hoje:ateH.reduce((t, q) => t + q.valor, 0), pago_ate_hoje:ateH.filter(q => q.pago_em).reduce((t, q) => t + q.valor, 0) };
+    const fs = [...new Set(P.map(x => x.funcionario))], pessoas = fs.map(f => { const C = port.filter(x => x.funcionario === f && noP(x)), A = ab.filter(q => q.f === f);
+      return { funcionario:f, pedidos:C.length, pares:C.reduce((t, x) => t + pares(x), 0), comprado:C.reduce((t, x) => t + x.total, 0), aberto:A.reduce((t, q) => t + q.valor, 0), vencido:A.filter(q => q.vencimento < h).reduce((t, q) => t + q.valor, 0), prox_venc:A.map(q => q.vencimento).sort()[0] || null }; })
+      .filter(x => x.pedidos || x.aberto).sort((a, b) => b.aberto - a.aberto || b.comprado - a.comprado);
+    const pr = grp(port.filter(noP).flatMap(x => x.itens), i => i.produto || i.sku), produtos = Object.entries(pr).map(([produto, L]) => ({ produto, pares:L.reduce((t, i) => t + i.qtd, 0), valor:L.reduce((t, i) => t + i.qtd * i.preco, 0) })).sort((a, b) => b.pares - a.pares).slice(0, 10);
+    const ent = port.filter(x => noP(x) && x.entregue_em);
+    return { hoje:h, de, ate, vendas, status, tempo:{ dias_entrega:ent.length ? Math.round(ent.reduce((t, x) => t + (new Date(x.entregue_em) - new Date(x.solicitado_em)) / 864e5, 0) / ent.length * 10) / 10 : null, n:ent.length }, fluxo, saldo, pessoas, produtos }; }
   if (path.startsWith('/vendafunc/financeiro')) { const de = qs.get('de'), ate = qs.get('ate');
     return { hoje:h, de, ate, formas:FORMAS_VF, parcelas:D.pedidos.filter(x => x.status !== 'cancelado').flatMap(x => x.parc.map(q => ({ ...q, pedido_id:x.id, funcionario:x.funcionario, parcelas:x.parcelas, forma:x.forma, status:x.status, total:x.total, origem:x.origem || 'portal', pedido_obs:x.obs, nf:x.nf || null })))
       .filter(q => (q.vencimento >= de && q.vencimento <= ate) || (!q.pago_em && q.vencimento < de) || (q.pago_em && q.pago_em >= de && q.pago_em <= ate)).sort((a, b) => a.vencimento.localeCompare(b.vencimento)) }; }
@@ -9918,7 +9955,7 @@ function telaVendaFunc(){
   ['css-mk', 'css-vf'].forEach((id, k) => { if (!document.getElementById(id)) { const st = document.createElement('style'); st.id = id; st.textContent = k ? CSS_VF : CSS_MK; document.head.appendChild(st); } });
   const s = state.vf ||= { modo:'quadro', dias:30, busca:'', sel:new Set() };
   if (!pode('vendafunc', 'ver') && verFinVF()) s.modo = 'fin';
-  const abas = [pode('vendafunc', 'ver') ? ['quadro', 'Quadro'] : null, verFinVF() ? ['fin', 'Financeiro (parcelas)'] : null].filter(Boolean);
+  const abas = [pode('vendafunc', 'ver') ? ['quadro', 'Quadro'] : null, verFinVF() ? ['fin', 'Financeiro (parcelas)'] : null, verFinVF() ? ['resumo', 'Resumo'] : null].filter(Boolean);
   $app.innerHTML = `<div class="barra"><h2>Gestão - Venda Funcionários</h2>
       ${abas.length > 1 ? `<span class="seg" style="display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden">${abas.map(([k, t]) => `<button class="btn" data-modo="${k}" style="border:0;border-radius:0;${s.modo === k ? 'background:var(--pri);color:#fff' : ''}">${t}</button>`).join('')}</span>` : ''}
       ${s.modo === 'quadro' ? `<input class="campo" id="vf-busca" placeholder="Buscar nº, funcionário, SKU" value="${esc(s.busca)}" style="max-width:240px">
@@ -9927,6 +9964,7 @@ function telaVendaFunc(){
     <div id="vf"><div class="carregando">Carregando…</div></div>`;
   document.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { s.modo = b.dataset.modo; telaVendaFunc(); });
   if (s.modo === 'fin') return carregarFinVF();
+  if (s.modo === 'resumo') return carregarResumoVF();
   document.getElementById('vf-busca').oninput = e => { s.busca = e.target.value; renderVF(); };
   document.getElementById('vf-dias').onchange = e => { s.dias = +e.target.value; carregarVF(); };
   const nv = document.getElementById('vf-novo'); if (nv) nv.onclick = () => formVF(null);
@@ -10219,9 +10257,78 @@ async function legadoVFDialog(id){
   desenha();
 }
 // ---- financeiro: parcelas por vencimento (fluxo de caixa) e baixa
+// ---------- aba Resumo: cards e gráficos (só quem vê valores) ----------
+const mesBR = m => { const [a, b] = String(m).split('-'); return `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][+b - 1]}/${a.slice(2)}`; };
+const brlCurtoVF = v => { const x = Number(v) || 0; return Math.abs(x) >= 1000 ? `R$ ${(x / 1000).toLocaleString('pt-BR', { maximumFractionDigits:1 })} mil` : brlVF(x).replace(/,00$/, ''); };
+// barras agrupadas por mês (uma escala só); title = tooltip nativo em cada barra
+function svgBarrasVF(cats, series, { fmt = brlCurtoVF, tip = () => '', marcar = null } = {}){
+  const W = 640, H = 230, ml = 8, mr = 8, mt = 18, mb = 26, n = cats.length || 1, ns = series.length;
+  const max = Math.max(1, ...series.flatMap(s => s.vals)), passo = (W - ml - mr) / n, gap = 2, bw = Math.max(4, Math.min(34, (passo * .72 - gap * (ns - 1)) / ns));
+  const y = v => mt + (H - mt - mb) * (1 - v / max), x0 = i => ml + passo * i + (passo - (bw * ns + gap * (ns - 1))) / 2;
+  const barra = (xx, v, cor, t) => { const yy = y(v), h = H - mb - yy; if (h <= 0) return ''; const rr = Math.min(4, bw / 2, h);
+    return `<path class="b" d="M${xx},${H - mb} V${yy + rr} q0,-${rr} ${rr},-${rr} H${xx + bw - rr} q${rr},0 ${rr},${rr} V${H - mb} Z" fill="${cor}"><title>${esc(t)}</title></path>`; };
+  return `<svg class="vr-svg" viewBox="0 0 ${W} ${H}" role="img">
+    ${[.5, 1].map(f => `<line x1="${ml}" x2="${W - mr}" y1="${y(max * f)}" y2="${y(max * f)}" stroke="#e8ecf2" stroke-dasharray="3 3"/><text x="${ml}" y="${y(max * f) - 3}" font-size="10" fill="#7a8699">${esc(fmt(max * f))}</text>`).join('')}
+    <line x1="${ml}" x2="${W - mr}" y1="${H - mb}" y2="${H - mb}" stroke="#c9d1dd"/>
+    ${cats.map((c, i) => `${marcar === c ? `<rect x="${ml + passo * i}" y="${mt - 14}" width="${passo}" height="${H - mt - mb + 14}" fill="#f3f6fb"/>` : ''}
+      ${series.map((s, k) => barra(x0(i) + k * (bw + gap), s.vals[i], s.cor, `${mesBR(c)} · ${s.nome}: ${fmt(s.vals[i])}${tip(i, k)}`)).join('')}
+      ${ns === 1 && series[0].vals[i] ? `<text x="${x0(i) + bw / 2}" y="${y(series[0].vals[i]) - 4}" font-size="10" text-anchor="middle" fill="#3c4a5e">${esc(fmt(series[0].vals[i]))}</text>` : ''}
+      <text x="${ml + passo * (i + .5)}" y="${H - 8}" font-size="11" text-anchor="middle" fill="${marcar === c ? '#02285a' : '#5b6b7f'}" font-weight="${marcar === c ? 700 : 400}">${mesBR(c)}</text>`).join('')}
+  </svg>`;
+}
+async function carregarResumoVF(){
+  const s = state.vf, h = hojeBRT(); s.rDe ||= addDias(h.slice(0, 7) + '-01', -150).slice(0, 7); s.rAte ||= h.slice(0, 7);
+  const $c = document.getElementById('vf'); if (!$c) return;
+  $c.innerHTML = `<div class="vf-busca"><label class="info">De <input type="month" id="vr-de" value="${s.rDe}"></label><label class="info">até <input type="month" id="vr-ate" value="${s.rAte}"></label>
+    <span class="info">Vendas e compradores pelo mês do pedido (só pedidos do portal). Financeiro pelo vencimento e pela baixa, incluindo parcelas antigas do Excel.</span></div><div id="vr"><div class="carregando">Carregando…</div></div>`;
+  const ir = () => { const de = document.getElementById('vr-de').value, ate = document.getElementById('vr-ate').value; if (de && ate) { s.rDe = de; s.rAte = ate; carregarResumoVF(); } };
+  document.getElementById('vr-de').onchange = ir; document.getElementById('vr-ate').onchange = ir;
+  try { const R = await apiVF(`/vendafunc/resumo?de=${s.rDe}&ate=${s.rAte}`); if (s.modo === 'resumo') renderResumoVF(R); }
+  catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('vr'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function renderResumoVF(R){
+  const $c = document.getElementById('vr'); if (!$c) return;
+  const somaV = k => R.vendas.reduce((t, x) => t + (Number(x[k]) || 0), 0), valor = somaV('valor'), pedidos = somaV('pedidos'), pares = somaV('pares'), custo = somaV('custo');
+  const compradores = R.pessoas.filter(p => p.pedidos > 0).length, S = R.saldo, adimpl = S.vencer_ate_hoje ? S.pago_ate_hoje / S.vencer_ate_hoje * 100 : null;
+  const pct = v => v == null ? '—' : `${String(Math.round(v * 10) / 10).replace('.', ',')}%`;
+  // meses do período (todos, mesmo sem venda) e do fluxo (vai além do fim: o que ainda vai vencer)
+  const meses = []; for (let m = R.de; m <= R.ate; m = addDias(m + '-28', 5).slice(0, 7)) meses.push(m);
+  const vm = Object.fromEntries(R.vendas.map(x => [x.mes, x]));
+  const fl = R.fluxo.filter(x => x.mes >= R.de), fm = [...new Set([...meses, ...fl.map(x => x.mes)])].sort(), fx = Object.fromEntries(fl.map(x => [x.mes, x]));
+  const COR = { venda:'#0b4fa8', prev:'#7ea6db', rec:'#0f7b6c' };
+  const ST = [['solicitado', 'Solicitado'], ['separado', 'Separado'], ['entregue', 'Entregue'], ['pago', 'Pago'], ['cancelado', 'Cancelado']], stM = Object.fromEntries(R.status.map(x => [x.status, x])), stMax = Math.max(1, ...R.status.map(x => x.n));
+  const vencidos = R.pessoas.filter(p => p.vencido > 0);
+  $c.innerHTML = `<div class="vr-kpis">
+      <div class="vr-k"><span>Vendido no período</span><b>${brlVF(valor)}</b><small>${fmtN(pedidos)} pedido(s) · ${fmtN(pares)} par(es)</small></div>
+      <div class="vr-k"><span>Ticket médio</span><b>${pedidos ? brlVF(valor / pedidos) : '—'}</b><small>${pedidos ? `${String(Math.round(pares / pedidos * 10) / 10).replace('.', ',')} par(es) por pedido` : 'sem pedidos'}</small></div>
+      <div class="vr-k"><span>Compradores</span><b>${fmtN(compradores)}</b><small>funcionário(s) com pedido no período</small></div>
+      <div class="vr-k"><span>Margem sobre o custo</span><b>${brlVF(valor - custo)}</b><small>custo ${brlVF(custo)}${custo ? ` · ${pct((valor - custo) / custo * 100)}` : ''}</small></div>
+      <div class="vr-k"><span>Recebido no período</span><b>${brlVF(S.recebido_periodo)}</b><small>de ${brlVF(S.previsto_periodo)} com vencimento no período</small></div>
+      <div class="vr-k"><span>Em dia (até hoje)</span><b>${pct(adimpl)}</b><small>do que venceu no período, já pago</small></div>
+      <div class="vr-k"><span>A receber (total)</span><b>${brlVF(S.aberto)}</b><small>${fmtN(S.pessoas_aberto)} pessoa(s) com parcela em aberto</small></div>
+      <div class="vr-k ${S.vencido ? 'alerta' : ''}"><span>Vencido</span><b>${brlVF(S.vencido)}</b><small>${fmtN(S.pessoas_vencido)} pessoa(s)</small></div>
+      <div class="vr-k"><span>Pedido → entrega</span><b>${R.tempo?.dias_entrega == null ? '—' : String(R.tempo.dias_entrega).replace('.', ',') + ' dia(s)'}</b><small>média de ${fmtN(R.tempo?.n || 0)} entregue(s)</small></div></div>
+    <div class="vr-g">
+      <div class="vr-box"><h3>Fluxo de vendas</h3><div class="info">Valor vendido por mês do pedido (passe o mouse para ver pedidos, pares e pessoas)</div>
+        ${svgBarrasVF(meses, [{ nome:'Vendido', cor:COR.venda, vals:meses.map(m => vm[m]?.valor || 0) }], { marcar:R.hoje.slice(0, 7), tip:i => { const v = vm[meses[i]]; return v ? ` · ${v.pedidos} pedido(s), ${v.pares} par(es), ${v.pessoas} pessoa(s)` : ''; } })}</div>
+      <div class="vr-box"><h3>Fluxo financeiro</h3><div class="info">A receber pelo mês de vencimento × recebido pelo mês da baixa. Meses à frente = o que ainda vai cair na folha.</div>
+        <div class="vr-leg"><span><i style="background:${COR.prev}"></i>A receber (vencimento)</span><span><i style="background:${COR.rec}"></i>Recebido</span></div>
+        ${svgBarrasVF(fm, [{ nome:'A receber', cor:COR.prev, vals:fm.map(m => fx[m]?.previsto || 0) }, { nome:'Recebido', cor:COR.rec, vals:fm.map(m => fx[m]?.recebido || 0) }],
+          { marcar:R.hoje.slice(0, 7), tip:(i, k) => { const f = fx[fm[i]]; return !f || k ? '' : `${f.aberto ? ` · em aberto ${brlVF(f.aberto)}` : ''}${f.vencido ? ` · vencido ${brlVF(f.vencido)}` : ''}${f.legado ? ` · Excel ${brlVF(f.legado)}` : ''}`; } })}</div>
+    </div>
+    <div class="vr-g">
+      <div class="vr-box"><h3>Pedidos por status</h3><div class="info">Pedidos feitos no período, onde estão hoje</div>
+        <div class="vr-st">${ST.map(([k, t]) => { const x = stM[k] || { n:0, valor:0, pares:0 }; return `<span>${t}</span><span class="bar"><i style="width:${x.n / stMax * 100}%;${k === 'cancelado' ? 'background:#9aa5b5' : ''}"></i></span><span class="v"><b>${fmtN(x.n)}</b> · ${brlCurtoVF(x.valor)}</span>`; }).join('')}</div></div>
+      <div class="vr-box"><h3>Produtos mais pedidos</h3><div class="info">Top 10 no período, por pares</div>
+        ${R.produtos.length ? `<table class="vf-res"><thead><tr><th>Produto</th><th class="n">Pares</th><th class="n">Valor</th></tr></thead><tbody>${R.produtos.map(p => `<tr><td>${esc(p.produto)}</td><td class="n">${fmtN(p.pares)}</td><td class="n">${brlVF(p.valor)}</td></tr>`).join('')}</tbody></table>` : '<div class="vazio">Sem pedidos no período.</div>'}</div>
+    </div>
+    <div class="vr-box"><h3>Pessoas</h3><div class="info">Compras no período e saldo em aberto hoje (todas as parcelas, inclusive do Excel). Dado pessoal: não compartilhe a tela.${vencidos.length ? ` <b style="color:#a11d1d">${vencidos.length} com parcela vencida.</b>` : ''}</div>
+      ${R.pessoas.length ? `<div style="max-height:420px;overflow:auto"><table class="vf-res"><thead><tr><th>Funcionário</th><th class="n">Pedidos</th><th class="n">Pares</th><th class="n">Comprado</th><th class="n">Em aberto</th><th class="n">Vencido</th><th>Próx. vencimento</th></tr></thead><tbody>
+        ${R.pessoas.map(p => `<tr><td>${esc(p.funcionario)}</td><td class="n">${p.pedidos || ''}</td><td class="n">${p.pares || ''}</td><td class="n">${p.comprado ? brlVF(p.comprado) : ''}</td><td class="n">${p.aberto ? brlVF(p.aberto) : ''}</td><td class="n" style="${p.vencido ? 'color:#a11d1d;font-weight:700' : ''}">${p.vencido ? brlVF(p.vencido) : ''}</td><td>${p.prox_venc ? dataBR(p.prox_venc) : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Ninguém no período.</div>'}</div>`;
+}
 async function carregarFinVF(){
   const s = state.vf; s.fde ||= addDias(hojeBRT(), -30); s.fate ||= addDias(hojeBRT(), 30); s.fsit ||= 'aberto';
-  try { state.vfFin = await apiVF(`/vendafunc/financeiro?de=${s.fde}&ate=${s.fate}`);
+  try { const F = await apiVF(`/vendafunc/financeiro?de=${s.fde}&ate=${s.fate}`); if (s.modo !== 'fin' || state.view !== 'vendafunc') return; state.vfFin = F;
     state.vfFin.parcelas.forEach(q => { q.id = +q.id; q.pedido_id = +q.pedido_id; q.valor = +q.valor; if (q.pago_valor != null) q.pago_valor = +q.pago_valor; });   // bigint chega como texto
     renderFinVF(); }
   catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('vf'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
@@ -10412,10 +10519,10 @@ function demoRS(loja){
   const area = loja === 'DIGOS' ? 'BL4' : loja === 'CACAL' ? 'BL7' : 'BL8', L = [];
   for (let i = 0; i < 90; i++) {
     const media = Math.round(Math.max(0, 9 / (i + 1) + r(i, 1) * .4) * 100) / 100, curva = i < 14 ? 'A' : i < 34 ? 'B' : i < 80 ? 'C' : 'S';
-    const cob = curva === 'A' ? 2 : curva === 'B' ? 1 : 0, cart = r(i, 2) < .25 && curva !== 'S' ? Math.ceil(r(i, 3) * 4) : 0;
-    const alvo = curva === 'A' || curva === 'B' ? Math.max(Math.ceil(media * cob), cart) : 0;
+    const cob = curva === 'A' ? 2 : curva === 'B' ? 1 : curva === 'C' ? 1 : 0, cart = r(i, 2) < .25 && curva !== 'S' ? Math.ceil(r(i, 3) * 4) : 0;
     const na = r(i, 4) < (curva === 'A' ? .5 : curva === 'B' ? .3 : .15) ? Math.ceil(r(i, 5) * 6) : 0, fora = r(i, 6) < .06 ? 0 : Math.ceil(r(i, 7) * 30);
-    const falta = Math.max(0, alvo - na), repor = Math.min(falta, fora), dev = curva === 'A' || curva === 'B' ? 0 : Math.max(0, na - cart);
+    const alvo = Math.max(Math.ceil(media * cob), cart, na + fora > 0 ? 1 : 0);   // mínimo de 1 par de todo SKU com estoque
+    const falta = Math.max(0, alvo - na), repor = Math.min(falta, fora), dev = curva === 'A' || curva === 'B' ? 0 : Math.max(0, na - alvo);
     const bl = 1 + Math.floor(r(i, 8) * 3), rua = 1 + Math.floor(r(i, 9) * 6), p = 1 + Math.floor(r(i, 10) * 14);
     const mod = ['Tênis Runner', 'Sapatênis Couro', 'Mocassim Drive', 'Bota Coturno', 'Chinelo Slide', 'Tênis Casual'][i % 6], tam = 37 + (i * 7) % 8;
     L.push({ sku:`${loja.slice(0, 2)}${String(1000 + Math.floor(i / 3) * 7)}-${['PRT', 'BRC', 'MAR'][i % 3]}-${tam}`, produto:mod, cor:['Preto', 'Branco', 'Marrom'][i % 3], tamanho:String(tam), curva,
@@ -10431,12 +10538,14 @@ function demoRS(loja){
     base_info:{ fonte:'seenc', de:'2026-10-01', ate:hojeBRT(), dias:48, pedidos:11597, pares:14367, skus:2641, carregado_em:new Date(Date.now() - 7.2e5).toISOString() },
     estoque_info:{ linhas:11586, pares:77347, skus:5603, posicoes:671 }, carteira_info:{ pedidos:212, pares:231, de:addDias(hojeBRT(), -7), ate:hojeBRT() }, primeiro_dia:addDias(hojeBRT(), -9), credencial:true, base:'seenc', mes_base:'2026-10', dias_base:31,
     meses_seenc:[{ mes:'2026-10-01', skus:2641, pares:9004 }],
-    config:{ areas:[loja === 'DIGOS' ? 'BL4' : 'BL0-R0-P0'], dias_curva:28, corte_a:80, corte_b:95, cobertura_a:2, cobertura_b:1, capacidade_pares:loja === 'DIGOS' ? null : 120,
+    config:{ areas:[loja === 'DIGOS' ? 'BL4' : 'BL0-R0-P0'], dias_curva:28, corte_a:80, corte_b:95, cobertura_a:2, cobertura_b:1, cobertura_c:1, minimo_sku:1, capacidade_pares:loja === 'DIGOS' ? null : 120,
       mapa:loja === 'DIGOS' ? '1: 1-8\n2: 1-8' : '', cap_andares:loja === 'DIGOS' ? [80, 80, 20] : [] }, ocupacao,
     estoque:{ id:1, origem:'agendada', inicio:new Date(ag - 3.6e6).toISOString(), fim:new Date(ag - 3.4e6).toISOString(), linhas:4821 }, atualizando:null,
     kpi:{ skus_a:14, skus_b:20, ab_cobertos:AB.filter(x => x.na_area >= x.alvo).length, ab_total:AB.length, linhas_repor:L.filter(x => x.repor).length, pares_repor:soma('repor'),
       sem_saldo:L.filter(x => x.sem_saldo).length, linhas_devolver:L.filter(x => x.devolver).length, pares_devolver:soma('devolver'), area_pares:soma('na_area'), area_posicoes:23,
-      capacidade:loja === 'DIGOS' ? 2880 : 120, espaco:loja === 'DIGOS' ? 1900 : 60, pares_sem_espaco:0, pct_vendido_area:41.5, pares_periodo:soma('pares_periodo') }, linhas:L };
+      capacidade:loja === 'DIGOS' ? 2880 : 120, espaco:loja === 'DIGOS' ? 1900 : 60, pares_sem_espaco:0, pct_vendido_area:41.5, pares_periodo:soma('pares_periodo'),
+      skus_estoque:L.filter(x => x.na_area + x.fora).length, skus_na_area:L.filter(x => x.na_area).length, skus_na_area_depois:L.filter(x => x.na_area - x.devolver + x.repor > 0).length, minimo_sku:1,
+      skus_c:L.filter(x => x.curva === 'C').length, skus_s:L.filter(x => x.curva === 'S').length }, linhas:L };
 }
 async function apiRS(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
@@ -10545,8 +10654,9 @@ function desenhaRS(){
   const pctRS = (n, d) => d ? `<em class="rs-pct">${String(Math.round(n / d * 1000) / 10).replace('.', ',')}%</em>` : '';
   const capLivre = K.capacidade ? K.capacidade - (K.capacidade_bloqueada || 0) : null;
   const kpis = `<div class="rs-kpis">
-      <div class="rs-kpi dest"><span>Levar para a área</span><b>${fmtN(K.pares_repor)}</b>${pctRS(K.linhas_repor, K.ab_total)}<small>pares em ${fmtN(K.linhas_repor)} SKU(s) — % dos SKUs A/B${K.pares_sem_espaco ? ` · ${fmtN(K.pares_sem_espaco)} sem espaço` : ''}</small></div>
-      <div class="rs-kpi"><span>Devolver aos outros blocos</span><b>${fmtN(K.pares_devolver)}</b>${pctRS(K.pares_devolver, K.area_pares)}<small>pares em ${fmtN(K.linhas_devolver)} SKU(s) ${C.cobertura_c > 0 ? 'sem venda' : 'curva C / sem venda'} — % do que está na área</small></div>
+      <div class="rs-kpi dest"><span>Levar para a área</span><b>${fmtN(K.pares_repor)}</b>${pctRS(K.linhas_repor, K.ab_total)}<small>pares em ${fmtN(K.linhas_repor)} SKU(s)${K.minimo_sku ? ` (inclui ${K.minimo_sku} par de cada SKU que falta na área)` : ''} — % dos SKUs A/B${K.pares_sem_espaco ? ` · ${fmtN(K.pares_sem_espaco)} sem espaço` : ''}</small></div>
+      <div class="rs-kpi"><span>Devolver aos outros blocos</span><b>${fmtN(K.pares_devolver)}</b>${pctRS(K.pares_devolver, K.area_pares)}<small>pares em ${fmtN(K.linhas_devolver)} SKU(s) curva C / sem venda${C.minimo_sku ? ` (o que passa do alvo; fica ${C.minimo_sku} par)` : ''} — % do que está na área</small></div>
+      ${K.skus_estoque != null ? `<div class="rs-kpi"><span>SKUs com par na área</span><b>${fmtN(K.skus_na_area)}<small style="display:inline;font-size:14px"> / ${fmtN(K.skus_estoque)}</small></b>${pctRS(K.skus_na_area, K.skus_estoque)}<small>hoje · depois do ressuprimento: <b>${fmtN(K.skus_na_area_depois)}</b> (${pctRS(K.skus_na_area_depois, K.skus_estoque).replace(/<[^>]+>/g, '')}) dos SKUs com estoque</small></div>` : ''}
       <div class="rs-kpi"><span>Curva A e B já cobertas</span><b>${fmtN(K.ab_cobertos)}<small style="display:inline;font-size:14px"> / ${fmtN(K.ab_total)}</small></b>${pctRS(K.ab_cobertos, K.ab_total)}<small>${fmtN(K.skus_a)} A · ${fmtN(K.skus_b)} B (SKUs)</small></div>
       <div class="rs-kpi"><span>Sem saldo para repor</span><b class="${K.sem_saldo ? 'is-ab' : ''}">${fmtN(K.sem_saldo)}</b>${pctRS(K.sem_saldo, K.ab_total)}<small>SKU(s) sem estoque fora da área — % dos SKUs A/B</small></div>
       <div class="rs-kpi"><span>Na área hoje</span><b>${fmtN(K.area_pares)}</b>${capLivre ? pctRS(K.area_pares, K.capacidade) : ''}<small>pares em ${fmtN(K.area_posicoes)} posições${K.capacidade ? ` — % da capacidade (${fmtN(K.capacidade)})` : ''}${K.capacidade_bloqueada ? ` · ${fmtN(K.capacidade_bloqueada)} bloqueados` : ''}</small></div>
@@ -10559,13 +10669,14 @@ function desenhaRS(){
         <label>Corte B (% acumulado)<input id="rp-cb" type="number" min="60" max="100" value="${C.corte_b}"></label>
         <label>Cobertura A (dias)<input id="rp-qa" type="number" step="0.5" min="0.5" max="10" value="${C.cobertura_a}"></label>
         <label>Cobertura B (dias)<input id="rp-qb" type="number" step="0.5" min="0" max="10" value="${C.cobertura_b}"></label>
-        <label title="0 = a curva C não fica na área (vai para Devolver)">Cobertura C (dias)<input id="rp-qc" type="number" step="0.5" min="0" max="10" value="${C.cobertura_c ?? 0}"></label>
+        <label title="Dias de venda da curva C na área (0 = só o mínimo por SKU)">Cobertura C (dias)<input id="rp-qc" type="number" step="0.5" min="0" max="10" value="${C.cobertura_c ?? 0}"></label>
+        <label title="Pares que TODO SKU com estoque deve ter na área (A, B, C e sem venda), para o picking sair 100% dela. 0 = desliga.">Mínimo por SKU na área (pares)<input id="rp-min" type="number" min="0" max="50" value="${C.minimo_sku ?? 1}"></label>
         <label>Mapa da área (uma rua por linha, a mais perto da expedição primeiro)<textarea id="rp-mapa" rows="6" placeholder="1: 1-12&#10;2: 1-12" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:200px">${esc(C.mapa || '')}</textarea></label>
         <label>Bloqueios temporários (uma regra por linha)<textarea id="rp-bloq" rows="3" placeholder="R4 # obra&#10;R5 P3&#10;R6 P1-4 A3" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:200px">${esc(C.bloqueios || '')}</textarea></label>
         <label>Pares por andar (andar 1, 2, 3…)<input class="lg" id="rp-andares" value="${esc((C.cap_andares || []).join(', '))}" placeholder="80, 80, 20"></label>
         <label>Capacidade total (sem mapa)<input id="rp-cap" type="number" min="1" value="${C.capacidade_pares ?? ''}" placeholder="sem limite" title="Use quando a área não tem mapa (ex.: uma posição só). Com mapa, a capacidade é a soma das posições."></label>
         <button class="btn pri" id="rp-salvar">Salvar</button></div>
-      <div class="info" style="margin-top:8px">Curva: SKUs ordenados pelos pares vendidos; A até ${C.corte_a}% do total, B até ${C.corte_b}%. Alvo na área = venda média/dia × cobertura (ou a carteira em aberto, se for maior).
+      <div class="info" style="margin-top:8px">Curva: SKUs ordenados pelos pares vendidos; A até ${C.corte_a}% do total, B até ${C.corte_b}%. Alvo na área = venda média/dia × cobertura (ou a carteira em aberto, se for maior), e <b>nunca menos que o mínimo por SKU</b> para todo SKU com estoque (A, B, C ou sem venda): assim o picking sai todo da área. A e B não devolvem; C e sem venda devolvem só o que passa do alvo.
         Origem sugerida = endereço com <b>maior saldo</b> fora da área (a mesma regra do Seenc). O endereço zerado (BL0/RUA0) nunca é origem.
         Com o mapa, o destino sai posição a posição: o SKU fica junto de onde já está; depois, por andar — <b>curva A no andar 2</b> (depois 1 e 3), <b>B no andar 1</b> (depois 2 e 3), <b>C no andar 3</b> (depois 2 e 1); posição <b>bloqueada</b> não recebe nada (o que já está nela fica) — regras: <code>R4</code> rua inteira, <code>R5 P3</code> um prédio, <code>R6 P1-4 A3</code> andar 3 dos prédios 1 a 4, <code>A3</code> o andar 3 do bloco todo; depois de <code>#</code>, o motivo. Dentro do andar, <b>na ordem das linhas do mapa</b> (escreva primeiro as ruas mais perto da expedição) e do prédio menor para o maior.</div></details>` : '';
   const AB = D.linhas.filter(x => x.repor > 0), DEV = D.linhas.filter(x => x.devolver > 0), SS = D.linhas.filter(x => x.sem_saldo > 0);
@@ -10588,7 +10699,7 @@ function desenhaRS(){
       ${DEV.sort((a, b) => (a.pos_area[0] || '').localeCompare(b.pos_area[0] || '', 'pt', { numeric:true })).map(x => { const ch = `dev|${x.sku}`;
         return `<tr class="${feitos.has(ch) ? 'feito' : ''}"><td><input type="checkbox" data-feito="${esc(ch)}" ${feitos.has(ch) ? 'checked' : ''}></td><td class="pos">${x.pos_area.map(esc).join('<br>')}</td><td class="pos">${esc(x.sku)}</td><td>${prod(x)}</td><td>${cv(x.curva)}</td>
           <td class="n">${String(x.media_dia).replace('.', ',')}</td><td class="n">${x.na_area}</td><td class="n lv">${fmtN(x.devolver)}</td></tr>`; }).join('')}</tbody></table>`
-      : '<div class="vazio" style="padding:16px">Nada a devolver: só tem curva A e B na área.</div>';
+      : '<div class="vazio" style="padding:16px">Nada a devolver: nenhum SKU de curva C ou sem venda passa do alvo na área.</div>';
   } else if (s.aba === 'ocupacao' && OC.length) {
     // cada prédio = uma coluna com os andares empilhados (o de cima no alto); cor = ocupação depois da reposição
     const ruas = [...new Set(OC.map(o => o.rua))].sort((a, b) => a - b), andares = [...new Set(OC.map(o => o.andar))].sort((a, b) => b - a);
@@ -10624,7 +10735,7 @@ function desenhaRS(){
   const sv = document.getElementById('rp-salvar');
   if (sv) sv.onclick = async () => { const v = id => document.getElementById(id).value;
     sv.disabled = true;
-    try { await apiRS('/ressuprimento/config', { cnpj_id:D.loja, areas:v('rp-areas'), dias_curva:v('rp-dias'), corte_a:v('rp-ca'), corte_b:v('rp-cb'), cobertura_a:v('rp-qa'), cobertura_b:v('rp-qb'), cobertura_c:v('rp-qc'), capacidade_pares:v('rp-cap'), mapa:v('rp-mapa'), bloqueios:v('rp-bloq'), cap_andares:v('rp-andares') });
+    try { await apiRS('/ressuprimento/config', { cnpj_id:D.loja, areas:v('rp-areas'), dias_curva:v('rp-dias'), corte_a:v('rp-ca'), corte_b:v('rp-cb'), cobertura_a:v('rp-qa'), cobertura_b:v('rp-qb'), cobertura_c:v('rp-qc'), minimo_sku:v('rp-min'), capacidade_pares:v('rp-cap'), mapa:v('rp-mapa'), bloqueios:v('rp-bloq'), cap_andares:v('rp-andares') });
       avisar('Parâmetros salvos'); s.dias = null; carregarRS(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { sv.disabled = false; } };
   document.getElementById('rs-csv').onclick = () => baixarCsv(`ressuprimento_${D.loja}_${D.hoje}.csv`, [
