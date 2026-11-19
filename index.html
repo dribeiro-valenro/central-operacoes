@@ -11759,6 +11759,294 @@ function fichaMkt(x){
         QR: registra entrega e devolução no portal. Impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}.</div></div></body></html>`;
 }
 
+/* =================== LOGÍSTICA: Gestão - Estoque =================== */
+// Todo o estoque por endereço (o mesmo do Ressuprimento: última atualização completa de cada loja), busca de item,
+// e a folha do endereço: registro do inventário (com quantidades, para afixar no endereço) ou contagem cega (sem quantidades).
+const CSS_EST = `
+  .es-top{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+  .es-top .velho{color:#a11d1d;font-weight:700}
+  .es-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:10px}
+  .es-k{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px} .es-k span{display:block;font-size:11px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.03em}
+  .es-k b{display:block;font-size:22px;color:#02285a;margin:1px 0} .es-k small{color:var(--mute);font-size:12px} .es-k.alerta b{color:#a11d1d}
+  .es-bl{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+  .es-bl button{flex:0 0 auto;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;font:inherit;font-size:12px;color:#3c4a5e;min-width:118px}
+  .es-bl button b{display:block;font-size:15px;color:#02285a} .es-bl button.on{border-color:#02285a;box-shadow:inset 0 0 0 1px #02285a;background:#f3f6fb}
+  .es-bl .cob{display:block;height:4px;border-radius:2px;background:#eef1f5;margin-top:4px;overflow:hidden} .es-bl .cob i{display:block;height:100%;background:#0f7b6c}
+  .es-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+  .es-f input,.es-f select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+  .es-tab{width:100%;border-collapse:collapse;font-size:13px;background:#fff} .es-tab th{font-size:11px;color:var(--mute);text-transform:uppercase;text-align:left;padding:6px 7px;border-bottom:1px solid var(--line);background:#f6f7f9;position:sticky;top:0;z-index:1;white-space:nowrap}
+  .es-tab td{padding:5px 7px;border-bottom:1px solid #eef0f4;vertical-align:middle} .es-tab td.n,.es-tab th.n{text-align:right} .es-tab td.end{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap}
+  .es-tab tr.lk{cursor:pointer} .es-tab tr.lk:hover td{background:#f7f9fc} .es-tab tr.grp td{background:#f3f6fb;font-weight:700;border-top:2px solid #d5deeb}
+  .es-tab a.end{font-family:Consolas,monospace;color:#0b4fa8;cursor:pointer;text-decoration:underline dotted}
+  .es-wrap{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .es-inv{display:inline-block;border-radius:99px;padding:0 8px;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .es-inv.ok{background:#e2f5e8;color:#1a6b3a} .es-inv.med{background:#fff1d6;color:#8a5a00} .es-inv.vel{background:#fde7e7;color:#a11d1d} .es-inv.nunca{background:#eef1f5;color:#5b6b7f}
+  .es-sel{position:sticky;bottom:8px;z-index:5;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#02285a;color:#fff;border-radius:12px;padding:8px 12px;margin-top:10px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  .es-sel .btn{background:#fff;color:#02285a;border:0}
+  .es-neg{color:#a11d1d;font-weight:700}
+  .es-op{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:13.5px} .es-op label{display:flex;gap:8px;align-items:flex-start} .es-op small{color:var(--mute)}
+  .es-op input[type=text],.es-op select,.es-op input[type=date]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;max-width:100%}
+  .es-op>span{display:flex;flex-direction:column;gap:3px;font-weight:600} .es-op>span small{font-weight:400}`;
+const ROT_LOJA_EST = { todas:'Todas as lojas' };
+const curtoEnd = p => String(p || '').replace(/^AR\d+-/, '');
+const cmpEnd = (a, b) => String(a).localeCompare(String(b), 'pt', { numeric:true });
+const descEnd = p => { const x = partesPosPk(p), t = [];
+  if (x.bloco !== '') t.push(`Bloco ${x.bloco}`); if (x.rua !== '') t.push(`Rua ${x.rua}`); if (x.predio !== '') t.push(`Prédio ${x.predio}`); if (x.andar !== '') t.push(`Andar ${x.andar}`);
+  return t.join(' · ') || p; };
+const diasEST = iso => iso ? Math.floor((new Date(hojeBRT() + 'T12:00:00Z') - new Date(String(iso).slice(0, 10) + 'T12:00:00Z')) / 864e5) : null;
+const tagInvEST = inv => { if (!inv) return '<span class="es-inv nunca">nunca</span>'; const d = diasEST(inv.em);
+  return `<span class="es-inv ${d <= 30 ? 'ok' : d <= 90 ? 'med' : 'vel'}" title="por ${esc(inv.por || '')}">${dataBR(String(inv.em).slice(0, 10))} · ${d <= 0 ? 'hoje' : `há ${d} d`}</span>`; };
+
+// ---- demonstração: estoque de mentira, mesmo formato da API
+const DEMO_EST = (() => {
+  const r = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const P = [['5338-211-23572', 'Bota Moleca', ['PT', 'MR']], ['5561-101-31026', 'Sandália Moleca', ['PT', 'NU']], ['2740-201-30661', 'Tênis Molekinha', ['BC', 'RS']], ['1320-696-VORTEX', 'Tênis Fila Vortex', ['BC-CZ', 'PT']],
+    ['7226-102-29516', 'Tamanco Modare', ['ND', 'PT']], ['T1038-547', 'Sandália Bebecê', ['BL', 'NU']], ['2164-143-31226', 'Bota Molekinha', ['RS', 'PT']], ['6531-100-29623', 'Sapatilha Moleca', ['BC', 'PT']]];
+  const L = []; let i = 0;
+  const pos = (pp, loja, n) => { for (let k = 0; k < n; k++, i++) { const p = P[Math.floor(r(i, 1) * P.length)], cor = p[2][Math.floor(r(i, 2) * 2)], t = 33 + Math.floor(r(i, 3) * 8);
+    const sku = `${p[0]}-${cor}-${t}`, q = 1 + Math.floor(r(i, 4) * 12); const ex = L.find(x => x.pos === pp && x.sku === sku && x.loja === loja); if (ex) ex.q += q; else L.push({ loja, pos:pp, sku, gtin:`789${String(1e9 + i * 7919).slice(0, 10)}`, produto:p[1], q }); } };
+  for (let b = 1; b <= 6; b++) for (let ru = 1; ru <= (b === 4 ? 6 : 3); ru++) for (let pr = 1; pr <= 6; pr++) for (let a = 1; a <= 3; a++) {
+    if (r(b * 1000 + ru * 100 + pr * 10, a) < .18) continue;
+    pos(`AR2-BL${b}-RUA${ru}-P${pr}-A${a}`, b === 6 && ru === 3 ? (pr % 2 ? 'CACAL' : 'DROSA') : 'DIGOS', 1 + Math.floor(r(b + ru, pr + a) * (a === 3 ? 2 : 6))); }
+  pos('BL0-R0-P0', 'CACAL', 14); pos('BL0-R0-P0', 'DROSA', 10); pos('AR2-BL0-RUA0-P0-A0', 'DIGOS', 8);
+  L.push({ loja:'DIGOS', pos:'AR2-BL2-RUA1-P1-A1', sku:'5338-211-23572-PT-36', gtin:null, produto:'Bota Moleca', q:-2 });
+  const em = new Date(Date.now() - 5.5 * 3.6e6).toISOString(), inv = [];
+  ['AR2-BL4-RUA1-P1-A1', 'AR2-BL4-RUA1-P2-A1', 'AR2-BL4-RUA1-P3-A2'].forEach((p, k) => inv.push({ id:k + 1, pos:p, data_inv:addDias(hojeBRT(), -(k * 40 + 3)), feito_em:new Date(Date.now() - (k * 40 + 3) * 864e5).toISOString(), feito_por:'lider@valenro', pares:20, skus:4, obs:null }));
+  return { L, em, inv, seq:10 }; })();
+async function apiEST(path, corpo){
+  if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  await new Promise(r => setTimeout(r, 120));
+  const D = DEMO_EST, qs = new URLSearchParams(path.split('?')[1] || ''), loja = (qs.get('loja') || corpo?.loja || 'todas').toUpperCase();
+  const lojas = loja === 'TODAS' ? ORDEM_LOJAS : [loja], L = D.L.filter(x => lojas.includes(x.loja)), est = lojas.map(l => ({ loja:l, em:D.em, origem:l === 'DIGOS' ? 'agendada' : 'arquivo' }));
+  if (path.startsWith('/estoque/busca')) { const q = (qs.get('q') || '').toUpperCase(); if (q.length < 3) throw new Error('Digite pelo menos 3 caracteres (SKU, EAN, nome ou endereço)');
+    return { linhas:L.filter(x => x.sku.startsWith(q) || x.sku.includes('-' + q) || x.gtin === q || x.produto.toUpperCase().includes(q) || x.pos.includes(q)).sort((a, b) => a.sku.localeCompare(b.sku) || cmpEnd(a.pos, b.pos)) }; }
+  if (path.startsWith('/estoque/enderecos')) { const P = corpo.posicoes;
+    return { estoques:est, linhas:L.filter(x => P.includes(x.pos)).sort((a, b) => cmpEnd(a.pos, b.pos) || a.sku.localeCompare(b.sku)), historico:D.inv.filter(h => P.includes(h.pos)).sort((a, b) => b.data_inv.localeCompare(a.data_inv)) }; }
+  if (path.startsWith('/estoque/inventario')) { corpo.posicoes.forEach(p => { const I = L.filter(x => x.pos === p);
+      D.inv.push({ id:D.seq++, pos:p, data_inv:corpo.data, inventariado_por:['Ana Lima', 'Bruno Costa', 'Carla Nunes', 'Diego Alves', 'Fernanda Rocha'][corpo.pessoa_id - 1] || null, feito_em:new Date().toISOString(), feito_por:'demonstracao', pares:I.reduce((t, x) => t + x.q, 0), skus:I.length, obs:corpo.obs || null }); });
+    return { ok:true, registrados:corpo.posicoes.length }; }
+  const pessoas = [['Ana Lima', 'Logística'], ['Bruno Costa', 'Logística'], ['Carla Nunes', 'Logística'], ['Diego Alves', 'Logística'], ['Fernanda Rocha', 'Comercial']].map(([nome, area], k) => ({ id:k + 1, nome, area }));
+  const E = {}; L.forEach(x => { const e = E[x.loja + '|' + x.pos] ||= { loja:x.loja, pos:x.pos, pares:0, skus:0, negativos:0 }; e.pares += x.q; e.skus++; if (x.q < 0) e.negativos++; });
+  const inv = {}; [...D.inv].sort((a, b) => (a.data_inv || '').localeCompare(b.data_inv || '') || a.feito_em.localeCompare(b.feito_em)).forEach(h => inv[h.pos] = { em:h.data_inv, por:h.inventariado_por || h.feito_por });
+  return { hoje:hojeBRT(), lojas, estoques:est, totais:lojas.map(l => ({ loja:l, skus:new Set(L.filter(x => x.loja === l && x.q > 0).map(x => x.sku)).size, pares:L.filter(x => x.loja === l && x.q > 0).reduce((t, x) => t + x.q, 0) })),
+    enderecos:Object.values(E), inventarios:inv, pessoas };
+}
+
+function telaEstoque(){
+  if (!document.getElementById('css-est')) { const st = document.createElement('style'); st.id = 'css-est'; st.textContent = CSS_EST; document.head.appendChild(st); }
+  const s = state.est ||= { loja:'todas', aba:'enderecos', bloco:'', rua:'', inv:'', filtro:'', q:'', sel:new Set() };
+  $app.innerHTML = `<div class="barra"><h2>Gestão - Estoque</h2><span style="flex:1"></span>
+      <span class="is-chips">${['todas', ...ORDEM_LOJAS].map(l => `<button class="is-chip ${s.loja === l ? 'on' : ''}" data-lj="${l}">${esc(ROT_LOJA_EST[l] || nomeLoja(l))}</button>`).join('')}</span></div>
+    <div id="es"><div class="carregando">Carregando…</div></div>`;
+  document.querySelectorAll('[data-lj]').forEach(b => b.onclick = () => { s.loja = b.dataset.lj; s.sel.clear(); s.res = null; telaEstoque(); });
+  carregarEST();
+}
+async function carregarEST(){
+  try { const D = await apiEST(`/estoque?loja=${state.est.loja}`); if (state.view !== 'estoque') return; state.estDados = D; renderEST(); }
+  catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('es'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+// endereços (um endereço físico pode ter mais de uma loja)
+function enderecosEST(D){
+  const M = new Map();
+  for (const e of D.enderecos) { const x = M.get(e.pos) || { pos:e.pos, lojas:[], pares:0, skus:0, neg:0, ...partesPosPk(e.pos) }; x.lojas.push(e.loja); x.pares += Number(e.pares) || 0; x.skus += Number(e.skus) || 0; x.neg += Number(e.negativos) || 0; M.set(e.pos, x); }
+  return [...M.values()].map(x => ({ ...x, inv:D.inventarios[x.pos] || null })).sort((a, b) => cmpEnd(a.pos, b.pos));
+}
+function renderEST(){
+  const $c = document.getElementById('es'), D = state.estDados, s = state.est; if (!$c || !D) return;
+  const E = enderecosEST(D), PR = prediosEST(E), inv30 = PR.filter(x => x.inv && diasEST(x.inv.em) <= 30).length, nunca = PR.filter(x => !x.inv).length, neg = E.filter(x => x.neg).length;
+  const pares = D.totais.reduce((t, x) => t + (Number(x.pares) || 0), 0), skus = D.totais.reduce((t, x) => t + (Number(x.skus) || 0), 0);
+  const horas = em => (Date.now() - new Date(em)) / 3.6e6;
+  const blocos = [...new Set(E.map(x => x.bloco))].sort((a, b) => (a === '' ? 999 : +a) - (b === '' ? 999 : +b));
+  const pct = (n, d) => d ? Math.round(n / d * 100) : 0;
+  $c.innerHTML = `<div class="es-top"><b>Estoque do sistema</b>${D.lojas.map(l => { const x = D.estoques.find(e => e.loja === l);
+      return `<span>${tagLoja(l)} ${x ? `<span class="${horas(x.em) > 24 ? 'velho' : ''}" title="${x.origem === 'arquivo' ? 'arquivo do Seenc' : 'API Weesu'}">${quando(x.em)}${horas(x.em) > 24 ? ' (desatualizado)' : ''}</span>` : '<span class="velho">sem estoque carregado</span>'}</span>`; }).join('')}
+      <span class="info">Atualiza toda madrugada pela API; para atualizar na hora, suba o "Estoque alocado por posição" do Seenc em Ressuprimento - Cross.</span></div>
+    <div class="es-kpis">
+      <div class="es-k"><span>Pares em estoque</span><b>${fmtN(pares)}</b><small>${fmtN(skus)} SKU(s)${D.lojas.length > 1 ? ' (somando as lojas)' : ''}</small></div>
+      <div class="es-k"><span>Prédios com saldo</span><b>${fmtN(PR.length)}</b><small>${fmtN(E.length)} endereço(s) · ${fmtN(blocos.length)} bloco(s)</small></div>
+      <div class="es-k"><span>Inventariados em 30 dias</span><b>${fmtN(inv30)}</b><small>${pct(inv30, PR.length)}% dos prédios com saldo</small></div>
+      <div class="es-k ${nunca ? 'alerta' : ''}"><span>Nunca inventariados</span><b>${fmtN(nunca)}</b><small>sem ficha registrada no portal</small></div>
+      ${neg ? `<div class="es-k alerta"><span>Saldo negativo</span><b>${fmtN(neg)}</b><small>endereço(s) com SKU negativo: corrigir no Seenc</small></div>` : ''}</div>
+    <div class="es-bl">${blocos.map(b => { const L = PR.filter(x => x.bloco === b), p = L.reduce((t, x) => t + x.pares, 0), c = L.filter(x => x.inv && diasEST(x.inv.em) <= 30).length;
+      return `<button data-bl="${b}" class="${s.bloco === b && s.aba === 'enderecos' ? 'on' : ''}" title="${pct(c, L.length)}% inventariado em 30 dias">${b === '' ? 'Sem bloco' : `Bloco ${b}`}<b>${fmtN(p)} pares</b>${fmtN(L.length)} prédio(s) · ${pct(c, L.length)}% inv.<span class="cob"><i style="width:${pct(c, L.length)}%"></i></span></button>`; }).join('')}</div>
+    <div class="abas">${[['enderecos', 'Endereços'], ['busca', 'Localizar item']].map(([k, t]) => `<button data-ab="${k}" class="${s.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div id="es-corpo"></div><div id="es-selbar"></div>`;
+  $c.querySelectorAll('[data-bl]').forEach(b => b.onclick = () => { s.aba = 'enderecos'; s.bloco = s.bloco === b.dataset.bl ? '' : b.dataset.bl; s.rua = ''; renderEST(); });
+  $c.querySelectorAll('[data-ab]').forEach(b => b.onclick = () => { s.aba = b.dataset.ab; renderEST(); });
+  if (s.aba === 'busca') corpoBuscaEST(); else corpoEnderecosEST(E);
+  barraSelEST();
+}
+// prédio = endereço sem o andar (a folha vai na frente do prédio/palete); BL0-R0-P0 e afins ficam como estão
+const predioEST = p => String(p || '').replace(/-A\d+$/, '');
+function filtroInvEST(x, f){ const d = x.inv ? diasEST(x.inv.em) : null;
+  return !f || (f === 'nunca' && !x.inv) || (f === '30' && x.inv && d <= 30) || (f === 'm30' && (!x.inv || d > 30)) || (f === 'm90' && (!x.inv || d > 90)); }
+// junta os andares de cada prédio; o inventário do prédio é o mais antigo dos andares (nenhum se algum andar nunca foi)
+function prediosEST(E){
+  const M = new Map();
+  for (const x of E) { const k = predioEST(x.pos), g = M.get(k) || { pos:k, posicoes:[], lojas:[], pares:0, skus:0, neg:0, invs:[], ...partesPosPk(k) };
+    g.posicoes.push(x.pos); x.lojas.forEach(l => { if (!g.lojas.includes(l)) g.lojas.push(l); }); g.pares += x.pares; g.skus += x.skus; g.neg += x.neg; g.invs.push(x.inv); M.set(k, g); }
+  return [...M.values()].map(g => ({ ...g, inv:g.invs.some(i => !i) ? null : g.invs.reduce((a, i) => !a || i.em < a.em ? i : a, null), parcial:g.invs.some(i => i) && g.invs.some(i => !i) })).sort((a, b) => cmpEnd(a.pos, b.pos));
+}
+function corpoEnderecosEST(E){
+  const s = state.est, $b = document.getElementById('es-corpo'); s.nivel ||= 'predio';
+  const porPredio = s.nivel === 'predio', B = porPredio ? prediosEST(E) : E;
+  const ruas = [...new Set(B.filter(x => !s.bloco || x.bloco === s.bloco).map(x => x.rua))].sort((a, b) => +a - +b);
+  if (s.rua && !ruas.includes(s.rua)) s.rua = '';
+  const f = semAcento(s.filtro || '').toUpperCase();
+  const L = B.filter(x => (!s.bloco || x.bloco === s.bloco) && (!s.rua || x.rua === s.rua) && filtroInvEST(x, s.inv) && (!f || x.pos.includes(f)));
+  const posDe = x => x.posicoes || [x.pos], marcado = x => posDe(x).every(p => s.sel.has(p));
+  const lim = 1500, todosSel = L.length && L.every(marcado);
+  $b.innerHTML = `<div class="es-f">
+      <span class="is-chips">${[['predio', 'Por prédio'], ['endereco', 'Por andar']].map(([k, t]) => `<button class="is-chip ${s.nivel === k ? 'on' : ''}" data-nv="${k}">${t}</button>`).join('')}</span>
+      <select id="es-bloco"><option value="">Todos os blocos</option>${[...new Set(E.map(x => x.bloco))].sort((a, b) => +a - +b).map(b => `<option value="${b}" ${s.bloco === b ? 'selected' : ''}>${b === '' ? 'Sem bloco' : `Bloco ${b}`}</option>`).join('')}</select>
+      <select id="es-rua"><option value="">Todas as ruas</option>${ruas.map(r => `<option value="${r}" ${s.rua === r ? 'selected' : ''}>${r === '' ? 'Sem rua' : `Rua ${r}`}</option>`).join('')}</select>
+      <select id="es-inv">${[['', 'Inventário: todos'], ['nunca', 'Nunca inventariados'], ['m30', 'Sem inventário há +30 dias'], ['m90', 'Sem inventário há +90 dias'], ['30', 'Inventariados em 30 dias']].map(([k, t]) => `<option value="${k}" ${s.inv === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <input id="es-filtro" placeholder="Filtrar (ex.: RUA3-P5)" value="${esc(s.filtro || '')}" style="width:180px">
+      <span class="info">${fmtN(L.length)} ${porPredio ? 'prédio(s)' : 'endereço(s)'} · ${fmtN(L.reduce((t, x) => t + x.pares, 0))} pares</span></div>
+    ${L.length ? `<div class="es-wrap"><table class="es-tab"><thead><tr><th><input type="checkbox" id="es-todos" ${todosSel ? 'checked' : ''} title="Selecionar tudo o que está no filtro"></th><th>${porPredio ? 'Prédio' : 'Endereço'}</th><th>Local</th>${porPredio ? '<th class="n">Andares</th>' : ''}<th>Loja</th><th class="n">SKUs</th><th class="n">Pares</th><th>Último inventário</th></tr></thead><tbody>
+      ${L.slice(0, lim).map((x, k) => `<tr class="lk" data-i="${k}"><td><input type="checkbox" data-ck="${k}" ${marcado(x) ? 'checked' : ''}></td><td class="end"><b>${esc(curtoEnd(x.pos))}</b></td><td>${esc(descEnd(x.pos))}</td>
+        ${porPredio ? `<td class="n">${x.posicoes.length}</td>` : ''}<td>${x.lojas.map(tagLoja).join(' ')}</td><td class="n">${fmtN(x.skus)}</td><td class="n ${x.neg ? 'es-neg' : ''}">${fmtN(x.pares)}${x.neg ? ' ⚠' : ''}</td>
+        <td>${tagInvEST(x.inv)}${x.parcial ? ' <span class="es-inv med" title="Algum andar já tem inventário, outro não">parcial</span>' : ''}</td></tr>`).join('')}
+      </tbody></table></div>${L.length > lim ? `<div class="info">Mostrando ${lim} de ${fmtN(L.length)}: filtre por bloco ou rua.</div>` : ''}` : '<div class="vazio" style="padding:16px">Nada neste filtro.</div>'}`;
+  const re = () => corpoEnderecosEST(E);
+  $b.querySelectorAll('[data-nv]').forEach(b => b.onclick = () => { s.nivel = b.dataset.nv; re(); });
+  $b.querySelector('#es-bloco').onchange = e => { s.bloco = e.target.value; s.rua = ''; renderEST(); };
+  $b.querySelector('#es-rua').onchange = e => { s.rua = e.target.value; re(); };
+  $b.querySelector('#es-inv').onchange = e => { s.inv = e.target.value; re(); };
+  const fi = $b.querySelector('#es-filtro'); fi.oninput = () => { s.filtro = fi.value; clearTimeout(s.tf); s.tf = setTimeout(() => { re(); const n = document.getElementById('es-filtro'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); };
+  const td = $b.querySelector('#es-todos'); if (td) td.onchange = () => { L.forEach(x => posDe(x).forEach(p => td.checked ? s.sel.add(p) : s.sel.delete(p))); re(); barraSelEST(); };
+  $b.querySelectorAll('[data-ck]').forEach(c => { c.onclick = ev => ev.stopPropagation(); c.onchange = () => { posDe(L[+c.dataset.ck]).forEach(p => c.checked ? s.sel.add(p) : s.sel.delete(p)); barraSelEST(); }; });
+  $b.querySelectorAll('tr[data-i]').forEach(tr => tr.onclick = () => { const x = L[+tr.dataset.i]; detalheEnderecoEST(posDe(x), x.pos); });
+}
+function corpoBuscaEST(){
+  const s = state.est, $b = document.getElementById('es-corpo');
+  $b.innerHTML = `<div class="es-f"><input id="es-q" placeholder="SKU, SKU pai, EAN, nome do produto ou endereço" value="${esc(s.q || '')}" style="flex:1;min-width:260px;max-width:520px"><button class="btn pri" id="es-ir">Localizar</button>
+      <span class="info">Mostra todos os endereços onde o item tem saldo${state.est.loja === 'todas' ? ', nas três lojas' : ''}.</span></div><div id="es-res"></div>`;
+  const ir = async () => { s.q = $b.querySelector('#es-q').value.trim(); const $r = document.getElementById('es-res'); if (!s.q) return;
+    $r.innerHTML = '<div class="carregando">Procurando…</div>';
+    try { s.res = await apiEST(`/estoque/busca?loja=${s.loja}&q=${encodeURIComponent(s.q)}`); desenhaBuscaEST(); }
+    catch (e) { if (e instanceof SemSessao) throw e; $r.innerHTML = `<div class="erro">${esc(e.message)}</div>`; } };
+  $b.querySelector('#es-ir').onclick = ir; $b.querySelector('#es-q').onkeydown = e => { if (e.key === 'Enter') ir(); };
+  if (s.res) desenhaBuscaEST(); else $b.querySelector('#es-q').focus();
+}
+function desenhaBuscaEST(){
+  const s = state.est, $r = document.getElementById('es-res'); if (!$r || !s.res) return;
+  const L = s.res.linhas; if (!L.length) { $r.innerHTML = '<div class="vazio" style="padding:16px">Nada encontrado com saldo.</div>'; return; }
+  const G = new Map(); L.forEach(l => (G.get(l.sku) || G.set(l.sku, []).get(l.sku)).push(l));
+  const inv = state.estDados?.inventarios || {};
+  $r.innerHTML = `<div class="info" style="margin-bottom:6px">${fmtN(G.size)} SKU(s) em ${fmtN(new Set(L.map(l => l.pos)).size)} endereço(s) · ${fmtN(L.reduce((t, l) => t + l.q, 0))} pares${s.res.limite ? ' · <b>mostrando as primeiras 3.000 linhas: refine a busca</b>' : ''}</div>
+    <div class="es-wrap"><table class="es-tab"><thead><tr><th></th><th>Loja</th><th>Endereço</th><th>Local</th><th class="n">Pares</th><th>Último inventário</th></tr></thead><tbody>
+    ${[...G.entries()].map(([sku, ls]) => { const ct = corTamVF(sku), t = ls.reduce((a, l) => a + l.q, 0);
+      return `<tr class="grp"><td colspan="4">${esc(sku)} · ${esc(ls[0].produto || 'sem nome')}${ct.cor ? ` · ${esc(ct.cor)}` : ''}${ct.tamanho ? ` · nº ${esc(ct.tamanho)}` : ''}${ls[0].gtin ? ` <span class="info">EAN ${esc(ls[0].gtin)}</span>` : ''}</td><td class="n">${fmtN(t)}</td><td class="info">${ls.length} endereço(s)</td></tr>
+        ${ls.map(l => `<tr><td><input type="checkbox" data-ck="${esc(l.pos)}" ${s.sel.has(l.pos) ? 'checked' : ''} title="Selecionar o endereço para imprimir"></td><td>${tagLoja(l.loja)}</td><td><a class="end" data-pos="${esc(l.pos)}">${esc(curtoEnd(l.pos))}</a></td><td>${esc(descEnd(l.pos))}</td>
+          <td class="n ${l.q < 0 ? 'es-neg' : ''}">${fmtN(l.q)}</td><td>${tagInvEST(inv[l.pos])}</td></tr>`).join('')}`; }).join('')}</tbody></table></div>`;
+  $r.querySelectorAll('[data-ck]').forEach(c => c.onchange = () => { $r.querySelectorAll(`[data-ck="${CSS.escape(c.dataset.ck)}"]`).forEach(o => o.checked = c.checked); c.checked ? s.sel.add(c.dataset.ck) : s.sel.delete(c.dataset.ck); barraSelEST(); });
+  $r.querySelectorAll('a[data-pos]').forEach(a => a.onclick = () => detalheEnderecoEST([a.dataset.pos], a.dataset.pos));
+}
+function barraSelEST(){
+  const s = state.est, $s = document.getElementById('es-selbar'); if (!$s) return;
+  const pr = new Set([...s.sel].map(predioEST)).size;
+  $s.innerHTML = s.sel.size ? `<div class="es-sel"><b>${fmtN(pr)} prédio(s) · ${fmtN(s.sel.size)} endereço(s) selecionado(s)</b><span style="flex:1"></span><button class="btn" id="es-imp">🖨 Imprimir ficha de inventário</button><button class="btn" id="es-limpa">Limpar</button></div>` : '';
+  if (!s.sel.size) return;
+  $s.querySelector('#es-imp').onclick = () => imprimirEnderecosEST([...s.sel].sort(cmpEnd));
+  $s.querySelector('#es-limpa').onclick = () => { s.sel.clear(); renderEST(); };
+}
+// detalhe de um prédio (todos os andares) ou de um endereço: o que tem, inventários e imprimir
+async function detalheEnderecoEST(P, titulo){
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg);
+  dlg.innerHTML = '<div class="painel" style="width:min(860px,100%)"><div class="carregando">Carregando…</div></div>';
+  const fechar = () => dlg.remove(); dlg.onclick = e => { if (e.target === dlg) fechar(); };
+  try {
+    const R = await apiEST('/estoque/enderecos', { loja:state.est.loja, posicoes:P }), L = R.linhas, t = L.reduce((a, l) => a + l.q, 0), varios = P.length > 1;
+    dlg.innerHTML = `<div class="painel" style="width:min(860px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0;font-family:Consolas,monospace">${esc(curtoEnd(titulo))}</h3><span class="info">${esc(descEnd(titulo))}${varios ? ` · ${P.length} andares` : ''}</span><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+      <div class="info">${fmtN(new Set(L.map(l => l.sku)).size)} SKU(s) · <b>${fmtN(t)} pares</b> · estoque do Seenc de ${R.estoques.map(e => `${esc(nomeLoja(e.loja))} ${quando(e.em)}`).join(', ')}</div>
+      <div class="es-wrap" style="max-height:46vh;margin-top:6px"><table class="es-tab"><thead><tr>${varios ? '<th>Andar</th>' : ''}<th>Loja</th><th>SKU</th><th>Produto</th><th>Cor</th><th>Nº</th><th class="n">Pares</th></tr></thead><tbody>
+        ${L.length ? L.map(l => { const ct = corTamVF(l.sku); return `<tr>${varios ? `<td>${esc(partesPosPk(l.pos).andar || curtoEnd(l.pos))}</td>` : ''}<td>${tagLoja(l.loja)}</td><td class="end">${esc(l.sku)}</td><td>${esc(l.produto || '')}</td><td>${esc(ct.cor)}</td><td>${esc(ct.tamanho)}</td><td class="n ${l.q < 0 ? 'es-neg' : ''}">${fmtN(l.q)}</td></tr>`; }).join('') : `<tr><td colspan="7" class="vazio">Sem saldo no sistema.</td></tr>`}</tbody></table></div>
+      <h4 style="margin:12px 0 4px">Inventários registrados</h4>
+      ${R.historico.length ? `<table class="es-tab"><thead><tr><th>Inventário em</th>${varios ? '<th>Endereço</th>' : ''}<th>Inventariado por</th><th class="n">SKUs</th><th class="n">Pares</th><th>Obs.</th></tr></thead><tbody>${R.historico.map(h => `<tr><td>${h.data_inv ? dataBR(h.data_inv) : quando(h.feito_em)}</td>${varios ? `<td class="end">${esc(curtoEnd(h.pos))}</td>` : ''}<td>${esc(h.inventariado_por || '')}${h.inventariado_por ? '' : `<span class="info">impresso por ${esc(h.feito_por || '')}</span>`}</td><td class="n">${fmtN(h.skus)}</td><td class="n">${fmtN(h.pares)}</td><td>${esc(h.obs || '')}</td></tr>`).join('')}</tbody></table>` : '<div class="info">Nenhum inventário registrado.</div>'}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="ed-sel">${P.every(p => state.est.sel.has(p)) ? '✓ Selecionado' : '+ Selecionar para imprimir junto'}</button><button class="btn pri" id="ed-imp">🖨 Imprimir ficha de inventário</button></div></div>`;
+    dlg.querySelector('[data-x]').onclick = fechar;
+    dlg.querySelector('#ed-sel').onclick = () => { const s = state.est, todos = P.every(p => s.sel.has(p)); P.forEach(p => todos ? s.sel.delete(p) : s.sel.add(p)); fechar(); renderEST(); };
+    dlg.querySelector('#ed-imp').onclick = () => { fechar(); imprimirEnderecosEST(P); };
+  } catch (e) { if (e instanceof SemSessao) throw e; dlg.innerHTML = `<div class="painel"><div class="erro">${esc(e.message)}</div><button class="btn" data-x>Fechar</button></div>`; dlg.querySelector('[data-x]').onclick = fechar; }
+}
+// ficha de inventário: data do inventário feito no Seenc e (se puder) registrar no portal
+function imprimirEnderecosEST(P){
+  const pe = pode('estoque', 'editar'), s = state.est; s.imp ||= { registrar:pe, por:'predio' };
+  const o = s.imp; if (!pe) o.registrar = false; o.data = hojeBRT();
+  const nPr = new Set(P.map(predioEST)).size;
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg);
+  const D = state.estDados, velho = (D?.estoques || []).filter(e => (Date.now() - new Date(e.em)) / 3.6e6 > 6);
+  dlg.innerHTML = `<div class="painel" style="width:min(540px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">Ficha de inventário</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+    <div class="info">${fmtN(nPr)} prédio(s) · ${fmtN(P.length)} endereço(s). A ficha mostra o estoque do Seenc no endereço, depois do inventário, com a data, para prender na frente do prédio/palete.</div>
+    <div class="es-op">
+      <span>Data do inventário (feito no Seenc)<input type="date" id="ei-data" value="${o.data}" max="${hojeBRT()}" min="${addDias(hojeBRT(), -60)}"></span>
+      <span>Inventariado por <select id="ei-quem"><option value="">Escolha a pessoa…</option>${(() => { const PS = D?.pessoas || [], ar = [...new Set(PS.map(p => p.area || 'Sem área'))];
+        return ar.map(a => `<optgroup label="${esc(a)}">${PS.filter(p => (p.area || 'Sem área') === a).map(p => `<option value="${p.id}" ${o.quemId === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</optgroup>`).join(''); })()}</select>
+        <small>Só pessoas ativas do cadastro da equipe (Gestão do time › One-on-One). Não achou? Cadastre lá.</small></span>
+      <span>Uma ficha por <select id="ei-por"><option value="predio" ${o.por === 'predio' ? 'selected' : ''}>Prédio / palete (todos os andares juntos)</option><option value="endereco" ${o.por === 'endereco' ? 'selected' : ''}>Endereço (cada andar)</option></select></span>
+      ${pe ? `<label><input type="checkbox" id="ei-reg" ${o.registrar ? 'checked' : ''}><span>Registrar no portal como inventariado nesta data<br><small>Fica no histórico e marca o prédio como inventariado na tela.</small></span></label>` : ''}
+    </div>
+    ${velho.length ? `<div class="aviso">O estoque no portal é de ${velho.map(e => `${esc(nomeLoja(e.loja))} ${quando(e.em)}`).join(', ')}. Se o inventário foi ajustado no Seenc depois disso, a ficha sai com o saldo antigo: suba antes o "Estoque alocado por posição" do Seenc em Ressuprimento - Cross.</div>` : ''}
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn pri" id="ei-ok">🖨 Imprimir</button></div></div>`;
+  dlg.querySelector('[data-x]').onclick = () => dlg.remove();
+  dlg.querySelector('#ei-ok').onclick = async ev => {
+    const b = ev.target; o.data = dlg.querySelector('#ei-data').value; o.por = dlg.querySelector('#ei-por').value; o.registrar = !!dlg.querySelector('#ei-reg')?.checked; const qs = dlg.querySelector('#ei-quem'); o.quemId = Number(qs.value) || null; o.quem = o.quemId ? qs.selectedOptions[0].textContent : '';
+    if (!o.data || o.data > hojeBRT()) return avisar('Informe a data do inventário (hoje ou antes)', true);
+    if (!o.quemId) return avisar('Escolha quem fez o inventário', true);
+    b.disabled = true; b.textContent = 'Preparando…';
+    try {
+      const R = await apiEST('/estoque/enderecos', { loja:s.loja, posicoes:P });
+      if (o.registrar) await apiEST('/estoque/inventario', { loja:s.loja, posicoes:P, data:o.data, pessoa_id:o.quemId });
+      imprimirHtml(fichaInventarioEST(P, R, o)); dlg.remove();
+      if (o.registrar) { avisar(`Inventário de ${dataBR(o.data)} registrado em ${fmtN(nPr)} prédio(s)`); carregarEST(); }
+    } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = '🖨 Imprimir'; }
+  };
+}
+// SKU pai = SKU sem a cor e o nº (mesma leitura do corTamVF)
+const paiEST = sku => { const s = String(sku || '').toUpperCase().split('-'), ct = corTamVF(sku); if (ct.tamanho) s.pop(); if (ct.cor) s.splice(s.length - ct.cor.split('-').length); return s.join('-'); };
+// no formato da folha do FULL: A4 deitada, produto × cor nas linhas, numeração nas colunas, um bloco por andar
+function fichaInventarioEST(P, R, o){
+  const agora = new Date().toISOString(), quem = quemImprime();
+  const grupos = new Map(); P.forEach(p => { const k = o.por === 'predio' ? predioEST(p) : p; (grupos.get(k) || grupos.set(k, []).get(k)).push(p); });
+  const grade = L => { const M = new Map(); L.forEach(l => { const ct = corTamVF(l.sku), pai = paiEST(l.sku), k = `${l.loja}|${pai}|${ct.cor}`;
+      const g = M.get(k) || M.set(k, { loja:l.loja, pai, nome:l.produto || '', cor:ct.cor, q:{} }).get(k); const n = ct.tamanho || '—'; g.q[n] = (g.q[n] || 0) + l.q; if (!g.nome && l.produto) g.nome = l.produto; });
+    return [...M.values()].sort((a, b) => a.pai.localeCompare(b.pai, 'pt', { numeric:true }) || a.cor.localeCompare(b.cor)); };
+  const numsDe = G => [...new Set(G.flatMap(g => Object.keys(g.q)))].sort((a, b) => (a === '—') - (b === '—') || parseFloat(String(a).replace(',', '.')) - parseFloat(String(b).replace(',', '.')));
+  const ficha = ([k, Ps]) => {
+    const L = R.linhas.filter(l => Ps.includes(l.pos)), lojas = [...new Set(L.map(l => l.loja))], total = L.reduce((a, l) => a + l.q, 0), x = partesPosPk(k);
+    const andares = [...new Set(Ps)].sort(cmpEnd), varios = o.por === 'predio' && andares.length > 1;
+    const loc = [['Bloco', x.bloco], ['Rua', x.rua], ['Prédio', x.predio], ...(o.por === 'endereco' ? [['Andar', x.andar]] : [])].filter(([, v]) => v !== '').map(([a, v]) => `${a} <b>${esc(v)}</b>`).join('');
+    const est = R.estoques.filter(e => !lojas.length || lojas.includes(e.loja)).map(e => `${esc(nomeLoja(e.loja))} ${quando(e.em)}`).join(' · ');
+    const numsTodos = numsDe(grade(L));   // mesma numeração em todos os andares: as colunas ficam alinhadas
+    const secao = (pos, rot) => { const G = grade(L.filter(l => l.pos === pos)), nums = numsTodos, t = G.reduce((a, g) => a + Object.values(g.q).reduce((b, v) => b + v, 0), 0), ml = lojas.length > 1;
+      if (!G.length) return `<table><thead><tr><th class="l">${esc(rot)}</th></tr></thead><tbody><tr><td class="l vazio">Sem saldo no Seenc.</td></tr></tbody></table>`;
+      return `${varios ? `<div class="and">${esc(rot)}</div>` : ''}<table><thead><tr><th class="l">Produto</th>${ml ? '<th class="l">Loja</th>' : ''}<th class="l">Cor</th>${nums.map(n => `<th>${esc(n)}</th>`).join('')}<th>Total</th></tr></thead><tbody>
+        ${G.map(g => { const tg = Object.values(g.q).reduce((a, v) => a + v, 0); return `<tr><td class="l"><b>${esc(g.pai)}</b>${g.nome ? ` <span class="nm">${esc(g.nome)}</span>` : ''}</td>${ml ? `<td class="l">${esc(nomeLoja(g.loja))}</td>` : ''}<td class="l">${esc(g.cor)}</td>${nums.map(n => `<td class="${g.q[n] < 0 ? 'neg' : ''}">${g.q[n] ? fmtN(g.q[n]) : ''}</td>`).join('')}<td><b>${fmtN(tg)}</b></td></tr>`; }).join('')}
+        </tbody><tfoot><tr><td class="l" colspan="${ml ? 3 : 2}">${esc(rot)}</td>${nums.map(n => { const v = G.reduce((a, g) => a + (g.q[n] || 0), 0); return `<td>${v ? fmtN(v) : ''}</td>`; }).join('')}<td><b>${fmtN(t)}</b></td></tr></tfoot></table>`; };
+    return `<section class="fl"><div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">INVENTÁRIO · ${o.por === 'predio' ? 'PRÉDIO' : 'ENDEREÇO'}</div><div class="t2">${lojas.length ? lojas.map(l => esc(nomeLoja(l)).toUpperCase()).join(' · ') : 'SEM SALDO NO SEENC'}</div></div><span class="esp"></span>
+        <span class="st dt"><small>INVENTARIADO EM</small><b>${dataBR(o.data)}</b></span><span class="st"><small>${o.por === 'predio' ? 'PRÉDIO' : 'ENDEREÇO'}</small><b>${esc(curtoEnd(k))}</b></span></div>
+      <div class="folha">
+        <div class="quem"><span>Inventariado por</span><b>${esc(o.quem)}</b></div>
+        <div class="cab">${loc ? `<span class="loc">${loc}</span>` : ''}<span>Total <b>${fmtN(total)} pares</b> · ${fmtN(new Set(L.map(l => l.sku)).size)} SKU(s)${varios ? ` · ${andares.length} andares` : ''}</span><span class="info">Estoque do Seenc após o inventário: ${est || '—'}</span></div>
+        ${varios ? andares.map(p => secao(p, `Andar ${partesPosPk(p).andar || curtoEnd(p)}`)).join('') : secao(Ps[0], o.por === 'predio' ? 'Total' : `Andar ${x.andar || ''}`.trim())}
+      </div>
+      <div class="rodape"><span>Central de Operações Valenro · ${esc(quem)}</span><span>Impresso em ${quando(agora)}</span></div></section>`; };
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Inventário ${esc(grupos.size === 1 ? curtoEnd([...grupos.keys()][0]) : `${grupos.size} fichas`)}</title><style>${CSS_IMPRESSO}
+  @page{size:A4 landscape;margin:0}
+  .fl{min-height:209mm;display:flex;flex-direction:column;page-break-after:always;break-after:page} .fl:last-child{page-break-after:auto;break-after:auto} .fl .folha{flex:1}
+  .folha{padding:6mm 8mm}
+  .topo .st{margin-left:4mm} .topo .st b{font-size:19pt} .topo .st.dt{background:#f1c300;border-color:#fff} .topo .st.dt small{color:#02285a}
+  .quem{display:flex;align-items:flex-end;gap:3mm;margin:1mm 0 2mm;font-size:11pt} .quem span{font-weight:700;color:#566074;white-space:nowrap} .quem b{font-size:16pt;color:#02285a} .quem i{display:block;flex:0 1 120mm;border-bottom:0.45mm solid #1b2333;height:7mm}
+  .cab{display:flex;gap:4mm 10mm;margin:2mm 0 3mm;font-size:11pt;flex-wrap:wrap;align-items:baseline} .cab b{font-size:13pt;color:#02285a} .cab .loc{display:flex;gap:6mm;font-size:12pt} .cab .loc b{font-size:20pt}
+  .info{font-size:9pt;color:#566074}
+  table{width:100%;border-collapse:collapse;margin-top:3mm;font-size:9.5pt;break-inside:auto}
+  th{background:#02285a;color:#fff;padding:1.4mm 1mm;font-size:8.5pt} th.l,td.l{text-align:left}
+  td{border-bottom:0.3mm solid #c9cfda;padding:1.3mm 1mm;text-align:center} td .nm{font-size:8pt;color:#566074} td.neg{color:#a11d1d;font-weight:700} td.vazio{color:#566074}
+  .and{margin-top:4mm;font-size:12pt;font-weight:700;color:#02285a;border-left:2mm solid #f1c300;padding-left:2mm} .and+table{margin-top:1.5mm}
+  tr{break-inside:avoid} tfoot td{font-weight:700;background:#eef0f4;border-top:0.5mm solid #1b2333}
+  </style></head><body>${[...grupos.entries()].sort((a, b) => cmpEnd(a[0], b[0])).map(ficha).join('')}</body></html>`;
+}
 /* =================== MENU LATERAL =================== */
 const MENU = [
   { id:'logistica', titulo:'Logística', filhos:[
@@ -11768,6 +12056,7 @@ const MENU = [
       { view:'abandono', titulo:'Abandono de pedidos', tela:'abandono' },
       { view:'separacao', titulo:'Inteligência de Separação', tela:'separacao' },
       { view:'ressuprimento', titulo:'Ressuprimento - Cross', tela:'ressuprimento' },
+      { view:'estoque', titulo:'Gestão - Estoque', tela:'estoque' },
       { view:'layout', titulo:'Layout do galpão', tela:'layout' },
       { view:'mkt', titulo:'Marketing (Solicitações)', tela:'mkt' },
       { view:'picking', titulo:'Mapa de separação', tela:'seenc' },
@@ -11800,7 +12089,7 @@ const MENU = [
   ]},
 ];
 // view -> tela de permissão (views sem tela são livres)
-const TELA_DA_VIEW = { separacao:'separacao', ressuprimento:'ressuprimento', vendafunc:['vendafunc', 'vendafunc_fin'], mkt:'mkt', seenc:'seenc', picking:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
+const TELA_DA_VIEW = { separacao:'separacao', ressuprimento:'ressuprimento', estoque:'estoque', vendafunc:['vendafunc', 'vendafunc_fin'], mkt:'mkt', seenc:'seenc', picking:'seenc', layout:'layout', alocacao:'alocacao', dimensionamento:'alocacao', consolidado:'produtividade', separados:'produtividade', pessoas:'pessoas', volume:'produtividade', full:'full', cross:'cross', oo:'oo', motoristas:'motoristas', marketplaces:'cross', abandono:'abandono', ponto:'ponto' };
 const NIVEL_MIN_TELA = { oo:'resumo' };   // telas que abrem com nível menor que "ver"
 const podeAbrir = tela => Array.isArray(tela) ? tela.some(podeAbrir) : pode(tela, NIVEL_MIN_TELA[tela] || 'ver');   // lista = basta uma
 const viewLiberada = v => !TELA_DA_VIEW[v] || podeAbrir(TELA_DA_VIEW[v]);
@@ -11849,7 +12138,7 @@ if (telaPequena() || lerPref().oculto) document.body.classList.add('menu-fechado
 // tela de entrada: a primeira desta lista que a pessoa pode abrir
 const TELA_INICIAL = ['separacao', 'full', 'cross', 'mkt', 'alocacao', 'oo', 'pessoas'];
 function irPara(view){
-  if (!['separacao', 'ressuprimento', 'vendafunc', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc', 'mkt', 'picking'].includes(view) || (view === 'volume' && !DEMO)) view = TELA_INICIAL.find(viewLiberada) || 'nada';   // a Produtividade ("separados") saiu em 16/11/2026
+  if (!['separacao', 'ressuprimento', 'estoque', 'vendafunc', 'volume', 'pessoas', 'full', 'cross', 'oo', 'motoristas', 'marketplaces', 'abandono', 'ponto', 'testes', 'impressos', 'consolidado', 'alocacao', 'dimensionamento', 'layout', 'seenc', 'mkt', 'picking'].includes(view) || (view === 'volume' && !DEMO)) view = TELA_INICIAL.find(viewLiberada) || 'nada';   // a Produtividade ("separados") saiu em 16/11/2026
   if (!viewLiberada(view)) view = TELA_INICIAL.find(viewLiberada) || 'nada';
   document.body.classList.remove('gaveta-aberta');
   state.view = view;
@@ -11875,6 +12164,7 @@ function irPara(view){
   if (view === 'picking') return telaPicking();
   if (view === 'separacao') return telaSeparacao();
   if (view === 'ressuprimento') return telaRessuprimento();
+  if (view === 'estoque') return telaEstoque();
   if (view === 'vendafunc') return telaVendaFunc();
   if (view === 'prod') return telaProd();
   if (view === 'volume') { telaVolume(); state.timer = setInterval(() => { if (state.data === hojeBRT()) carregarVolume(false); }, ATUALIZA_MIN*60e3); }
