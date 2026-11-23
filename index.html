@@ -11864,7 +11864,9 @@ async function apiINS(path, corpo){
     refazer(m.item_id); return { ok:true }; }
   if (path === '/insumos/mov/excluir') { const m = D.M.find(x => x.id === corpo.id); D.M.splice(D.M.indexOf(m), 1); refazer(m.item_id); return { ok:true }; }
   if (path === '/insumos/nf/editar') { const ids = new Set();
-    for (const l of corpo.linhas) { const m = D.M.find(x => x.id === l.id); ids.add(m.item_id); if (l.excluir) { D.M.splice(D.M.indexOf(m), 1); continue; }
+    for (const l of corpo.linhas) { if (l.novo) { D.M.push({ id:D.seq++, item_id:l.item_id, tipo:'entrada', data:corpo.data, qtd:0, qtd_nf:l.qtd, contado:null, custo_unit:l.custo_unit, nf:corpo.nf, fornecedor:corpo.fornecedor || null,
+        pedido:corpo.pedido || null, lote:l.lote || null, so_custo:!!corpo.so_custo, obs:null, feito_em:new Date().toISOString(), por:'demonstracao' }); ids.add(l.item_id); continue; }
+      const m = D.M.find(x => x.id === l.id); ids.add(m.item_id); if (l.excluir) { D.M.splice(D.M.indexOf(m), 1); continue; }
       Object.assign(m, { data:corpo.data, nf:corpo.nf, fornecedor:corpo.fornecedor || null, pedido:corpo.pedido || null, so_custo:!!corpo.so_custo, qtd_nf:l.qtd, custo_unit:l.custo_unit, lote:l.lote || null }); }
     ids.forEach(refazer); return { ok:true }; }
   if (path === '/insumos/desfazer') { const m = D.M.find(x => x.id === corpo.id), i = D.I.find(x => x.id === m.item_id); D.M.splice(D.M.indexOf(m), 1); Object.assign(i, { saldo:m.saldo_antes, custo_medio:m.cm_antes }); return { ok:true }; }
@@ -12058,12 +12060,18 @@ function editarMovInsDialog(m){
     try { await apiINS('/insumos/mov/excluir', { id:m.id }); fim('Lançamento excluído'); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; } };
 }
 async function editarNfInsDialog(nf, forn){
-  const dlg = modalIns(980), vb = v => v == null ? '' : String(Math.round(v * 10000) / 10000).replace('.', ',');
+  const dlg = modalIns(1000), vb = v => v == null ? '' : String(Math.round(v * 10000) / 10000).replace('.', ',');
   const num = v => { v = String(v ?? '').trim(); return v === '' ? null : Number(v.replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); };
+  const inp = 'font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px';
   try {
-    const R = await apiINS(`/insumos/nf?nf=${encodeURIComponent(nf)}&fornecedor=${encodeURIComponent(forn || '')}`), L = R.linhas.map(m => ({ ...m, q:qtdNfIns(m), excluir:false })), h = L[0];
-    dlg.innerHTML = `<div class="painel" style="width:min(980px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">Editar NF ${esc(h.nf)}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
-      <div class="info">Lançada por ${esc(h.por || '')} em ${quando(h.feito_em)}. Ao salvar, o saldo e o preço médio dos insumos são refeitos. Para incluir um item que faltou, use "+ Lançar NF" com o mesmo nº.</div>
+    if (!state.insDados) state.insDados = await apiINS('/insumos');
+    const I = state.insDados.itens.filter(i => i.ativo), rotIt = i => `${i.codigo} · ${i.nome}${i.fornecedor_cod ? ` · SKU forn. ${i.fornecedor_cod}` : ''}`, chave = v => String(v || '').trim().toUpperCase();
+    const achar = v => I.find(i => rotIt(i) === v) || I.find(i => i.codigo === chave(v)) || (chave(v) ? I.find(i => chave(i.fornecedor_cod) === chave(v)) : null);
+    const R = await apiINS(`/insumos/nf?nf=${encodeURIComponent(nf)}&fornecedor=${encodeURIComponent(forn || '')}`), h = R.linhas[0];
+    // linhas: as que já existem (id) e as incluídas agora (novo); valores ficam aqui para redesenhar sem perder o que foi digitado
+    const L = R.linhas.map(m => ({ id:m.id, item_id:m.item_id, codigo:m.codigo, nome:m.nome, unidade:m.unidade, q:vb(qtdNfIns(m)), cu:vb(m.custo_unit), vt:m.custo_unit != null ? vb(Math.round(qtdNfIns(m) * m.custo_unit * 100) / 100) : '', lote:m.lote || '', excluir:false }));
+    dlg.innerHTML = `<div class="painel" style="width:min(1000px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">Editar NF ${esc(h.nf)}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+      <div class="info">Lançada por ${esc(h.por || '')} em ${quando(h.feito_em)}. Ao salvar, o saldo e o preço médio dos insumos são refeitos.</div>
       <div class="in-form" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
         <label>Data da NF<input type="date" id="en-d" value="${h.data}" max="${hojeBRT()}" min="${addDias(hojeBRT(), -1100)}"></label>
         <label>Nº da NF<input id="en-n" maxlength="40" value="${esc(h.nf || '')}"></label>
@@ -12071,37 +12079,46 @@ async function editarNfInsDialog(nf, forn){
         <label>Nº do pedido do cliente<input id="en-p" maxlength="60" value="${esc(h.pedido || '')}"></label>
         <label style="grid-column:1/-1;flex-direction:row;gap:8px;font-weight:400"><input type="checkbox" id="en-sc" ${h.so_custo ? 'checked' : ''} style="width:auto"> <b>NF antiga: não somar no estoque</b> (só histórico de custo)</label>
       </div>
-      <div class="in-wrap" style="max-height:46vh"><table class="in-tab"><thead><tr><th>Insumo</th><th>Qtd</th><th>Valor total da linha</th><th>ou custo por un.</th><th>Lote</th><th>Excluir</th></tr></thead><tbody>
-        ${L.map((l, k) => `<tr data-k="${k}"><td><span class="cod">${esc(l.codigo)}</span> ${esc(l.nome)}</td>
-          <td style="white-space:nowrap"><input data-c="q" inputmode="decimal" value="${vb(l.q)}" style="width:80px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"> ${esc(l.unidade)}</td>
-          <td><input data-c="vt" inputmode="decimal" value="${l.custo_unit != null ? vb(Math.round(l.q * l.custo_unit * 100) / 100) : ''}" placeholder="R$" style="width:110px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
-          <td><input data-c="cu" inputmode="decimal" value="${vb(l.custo_unit)}" placeholder="R$" style="width:100px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
-          <td><input data-c="lote" maxlength="60" value="${esc(l.lote || '')}" style="width:100px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
-          <td><input type="checkbox" data-c="ex"></td></tr>`).join('')}</tbody></table></div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px"><button class="btn" id="en-todas" style="color:#a11d1d">Excluir a NF inteira</button><span style="flex:1"></span><span id="en-tot" class="info" style="font-size:14px"></span><button class="btn pri" id="en-ok">Salvar NF</button></div></div>`;
-    const $ = s => dlg.querySelector(s); $('[data-x]').onclick = () => dlg.remove();
-    // valor total ⇄ custo unitário: o último digitado manda
-    const calc = () => { let t = 0; dlg.querySelectorAll('tr[data-k]').forEach(tr => { const l = L[+tr.dataset.k]; if (l.excluir) { tr.style.opacity = .45; return; } tr.style.opacity = 1;
-      const q = num(tr.querySelector('[data-c=q]').value), cu = num(tr.querySelector('[data-c=cu]').value); if (q != null && cu != null) t += q * cu; });
-      $('#en-tot').innerHTML = `Total da NF: <b>${brlVF(t)}</b>`; };
-    dlg.querySelectorAll('tr[data-k]').forEach(tr => { const l = L[+tr.dataset.k], g = c => tr.querySelector(`[data-c=${c}]`);
-      g('vt').oninput = () => { const q = num(g('q').value), v = num(g('vt').value); if (q > 0 && v != null) g('cu').value = vb(v / q); calc(); };
-      g('cu').oninput = () => { const q = num(g('q').value), c = num(g('cu').value); g('vt').value = q != null && c != null ? vb(Math.round(q * c * 100) / 100) : ''; calc(); };
-      g('q').oninput = () => { const q = num(g('q').value), v = num(g('vt').value); if (q > 0 && v != null) g('cu').value = vb(v / q); calc(); };
-      g('ex').onchange = () => { l.excluir = g('ex').checked; calc(); }; });
-    calc();
-    $('#en-todas').onclick = ev => { if (!confirmaDupla(ev.target, 'Marcar todas para excluir?')) return; dlg.querySelectorAll('[data-c=ex]').forEach(c => { c.checked = true; }); L.forEach(l => l.excluir = true); calc(); };
+      <datalist id="en-its">${I.map(i => `<option value="${esc(rotIt(i))}">`).join('')}</datalist>
+      <div class="in-wrap" style="max-height:46vh"><table class="in-tab"><thead><tr><th style="min-width:230px">Insumo</th><th>Qtd</th><th>Valor total da linha</th><th>ou custo por un.</th><th>Lote</th><th>Excluir</th></tr></thead><tbody id="en-l"></tbody></table></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px"><button class="btn" id="en-add">+ Linha</button><button class="btn" id="en-todas" style="color:#a11d1d">Excluir a NF inteira</button><span style="flex:1"></span><span id="en-tot" class="info" style="font-size:14px"></span><button class="btn pri" id="en-ok">Salvar NF</button></div></div>`;
+    const $ = s => dlg.querySelector(s), tb = $('#en-l'); $('[data-x]').onclick = () => dlg.remove();
+    const calc = () => { let t = 0; L.forEach(l => { if (l.excluir) return; const q = num(l.q), c = num(l.cu); if (q != null && c != null) t += q * c; }); $('#en-tot').innerHTML = `Total da NF: <b>${brlVF(t)}</b>`; };
+    const desenha = () => {
+      tb.innerHTML = L.map((l, k) => `<tr data-k="${k}" style="${l.excluir ? 'opacity:.45' : ''}">
+          <td>${l.id ? `<span class="cod">${esc(l.codigo)}</span> ${esc(l.nome)}` : `<input data-c="item" list="en-its" value="${esc(l.itemTxt || '')}" placeholder="código, nome ou SKU do fornecedor" style="width:100%;${inp}">`}</td>
+          <td style="white-space:nowrap"><input data-c="q" inputmode="decimal" value="${esc(l.q)}" style="width:80px;${inp}"> ${esc(l.unidade || '')}</td>
+          <td><input data-c="vt" inputmode="decimal" value="${esc(l.vt)}" placeholder="R$" style="width:110px;${inp}"></td>
+          <td><input data-c="cu" inputmode="decimal" value="${esc(l.cu)}" placeholder="R$" style="width:100px;${inp}"></td>
+          <td><input data-c="lote" maxlength="60" value="${esc(l.lote)}" style="width:110px;${inp}"></td>
+          <td>${l.id ? `<input type="checkbox" data-c="ex" ${l.excluir ? 'checked' : ''}>` : `<button class="btn" data-c="del" title="Tirar a linha nova">✕</button>`}</td></tr>`).join('');
+      tb.querySelectorAll('tr[data-k]').forEach(tr => { const l = L[+tr.dataset.k], g = c => tr.querySelector(`[data-c=${c}]`);
+        // valor total ⇄ custo unitário: o último digitado manda
+        g('q').oninput = () => { l.q = g('q').value; const q = num(l.q), v = num(l.vt); if (q > 0 && v != null) { l.cu = vb(v / q); g('cu').value = l.cu; } calc(); };
+        g('vt').oninput = () => { l.vt = g('vt').value; const q = num(l.q), v = num(l.vt); if (q > 0 && v != null) { l.cu = vb(v / q); g('cu').value = l.cu; } calc(); };
+        g('cu').oninput = () => { l.cu = g('cu').value; const q = num(l.q), c = num(l.cu); l.vt = q != null && c != null ? vb(Math.round(q * c * 100) / 100) : ''; g('vt').value = l.vt; calc(); };
+        g('lote').oninput = () => { l.lote = g('lote').value; };
+        if (g('ex')) g('ex').onchange = () => { l.excluir = g('ex').checked; tr.style.opacity = l.excluir ? .45 : 1; calc(); };
+        if (g('del')) g('del').onclick = () => { L.splice(+tr.dataset.k, 1); desenha(); };
+        if (g('item')) g('item').onchange = () => { l.itemTxt = g('item').value; const it = achar(l.itemTxt); l.item_id = it?.id || null; l.unidade = it?.unidade || ''; if (it) { l.itemTxt = rotIt(it); desenha(); } }; });
+      calc();
+    };
+    desenha();
+    $('#en-add').onclick = () => { L.push({ novo:true, q:'', cu:'', vt:'', lote:L.find(l => l.lote)?.lote ? '' : '', excluir:false }); desenha(); tb.querySelector('tr:last-child [data-c=item]').focus(); };
+    $('#en-todas').onclick = ev => { if (!confirmaDupla(ev.target, 'Marcar todas para excluir?')) return; L.forEach(l => l.excluir = true); for (let k = L.length - 1; k >= 0; k--) if (!L[k].id) L.splice(k, 1); desenha(); };
     $('#en-ok').onclick = async ev => {
       const b = ev.target, linhas = [];
-      for (const tr of dlg.querySelectorAll('tr[data-k]')) { const l = L[+tr.dataset.k], g = c => tr.querySelector(`[data-c=${c}]`);
-        if (l.excluir) { linhas.push({ id:l.id, excluir:true }); continue; }
-        const q = num(g('q').value); if (!(q > 0)) return avisar(`${l.codigo}: informe a quantidade (ou marque Excluir)`, true);
-        linhas.push({ id:l.id, qtd:q, custo_unit:num(g('cu').value), lote:g('lote').value }); }
+      for (const l of L) {
+        if (l.id && l.excluir) { linhas.push({ id:l.id, excluir:true }); continue; }
+        const nome = l.id ? l.codigo : (l.itemTxt || 'linha nova'), q = num(l.q);
+        if (!l.id && !l.item_id) { if (!(l.itemTxt || '').trim() && !String(l.q).trim()) continue; return avisar(`Linha nova: escolha um insumo da lista`, true); }
+        if (!(q > 0)) return avisar(`${nome}: informe a quantidade${l.id ? ' (ou marque Excluir)' : ''}`, true);
+        linhas.push(l.id ? { id:l.id, qtd:q, custo_unit:num(l.cu), lote:l.lote } : { novo:true, item_id:l.item_id, qtd:q, custo_unit:num(l.cu), lote:l.lote }); }
       if (linhas.every(l => l.excluir) && !confirmaDupla(b, 'Excluir a NF toda?')) return;
       b.disabled = true; b.textContent = 'Salvando…';
       try { await apiINS('/insumos/nf/editar', { data:$('#en-d').value, nf:$('#en-n').value, fornecedor:$('#en-f').value, pedido:$('#en-p').value, so_custo:$('#en-sc').checked, linhas });
         dlg.remove(); avisar(linhas.every(l => l.excluir) ? 'NF excluída' : 'NF corrigida'); recarregarIns();
-        const ab = document.querySelector('.pl-modal [data-t]')?.closest('.pl-modal'); if (ab) abrirInsumo({ id:L[0].item_id }, ab); }
+        const ab = document.querySelector('.pl-modal [data-t]')?.closest('.pl-modal'); if (ab) abrirInsumo({ id:h.item_id }, ab); }
       catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = 'Salvar NF'; }
     };
   } catch (e) { if (e instanceof SemSessao) throw e; dlg.innerHTML = `<div class="painel"><div class="erro">${esc(e.message)}</div><button class="btn" data-x>Fechar</button></div>`; dlg.querySelector('[data-x]').onclick = () => dlg.remove(); }
