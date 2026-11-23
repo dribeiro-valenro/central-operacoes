@@ -12406,7 +12406,7 @@ function desenhaInventariosEST(){
       ${lotes.map((g, k) => `<tr class="lk" data-lt="${k}"><td><b>${dataBR(g.data)}</b>${g.datas > 1 ? ' <span class="es-inv med">datas diferentes</span>' : ''}</td>
         <td class="end">${esc(g.predios.slice(0, 4).map(curtoEnd).join(', '))}${g.predios.length > 4 ? ` <span class="info">+${g.predios.length - 4}</span>` : ''}</td><td class="n">${fmtN(g.xs.length)}</td><td class="n">${fmtN(g.pares)}</td>
         <td>${esc(g.quem || '–')}${g.quens > 1 ? ' <span class="es-inv med">várias</span>' : ''}</td><td><span class="info">${esc(g.feito_por || '')} · ${quando(g.feito_em)}</span></td>
-        <td style="white-space:nowrap"><button class="btn" data-rp="${k}" title="Reimprimir a ficha com o que foi registrado">🖨</button>${ed ? `<button class="btn" data-ed="${k}">✎ Corrigir</button><button class="btn" data-ex="${k}" title="Excluir o registro">🗑</button>` : ''}</td></tr>
+        <td style="white-space:nowrap"><button class="btn" data-rp="${k}" title="Reimprimir a ficha com o que foi registrado">Reimprimir</button>${ed ? `<button class="btn" data-ed="${k}">✎ Corrigir</button><button class="btn" data-ex="${k}" title="Excluir o registro">Excluir</button>` : ''}</td></tr>
         ${s.ivAberto.has(g.xs[0].lote) ? g.xs.slice().sort((a, b) => cmpEnd(a.pos, b.pos)).map(x => `<tr><td></td><td class="end" colspan="2">${esc(curtoEnd(x.pos))}</td><td class="n">${fmtN(x.pares)}</td><td>${esc(x.inventariado_por || '')}</td><td class="info">${dataBR(dInv(x))}${x.obs ? ` · ${esc(x.obs)}` : ''}</td>
           <td style="white-space:nowrap">${ed ? `<button class="btn" data-ed1="${x.id}" title="Corrigir só este endereço">✎</button><button class="btn" data-ex1="${x.id}" title="Excluir só este endereço">🗑</button>` : ''}</td></tr>`).join('') : ''}`).join('')}
     </tbody></table></div>` : '<div class="vazio" style="padding:16px">Nenhum inventário registrado neste filtro.</div>'}`;
@@ -12451,7 +12451,8 @@ function corrigirInventarioEST(xs){
 async function reimprimirInventarioEST(ids){
   try {
     const R = await apiEST('/estoque/inventario/itens', { ids }), regs = R.registros; if (!regs.length) return avisar('Registro não encontrado', true);
-    const P = regs.map(r => r.pos), linhas = regs.flatMap(r => (r.itens || []).map(i => ({ ...i, pos:r.pos })));
+    const lista = v => { let x = v; for (let k = 0; k < 2 && typeof x === 'string'; k++) { try { x = JSON.parse(x); } catch { return []; } } return Array.isArray(x) ? x : []; };
+    const P = regs.map(r => r.pos), linhas = regs.flatMap(r => lista(r.itens).map(i => ({ ...i, q:Number(i.q) || 0, pos:r.pos })));
     const lojas = [...new Set(regs.flatMap(r => r.lojas || []))], em = regs.map(r => r.estoque_em).filter(Boolean).sort()[0] || null;
     // uma ficha por prédio quando o registro tem todos os andares juntos; datas/pessoas diferentes saem em fichas separadas
     const grupos = new Map(); regs.forEach(r => { const k = `${r.data_inv}|${r.inventariado_por || ''}`; (grupos.get(k) || grupos.set(k, []).get(k)).push(r); });
