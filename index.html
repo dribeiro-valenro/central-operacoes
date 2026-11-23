@@ -11848,6 +11848,25 @@ async function apiINS(path, corpo){
     const cm = i.custo_medio, cm2 = b.tipo === 'entrada' && c != null ? (b.so_custo ? (cm ?? c) : cm == null || sa <= 0 ? c : (sa * cm + q * c) / (sa + q)) : cm;
     D.M.push({ id:D.seq++, item_id:i.id, tipo:b.tipo, data:b.data || hojeBRT(), qtd:d, contado:b.tipo === 'inventario' ? q : null, saldo_antes:sa, saldo_depois:sa + d, custo_unit:c, cm_antes:cm, cm_depois:cm2, nf:b.nf || null, fornecedor:b.fornecedor || null, pedido:b.pedido || null, lote:b.lote || null, qtd_nf:b.tipo === 'entrada' ? q : null, so_custo:!!b.so_custo, obs:b.obs || null, feito_em:new Date().toISOString(), por:'demonstracao' });
     Object.assign(i, { saldo:sa + d, custo_medio:cm2 }, b.tipo === 'entrada' ? { ultima_entrada:b.data || hojeBRT(), ultimo_custo:c ?? i.ultimo_custo } : {}, b.tipo === 'inventario' ? { ultima_contagem:b.data || hojeBRT() } : {}); return { ok:true }; }
+  if (path.startsWith('/insumos/nf?')) { const L = D.M.filter(m => m.tipo === 'entrada' && (m.nf || '').toUpperCase() === (qs.get('nf') || '').toUpperCase() && (m.fornecedor || '').toUpperCase() === (qs.get('fornecedor') || '').toUpperCase());
+    if (!L.length) throw new Error('NF não encontrada'); return { linhas:L.map(m => { const i = D.I.find(x => x.id === m.item_id); return { ...m, codigo:i.codigo, nome:i.nome, unidade:i.unidade }; }) }; }
+  const refazer = id => { const i = D.I.find(x => x.id === id); let sa = 0, cm = null, real = false, hv = 0, hq = 0;
+    for (const m of D.M.filter(x => x.item_id === id).sort((a, b) => a.id - b.id)) { m.saldo_antes = sa; m.cm_antes = cm; const c = m.custo_unit;
+      if (m.tipo === 'inventario') m.qtd = m.contado - sa; else if (m.tipo === 'entrada') { const q = m.qtd_nf ?? m.qtd; if (m.so_custo) { m.qtd = 0; if (c != null) { hv += q * c; hq += q; if (!real) cm = hv / hq; } } else { m.qtd = q; if (c != null) { cm = cm == null || sa <= 0 ? c : (sa * cm + q * c) / (sa + q); real = true; } } }
+      sa += m.qtd; if (sa < 0) throw new Error(`${i.codigo}: o saldo ficaria negativo`); m.saldo_depois = sa; m.cm_depois = cm; }
+    Object.assign(i, { saldo:sa, custo_medio:cm }); };
+  // demonstração: desfaz tudo se a edição der erro (como a transação da API)
+  if (['/insumos/mov/editar', '/insumos/mov/excluir', '/insumos/nf/editar'].includes(path) && !corpo.__dentro) { const bk = JSON.stringify({ M:D.M, I:D.I });
+    try { return await apiINS(path, { ...corpo, __dentro:true }); } catch (e) { const r = JSON.parse(bk); D.M.splice(0, D.M.length, ...r.M); r.I.forEach((x, k) => Object.assign(D.I[k], x)); throw e; } }
+  if (path === '/insumos/mov/editar') { const m = D.M.find(x => x.id === corpo.id), n = v => v === '' || v == null ? null : +String(v).replace(',', '.');
+    Object.assign(m, { data:corpo.data, obs:corpo.obs }); if (m.tipo === 'inventario') m.contado = n(corpo.contado); else if (m.tipo === 'saida') m.qtd = -n(corpo.qtd);
+    else Object.assign(m, { qtd_nf:n(corpo.qtd), custo_unit:n(corpo.custo_unit), nf:corpo.nf || null, fornecedor:corpo.fornecedor || null, pedido:corpo.pedido || null, lote:corpo.lote || null, so_custo:!!corpo.so_custo });
+    refazer(m.item_id); return { ok:true }; }
+  if (path === '/insumos/mov/excluir') { const m = D.M.find(x => x.id === corpo.id); D.M.splice(D.M.indexOf(m), 1); refazer(m.item_id); return { ok:true }; }
+  if (path === '/insumos/nf/editar') { const ids = new Set();
+    for (const l of corpo.linhas) { const m = D.M.find(x => x.id === l.id); ids.add(m.item_id); if (l.excluir) { D.M.splice(D.M.indexOf(m), 1); continue; }
+      Object.assign(m, { data:corpo.data, nf:corpo.nf, fornecedor:corpo.fornecedor || null, pedido:corpo.pedido || null, so_custo:!!corpo.so_custo, qtd_nf:l.qtd, custo_unit:l.custo_unit, lote:l.lote || null }); }
+    ids.forEach(refazer); return { ok:true }; }
   if (path === '/insumos/desfazer') { const m = D.M.find(x => x.id === corpo.id), i = D.I.find(x => x.id === m.item_id); D.M.splice(D.M.indexOf(m), 1); Object.assign(i, { saldo:m.saldo_antes, custo_medio:m.cm_antes }); return { ok:true }; }
   if (path.startsWith('/insumos/movs')) { const de = qs.get('de'), ate = qs.get('ate');
     return { movs:D.M.filter(m => m.data >= de && m.data <= ate).map(m => { const i = D.I.find(x => x.id === m.item_id); return { ...m, codigo:i.codigo, nome:i.nome, unidade:i.unidade }; }).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id) }; }
@@ -11956,15 +11975,13 @@ async function abrirInsumo(ref, dlgAnt){
       ${R.movs.length ? `<div class="in-wrap" style="max-height:34vh"><table class="in-tab"><thead><tr><th>Data</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Saldo</th><th class="n">Custo un.</th><th>NF / pedido / lote / obs.</th><th>Por</th><th></th></tr></thead><tbody>
         ${R.movs.map((m, k) => `<tr><td>${dataBR(m.data)}</td><td>${ROT_MOV_INS[m.tipo]}</td><td class="n">${qtdMovIns(m)}</td><td class="n">${fmtQ(m.saldo_depois)}</td>
           <td class="n">${m.custo_unit != null ? brlIns(m.custo_unit) : ''}</td><td>${esc(docMovIns(m))}</td><td>${esc(m.por || '')}</td>
-          <td>${k === 0 && ge ? `<button class="btn" data-desf="${m.id}" title="Volta o saldo e o preço médio ao que eram">Desfazer</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="info">Nenhum lançamento ainda. Comece pela contagem.</div>'}
+          <td>${ge ? `<button class="btn" data-edm="${k}" title="${m.tipo === 'entrada' && m.nf ? 'Editar a NF inteira' : 'Editar ou excluir o lançamento'}">✎</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="info">Nenhum lançamento ainda. Comece pela contagem.</div>'}
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="ia-etq">🏷 Etiqueta QR</button>${ge ? '<button class="btn" id="ia-ed">✎ Editar cadastro</button>' : ''}</div></div>`;
     dlg.querySelector('[data-x]').onclick = fechar;
     dlg.querySelectorAll('[data-t]').forEach(b => b.onclick = () => lancarInsDialog(i, b.dataset.t, dlg));
     dlg.querySelector('#ia-etq').onclick = () => etiquetasIns([i]);
     dlg.querySelector('#ia-ed')?.addEventListener('click', () => { fechar(); formInsumo(i); });
-    dlg.querySelector('[data-desf]')?.addEventListener('click', async ev => { const b = ev.target; if (!confirmaDupla(b, 'Confirmar?')) return; b.disabled = true;
-      try { await apiINS('/insumos/desfazer', { id:+b.dataset.desf }); avisar('Lançamento desfeito'); abrirInsumo({ id:i.id }, dlg); recarregarIns(); }
-      catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; } });
+    dlg.querySelectorAll('[data-edm]').forEach(b => b.onclick = () => editarLancIns({ ...R.movs[+b.dataset.edm], codigo:i.codigo, unidade:i.unidade }));
   } catch (e) { if (e instanceof SemSessao) throw e; dlg.innerHTML = `<div class="painel"><div class="erro">${esc(e.message)}</div><button class="btn" data-x>Fechar</button></div>`; dlg.querySelector('[data-x]').onclick = fechar; }
 }
 const recarregarIns = () => { if (state.view !== 'insumos') return; state.ins.aba === 'movs' ? carregarMovsIns() : carregarIns(); };
@@ -12012,6 +12029,82 @@ function lancarInsDialog(i, tipo, dlgItem){
       if (dlgItem?.isConnected) abrirInsumo({ id:i.id }, dlgItem); recarregarIns();
     } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = `Salvar ${tit.toLowerCase()}`; }
   };
+}
+// ---------- editar / excluir lançamentos e NFs (gerir) ----------
+// abre o editor certo: NF inteira (quando o lançamento tem nº de NF) ou só o lançamento
+function editarLancIns(m){ if (m.tipo === 'entrada' && m.nf) return editarNfInsDialog(m.nf, m.fornecedor); editarMovInsDialog(m); }
+function editarMovInsDialog(m){
+  const dlg = modalIns(480), ent = m.tipo === 'entrada', inv = m.tipo === 'inventario', sai = m.tipo === 'saida';
+  const q0 = inv ? m.contado : sai ? -m.qtd : qtdNfIns(m), vb = v => v == null ? '' : String(v).replace('.', ',');
+  dlg.innerHTML = `<div class="painel" style="width:min(480px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">Editar ${ROT_MOV_INS[m.tipo].toLowerCase()} · ${esc(m.codigo || '')}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+    <div class="info">Lançado por ${esc(m.por || '')} em ${quando(m.feito_em)}. Ao salvar, o saldo e o preço médio do insumo são refeitos.</div>
+    <div class="in-form" style="grid-template-columns:1fr 1fr">
+      <label>Data<input type="date" id="em-d" value="${m.data}" max="${hojeBRT()}"></label>
+      <label>${inv ? 'Contado' : 'Quantidade'} ${m.unidade ? `(${esc(m.unidade)})` : ''}<input id="em-q" inputmode="decimal" value="${vb(q0)}"></label>
+      ${ent ? `<label>Custo por un. (opcional)<input id="em-c" inputmode="decimal" value="${vb(m.custo_unit)}"></label><label>Nº da NF<input id="em-nf" maxlength="40" value="${esc(m.nf || '')}"></label>
+        <label>Fornecedor<input id="em-f" maxlength="120" value="${esc(m.fornecedor || '')}"></label><label>Pedido do cliente<input id="em-p" maxlength="60" value="${esc(m.pedido || '')}"></label>
+        <label>Lote<input id="em-l" maxlength="60" value="${esc(m.lote || '')}"></label>
+        <label style="grid-column:1/-1;flex-direction:row;gap:8px;font-weight:400"><input type="checkbox" id="em-sc" ${m.so_custo ? 'checked' : ''} style="width:auto"> NF antiga: não somar no estoque (só custo)</label>` : ''}
+      <label style="grid-column:1/-1">Observação<input id="em-o" maxlength="300" value="${esc(m.obs || '')}"></label>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px"><button class="btn" id="em-del" style="color:#a11d1d">Excluir lançamento</button><button class="btn pri" id="em-ok">Salvar</button></div></div>`;
+  const $ = s => dlg.querySelector(s); $('[data-x]').onclick = () => dlg.remove();
+  const fim = msg => { dlg.remove(); avisar(msg); recarregarIns(); const ab = document.querySelector('.pl-modal [data-t]')?.closest('.pl-modal'); if (ab) abrirInsumo({ id:m.item_id }, ab); };
+  $('#em-ok').onclick = async ev => { const b = ev.target, corpo = { id:m.id, data:$('#em-d').value, obs:$('#em-o').value, [inv ? 'contado' : 'qtd']:$('#em-q').value };
+    if (ent) Object.assign(corpo, { custo_unit:$('#em-c').value.trim() || null, nf:$('#em-nf').value, fornecedor:$('#em-f').value, pedido:$('#em-p').value, lote:$('#em-l').value, so_custo:$('#em-sc').checked });
+    b.disabled = true; b.textContent = 'Salvando…';
+    try { await apiINS('/insumos/mov/editar', corpo); fim('Lançamento corrigido'); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = 'Salvar'; } };
+  $('#em-del').onclick = async ev => { const b = ev.target; if (!confirmaDupla(b, 'Confirmar exclusão?')) return; b.disabled = true;
+    try { await apiINS('/insumos/mov/excluir', { id:m.id }); fim('Lançamento excluído'); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; } };
+}
+async function editarNfInsDialog(nf, forn){
+  const dlg = modalIns(980), vb = v => v == null ? '' : String(Math.round(v * 10000) / 10000).replace('.', ',');
+  const num = v => { v = String(v ?? '').trim(); return v === '' ? null : Number(v.replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); };
+  try {
+    const R = await apiINS(`/insumos/nf?nf=${encodeURIComponent(nf)}&fornecedor=${encodeURIComponent(forn || '')}`), L = R.linhas.map(m => ({ ...m, q:qtdNfIns(m), excluir:false })), h = L[0];
+    dlg.innerHTML = `<div class="painel" style="width:min(980px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">Editar NF ${esc(h.nf)}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+      <div class="info">Lançada por ${esc(h.por || '')} em ${quando(h.feito_em)}. Ao salvar, o saldo e o preço médio dos insumos são refeitos. Para incluir um item que faltou, use "+ Lançar NF" com o mesmo nº.</div>
+      <div class="in-form" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
+        <label>Data da NF<input type="date" id="en-d" value="${h.data}" max="${hojeBRT()}" min="${addDias(hojeBRT(), -1100)}"></label>
+        <label>Nº da NF<input id="en-n" maxlength="40" value="${esc(h.nf || '')}"></label>
+        <label>Fornecedor<input id="en-f" maxlength="120" value="${esc(h.fornecedor || '')}"></label>
+        <label>Nº do pedido do cliente<input id="en-p" maxlength="60" value="${esc(h.pedido || '')}"></label>
+        <label style="grid-column:1/-1;flex-direction:row;gap:8px;font-weight:400"><input type="checkbox" id="en-sc" ${h.so_custo ? 'checked' : ''} style="width:auto"> <b>NF antiga: não somar no estoque</b> (só histórico de custo)</label>
+      </div>
+      <div class="in-wrap" style="max-height:46vh"><table class="in-tab"><thead><tr><th>Insumo</th><th>Qtd</th><th>Valor total da linha</th><th>ou custo por un.</th><th>Lote</th><th>Excluir</th></tr></thead><tbody>
+        ${L.map((l, k) => `<tr data-k="${k}"><td><span class="cod">${esc(l.codigo)}</span> ${esc(l.nome)}</td>
+          <td style="white-space:nowrap"><input data-c="q" inputmode="decimal" value="${vb(l.q)}" style="width:80px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"> ${esc(l.unidade)}</td>
+          <td><input data-c="vt" inputmode="decimal" value="${l.custo_unit != null ? vb(Math.round(l.q * l.custo_unit * 100) / 100) : ''}" placeholder="R$" style="width:110px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+          <td><input data-c="cu" inputmode="decimal" value="${vb(l.custo_unit)}" placeholder="R$" style="width:100px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+          <td><input data-c="lote" maxlength="60" value="${esc(l.lote || '')}" style="width:100px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+          <td><input type="checkbox" data-c="ex"></td></tr>`).join('')}</tbody></table></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px"><button class="btn" id="en-todas" style="color:#a11d1d">Excluir a NF inteira</button><span style="flex:1"></span><span id="en-tot" class="info" style="font-size:14px"></span><button class="btn pri" id="en-ok">Salvar NF</button></div></div>`;
+    const $ = s => dlg.querySelector(s); $('[data-x]').onclick = () => dlg.remove();
+    // valor total ⇄ custo unitário: o último digitado manda
+    const calc = () => { let t = 0; dlg.querySelectorAll('tr[data-k]').forEach(tr => { const l = L[+tr.dataset.k]; if (l.excluir) { tr.style.opacity = .45; return; } tr.style.opacity = 1;
+      const q = num(tr.querySelector('[data-c=q]').value), cu = num(tr.querySelector('[data-c=cu]').value); if (q != null && cu != null) t += q * cu; });
+      $('#en-tot').innerHTML = `Total da NF: <b>${brlVF(t)}</b>`; };
+    dlg.querySelectorAll('tr[data-k]').forEach(tr => { const l = L[+tr.dataset.k], g = c => tr.querySelector(`[data-c=${c}]`);
+      g('vt').oninput = () => { const q = num(g('q').value), v = num(g('vt').value); if (q > 0 && v != null) g('cu').value = vb(v / q); calc(); };
+      g('cu').oninput = () => { const q = num(g('q').value), c = num(g('cu').value); g('vt').value = q != null && c != null ? vb(Math.round(q * c * 100) / 100) : ''; calc(); };
+      g('q').oninput = () => { const q = num(g('q').value), v = num(g('vt').value); if (q > 0 && v != null) g('cu').value = vb(v / q); calc(); };
+      g('ex').onchange = () => { l.excluir = g('ex').checked; calc(); }; });
+    calc();
+    $('#en-todas').onclick = ev => { if (!confirmaDupla(ev.target, 'Marcar todas para excluir?')) return; dlg.querySelectorAll('[data-c=ex]').forEach(c => { c.checked = true; }); L.forEach(l => l.excluir = true); calc(); };
+    $('#en-ok').onclick = async ev => {
+      const b = ev.target, linhas = [];
+      for (const tr of dlg.querySelectorAll('tr[data-k]')) { const l = L[+tr.dataset.k], g = c => tr.querySelector(`[data-c=${c}]`);
+        if (l.excluir) { linhas.push({ id:l.id, excluir:true }); continue; }
+        const q = num(g('q').value); if (!(q > 0)) return avisar(`${l.codigo}: informe a quantidade (ou marque Excluir)`, true);
+        linhas.push({ id:l.id, qtd:q, custo_unit:num(g('cu').value), lote:g('lote').value }); }
+      if (linhas.every(l => l.excluir) && !confirmaDupla(b, 'Excluir a NF toda?')) return;
+      b.disabled = true; b.textContent = 'Salvando…';
+      try { await apiINS('/insumos/nf/editar', { data:$('#en-d').value, nf:$('#en-n').value, fornecedor:$('#en-f').value, pedido:$('#en-p').value, so_custo:$('#en-sc').checked, linhas });
+        dlg.remove(); avisar(linhas.every(l => l.excluir) ? 'NF excluída' : 'NF corrigida'); recarregarIns();
+        const ab = document.querySelector('.pl-modal [data-t]')?.closest('.pl-modal'); if (ab) abrirInsumo({ id:L[0].item_id }, ab); }
+      catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = 'Salvar NF'; }
+    };
+  } catch (e) { if (e instanceof SemSessao) throw e; dlg.innerHTML = `<div class="painel"><div class="erro">${esc(e.message)}</div><button class="btn" data-x>Fechar</button></div>`; dlg.querySelector('[data-x]').onclick = () => dlg.remove(); }
 }
 // NF com vários itens de uma vez (entrada nova ou NF antiga só para custo)
 function formNfIns(){
@@ -12188,11 +12281,12 @@ async function carregarMovsIns(){
     const desenha = () => { const f = semAcento(s.mf || '').toLowerCase(), L = R.movs.filter(m => (!s.mtipo || m.tipo === s.mtipo) && (!f || semAcento(`${m.codigo} ${m.nome} ${m.nf || ''} ${m.pedido || ''} ${m.lote || ''} ${m.fornecedor || ''}`).toLowerCase().includes(f)));
       const ent = L.filter(m => m.tipo === 'entrada'), gasto = ent.reduce((t, m) => t + (m.custo_unit != null ? qtdNfIns(m) * m.custo_unit : 0), 0);
       document.getElementById('im').innerHTML = `<div class="info" style="margin-bottom:6px">${fmtN(L.length)} lançamento(s)${ent.length ? ` · compras com custo: <b>${brlVF(gasto)}</b>` : ''}</div>
-        ${L.length ? `<div class="in-wrap"><table class="in-tab"><thead><tr><th>Data</th><th>Código</th><th>Insumo</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Saldo</th><th class="n">Custo un.</th><th class="n">Total</th><th>NF / fornecedor / pedido / lote / obs.</th><th>Por</th></tr></thead><tbody>
+        ${L.length ? `<div class="in-wrap"><table class="in-tab"><thead><tr><th>Data</th><th>Código</th><th>Insumo</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Saldo</th><th class="n">Custo un.</th><th class="n">Total</th><th>NF / fornecedor / pedido / lote / obs.</th><th>Por</th>${pode('insumos', 'gerir') ? '<th></th>' : ''}</tr></thead><tbody>
           ${L.map(m => `<tr class="lk" data-id="${m.item_id}"><td>${dataBR(m.data)}</td><td class="cod">${esc(m.codigo)}</td><td>${esc(m.nome)}</td><td>${ROT_MOV_INS[m.tipo]}</td>
             <td class="n">${qtdMovIns(m)} ${esc(m.unidade)}</td><td class="n">${fmtQ(m.saldo_depois)}</td>
-            <td class="n">${m.custo_unit != null ? brlIns(m.custo_unit) : ''}</td><td class="n">${m.custo_unit != null ? brlVF(qtdNfIns(m) * m.custo_unit) : ''}</td><td>${esc(docMovIns(m))}</td><td>${esc(m.por || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio" style="padding:16px">Nenhum lançamento no período.</div>'}`;
-      document.querySelectorAll('#im tr[data-id]').forEach(tr => tr.onclick = () => abrirInsumo({ id:+tr.dataset.id }));
+            <td class="n">${m.custo_unit != null ? brlIns(m.custo_unit) : ''}</td><td class="n">${m.custo_unit != null ? brlVF(qtdNfIns(m) * m.custo_unit) : ''}</td><td>${esc(docMovIns(m))}</td><td>${esc(m.por || '')}</td>${pode('insumos', 'gerir') ? `<td><button class="btn" data-edm="${m.id}" title="${m.tipo === 'entrada' && m.nf ? 'Editar a NF inteira' : 'Editar ou excluir o lançamento'}">✎</button></td>` : ''}</tr>`).join('')}</tbody></table></div>` : '<div class="vazio" style="padding:16px">Nenhum lançamento no período.</div>'}`;
+      document.querySelectorAll('#im tr[data-id]').forEach(tr => tr.onclick = ev => { if (ev.target.closest('button')) return; abrirInsumo({ id:+tr.dataset.id }); });
+      document.querySelectorAll('#im [data-edm]').forEach(b => b.onclick = () => editarLancIns(R.movs.find(m => m.id === +b.dataset.edm)));
       $c.querySelector('#im-csv').onclick = () => baixarCsv(`insumos_lancamentos_${s.mde}_${s.mate}.csv`, [['Data', 'Código', 'Insumo', 'Tipo', 'Qtd no estoque', 'Qtd da NF', 'Só custo (NF antiga)', 'Unidade', 'Contado', 'Saldo antes', 'Saldo depois', 'Custo unitário', 'Total', 'NF', 'Fornecedor', 'Pedido do cliente', 'Lote', 'Obs.', 'Por'],
         ...L.map(m => [m.data, m.codigo, m.nome, ROT_MOV_INS[m.tipo], m.qtd, m.tipo === 'entrada' ? qtdNfIns(m) : '', m.so_custo ? 'sim' : '', m.unidade, m.contado, m.saldo_antes, m.saldo_depois, m.custo_unit,
           m.custo_unit != null ? Math.round(qtdNfIns(m) * m.custo_unit * 100) / 100 : '', m.nf, m.fornecedor, m.pedido, m.lote, m.obs, m.por])]); };
