@@ -11788,6 +11788,10 @@ const CSS_INS = `
   .in-vid{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block}
   @media (max-width:600px){ .in-cab img,.in-cab .sem{width:84px;height:84px} .in-saldo{font-size:24px} }`;
 const ROT_MOV_INS = { entrada:'Entrada', saida:'Saída', inventario:'Contagem', ajuste:'Ajuste' };
+const qtdNfIns = m => m.qtd_nf != null ? Number(m.qtd_nf) : m.tipo === 'entrada' ? Number(m.qtd) : 0;
+const qtdMovIns = m => m.tipo === 'inventario' ? `contou ${fmtQ(m.contado)}<br><span class="info">${m.qtd > 0 ? '+' : ''}${fmtQ(m.qtd)}</span>`
+  : m.so_custo ? `${fmtQ(qtdNfIns(m))}<br><span class="in-tag cinza" title="NF antiga: só custo, não soma no estoque">só custo</span>` : `${m.qtd > 0 ? '+' : ''}${fmtQ(m.qtd)}`;
+const docMovIns = m => [m.nf && `NF ${m.nf}`, m.fornecedor, m.pedido && `pedido ${m.pedido}`, m.lote && `lote ${m.lote}`, m.obs].filter(Boolean).join(' · ');
 const fmtQ = v => v == null ? '–' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits:3 });
 const brlIns = v => v == null ? '–' : Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL', minimumFractionDigits:2, maximumFractionDigits:4 });
 const urlIns = cod => `${location.origin}${location.pathname}?tela=insumos&ins=${encodeURIComponent(cod)}`;
@@ -11815,7 +11819,7 @@ const DEMO_INS = (() => {
   const it = (id, codigo, nome, categoria, unidade, extra = {}) => ({ id, codigo, nome, categoria, unidade, embalagem:null, fator_compra:null, medidas:null, especificacao:null, fornecedor:null, fornecedor_cod:null, local:null,
     minimo:null, foto_mini:null, foto:null, saldo:0, custo_medio:null, ultimo_custo:null, ultima_entrada:null, ultima_contagem:null, ativo:true, ...extra });
   const I = [
-    it(1, 'INS-0001', 'Etiqueta térmica 100x150 (sem ribbon)', 'Etiquetas', 'rolo', { embalagem:'caixa', fator_compra:10, medidas:'100 x 150 mm · tubete 40 mm · 500 etiquetas/rolo', especificacao:'Térmica direta, não usa ribbon. Para etiqueta de envio dos marketplaces.', fornecedor:'Etiquetas Brasil', local:'Prateleira A1', minimo:20, saldo:34, custo_medio:12.79, ultimo_custo:14, ultima_entrada:addDias(hojeBRT(), -9), ultima_contagem:addDias(hojeBRT(), -20) }),
+    it(1, 'INS-0001', 'Etiqueta térmica 100x150 (sem ribbon)', 'Etiquetas', 'rolo', { embalagem:'caixa', fator_compra:10, fornecedor_cod:'ET-10015-TD', medidas:'100 x 150 mm · tubete 40 mm · 500 etiquetas/rolo', especificacao:'Térmica direta, não usa ribbon. Para etiqueta de envio dos marketplaces.', fornecedor:'Etiquetas Brasil', local:'Prateleira A1', minimo:20, saldo:34, custo_medio:12.79, ultimo_custo:14, ultima_entrada:addDias(hojeBRT(), -9), ultima_contagem:addDias(hojeBRT(), -20) }),
     it(2, 'INS-0002', 'Etiqueta couché 100x50 (com ribbon)', 'Etiquetas', 'rolo', { medidas:'100 x 50 mm · 1.000 etiquetas/rolo', especificacao:'Couché, precisa de ribbon de cera.', fornecedor:'Etiquetas Brasil', local:'Prateleira A1', minimo:10, saldo:6 }),
     it(3, 'INS-0003', 'Ribbon cera 110 mm x 74 m', 'Ribbon', 'rolo', { medidas:'110 mm x 74 m', especificacao:'Cera, face externa', fornecedor:'Ribbon SP', local:'Prateleira A2', minimo:8, saldo:15, custo_medio:9.9 }),
     it(4, 'INS-0004', 'Saco plástico 30x40 transparente', 'Embalagem', 'un', { embalagem:'pacote', fator_compra:1000, medidas:'30 x 40 cm · 0,06 mm', fornecedor:'Embalagens Norte', local:'Prateleira B1', minimo:2000, saldo:4500, custo_medio:.085 }),
@@ -11837,10 +11841,12 @@ async function apiINS(path, corpo){
     if (!v.nome) throw new Error('Informe o nome do insumo');
     if (b.id) { const i = D.I.find(x => x.id === b.id); Object.assign(i, v, b.foto === undefined ? {} : { foto:b.foto, foto_mini:b.foto_mini }); return { ok:true, id:i.id, codigo:i.codigo }; }
     const id = D.seq++, codigo = (b.codigo || `INS-${String(D.I.length + 1).padStart(4, '0')}`).toUpperCase(); D.I.push({ ...DEMO_INS.I[0], ...v, id, codigo, saldo:0, custo_medio:null, ultimo_custo:null, ultima_entrada:null, ultima_contagem:null, ativo:true, foto:b.foto || null, foto_mini:b.foto_mini || null }); return { ok:true, id, codigo }; }
+  if (path === '/insumos/nf') { for (const x of corpo.itens) await apiINS('/insumos/mov', { ...corpo, ...x, tipo:'entrada', itens:undefined }); return { ok:true, lancados:corpo.itens.length }; }
   if (path === '/insumos/mov') { const b = corpo, i = D.I.find(x => x.id === b.item_id), q = +String(b.tipo === 'inventario' ? b.contado : b.qtd).replace(',', '.'), c = b.custo_unit === '' || b.custo_unit == null ? null : +String(b.custo_unit).replace(',', '.');
-    if (!Number.isFinite(q)) throw new Error('Informe a quantidade'); const sa = i.saldo, d = b.tipo === 'entrada' ? q : b.tipo === 'saida' ? -q : q - sa; if (sa + d < 0) throw new Error(`Saída maior que o saldo (${sa})`);
-    const cm = i.custo_medio, cm2 = b.tipo === 'entrada' && c != null ? (cm == null || sa <= 0 ? c : (sa * cm + q * c) / (sa + q)) : cm;
-    D.M.push({ id:D.seq++, item_id:i.id, tipo:b.tipo, data:b.data || hojeBRT(), qtd:d, contado:b.tipo === 'inventario' ? q : null, saldo_antes:sa, saldo_depois:sa + d, custo_unit:c, cm_antes:cm, cm_depois:cm2, nf:b.nf || null, fornecedor:b.fornecedor || null, obs:b.obs || null, feito_em:new Date().toISOString(), por:'demonstracao' });
+    if (!Number.isFinite(q)) throw new Error('Informe a quantidade'); if (b.tipo === 'entrada' && !b.so_custo && i.ultima_contagem && (b.data || hojeBRT()) < i.ultima_contagem) throw new Error(`${i.codigo}: NF anterior à última contagem. Marque "NF antiga: não somar no estoque".`);
+    const sa = i.saldo, d = b.tipo === 'entrada' ? (b.so_custo ? 0 : q) : b.tipo === 'saida' ? -q : q - sa; if (sa + d < 0) throw new Error(`Saída maior que o saldo (${sa})`);
+    const cm = i.custo_medio, cm2 = b.tipo === 'entrada' && c != null ? (b.so_custo ? (cm ?? c) : cm == null || sa <= 0 ? c : (sa * cm + q * c) / (sa + q)) : cm;
+    D.M.push({ id:D.seq++, item_id:i.id, tipo:b.tipo, data:b.data || hojeBRT(), qtd:d, contado:b.tipo === 'inventario' ? q : null, saldo_antes:sa, saldo_depois:sa + d, custo_unit:c, cm_antes:cm, cm_depois:cm2, nf:b.nf || null, fornecedor:b.fornecedor || null, pedido:b.pedido || null, lote:b.lote || null, qtd_nf:b.tipo === 'entrada' ? q : null, so_custo:!!b.so_custo, obs:b.obs || null, feito_em:new Date().toISOString(), por:'demonstracao' });
     Object.assign(i, { saldo:sa + d, custo_medio:cm2 }, b.tipo === 'entrada' ? { ultima_entrada:b.data || hojeBRT(), ultimo_custo:c ?? i.ultimo_custo } : {}, b.tipo === 'inventario' ? { ultima_contagem:b.data || hojeBRT() } : {}); return { ok:true }; }
   if (path === '/insumos/desfazer') { const m = D.M.find(x => x.id === corpo.id), i = D.I.find(x => x.id === m.item_id); D.M.splice(D.M.indexOf(m), 1); Object.assign(i, { saldo:m.saldo_antes, custo_medio:m.cm_antes }); return { ok:true }; }
   if (path.startsWith('/insumos/movs')) { const de = qs.get('de'), ate = qs.get('ate');
@@ -11853,12 +11859,13 @@ function telaInsumos(){
   const s = state.ins ||= { aba:'itens', cat:'', f:'', sit:'', sel:new Set(), mde:addDias(hojeBRT(), -30), mate:hojeBRT(), mtipo:'' };
   const ge = pode('insumos', 'gerir'), leitor = 'BarcodeDetector' in window;
   $app.innerHTML = `<div class="barra"><h2>Gestão - Insumos</h2><span style="flex:1"></span>
-      ${leitor ? '<button class="btn" id="in-qr">📷 Ler QR</button>' : ''}${ge ? '<button class="btn pri" id="in-novo">+ Novo insumo</button>' : ''}</div>
+      ${leitor ? '<button class="btn" id="in-qr">📷 Ler QR</button>' : ''}${pode('insumos', 'editar') ? '<button class="btn" id="in-nf">+ Lançar NF</button>' : ''}${ge ? '<button class="btn pri" id="in-novo">+ Novo insumo</button>' : ''}</div>
     <div class="abas">${[['itens', 'Insumos'], ['movs', 'Lançamentos']].map(([k, t]) => `<button data-ab="${k}" class="${s.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     <div id="in"><div class="carregando">Carregando…</div></div>`;
   $app.querySelectorAll('[data-ab]').forEach(b => b.onclick = () => { s.aba = b.dataset.ab; telaInsumos(); });
   document.getElementById('in-novo')?.addEventListener('click', () => formInsumo());
   document.getElementById('in-qr')?.addEventListener('click', lerQrIns);
+  document.getElementById('in-nf')?.addEventListener('click', async () => { if (!state.insDados) state.insDados = await apiINS('/insumos'); formNfIns(); });
   // veio do QR Code da prateleira: abre o insumo direto
   const cod = params.get('ins'); if (cod && !s.abriuQr) { s.abriuQr = true; history.replaceState(null, '', location.pathname + '?tela=insumos'); abrirInsumo({ codigo:cod }); }
   if (s.aba === 'movs') return carregarMovsIns();
@@ -11878,7 +11885,7 @@ function renderIns(){
   const f = semAcento(s.f || '').toLowerCase();
   const L = D.itens.filter(i => (s.sit === 'inativos' ? !i.ativo : i.ativo) && (!s.cat || (i.categoria || 'Sem categoria') === s.cat)
     && (!s.sit || s.sit === 'inativos' || (s.sit === 'baixo' && baixoIns(i)) || (s.sit === 'semcont' && (!i.ultima_contagem || diasIns(i.ultima_contagem) > 30)) || (s.sit === 'hoje' && i.ultima_contagem === D.hoje))
-    && (!f || semAcento(`${i.codigo} ${i.nome} ${i.medidas || ''} ${i.especificacao || ''} ${i.fornecedor || ''} ${i.local || ''}`).toLowerCase().includes(f)));
+    && (!f || semAcento(`${i.codigo} ${i.nome} ${i.medidas || ''} ${i.especificacao || ''} ${i.fornecedor || ''} ${i.fornecedor_cod || ''} ${i.local || ''}`).toLowerCase().includes(f)));
   const todos = L.length && L.every(i => s.sel.has(i.id));
   $c.innerHTML = `<div class="in-kpis">
       <div class="in-k" data-f=""><span>Insumos ativos</span><b>${fmtN(A.length)}</b><small>${fmtN(cats.length)} categoria(s)</small></div>
@@ -11886,7 +11893,7 @@ function renderIns(){
       <div class="in-k" data-f="hoje"><span>Contados hoje</span><b>${fmtN(hoje)}</b><small>de ${fmtN(A.length)} ativos</small></div>
       <div class="in-k ${semCont.length ? 'alerta' : ''}" data-f="semcont"><span>Sem contagem há +30 dias</span><b>${fmtN(semCont.length)}</b><small>ou nunca contados</small></div>
       <div class="in-k"><span>Valor em estoque</span><b>${brlVF(valor)}</b><small>${semCusto ? `${fmtN(semCusto)} insumo(s) com saldo ainda sem custo` : 'pelo preço médio'}</small></div></div>
-    <div class="in-f"><input id="in-busca" placeholder="Buscar código, nome, medida, fornecedor, local" value="${esc(s.f || '')}" style="flex:1;min-width:220px;max-width:420px">
+    <div class="in-f"><input id="in-busca" placeholder="Buscar código, nome, medida, fornecedor, SKU do fornecedor, local" value="${esc(s.f || '')}" style="flex:1;min-width:220px;max-width:420px">
       <select id="in-cat"><option value="">Todas as categorias</option>${cats.map(c => `<option ${s.cat === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
       <select id="in-sit">${[['', 'Todos os ativos'], ['baixo', 'No mínimo ou abaixo'], ['hoje', 'Contados hoje'], ['semcont', 'Sem contagem há +30 dias'], ['inativos', 'Inativos']].map(([k, t]) => `<option value="${k}" ${s.sit === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <button class="btn" id="in-csv">⇩ CSV</button></div>
@@ -11894,7 +11901,7 @@ function renderIns(){
       ${L.map(i => { const dc = diasIns(i.ultima_contagem);
         return `<tr class="lk ${i.ativo ? '' : 'inat'}" data-id="${i.id}"><td><input type="checkbox" data-ck="${i.id}" ${s.sel.has(i.id) ? 'checked' : ''}></td>
         <td>${i.foto_mini ? `<img class="in-ft" src="${esc(i.foto_mini)}" alt="">` : '<span class="in-ft vazio">▢</span>'}</td><td class="cod">${esc(i.codigo)}</td>
-        <td><b>${esc(i.nome)}</b><br><span class="info">${esc([i.categoria, i.medidas].filter(Boolean).join(' · '))}</span></td><td>${esc(i.local || '')}</td>
+        <td><b>${esc(i.nome)}</b><br><span class="info">${esc([i.categoria, i.medidas, i.fornecedor_cod && `SKU forn. ${i.fornecedor_cod}`].filter(Boolean).join(' · '))}</span></td><td>${esc(i.local || '')}</td>
         <td class="n"><b>${fmtQ(i.saldo)}</b> ${esc(i.unidade)}${baixoIns(i) ? ' <span class="in-tag baixo">mínimo</span>' : ''}</td><td class="n">${i.minimo == null ? '' : fmtQ(i.minimo)}</td>
         <td class="n">${brlIns(i.custo_medio)}</td><td class="n" title="${i.consumo ? `entre ${dataBR(i.consumo.de)} e ${dataBR(i.consumo.ate)}: ${fmtQ(i.consumo.consumo)} ${esc(i.unidade)}` : 'precisa de 2 contagens'}">${i.consumo ? fmtQ(Math.round(i.consumo.por_dia * 10) / 10) : '–'}</td>
         <td>${i.ultima_contagem ? `<span class="in-tag ${dc === 0 ? 'ok' : dc <= 30 ? 'cinza' : 'med'}">${dc === 0 ? 'hoje' : dataBR(i.ultima_contagem)}</span>` : '<span class="in-tag med">nunca</span>'}</td></tr>`; }).join('')}
@@ -11905,7 +11912,7 @@ function renderIns(){
   const bu = $c.querySelector('#in-busca'); bu.oninput = () => { s.f = bu.value; clearTimeout(s.tb); s.tb = setTimeout(() => { re(); const n = document.getElementById('in-busca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); };
   $c.querySelector('#in-cat').onchange = e => { s.cat = e.target.value; re(); };
   $c.querySelector('#in-sit').onchange = e => { s.sit = e.target.value; re(); };
-  $c.querySelector('#in-csv').onclick = () => baixarCsv(`insumos_${D.hoje}.csv`, [['Código', 'Insumo', 'Categoria', 'Unidade', 'Embalagem', 'Qtd por embalagem', 'Medidas', 'Especificação', 'Fornecedor', 'Cód. fornecedor', 'Local', 'Saldo', 'Mínimo', 'Preço médio', 'Último custo', 'Valor em estoque', 'Última entrada', 'Última contagem', 'Consumo/dia', 'Ativo'],
+  $c.querySelector('#in-csv').onclick = () => baixarCsv(`insumos_${D.hoje}.csv`, [['Código', 'Insumo', 'Categoria', 'Unidade', 'Embalagem', 'Qtd por embalagem', 'Medidas', 'Especificação', 'Fornecedor', 'SKU no fornecedor', 'Local', 'Saldo', 'Mínimo', 'Preço médio', 'Último custo', 'Valor em estoque', 'Última entrada', 'Última contagem', 'Consumo/dia', 'Ativo'],
     ...L.map(i => [i.codigo, i.nome, i.categoria, i.unidade, i.embalagem, i.fator_compra, i.medidas, i.especificacao, i.fornecedor, i.fornecedor_cod, i.local, i.saldo, i.minimo, i.custo_medio, i.ultimo_custo,
       i.custo_medio != null ? Math.round(i.saldo * i.custo_medio * 100) / 100 : '', i.ultima_entrada, i.ultima_contagem, i.consumo ? Math.round(i.consumo.por_dia * 100) / 100 : '', i.ativo ? 'sim' : 'não'])]);
   const td = $c.querySelector('#in-todos'); if (td) td.onchange = () => { L.forEach(i => td.checked ? s.sel.add(i.id) : s.sel.delete(i.id)); re(); };
@@ -11939,16 +11946,16 @@ async function abrirInsumo(ref, dlgAnt){
           <div class="info">${i.embalagem && i.fator_compra ? `${esc(i.embalagem)} com ${fmtQ(i.fator_compra)} ${esc(i.unidade)} · ≈ ${fmtQ(Math.floor(i.saldo / i.fator_compra))} ${esc(i.embalagem)}(s) fechada(s) · ` : ''}${i.minimo != null ? `mínimo ${fmtQ(i.minimo)}${baixoIns(i) ? ' <span class="in-tag baixo">comprar</span>' : ''}` : 'sem mínimo definido'}</div></div></div>
       <div class="in-acoes"><button class="pri" data-t="inventario" ${ed && i.ativo ? '' : 'disabled'}>Contar</button><button data-t="entrada" ${ed && i.ativo ? '' : 'disabled'}>+ Entrada</button><button data-t="saida" ${ed && i.ativo && i.saldo > 0 ? '' : 'disabled'}>− Saída</button></div>
       <div class="in-dl">
-        <div><small>Local</small>${esc(i.local || '–')}</div><div><small>Fornecedor prioritário</small>${esc(i.fornecedor || '–')}${i.fornecedor_cod ? ` <span class="info">(cód. ${esc(i.fornecedor_cod)})</span>` : ''}</div>
+        <div><small>Local</small>${esc(i.local || '–')}</div><div><small>Fornecedor prioritário</small>${esc(i.fornecedor || '–')}</div><div><small>SKU no fornecedor</small>${esc(i.fornecedor_cod || '–')}</div>
         <div><small>Preço médio</small>${brlIns(i.custo_medio)}</div><div><small>Último custo</small>${brlIns(i.ultimo_custo)}${i.ultima_entrada ? ` <span class="info">${dataBR(i.ultima_entrada)}</span>` : ''}</div>
         <div><small>Valor em estoque</small>${i.custo_medio != null ? brlVF(i.saldo * i.custo_medio) : '–'}</div><div><small>Última contagem</small>${i.ultima_contagem ? `${dataBR(i.ultima_contagem)}${dc ? ` (há ${dc} d)` : ' (hoje)'}` : 'nunca'}</div>
         <div><small>Consumo médio</small>${cons ? `${fmtQ(Math.round(cons.por_dia * 10) / 10)} ${esc(i.unidade)}/dia${cons.por_dia > 0 ? ` · dura ≈ ${fmtN(Math.floor(i.saldo / cons.por_dia))} dia(s)` : ''}` : '<span class="info">precisa de 2 contagens</span>'}</div>
       </div>
       ${i.especificacao ? `<div style="font-size:13px;margin:6px 0;white-space:pre-wrap"><small class="info" style="font-weight:700;text-transform:uppercase">Especificação</small><br>${esc(i.especificacao)}</div>` : ''}
       <h4 style="margin:12px 0 4px">Lançamentos</h4>
-      ${R.movs.length ? `<div class="in-wrap" style="max-height:34vh"><table class="in-tab"><thead><tr><th>Data</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Saldo</th><th class="n">Custo un.</th><th>NF / obs.</th><th>Por</th><th></th></tr></thead><tbody>
-        ${R.movs.map((m, k) => `<tr><td>${dataBR(m.data)}</td><td>${ROT_MOV_INS[m.tipo]}</td><td class="n">${m.tipo === 'inventario' ? `contou ${fmtQ(m.contado)}<br><span class="info">${m.qtd > 0 ? '+' : ''}${fmtQ(m.qtd)}</span>` : `${m.qtd > 0 ? '+' : ''}${fmtQ(m.qtd)}`}</td><td class="n">${fmtQ(m.saldo_depois)}</td>
-          <td class="n">${m.custo_unit != null ? brlIns(m.custo_unit) : ''}</td><td>${esc([m.nf && `NF ${m.nf}`, m.fornecedor, m.obs].filter(Boolean).join(' · '))}</td><td>${esc(m.por || '')}</td>
+      ${R.movs.length ? `<div class="in-wrap" style="max-height:34vh"><table class="in-tab"><thead><tr><th>Data</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Saldo</th><th class="n">Custo un.</th><th>NF / pedido / lote / obs.</th><th>Por</th><th></th></tr></thead><tbody>
+        ${R.movs.map((m, k) => `<tr><td>${dataBR(m.data)}</td><td>${ROT_MOV_INS[m.tipo]}</td><td class="n">${qtdMovIns(m)}</td><td class="n">${fmtQ(m.saldo_depois)}</td>
+          <td class="n">${m.custo_unit != null ? brlIns(m.custo_unit) : ''}</td><td>${esc(docMovIns(m))}</td><td>${esc(m.por || '')}</td>
           <td>${k === 0 && ge ? `<button class="btn" data-desf="${m.id}" title="Volta o saldo e o preço médio ao que eram">Desfazer</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="info">Nenhum lançamento ainda. Comece pela contagem.</div>'}
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="ia-etq">🏷 Etiqueta QR</button>${ge ? '<button class="btn" id="ia-ed">✎ Editar cadastro</button>' : ''}</div></div>`;
     dlg.querySelector('[data-x]').onclick = fechar;
@@ -11974,8 +11981,10 @@ function lancarInsDialog(i, tipo, dlgItem){
       <div id="lq-tot" class="info" style="font-size:14px"></div>
       ${tipo === 'entrada' ? `<label>Custo por ${esc(i.unidade)} (opcional)<input id="lq-c" inputmode="decimal" placeholder="ex.: 12,50"><small>Sem custo o saldo entra, mas o preço médio não muda. ${emb ? `Se tiver o preço da ${esc(i.embalagem)}, divida por ${fmtQ(i.fator_compra)}.` : ''}</small></label>
         <label>Valor total da linha da NF (opcional)<input id="lq-vt" inputmode="decimal" placeholder="calcula o custo por ${u}"></label>
-        <label>Nº da NF (opcional)<input id="lq-nf" maxlength="40"></label><label>Fornecedor<input id="lq-fo" maxlength="120" value="${esc(i.fornecedor || '')}"></label>` : ''}
-      <label>Data<input id="lq-d" type="date" value="${hojeBRT()}" max="${hojeBRT()}"></label>
+        <label>Nº da NF (opcional)<input id="lq-nf" maxlength="40"></label><label>Fornecedor<input id="lq-fo" maxlength="120" value="${esc(i.fornecedor || '')}"></label>
+        <label>Nº do pedido do cliente (opcional)<input id="lq-pd" maxlength="60" placeholder="como vem na NF"></label><label>Lote (opcional)<input id="lq-lt" maxlength="60"></label>` : ''}
+      <label>Data${tipo === 'entrada' ? ' da NF / entrada' : ''}<input id="lq-d" type="date" value="${hojeBRT()}" max="${hojeBRT()}" ${tipo === 'entrada' ? `min="${addDias(hojeBRT(), -1100)}"` : ''}></label>
+      ${tipo === 'entrada' ? `<label style="flex-direction:row;align-items:flex-start;gap:8px;font-weight:400"><input type="checkbox" id="lq-sc" style="width:auto;margin-top:3px"><span><b>NF antiga: não somar no estoque</b><br><small>Só registra o custo (histórico). Use para NFs de antes da contagem${i.ultima_contagem ? ` de ${dataBR(i.ultima_contagem)}` : ''}: o material já está no saldo contado.</small></span></label>` : ''}
       <label>Observação (opcional)<input id="lq-o" maxlength="300" placeholder="${tipo === 'saida' ? 'ex.: transferência para a loja' : ''}"></label>
     </div>
     <button class="btn pri" id="lq-ok" style="width:100%;padding:12px;font-size:16px">Salvar ${tit.toLowerCase()}</button></div>`;
@@ -11984,6 +11993,9 @@ function lancarInsDialog(i, tipo, dlgItem){
   const atualiza = () => { const t = total(); $('#lq-tot').innerHTML = Number.isFinite(t) && (emb || tipo !== 'inventario') ? `Total: <b>${fmtQ(t)} ${u}</b>` : '';
     const vt = num($('#lq-vt')); if ($('#lq-vt') && $('#lq-vt').value.trim() && t > 0 && Number.isFinite(vt)) $('#lq-c').value = String(Math.round(vt / t * 10000) / 10000).replace('.', ','); };
   ['#lq-emb', '#lq-q', '#lq-vt'].forEach(k => $(k)?.addEventListener('input', atualiza));
+  // NF de antes da última contagem: marca "não somar" sozinho (a contagem já inclui esse material)
+  const sc = $('#lq-sc'), marcaSc = () => { if (sc && i.ultima_contagem) sc.checked = $('#lq-d').value < i.ultima_contagem; };
+  $('#lq-d').addEventListener('change', marcaSc);
   $('[data-x]').onclick = () => dlg.remove(); setTimeout(() => ($('#lq-emb') || $('#lq-q')).focus(), 50);
   $('#lq-ok').onclick = async ev => {
     const b = ev.target, t = total();
@@ -11993,12 +12005,77 @@ function lancarInsDialog(i, tipo, dlgItem){
     b.disabled = true; b.textContent = 'Salvando…';
     try {
       const corpo = { item_id:i.id, tipo, data:$('#lq-d').value, obs:$('#lq-o').value, [tipo === 'inventario' ? 'contado' : 'qtd']:t };
-      if (tipo === 'entrada') Object.assign(corpo, { custo_unit:$('#lq-c').value.trim() || null, nf:$('#lq-nf').value, fornecedor:$('#lq-fo').value });
+      if (tipo === 'entrada') Object.assign(corpo, { custo_unit:$('#lq-c').value.trim() || null, nf:$('#lq-nf').value, fornecedor:$('#lq-fo').value, pedido:$('#lq-pd').value, lote:$('#lq-lt').value, so_custo:$('#lq-sc').checked });
       await apiINS('/insumos/mov', corpo); dlg.remove();
+      if (tipo === 'entrada' && corpo.so_custo) avisar(`NF antiga registrada só como custo (${fmtQ(t)} ${i.unidade} não somam no estoque)`); else
       avisar(tipo === 'inventario' ? `Contagem salva: ${fmtQ(t)} ${i.unidade}${t !== i.saldo ? ` (sistema tinha ${fmtQ(i.saldo)})` : ''}` : `${tit} de ${fmtQ(t)} ${i.unidade} salva`);
       if (dlgItem?.isConnected) abrirInsumo({ id:i.id }, dlgItem); recarregarIns();
     } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = `Salvar ${tit.toLowerCase()}`; }
   };
+}
+// NF com vários itens de uma vez (entrada nova ou NF antiga só para custo)
+function formNfIns(){
+  const D = state.insDados, I = (D?.itens || []).filter(i => i.ativo); if (!I.length) return avisar('Cadastre os insumos antes de lançar NF', true);
+  const forn = [...new Set(I.map(i => i.fornecedor).filter(Boolean))].sort();
+  const dlg = modalIns(980), L = [{}]; let scManual = false;
+  const rotIt = i => `${i.codigo} · ${i.nome}${i.fornecedor_cod ? ` · SKU forn. ${i.fornecedor_cod}` : ''}`, chave = v => String(v || '').trim().toUpperCase();
+  const achar = v => I.find(i => rotIt(i) === v) || I.find(i => i.codigo === chave(v)) || (chave(v) ? I.find(i => chave(i.fornecedor_cod) === chave(v)) : null);
+  const num = v => { v = String(v ?? '').trim(); return v === '' ? null : Number(v.replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); };
+  dlg.innerHTML = `<div class="painel" style="width:min(980px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">Lançar NF</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+    <div class="in-form" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
+      <label>Data da NF<input type="date" id="nf-d" value="${hojeBRT()}" max="${hojeBRT()}" min="${addDias(hojeBRT(), -1100)}"></label>
+      <label>Nº da NF<input id="nf-n" maxlength="40"></label>
+      <label>Fornecedor<input id="nf-f" list="nf-fl" maxlength="120"><datalist id="nf-fl">${forn.map(f => `<option value="${esc(f)}">`).join('')}</datalist></label>
+      <label>Nº do pedido do cliente<input id="nf-p" maxlength="60" placeholder="se vier na NF"></label>
+      <label style="grid-column:1/-1;flex-direction:row;align-items:flex-start;gap:8px;font-weight:400"><input type="checkbox" id="nf-sc" style="width:auto;margin-top:3px"><span><b>NF antiga: não somar no estoque</b> (só histórico de custo)<br><small>Marca sozinho quando a data é anterior à última contagem de algum item da NF. Desmarcado, as quantidades entram no saldo.</small></span></label>
+    </div>
+    <datalist id="nf-its">${I.map(i => `<option value="${esc(rotIt(i))}">`).join('')}</datalist>
+    <div class="in-wrap" style="max-height:46vh"><table class="in-tab"><thead><tr><th style="min-width:210px">Insumo</th><th>Qtd</th><th>Em</th><th>Valor total da linha</th><th>ou custo por un.</th><th>Lote</th><th class="n">Custo/un. controle</th><th></th></tr></thead><tbody id="nf-l"></tbody></table></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px"><button class="btn" id="nf-add">+ Linha</button><span style="flex:1"></span><span id="nf-tot" class="info" style="font-size:14px"></span><button class="btn pri" id="nf-ok">Salvar NF</button></div></div>`;
+  const $ = s => dlg.querySelector(s), tb = $('#nf-l');
+  const custoLinha = l => { const it = achar(l.item), q = num(l.qtd), fat = l.emb && it?.fator_compra ? it.fator_compra : 1, qc = q != null ? q * fat : null;
+    const vt = num(l.vt), cu = num(l.cu); const c = vt != null && qc ? vt / qc : cu != null ? cu / fat : null; return { it, qc, c, total:vt != null ? vt : c != null && qc != null ? c * qc : null }; };
+  let redesenhando = false;
+  const desenha = () => { redesenhando = true;
+    tb.innerHTML = L.map((l, k) => { const it = achar(l.item);
+      return `<tr data-k="${k}"><td><input data-c="item" list="nf-its" value="${esc(l.item || '')}" placeholder="código, nome ou SKU do fornecedor" style="width:100%;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+        <td><input data-c="qtd" inputmode="decimal" value="${esc(l.qtd || '')}" style="width:80px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+        <td><select data-c="emb" style="font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px">${it ? `<option value="">${esc(it.unidade)}</option>${it.embalagem && it.fator_compra ? `<option value="1" ${l.emb ? 'selected' : ''}>${esc(it.embalagem)} (×${fmtQ(it.fator_compra)})</option>` : ''}` : '<option value="">–</option>'}</select></td>
+        <td><input data-c="vt" inputmode="decimal" value="${esc(l.vt || '')}" placeholder="R$" style="width:110px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+        <td><input data-c="cu" inputmode="decimal" value="${esc(l.cu || '')}" placeholder="R$" style="width:100px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+        <td><input data-c="lote" maxlength="60" value="${esc(l.lote || '')}" style="width:100px;font:inherit;padding:6px;border:1px solid var(--line);border-radius:7px"></td>
+        <td class="n" data-cu></td><td><button class="btn" data-del="${k}" title="Tirar a linha">✕</button></td></tr>`; }).join('');
+    tb.querySelectorAll('tr').forEach(tr => { const l = L[+tr.dataset.k];
+      tr.querySelectorAll('[data-c]').forEach(inp => { const ev = inp.tagName === 'SELECT' || inp.dataset.c === 'item' ? 'change' : 'input';
+        inp.addEventListener(ev, () => { if (redesenhando) return; const v = inp.dataset.c === 'emb' ? !!inp.value : inp.value; if (inp.dataset.c === 'item' && l.item === v) return;
+          l[inp.dataset.c] = v; if (inp.dataset.c === 'item') { l.emb = false; desenha(); autoSc(); } else calc(); }); });
+      tr.querySelector('[data-del]').onclick = () => { L.splice(+tr.dataset.k, 1); if (!L.length) L.push({}); desenha(); }; });
+    redesenhando = false; calc();
+  };
+  const calc = () => { let tot = 0, ok = 0;
+    tb.querySelectorAll('tr').forEach(tr => { const x = custoLinha(L[+tr.dataset.k]); tr.querySelector('[data-cu]').textContent = x.c != null && Number.isFinite(x.c) ? `${brlIns(x.c)} / ${x.it?.unidade || 'un'}` : '';
+      if (x.total != null && Number.isFinite(x.total)) { tot += x.total; ok++; } });
+    $('#nf-tot').innerHTML = ok ? `Total da NF (linhas com valor): <b>${brlVF(tot)}</b>` : ''; };
+  const autoSc = () => { if (scManual) return; const d = $('#nf-d').value, ult = L.map(l => achar(l.item)?.ultima_contagem).filter(Boolean); $('#nf-sc').checked = ult.some(u => d < u); };
+  $('#nf-d').onchange = autoSc; $('#nf-sc').onchange = () => scManual = true;
+  $('#nf-add').onclick = () => { L.push({}); desenha(); tb.querySelector('tr:last-child [data-c=item]').focus(); };
+  $('[data-x]').onclick = () => dlg.remove();
+  $('#nf-ok').onclick = async ev => {
+    const b = ev.target, linhas = L.filter(l => (l.item || '').trim() || (l.qtd || '').trim());
+    if (!linhas.length) return avisar('Inclua ao menos um item', true);
+    const itens = [];
+    for (const [k, l] of linhas.entries()) { const x = custoLinha(l);
+      if (!x.it) return avisar(`Linha ${k + 1}: escolha um insumo da lista`, true);
+      if (!(x.qc > 0)) return avisar(`Linha ${k + 1}: informe a quantidade`, true);
+      if (x.c != null && !(Number.isFinite(x.c) && x.c >= 0)) return avisar(`Linha ${k + 1}: valor inválido`, true);
+      itens.push({ item_id:x.it.id, qtd:Math.round(x.qc * 1000) / 1000, custo_unit:x.c == null ? null : Math.round(x.c * 10000) / 10000, lote:l.lote || null }); }
+    b.disabled = true; b.textContent = 'Salvando…';
+    try { const sc = $('#nf-sc').checked;
+      await apiINS('/insumos/nf', { data:$('#nf-d').value, nf:$('#nf-n').value, fornecedor:$('#nf-f').value, pedido:$('#nf-p').value, so_custo:sc, itens });
+      dlg.remove(); avisar(`NF salva: ${itens.length} item(ns)${sc ? ' só como custo (não somou no estoque)' : ''}`); recarregarIns(); }
+    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = 'Salvar NF'; }
+  };
+  desenha(); setTimeout(() => $('#nf-n').focus(), 50);
 }
 // cadastro (gerir)
 function formInsumo(i){
@@ -12022,7 +12099,7 @@ function formInsumo(i){
       <label class="l2">Medidas<input id="fi-med" maxlength="200" value="${v('medidas')}" placeholder="ex.: 100 x 150 mm · tubete 40 mm · 500 etiquetas/rolo"></label>
       <label class="l2">Especificação<textarea id="fi-esp" rows="3" maxlength="1000" placeholder="ex.: térmica direta, não usa ribbon; adesivo permanente; para Zebra ZD220">${v('especificacao')}</textarea></label>
       <label>Fornecedor prioritário<input id="fi-for" maxlength="120" value="${v('fornecedor')}"></label>
-      <label>Código no fornecedor<input id="fi-fcod" maxlength="60" value="${v('fornecedor_cod')}"></label>
+      <label>SKU / código do item no fornecedor<input id="fi-fcod" maxlength="60" value="${v('fornecedor_cod')}" placeholder="como vem na NF do fornecedor"><small>Ajuda a achar o item ao lançar a NF</small></label>
       ${novo ? '' : `<label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="fi-at" ${i.ativo ? 'checked' : ''} style="width:auto"> Ativo</label>`}
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn pri" id="fi-ok">${novo ? 'Cadastrar' : 'Salvar'}</button></div></div>`;
@@ -12103,21 +12180,22 @@ async function carregarMovsIns(){
   const s = state.ins, $c = document.getElementById('in'); if (!$c) return;
   $c.innerHTML = `<div class="in-f"><label class="info">De <input type="date" id="im-de" value="${s.mde}"></label><label class="info">até <input type="date" id="im-ate" value="${s.mate}"></label>
       <select id="im-t"><option value="">Todos os tipos</option>${Object.entries(ROT_MOV_INS).filter(([k]) => k !== 'ajuste').map(([k, t]) => `<option value="${k}" ${s.mtipo === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-      <input id="im-b" placeholder="Filtrar insumo" value="${esc(s.mf || '')}"><button class="btn" id="im-csv">⇩ CSV</button></div><div id="im"><div class="carregando">Carregando…</div></div>`;
+      <input id="im-b" placeholder="Filtrar insumo, NF, pedido, lote" value="${esc(s.mf || '')}"><button class="btn" id="im-csv">⇩ CSV</button></div><div id="im"><div class="carregando">Carregando…</div></div>`;
   const ir = () => { s.mde = $c.querySelector('#im-de').value || s.mde; s.mate = $c.querySelector('#im-ate').value || s.mate; carregarMovsIns(); };
   $c.querySelector('#im-de').onchange = ir; $c.querySelector('#im-ate').onchange = ir;
   try {
     const R = await apiINS(`/insumos/movs?de=${s.mde}&ate=${s.mate}`); if (state.ins.aba !== 'movs') return;
-    const desenha = () => { const f = semAcento(s.mf || '').toLowerCase(), L = R.movs.filter(m => (!s.mtipo || m.tipo === s.mtipo) && (!f || semAcento(`${m.codigo} ${m.nome} ${m.nf || ''}`).toLowerCase().includes(f)));
-      const ent = L.filter(m => m.tipo === 'entrada'), gasto = ent.reduce((t, m) => t + (m.custo_unit != null ? m.qtd * m.custo_unit : 0), 0);
+    const desenha = () => { const f = semAcento(s.mf || '').toLowerCase(), L = R.movs.filter(m => (!s.mtipo || m.tipo === s.mtipo) && (!f || semAcento(`${m.codigo} ${m.nome} ${m.nf || ''} ${m.pedido || ''} ${m.lote || ''} ${m.fornecedor || ''}`).toLowerCase().includes(f)));
+      const ent = L.filter(m => m.tipo === 'entrada'), gasto = ent.reduce((t, m) => t + (m.custo_unit != null ? qtdNfIns(m) * m.custo_unit : 0), 0);
       document.getElementById('im').innerHTML = `<div class="info" style="margin-bottom:6px">${fmtN(L.length)} lançamento(s)${ent.length ? ` · compras com custo: <b>${brlVF(gasto)}</b>` : ''}</div>
-        ${L.length ? `<div class="in-wrap"><table class="in-tab"><thead><tr><th>Data</th><th>Código</th><th>Insumo</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Saldo</th><th class="n">Custo un.</th><th class="n">Total</th><th>NF / fornecedor / obs.</th><th>Por</th></tr></thead><tbody>
+        ${L.length ? `<div class="in-wrap"><table class="in-tab"><thead><tr><th>Data</th><th>Código</th><th>Insumo</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Saldo</th><th class="n">Custo un.</th><th class="n">Total</th><th>NF / fornecedor / pedido / lote / obs.</th><th>Por</th></tr></thead><tbody>
           ${L.map(m => `<tr class="lk" data-id="${m.item_id}"><td>${dataBR(m.data)}</td><td class="cod">${esc(m.codigo)}</td><td>${esc(m.nome)}</td><td>${ROT_MOV_INS[m.tipo]}</td>
-            <td class="n">${m.tipo === 'inventario' ? `contou ${fmtQ(m.contado)} (${m.qtd > 0 ? '+' : ''}${fmtQ(m.qtd)})` : `${m.qtd > 0 ? '+' : ''}${fmtQ(m.qtd)}`} ${esc(m.unidade)}</td><td class="n">${fmtQ(m.saldo_depois)}</td>
-            <td class="n">${m.custo_unit != null ? brlIns(m.custo_unit) : ''}</td><td class="n">${m.custo_unit != null ? brlVF(m.qtd * m.custo_unit) : ''}</td><td>${esc([m.nf && `NF ${m.nf}`, m.fornecedor, m.obs].filter(Boolean).join(' · '))}</td><td>${esc(m.por || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio" style="padding:16px">Nenhum lançamento no período.</div>'}`;
+            <td class="n">${qtdMovIns(m)} ${esc(m.unidade)}</td><td class="n">${fmtQ(m.saldo_depois)}</td>
+            <td class="n">${m.custo_unit != null ? brlIns(m.custo_unit) : ''}</td><td class="n">${m.custo_unit != null ? brlVF(qtdNfIns(m) * m.custo_unit) : ''}</td><td>${esc(docMovIns(m))}</td><td>${esc(m.por || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio" style="padding:16px">Nenhum lançamento no período.</div>'}`;
       document.querySelectorAll('#im tr[data-id]').forEach(tr => tr.onclick = () => abrirInsumo({ id:+tr.dataset.id }));
-      $c.querySelector('#im-csv').onclick = () => baixarCsv(`insumos_lancamentos_${s.mde}_${s.mate}.csv`, [['Data', 'Código', 'Insumo', 'Tipo', 'Qtd', 'Unidade', 'Contado', 'Saldo antes', 'Saldo depois', 'Custo unitário', 'Total', 'NF', 'Fornecedor', 'Obs.', 'Por'],
-        ...L.map(m => [m.data, m.codigo, m.nome, ROT_MOV_INS[m.tipo], m.qtd, m.unidade, m.contado, m.saldo_antes, m.saldo_depois, m.custo_unit, m.custo_unit != null ? Math.round(m.qtd * m.custo_unit * 100) / 100 : '', m.nf, m.fornecedor, m.obs, m.por])]); };
+      $c.querySelector('#im-csv').onclick = () => baixarCsv(`insumos_lancamentos_${s.mde}_${s.mate}.csv`, [['Data', 'Código', 'Insumo', 'Tipo', 'Qtd no estoque', 'Qtd da NF', 'Só custo (NF antiga)', 'Unidade', 'Contado', 'Saldo antes', 'Saldo depois', 'Custo unitário', 'Total', 'NF', 'Fornecedor', 'Pedido do cliente', 'Lote', 'Obs.', 'Por'],
+        ...L.map(m => [m.data, m.codigo, m.nome, ROT_MOV_INS[m.tipo], m.qtd, m.tipo === 'entrada' ? qtdNfIns(m) : '', m.so_custo ? 'sim' : '', m.unidade, m.contado, m.saldo_antes, m.saldo_depois, m.custo_unit,
+          m.custo_unit != null ? Math.round(qtdNfIns(m) * m.custo_unit * 100) / 100 : '', m.nf, m.fornecedor, m.pedido, m.lote, m.obs, m.por])]); };
     $c.querySelector('#im-t').onchange = e => { s.mtipo = e.target.value; desenha(); };
     $c.querySelector('#im-b').oninput = e => { s.mf = e.target.value; desenha(); };
     desenha();
