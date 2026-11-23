@@ -12178,6 +12178,7 @@ const DEMO_EST = (() => {
   const em = new Date(Date.now() - 5.5 * 3.6e6).toISOString(), inv = [];
   ['AR2-BL4-RUA1-P1-A1', 'AR2-BL4-RUA1-P2-A1', 'AR2-BL4-RUA1-P3-A2'].forEach((p, k) => inv.push({ id:k + 1, pos:p, data_inv:addDias(hojeBRT(), -(k * 40 + 3)), feito_em:new Date(Date.now() - (k * 40 + 3) * 864e5).toISOString(), feito_por:'lider@valenro', pares:20, skus:4, obs:null }));
   return { L, em, inv, seq:10 }; })();
+const nomeDemoEST = login => ({ 'ana.lima@valenro':'Ana Lima', 'bruno.costa@valenro':'Bruno Costa', 'carla.nunes@valenro':'Carla Nunes', 'diego.alves@valenro':'Diego Alves', 'fernanda.rocha@valenro':'Fernanda Rocha' })[login] || null;
 async function apiEST(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   await new Promise(r => setTimeout(r, 120));
@@ -12188,16 +12189,16 @@ async function apiEST(path, corpo){
   if (path.startsWith('/estoque/enderecos')) { const P = corpo.posicoes;
     return { estoques:est, linhas:L.filter(x => P.includes(x.pos)).sort((a, b) => cmpEnd(a.pos, b.pos) || a.sku.localeCompare(b.sku)), historico:D.inv.filter(h => P.includes(h.pos)).sort((a, b) => b.data_inv.localeCompare(a.data_inv)) }; }
   if (path.startsWith('/estoque/inventarios')) { const de = qs.get('de'), ate = qs.get('ate');
-    return { de, ate, linhas:D.inv.filter(h => h.data_inv >= de && h.data_inv <= ate).map(h => ({ ...h, lojas:['DIGOS'], lote:h.lote || `l${h.id}`, inventariado_pessoa_id:h.pid || null, itens:undefined })) }; }
+    return { de, ate, linhas:D.inv.filter(h => h.data_inv >= de && h.data_inv <= ate).map(h => ({ ...h, lojas:['DIGOS'], lote:h.lote || `l${h.id}`, inventariado_login:h.pid || null, itens:undefined })) }; }
   if (path === '/estoque/inventario/editar') { const P = ['Ana Lima', 'Bruno Costa', 'Carla Nunes', 'Diego Alves', 'Fernanda Rocha'];
-    D.inv.filter(h => corpo.ids.includes(h.id)).forEach(h => { if (corpo.data) h.data_inv = corpo.data; if (corpo.pessoa_id) { h.inventariado_por = P[corpo.pessoa_id - 1]; h.pid = corpo.pessoa_id; } }); return { ok:true }; }
+    D.inv.filter(h => corpo.ids.includes(h.id)).forEach(h => { if (corpo.data) h.data_inv = corpo.data; if (corpo.pessoa) { h.inventariado_por = nomeDemoEST(corpo.pessoa); h.pid = corpo.pessoa; } }); return { ok:true }; }
   if (path === '/estoque/inventario/excluir') { D.inv = D.inv.filter(h => !corpo.ids.includes(h.id)); return { ok:true }; }
   if (path === '/estoque/inventario/itens') return { registros:D.inv.filter(h => corpo.ids.includes(h.id)).map(h => ({ id:h.id, pos:h.pos, lojas:['DIGOS'], data_inv:h.data_inv, inventariado_por:h.inventariado_por, estoque_em:D.em,
     itens:h.itens || D.L.filter(x => x.pos === h.pos).map(x => ({ loja:x.loja, sku:x.sku, produto:x.produto, q:x.q })) })) };
   if (path.startsWith('/estoque/inventario')) { const lote = 'l' + Date.now(); corpo.posicoes.forEach(p => { const I = L.filter(x => x.pos === p);
-      D.inv.push({ id:D.seq++, pos:p, lote, pid:corpo.pessoa_id, itens:I.map(x => ({ loja:x.loja, sku:x.sku, produto:x.produto, q:x.q })), data_inv:corpo.data, inventariado_por:['Ana Lima', 'Bruno Costa', 'Carla Nunes', 'Diego Alves', 'Fernanda Rocha'][corpo.pessoa_id - 1] || null, feito_em:new Date().toISOString(), feito_por:'demonstracao', pares:I.reduce((t, x) => t + x.q, 0), skus:I.length, obs:corpo.obs || null }); });
+      D.inv.push({ id:D.seq++, pos:p, lote, pid:corpo.pessoa, itens:I.map(x => ({ loja:x.loja, sku:x.sku, produto:x.produto, q:x.q })), data_inv:corpo.data, inventariado_por:nomeDemoEST(corpo.pessoa), feito_em:new Date().toISOString(), feito_por:'demonstracao', pares:I.reduce((t, x) => t + x.q, 0), skus:I.length, obs:corpo.obs || null }); });
     return { ok:true, registrados:corpo.posicoes.length }; }
-  const pessoas = [['Ana Lima', 'Logística'], ['Bruno Costa', 'Logística'], ['Carla Nunes', 'Logística'], ['Diego Alves', 'Logística'], ['Fernanda Rocha', 'Comercial']].map(([nome, area], k) => ({ id:k + 1, nome, area }));
+  const pessoas = ['Ana Lima', 'Bruno Costa', 'Carla Nunes', 'Diego Alves', 'Fernanda Rocha'].map(nome => ({ id:semAcento(nome).toLowerCase().replace(' ', '.') + '@valenro', nome }));
   const E = {}; L.forEach(x => { const e = E[x.loja + '|' + x.pos] ||= { loja:x.loja, pos:x.pos, pares:0, skus:0, negativos:0 }; e.pares += x.q; e.skus++; if (x.q < 0) e.negativos++; });
   const inv = {}; [...D.inv].sort((a, b) => (a.data_inv || '').localeCompare(b.data_inv || '') || a.feito_em.localeCompare(b.feito_em)).forEach(h => inv[h.pos] = { em:h.data_inv, por:h.inventariado_por || h.feito_por });
   return { hoje:hojeBRT(), lojas, estoques:est, totais:lojas.map(l => ({ loja:l, skus:new Set(L.filter(x => x.loja === l && x.q > 0).map(x => x.sku)).size, pares:L.filter(x => x.loja === l && x.q > 0).reduce((t, x) => t + x.q, 0) })),
@@ -12353,9 +12354,8 @@ function imprimirEnderecosEST(P){
     <div class="info">${fmtN(nPr)} prédio(s) · ${fmtN(P.length)} endereço(s). A ficha mostra o estoque do Seenc no endereço, depois do inventário, com a data, para prender na frente do prédio/palete.</div>
     <div class="es-op">
       <span>Data do inventário (feito no Seenc)<input type="date" id="ei-data" value="${o.data}" max="${hojeBRT()}" min="${addDias(hojeBRT(), -60)}"></span>
-      <span>Inventariado por <select id="ei-quem"><option value="">Escolha a pessoa…</option>${(() => { const PS = D?.pessoas || [], ar = [...new Set(PS.map(p => p.area || 'Sem área'))];
-        return ar.map(a => `<optgroup label="${esc(a)}">${PS.filter(p => (p.area || 'Sem área') === a).map(p => `<option value="${p.id}" ${o.quemId === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</optgroup>`).join(''); })()}</select>
-        <small>Só pessoas ativas do cadastro da equipe (Gestão do time › One-on-One). Não achou? Cadastre lá.</small></span>
+      <span>Inventariado por <select id="ei-quem"><option value="">Escolha a pessoa…</option>${(D?.pessoas || []).map(p => `<option value="${esc(p.id)}" ${o.quemId === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select>
+        <small>Usuários ativos de Pessoas e acessos (Administração). Não achou ou o nome está errado? Ajuste lá.</small></span>
       <span>Uma ficha por <select id="ei-por"><option value="predio" ${o.por === 'predio' ? 'selected' : ''}>Prédio / palete (todos os andares juntos)</option><option value="endereco" ${o.por === 'endereco' ? 'selected' : ''}>Endereço (cada andar)</option></select></span>
       ${pe ? `<label><input type="checkbox" id="ei-reg" ${o.registrar ? 'checked' : ''}><span>Registrar no portal como inventariado nesta data<br><small>Fica no histórico e marca o prédio como inventariado na tela.</small></span></label>` : ''}
     </div>
@@ -12363,13 +12363,13 @@ function imprimirEnderecosEST(P){
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn pri" id="ei-ok">🖨 Imprimir</button></div></div>`;
   dlg.querySelector('[data-x]').onclick = () => dlg.remove();
   dlg.querySelector('#ei-ok').onclick = async ev => {
-    const b = ev.target; o.data = dlg.querySelector('#ei-data').value; o.por = dlg.querySelector('#ei-por').value; o.registrar = !!dlg.querySelector('#ei-reg')?.checked; const qs = dlg.querySelector('#ei-quem'); o.quemId = Number(qs.value) || null; o.quem = o.quemId ? qs.selectedOptions[0].textContent : '';
+    const b = ev.target; o.data = dlg.querySelector('#ei-data').value; o.por = dlg.querySelector('#ei-por').value; o.registrar = !!dlg.querySelector('#ei-reg')?.checked; const qs = dlg.querySelector('#ei-quem'); o.quemId = qs.value || null; o.quem = o.quemId ? qs.selectedOptions[0].textContent : '';
     if (!o.data || o.data > hojeBRT()) return avisar('Informe a data do inventário (hoje ou antes)', true);
     if (!o.quemId) return avisar('Escolha quem fez o inventário', true);
     b.disabled = true; b.textContent = 'Preparando…';
     try {
       const R = await apiEST('/estoque/enderecos', { loja:s.loja, posicoes:P });
-      if (o.registrar) await apiEST('/estoque/inventario', { loja:s.loja, posicoes:P, data:o.data, pessoa_id:o.quemId });
+      if (o.registrar) await apiEST('/estoque/inventario', { loja:s.loja, posicoes:P, data:o.data, pessoa:o.quemId });
       imprimirHtml(fichaInventarioEST(P, R, o)); dlg.remove();
       if (o.registrar) { avisar(`Inventário de ${dataBR(o.data)} registrado em ${fmtN(nPr)} prédio(s)`); P.forEach(p => s.sel.delete(p)); carregarEST(); }
     } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); b.disabled = false; b.textContent = '🖨 Imprimir'; }
@@ -12427,20 +12427,20 @@ function desenhaInventariosEST(){
 }
 function corrigirInventarioEST(xs){
   const D = state.estDados, dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg);
-  const d0 = xs[0].data_inv || String(xs[0].feito_em).slice(0, 10), p0 = xs[0].inventariado_pessoa_id, PS = D?.pessoas || [], ar = [...new Set(PS.map(p => p.area || 'Sem área'))];
+  const d0 = xs[0].data_inv || String(xs[0].feito_em).slice(0, 10), p0 = xs[0].inventariado_login, PS = D?.pessoas || [];
   dlg.innerHTML = `<div class="painel" style="width:min(480px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">Corrigir inventário</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
     <div class="info">${xs.length === 1 ? `Endereço ${esc(curtoEnd(xs[0].pos))}` : `${fmtN(new Set(xs.map(x => predioEST(x.pos))).size)} prédio(s) · ${fmtN(xs.length)} endereço(s) deste registro`}</div>
     <div class="es-op">
       <span>Data do inventário<input type="date" id="ci-d" value="${d0}" max="${hojeBRT()}" min="${addDias(hojeBRT(), -365)}"></span>
-      <span>Inventariado por <select id="ci-p"><option value="">(não alterar)</option>${ar.map(a => `<optgroup label="${esc(a)}">${PS.filter(p => (p.area || 'Sem área') === a).map(p => `<option value="${p.id}" ${p.id === p0 ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</optgroup>`).join('')}</select></span>
+      <span>Inventariado por <select id="ci-p"><option value="">(não alterar${xs[0].inventariado_por ? `: ${esc(xs[0].inventariado_por)}` : ''})</option>${PS.map(p => `<option value="${esc(p.id)}" ${p.id === p0 ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></span>
       <label><input type="checkbox" id="ci-imp" checked><span>Reimprimir a ficha corrigida depois de salvar<br><small>A ficha que está no prédio continua com a data errada até ser trocada.</small></span></label>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn pri" id="ci-ok">Salvar</button></div></div>`;
   dlg.querySelector('[data-x]').onclick = () => dlg.remove(); dlg.onclick = e => { if (e.target === dlg) dlg.remove(); };
   dlg.querySelector('#ci-ok').onclick = async ev => {
-    const b = ev.target, data = dlg.querySelector('#ci-d').value, pid = +dlg.querySelector('#ci-p').value || null, ids = xs.map(x => x.id);
+    const b = ev.target, data = dlg.querySelector('#ci-d').value, pid = dlg.querySelector('#ci-p').value || null, ids = xs.map(x => x.id);
     if (!data || data > hojeBRT()) return avisar('Data inválida', true);
-    const corpo = { ids, data }; if (pid && pid !== p0) corpo.pessoa_id = pid;
+    const corpo = { ids, data }; if (pid && pid !== p0) corpo.pessoa = pid;
     b.disabled = true; b.textContent = 'Salvando…';
     try { await apiEST('/estoque/inventario/editar', corpo); const imp = dlg.querySelector('#ci-imp').checked; dlg.remove(); avisar('Inventário corrigido');
       if (imp) await reimprimirInventarioEST(ids); corpoInventariosEST(); carregarEST(); }
