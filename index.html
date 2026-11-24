@@ -10502,6 +10502,8 @@ const CSS_RS = `
   .rs-c.A{background:#02285a;color:#fff} .rs-c.B{background:#f1c300;color:#02285a} .rs-c.C{background:#e6e9ef;color:#566074} .rs-c.S{background:#fff;border:1px solid #c9cfda;color:#8a93a3}
   .rs-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px;background:#fff}
   .rs-par{border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;margin:0 0 12px}
+  .rs-prem{border-collapse:collapse;font-size:13px;margin:4px 0 6px;min-width:640px} .rs-prem th{font-size:11px;color:var(--mute);text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);background:#f6f7f9;font-weight:700}
+  .rs-prem td{padding:5px 8px;border-bottom:1px solid #eef0f4;color:#1b2333;white-space:nowrap} .rs-prem td input{width:64px!important;text-align:right}
   .rs-par summary{cursor:pointer;font-weight:700} .rs-par .g{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px;align-items:flex-end}
   .rs-par label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mute)} .rs-par input{font:inherit;font-size:13.5px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:90px}
   .rs-par input.lg{width:220px}
@@ -10538,7 +10540,7 @@ function demoRS(loja){
     base_info:{ fonte:'seenc', de:'2026-10-01', ate:hojeBRT(), dias:48, pedidos:11597, pares:14367, skus:2641, carregado_em:new Date(Date.now() - 7.2e5).toISOString() },
     estoque_info:{ linhas:11586, pares:77347, skus:5603, posicoes:671 }, pedidos_api_em:new Date(Date.now() - 6e5).toISOString(), carteira_info:{ pedidos:212, pares:231, de:addDias(hojeBRT(), -7), ate:hojeBRT() }, primeiro_dia:addDias(hojeBRT(), -9), credencial:true, base:'seenc', mes_base:'2026-10', dias_base:31,
     meses_seenc:[{ mes:'2026-10-01', skus:2641, pares:9004, carregado_em:new Date(Date.now() - 864e5 * 3).toISOString(), carregado_por:'lider' }],
-    config:{ areas:[loja === 'DIGOS' ? 'BL4' : 'BL0-R0-P0'], dias_curva:28, corte_a:80, corte_b:95, cobertura_a:2, cobertura_b:1, cobertura_c:1, minimo_sku:1, capacidade_pares:loja === 'DIGOS' ? null : 120,
+    config:{ areas:[loja === 'DIGOS' ? 'BL4' : 'BL0-R0-P0'], dias_curva:28, dias_a:14, dias_b:null, dias_c:60, base_curva:'auto', atualizado_em:new Date(Date.now() - 36e5).toISOString(), atualizado_por:'douglas', corte_a:80, corte_b:95, cobertura_a:2, cobertura_b:1, cobertura_c:1, minimo_sku:1, capacidade_pares:loja === 'DIGOS' ? null : 120,
       mapa:loja === 'DIGOS' ? '1: 1-8\n2: 1-8' : '', cap_andares:loja === 'DIGOS' ? [80, 80, 20] : [] }, ocupacao,
     estoque:{ id:1, origem:'agendada', inicio:new Date(ag - 3.6e6).toISOString(), fim:new Date(ag - 3.4e6).toISOString(), linhas:4821 }, atualizando:null,
     kpi:{ skus_a:14, skus_b:20, ab_cobertos:AB.filter(x => x.na_area >= x.alvo).length, ab_total:AB.length, linhas_repor:L.filter(x => x.repor).length, pares_repor:soma('repor'),
@@ -10622,7 +10624,7 @@ function desenhaRS(){
       <span class="is-chips"><span>Vendas usadas na curva</span>
         <button class="is-chip ${D.base === 'api' ? 'on' : ''}" data-base="api" title="Automático: os pedidos que a Inteligência de Separação busca na Weesu ao longo do dia (${D.dias_com_dado} de ${D.dias} dias com dado)">Pedidos da API · automático · ${D.dias_com_dado} dia(s)${D.pedidos_api_em ? ` · atualizado ${dhRS(D.pedidos_api_em)}` : ''}</button>
         ${(D.meses_seenc || []).length ? (() => { const m = D.meses_seenc[0]; return `<button class="is-chip ${D.base === 'seenc' ? 'on' : ''}" data-base="seenc" title="Manual: relatório Vendas por variação do Seenc (só cross), subido em ⇪ Vendas do Seenc">Relatório do Seenc · manual · ${esc(D.base === 'seenc' && D.mes_base ? mesesRS(D.mes_base) : mesCurtoRS(m.mes))}${m.carregado_em ? ` · importado ${dhRS(m.carregado_em)}` : ''}</button>`; })() : ''}</span>
-      ${D.base === 'api' ? `<span class="is-chips"><span>Período</span>${[14, 28, 60].map(n => `<button class="is-chip ${D.dias === n ? 'on' : ''}" data-dias="${n}">${n} dias</button>`).join('')}</span>` : ''}</div>`;
+      <span class="info">${edita ? 'Clicar troca e salva a fonte. ' : ''}${D.base_salva === 'auto' ? 'Padrão: automático (Seenc enquanto a API tiver menos de 14 dias).' : `Padrão salvo: ${D.base_salva === 'api' ? 'Pedidos da API' : 'Relatório do Seenc'}.`}</span></div>`;
   // o que sustenta a conta: quantos pedidos/pares, de quando a quando, e de que estoque
   const BI = D.base_info || {}, EI = D.estoque_info, CI = D.carteira_info;
   const dBR = d => d ? dataBR(String(d).slice(0, 10)) : '—';
@@ -10651,13 +10653,21 @@ function desenhaRS(){
   const par = edita ? `<details class="rs-par" ${C.areas.length ? '' : 'open'}><summary>⚙ Parâmetros de ${esc(nomeLoja(D.loja))}</summary>
       <div class="g">
         <label>Área de ressuprimento (começo do endereço)<input class="lg" id="rp-areas" value="${esc(C.areas.join(', '))}" placeholder="BL4 ou AR2-BL4"></label>
-        <label>Dias da curva<input id="rp-dias" type="number" min="7" max="90" value="${C.dias_curva}"></label>
-        <label>Corte A (% dos pares)<input id="rp-ca" type="number" min="50" max="95" value="${C.corte_a}"></label>
-        <label>Corte B (% acumulado)<input id="rp-cb" type="number" min="60" max="100" value="${C.corte_b}"></label>
-        <label>Cobertura A (dias)<input id="rp-qa" type="number" step="0.5" min="0.5" max="10" value="${C.cobertura_a}"></label>
-        <label>Cobertura B (dias)<input id="rp-qb" type="number" step="0.5" min="0" max="10" value="${C.cobertura_b}"></label>
-        <label title="Dias de venda da curva C na área (0 = só o mínimo por SKU)">Cobertura C (dias)<input id="rp-qc" type="number" step="0.5" min="0" max="10" value="${C.cobertura_c ?? 0}"></label>
+        <label title="Período de vendas usado para ORDENAR os SKUs e dizer quem é A, B ou C">Janela da classificação ABC (dias)<input id="rp-dias" type="number" min="7" max="120" value="${C.dias_curva}"></label>
         <label title="Pares que TODO SKU com estoque deve ter na área (A, B, C e sem venda), para o picking sair 100% dela. 0 = desliga.">Mínimo por SKU na área (pares)<input id="rp-min" type="number" min="0" max="50" value="${C.minimo_sku ?? 1}"></label>
+        <label>Fonte das vendas<select id="rp-base" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px">${[['auto', 'Automático (Seenc até a API ter 14 dias)'], ['api', 'Pedidos da API'], ['seenc', 'Relatório do Seenc']].map(([k, t]) => `<option value="${k}" ${(C.base_curva || 'auto') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        <div style="flex-basis:100%"></div>
+        <div style="flex-basis:100%;overflow-x:auto"><table class="rs-prem">
+          <thead><tr><th>Curva</th><th>Faixa (% acumulado dos pares vendidos)</th><th>Dias de venda para a média</th><th>Cobertura na área (dias de venda)</th><th>SKUs hoje</th><th>Andar preferido</th></tr></thead>
+          <tbody>
+            <tr><td>${cv('A')}</td><td>até <input id="rp-ca" type="number" min="50" max="95" value="${C.corte_a}"> %</td><td><input id="rp-da" type="number" min="7" max="120" value="${C.dias_a ?? ''}" placeholder="${C.dias_curva}"> dias</td><td><input id="rp-qa" type="number" step="0.5" min="0.5" max="10" value="${C.cobertura_a}"> dias</td><td>${fmtN(K.skus_a)}</td><td>2 → 1 → 3</td></tr>
+            <tr><td>${cv('B')}</td><td>até <input id="rp-cb" type="number" min="60" max="100" value="${C.corte_b}"> %</td><td><input id="rp-db" type="number" min="7" max="120" value="${C.dias_b ?? ''}" placeholder="${C.dias_curva}"> dias</td><td><input id="rp-qb" type="number" step="0.5" min="0" max="10" value="${C.cobertura_b}"> dias</td><td>${fmtN(K.skus_b)}</td><td>1 → 2 → 3</td></tr>
+            <tr><td>${cv('C')}</td><td>o resto (até 100%)</td><td><input id="rp-dc" type="number" min="7" max="120" value="${C.dias_c ?? ''}" placeholder="${C.dias_curva}"> dias</td><td><input id="rp-qc" type="number" step="0.5" min="0" max="10" value="${C.cobertura_c ?? 0}"> dias</td><td>${fmtN(K.skus_c ?? 0)}</td><td>3 → 2 → 1</td></tr>
+            <tr><td>${cv('S')}</td><td>sem venda na janela</td><td>—</td><td>só o mínimo por SKU</td><td>${fmtN(K.skus_s ?? 0)}</td><td>3 → 2 → 1</td></tr>
+          </tbody></table>
+          <div class="info">Dias de venda vazio = usa a janela da classificação (${C.dias_curva} dias). Os dias por curva valem com <b>Pedidos da API</b>; com o relatório do Seenc, todas as curvas usam o período do relatório (mês).
+            ${D.janelas ? ` Agora: ${['A', 'B', 'C'].map(k => `${k} ${D.janelas[k].com_dado} de ${D.janelas[k].dias} dias com venda`).join(' · ')}.` : ''}
+            ${C.atualizado_em ? ` Salvo em ${dhRS(C.atualizado_em)}${C.atualizado_por ? ` por ${esc(C.atualizado_por)}` : ''}.` : ''}</div></div>
         <label>Mapa da área (uma rua por linha, a mais perto da expedição primeiro)<textarea id="rp-mapa" rows="6" placeholder="1: 1-12&#10;2: 1-12" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:200px">${esc(C.mapa || '')}</textarea></label>
         <label>Bloqueios temporários (uma regra por linha)<textarea id="rp-bloq" rows="3" placeholder="R4 # obra&#10;R5 P3&#10;R6 P1-4 A3" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;width:200px">${esc(C.bloqueios || '')}</textarea></label>
         <label>Pares por andar (andar 1, 2, 3…)<input class="lg" id="rp-andares" value="${esc((C.cap_andares || []).join(', '))}" placeholder="80, 80, 20"></label>
@@ -10714,16 +10724,19 @@ function desenhaRS(){
     <div class="rs-tabs">${Object.entries(abas).map(([k, t]) => `<button class="rs-tab ${s.aba === k ? 'on' : ''}" data-aba="${k}">${t}</button>`).join('')}
       <span style="flex:1"></span><button class="btn mini" id="rs-csv">⇩ CSV</button><button class="btn mini" id="rs-imp">🖨 Imprimir lista</button></div>
     <div class="rs-scroll">${corpo}</div>`;
-  $r.querySelectorAll('[data-dias]').forEach(b => b.onclick = () => { s.dias = +b.dataset.dias; carregarRS(); });
-  $r.querySelectorAll('[data-base]').forEach(b => b.onclick = () => { s.base = b.dataset.base; carregarRS(); });
+  // trocar a fonte das vendas: quem edita salva (não se perde); quem só vê, troca só na tela
+  $r.querySelectorAll('[data-base]').forEach(b => b.onclick = async () => {
+    if (edita) { try { await apiRS('/ressuprimento/config/base', { cnpj_id:D.loja, base_curva:b.dataset.base }); s.base = null; avisar(`Fonte das vendas salva: ${b.dataset.base === 'api' ? 'Pedidos da API' : 'Relatório do Seenc'}`); }
+      catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); } } else s.base = b.dataset.base;
+    carregarRS(); });
   $r.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; desenhaRS(); });
   $r.querySelectorAll('[data-feito]').forEach(c => c.onchange = () => { const f = feitosRS(D.loja, D.hoje); c.checked ? f.add(c.dataset.feito) : f.delete(c.dataset.feito); gravaFeitosRS(D.loja, D.hoje, f); c.closest('tr').classList.toggle('feito', c.checked); });
   const bu = document.getElementById('rs-busca'); if (bu) { bu.oninput = () => { s.busca = bu.value; clearTimeout(s.tb); s.tb = setTimeout(() => { desenhaRS(); const n = document.getElementById('rs-busca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); }; }
   const sv = document.getElementById('rp-salvar');
   if (sv) sv.onclick = async () => { const v = id => document.getElementById(id).value;
     sv.disabled = true;
-    try { await apiRS('/ressuprimento/config', { cnpj_id:D.loja, areas:v('rp-areas'), dias_curva:v('rp-dias'), corte_a:v('rp-ca'), corte_b:v('rp-cb'), cobertura_a:v('rp-qa'), cobertura_b:v('rp-qb'), cobertura_c:v('rp-qc'), minimo_sku:v('rp-min'), capacidade_pares:v('rp-cap'), mapa:v('rp-mapa'), bloqueios:v('rp-bloq'), cap_andares:v('rp-andares') });
-      avisar('Parâmetros salvos'); s.dias = null; carregarRS(); }
+    try { await apiRS('/ressuprimento/config', { cnpj_id:D.loja, areas:v('rp-areas'), dias_curva:v('rp-dias'), dias_a:v('rp-da'), dias_b:v('rp-db'), dias_c:v('rp-dc'), base_curva:v('rp-base'), corte_a:v('rp-ca'), corte_b:v('rp-cb'), cobertura_a:v('rp-qa'), cobertura_b:v('rp-qb'), cobertura_c:v('rp-qc'), minimo_sku:v('rp-min'), capacidade_pares:v('rp-cap'), mapa:v('rp-mapa'), bloqueios:v('rp-bloq'), cap_andares:v('rp-andares') });
+      avisar('Parâmetros salvos'); s.dias = null; s.base = null; carregarRS(); }
     catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { sv.disabled = false; } };
   document.getElementById('rs-csv').onclick = () => baixarCsv(`ressuprimento_${D.loja}_${D.hoje}.csv`, [
     ['SKU', 'Produto', 'Cor', 'Tamanho', 'Curva', 'Pares no período', 'Venda/dia', 'Carteira', 'Na área', 'Fora da área', 'Alvo', 'Levar', 'Pegar em', 'Devolver', 'Sem saldo'],
