@@ -10637,7 +10637,7 @@ function desenhaRS(){
       ${H.map(h => { const fimM = addDias(addDias(h.mes + '-28', 5).slice(0, 8) + '01', -1), soApi = apiDe && apiDe <= h.mes + '-01', soSeenc = !apiDe || apiDe > fimM;
         const uso = !h.seenc && !h.api ? '—' : soApi ? (h.api ? 'API' : '—') : soSeenc ? (h.seenc ? 'Seenc' : '<span class="ruim">sem dado</span>') : `Seenc até ${dataBR(addDias(apiDe, -1))} · API depois`;
         return `<tr><td><b>${mesCurtoRS(h.mes + '-01')}</b></td>
-          <td>${h.seenc ? `${fmtN(Math.round(h.seenc.pares))} pares · ${fmtN(h.seenc.skus)} SKUs · ${h.seenc.dias} dia(s)<br><span class="info">importado ${dhRS(h.seenc.carregado_em)}${h.seenc.carregado_por ? ` por ${esc(h.seenc.carregado_por)}` : ''}</span>` : '<span class="info">não carregado</span>'}</td>
+          <td>${h.seenc ? `${fmtN(Math.round(h.seenc.pares))} pares · ${fmtN(h.seenc.skus)} SKUs<br><span class="info">${dataBR(h.mes + '-01')} a ${dataBR(addDias(h.mes + '-01', (h.seenc.dias || 1) - 1))} (${h.seenc.dias} dia(s)) · importado ${dhRS(h.seenc.carregado_em)}${h.seenc.carregado_por ? ` por ${esc(h.seenc.carregado_por)}` : ''}</span>` : '<span class="info">não carregado</span>'}</td>
           <td>${h.api ? `${fmtN(Math.round(h.api.pares))} pares · ${h.api.dias} dia(s) com pedidos<br><span class="info">${dataBR(h.api.de)} a ${dataBR(h.api.ate)}</span>` : '<span class="info">—</span>'}</td><td>${uso}</td></tr>`; }).join('')}
       </tbody></table></div>
       <div class="info">A API guarda os pedidos dos últimos 90 dias e busca o histórico dos últimos 30 toda madrugada. Para meses mais antigos, suba o "Vendas por variação" de cada mês em ⇪ Vendas do Seenc. Os dois relatórios contam de jeito um pouco diferente (o Seenc é só cross; a API exclui Full e cancelados), então confira os pares de um mês que tenha as duas fontes.</div></details>` : '';
@@ -11801,6 +11801,10 @@ const CSS_INS = `
   .in-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin:8px 0} .in-form label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600} .in-form label.l2{grid-column:1/-1}
   .in-form input,.in-form select,.in-form textarea{font:inherit;font-weight:400;font-size:15px;padding:8px 9px;border:1px solid var(--line);border-radius:9px;width:100%;box-sizing:border-box} .in-form small{font-weight:400;color:var(--mute);font-size:11.5px}
   .in-big{font-size:26px!important;font-weight:700!important;text-align:center}
+  .in-g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:12px;margin-bottom:12px}
+  .in-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;min-width:0} .in-box h3{margin:0 0 2px;font-size:14px;color:#02285a}
+  .in-bh{display:grid;grid-template-columns:minmax(90px,160px) 1fr auto;gap:6px 10px;align-items:center;font-size:13px;margin-top:6px} .in-bh>span:first-child,.in-bh>span:nth-child(3n+1){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .in-bh .bar{height:12px;border-radius:4px;background:#eef1f5;overflow:hidden} .in-bh .bar i{display:block;height:100%;border-radius:4px;background:#0b4fa8} .in-bh .v{text-align:right;color:#3c4a5e;white-space:nowrap}
   .in-vid{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block}
   @media (max-width:600px){ .in-cab img,.in-cab .sem{width:84px;height:84px} .in-saldo{font-size:24px} }`;
 const ROT_MOV_INS = { entrada:'Entrada', saida:'Saída', inventario:'Contagem', ajuste:'Ajuste' };
@@ -11886,8 +11890,8 @@ async function apiINS(path, corpo){
       Object.assign(m, { data:corpo.data, nf:corpo.nf, fornecedor:corpo.fornecedor || null, pedido:corpo.pedido || null, so_custo:!!corpo.so_custo, qtd_nf:l.qtd, custo_unit:l.custo_unit, lote:l.lote || null }); }
     ids.forEach(refazer); return { ok:true }; }
   if (path === '/insumos/desfazer') { const m = D.M.find(x => x.id === corpo.id), i = D.I.find(x => x.id === m.item_id); D.M.splice(D.M.indexOf(m), 1); Object.assign(i, { saldo:m.saldo_antes, custo_medio:m.cm_antes }); return { ok:true }; }
-  if (path.startsWith('/insumos/movs')) { const de = qs.get('de'), ate = qs.get('ate');
-    return { movs:D.M.filter(m => m.data >= de && m.data <= ate).map(m => { const i = D.I.find(x => x.id === m.item_id); return { ...m, codigo:i.codigo, nome:i.nome, unidade:i.unidade }; }).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id) }; }
+  if (path.startsWith('/insumos/movs')) { const de = qs.get('de'), ate = qs.get('ate'), tp = qs.get('tipo');
+    return { movs:D.M.filter(m => m.data >= de && m.data <= ate && (!tp || m.tipo === tp)).map(m => { const i = D.I.find(x => x.id === m.item_id); return { ...m, codigo:i.codigo, nome:i.nome, unidade:i.unidade }; }).sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id) }; }
   throw new Error('rota demo');
 }
 
@@ -11897,7 +11901,7 @@ function telaInsumos(){
   const ge = pode('insumos', 'gerir'), leitor = 'BarcodeDetector' in window;
   $app.innerHTML = `<div class="barra"><h2>Gestão - Insumos</h2><span style="flex:1"></span>
       ${leitor ? '<button class="btn" id="in-qr">📷 Ler QR</button>' : ''}${pode('insumos', 'editar') ? '<button class="btn" id="in-nf">+ Lançar NF</button>' : ''}${ge ? '<button class="btn pri" id="in-novo">+ Novo insumo</button>' : ''}</div>
-    <div class="abas">${[['itens', 'Insumos'], ['movs', 'Lançamentos']].map(([k, t]) => `<button data-ab="${k}" class="${s.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div class="abas">${[['itens', 'Insumos'], ['movs', 'Lançamentos'], ['compras', 'Compras']].map(([k, t]) => `<button data-ab="${k}" class="${s.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     <div id="in"><div class="carregando">Carregando…</div></div>`;
   $app.querySelectorAll('[data-ab]').forEach(b => b.onclick = () => { s.aba = b.dataset.ab; telaInsumos(); });
   document.getElementById('in-novo')?.addEventListener('click', () => formInsumo());
@@ -11906,6 +11910,7 @@ function telaInsumos(){
   // veio do QR Code da prateleira: abre o insumo direto
   const cod = params.get('ins'); if (cod && !s.abriuQr) { s.abriuQr = true; history.replaceState(null, '', location.pathname + '?tela=insumos'); abrirInsumo({ codigo:cod }); }
   if (s.aba === 'movs') return carregarMovsIns();
+  if (s.aba === 'compras') return carregarComprasIns();
   carregarIns();
 }
 async function carregarIns(){
@@ -12002,7 +12007,7 @@ async function abrirInsumo(ref, dlgAnt){
     dlg.querySelectorAll('[data-edm]').forEach(b => b.onclick = () => editarLancIns({ ...R.movs[+b.dataset.edm], codigo:i.codigo, unidade:i.unidade }));
   } catch (e) { if (e instanceof SemSessao) throw e; dlg.innerHTML = `<div class="painel"><div class="erro">${esc(e.message)}</div><button class="btn" data-x>Fechar</button></div>`; dlg.querySelector('[data-x]').onclick = fechar; }
 }
-const recarregarIns = () => { if (state.view !== 'insumos') return; state.ins.aba === 'movs' ? carregarMovsIns() : carregarIns(); };
+const recarregarIns = () => { if (state.view !== 'insumos') return; state.ins.aba === 'movs' ? carregarMovsIns() : state.ins.aba === 'compras' ? (state.insDados = null, carregarComprasIns()) : carregarIns(); };
 // entrada / saída / contagem — pensado para o celular, na frente da prateleira
 function lancarInsDialog(i, tipo, dlgItem){
   const dlg = modalIns(460), emb = i.embalagem && i.fator_compra, u = esc(i.unidade);
@@ -12300,6 +12305,75 @@ function etiquetasInsHtml(L, f){
     .cod{font-family:Consolas,monospace;font-weight:700;letter-spacing:.5pt} .nm{font-weight:700;line-height:1.15;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
     .md{color:#222;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden} .rd{color:#444;border-top:0.3mm solid #000;padding-top:1mm;margin-top:0.5mm}
     ${css}</style></head><body>${L.map(et).join('')}</body></html>`;
+}
+// ---------- aba Compras: histórico das entradas (NFs), com cards, gráficos e preço por insumo ----------
+async function carregarComprasIns(){
+  const s = state.ins, $c = document.getElementById('in'); if (!$c) return;
+  s.cde ||= addDias(hojeBRT().slice(0, 8) + '01', -330).slice(0, 8) + '01'; s.cate ||= hojeBRT(); s.cso ??= true;
+  $c.innerHTML = `<div class="in-f"><label class="info">De <input type="date" id="ic-de" value="${s.cde}"></label><label class="info">até <input type="date" id="ic-ate" value="${s.cate}"></label>
+      <select id="ic-for"></select><select id="ic-cat"></select>
+      <label class="info" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="ic-so" ${s.cso ? 'checked' : ''}> incluir NFs antigas (só custo)</label>
+      <button class="btn" id="ic-csv">⇩ CSV</button></div><div id="ic"><div class="carregando">Carregando…</div></div>`;
+  const ir = () => { s.cde = $c.querySelector('#ic-de').value || s.cde; s.cate = $c.querySelector('#ic-ate').value || s.cate; carregarComprasIns(); };
+  $c.querySelector('#ic-de').onchange = ir; $c.querySelector('#ic-ate').onchange = ir;
+  try {
+    if (!state.insDados) state.insDados = await apiINS('/insumos');
+    const R = await apiINS(`/insumos/movs?de=${s.cde}&ate=${s.cate}&tipo=entrada`); if (state.ins.aba !== 'compras') return;
+    s.cR = R.movs.filter(m => m.tipo === 'entrada'); desenhaComprasIns();
+  } catch (e) { if (e instanceof SemSessao) throw e; document.getElementById('ic').innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+function desenhaComprasIns(){
+  const s = state.ins, $c = document.getElementById('in'), I = new Map((state.insDados?.itens || []).map(i => [i.id, i]));
+  const todos = (s.cR || []).map(m => { const i = I.get(m.item_id) || {}; const q = qtdNfIns(m); return { ...m, q, valor:m.custo_unit != null ? q * m.custo_unit : null, categoria:i.categoria || 'Sem categoria', forn:m.fornecedor || 'Sem fornecedor' }; });
+  const forns = [...new Set(todos.map(m => m.forn))].sort(), cats = [...new Set(todos.map(m => m.categoria))].sort();
+  const sf = $c.querySelector('#ic-for'), sc = $c.querySelector('#ic-cat');
+  sf.innerHTML = `<option value="">Todos os fornecedores</option>${forns.map(f => `<option ${s.cfor === f ? 'selected' : ''}>${esc(f)}</option>`).join('')}`;
+  sc.innerHTML = `<option value="">Todas as categorias</option>${cats.map(f => `<option ${s.ccat === f ? 'selected' : ''}>${esc(f)}</option>`).join('')}`;
+  const L = todos.filter(m => (s.cso || !m.so_custo) && (!s.cfor || m.forn === s.cfor) && (!s.ccat || m.categoria === s.ccat));
+  const comV = L.filter(m => m.valor != null), total = comV.reduce((t, m) => t + m.valor, 0);
+  const nfKey = m => `${(m.nf || 's/n ' + m.id).toUpperCase()}|${(m.fornecedor || '').toUpperCase()}`;
+  const NF = new Map(); L.forEach(m => { const k = nfKey(m), g = NF.get(k) || NF.set(k, { nf:m.nf, forn:m.forn, data:m.data, pedido:m.pedido, so:true, itens:[], valor:0, sem:0 }).get(k);
+    g.itens.push(m); g.so &&= !!m.so_custo; if (m.valor != null) g.valor += m.valor; else g.sem++; if (m.data < g.data) g.data = m.data; });
+  const nfs = [...NF.values()].sort((a, b) => b.data.localeCompare(a.data));
+  // por insumo: quantidade, valor, preço mín/médio/máx, último preço e variação no período
+  const P = new Map(); L.forEach(m => { const g = P.get(m.item_id) || P.set(m.item_id, { id:m.item_id, codigo:m.codigo, nome:m.nome, unidade:m.unidade, categoria:m.categoria, q:0, qv:0, valor:0, n:0, precos:[] }).get(m.item_id);
+    g.q += m.q; g.n++; if (m.valor != null) { g.valor += m.valor; g.qv += m.q; g.precos.push({ d:m.data, id:m.id, c:m.custo_unit }); } });
+  const itens = [...P.values()].map(g => { const pr = g.precos.sort((a, b) => a.d.localeCompare(b.d) || a.id - b.id), c = pr.map(x => x.c);
+    return { ...g, min:c.length ? Math.min(...c) : null, max:c.length ? Math.max(...c) : null, medio:g.qv ? g.valor / g.qv : null, ult:pr.at(-1) || null, prim:pr[0] || null,
+      varp:pr.length > 1 && pr[0].c ? (pr.at(-1).c / pr[0].c - 1) * 100 : null }; }).sort((a, b) => b.valor - a.valor);
+  const alta = itens.filter(x => x.varp != null).sort((a, b) => b.varp - a.varp)[0];
+  // gráficos
+  const meses = []; for (let m = s.cde.slice(0, 7); m <= s.cate.slice(0, 7); m = addDias(m + '-28', 5).slice(0, 7)) meses.push(m);
+  const porMes = meses.map(m => comV.filter(x => x.data.slice(0, 7) === m).reduce((t, x) => t + x.valor, 0));
+  const ranking = (chave) => { const M = new Map(); comV.forEach(x => M.set(x[chave], (M.get(x[chave]) || 0) + x.valor)); return [...M.entries()].sort((a, b) => b[1] - a[1]); };
+  const barrasH = (R, n = 8) => { const top = R.slice(0, n), resto = R.slice(n).reduce((t, x) => t + x[1], 0), lin = resto ? [...top, ['Outros', resto]] : top, mx = Math.max(1, ...lin.map(x => x[1]));
+    return lin.length ? `<div class="in-bh">${lin.map(([k, v]) => `<span title="${esc(k)}">${esc(k)}</span><span class="bar"><i style="width:${v / mx * 100}%"></i></span><span class="v">${brlCurtoVF(v)} · ${Math.round(v / (total || 1) * 100)}%</span>`).join('')}</div>` : '<div class="info">Sem compras com valor.</div>'; };
+  const pct = v => `${v > 0 ? '+' : ''}${String(Math.round(v * 10) / 10).replace('.', ',')}%`;
+  document.getElementById('ic').innerHTML = `<div class="in-kpis">
+      <div class="in-k"><span>Total comprado</span><b>${brlVF(total)}</b><small>${fmtN(nfs.length)} NF(s) · ${dataBR(s.cde)} a ${dataBR(s.cate)}</small></div>
+      <div class="in-k"><span>Ticket médio por NF</span><b>${nfs.length ? brlVF(total / nfs.length) : '–'}</b><small>${fmtN(new Set(L.map(m => m.forn)).size)} fornecedor(es)</small></div>
+      <div class="in-k"><span>Insumos comprados</span><b>${fmtN(itens.length)}</b><small>${fmtN(L.length)} linha(s) de NF</small></div>
+      <div class="in-k ${alta && alta.varp > 0 ? 'alerta' : ''}"><span>Maior alta de preço</span><b>${alta ? pct(alta.varp) : '–'}</b><small>${alta ? `${esc(alta.codigo)} · ${brlIns(alta.prim.c)} → ${brlIns(alta.ult.c)}` : 'precisa de 2 compras do mesmo item'}</small></div>
+      ${L.some(m => m.valor == null) ? `<div class="in-k alerta"><span>Linhas sem valor</span><b>${fmtN(L.filter(m => m.valor == null).length)}</b><small>não entram nos totais: corrija o custo na NF</small></div>` : ''}</div>
+    <div class="in-g2">
+      <div class="in-box"><h3>Compras por mês</h3><div class="info">Valor das NFs pela data da NF${s.cso ? ' (inclui NFs antigas)' : ''}</div>${svgBarrasVF(meses, [{ nome:'Comprado', cor:'#0b4fa8', vals:porMes }], { marcar:hojeBRT().slice(0, 7) })}</div>
+      <div class="in-box"><h3>Por fornecedor</h3><div class="info">Participação no valor comprado</div>${barrasH(ranking('forn'))}<h3 style="margin-top:12px">Por categoria</h3>${barrasH(ranking('categoria'), 6)}</div></div>
+    <div class="in-box"><h3>Preço por insumo</h3><div class="info">Preço por unidade de controle. Variação = última compra contra a primeira do período. Clique para abrir o insumo.</div>
+      ${itens.length ? `<div class="in-wrap" style="max-height:52vh"><table class="in-tab"><thead><tr><th>Código</th><th>Insumo</th><th class="n">Comprado</th><th class="n">Compras</th><th class="n">Valor</th><th class="n">Mín.</th><th class="n">Médio</th><th class="n">Máx.</th><th class="n">Último</th><th class="n">Variação</th></tr></thead><tbody>
+        ${itens.map(x => `<tr class="lk" data-id="${x.id}"><td class="cod">${esc(x.codigo)}</td><td>${esc(x.nome)}<br><span class="info">${esc(x.categoria)}</span></td><td class="n">${fmtQ(x.q)} ${esc(x.unidade)}</td><td class="n">${x.n}</td><td class="n">${brlVF(x.valor)}</td>
+          <td class="n">${brlIns(x.min)}</td><td class="n">${brlIns(x.medio)}</td><td class="n">${brlIns(x.max)}</td><td class="n">${x.ult ? `${brlIns(x.ult.c)}<br><span class="info">${dataBR(x.ult.d)}</span>` : '–'}</td>
+          <td class="n" style="${x.varp > 0 ? 'color:#a11d1d;font-weight:700' : x.varp < 0 ? 'color:#1a6b3a;font-weight:700' : ''}">${x.varp == null ? '–' : pct(x.varp)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio" style="padding:16px">Nenhuma compra no período.</div>'}</div>
+    <div class="in-box"><h3>Notas fiscais</h3>
+      ${nfs.length ? `<div class="in-wrap" style="max-height:46vh"><table class="in-tab"><thead><tr><th>Data</th><th>NF</th><th>Fornecedor</th><th>Pedido</th><th class="n">Itens</th><th class="n">Valor</th><th></th></tr></thead><tbody>
+        ${nfs.map((g, k) => `<tr class="${g.nf && pode('insumos', 'gerir') ? 'lk' : ''}" data-nf="${k}"><td>${dataBR(g.data)}</td><td>${esc(g.nf || 's/n')}</td><td>${esc(g.forn)}</td><td>${esc(g.pedido || '')}</td><td class="n">${g.itens.length}</td>
+          <td class="n">${brlVF(g.valor)}${g.sem ? ` <span class="in-tag med" title="linhas sem valor">${g.sem} sem valor</span>` : ''}</td><td>${g.so ? '<span class="in-tag cinza">só custo</span>' : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Nenhuma NF no período.</div>'}</div>`;
+  const re = () => desenhaComprasIns();
+  sf.onchange = () => { s.cfor = sf.value; re(); }; sc.onchange = () => { s.ccat = sc.value; re(); };
+  $c.querySelector('#ic-so').onchange = e => { s.cso = e.target.checked; re(); };
+  $c.querySelector('#ic-csv').onclick = () => baixarCsv(`insumos_compras_${s.cde}_${s.cate}.csv`, [['Código', 'Insumo', 'Categoria', 'Unidade', 'Comprado', 'Compras', 'Valor', 'Preço mín.', 'Preço médio', 'Preço máx.', 'Último preço', 'Data do último', 'Variação %'],
+    ...itens.map(x => [x.codigo, x.nome, x.categoria, x.unidade, x.q, x.n, Math.round(x.valor * 100) / 100, x.min, x.medio == null ? '' : Math.round(x.medio * 10000) / 10000, x.max, x.ult?.c ?? '', x.ult?.d ?? '', x.varp == null ? '' : Math.round(x.varp * 10) / 10])]);
+  document.querySelectorAll('#ic tr[data-id]').forEach(tr => tr.onclick = () => abrirInsumo({ id:+tr.dataset.id }));
+  document.querySelectorAll('#ic tr[data-nf].lk').forEach(tr => tr.onclick = () => { const g = nfs[+tr.dataset.nf]; editarNfInsDialog(g.nf, g.itens[0].fornecedor); });
 }
 // aba Lançamentos
 async function carregarMovsIns(){
