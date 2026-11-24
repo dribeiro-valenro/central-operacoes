@@ -12417,6 +12417,8 @@ const CSS_EST = `
   .es-bl button b{display:block;font-size:15px;color:#02285a} .es-bl button.on{border-color:#02285a;box-shadow:inset 0 0 0 1px #02285a;background:#f3f6fb}
   .es-bl .cob{display:block;height:4px;border-radius:2px;background:#eef1f5;margin-top:4px;overflow:hidden} .es-bl .cob i{display:block;height:100%;background:#0f7b6c}
   .es-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+  .mp-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;overflow-x:auto} .mp-svg{display:block} .mp-svg .pm{cursor:pointer} .mp-svg .pm:hover rect{stroke:#02285a;stroke-width:1.2}
+  .mp-leg{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#3c4a5e;margin:6px 2px} .mp-leg i{display:inline-block;width:13px;height:13px;border-radius:3px;border:1px solid #c9cfda;margin-right:5px;vertical-align:-2px}
   .es-f input,.es-f select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
   .es-tab{width:100%;border-collapse:collapse;font-size:13px;background:#fff} .es-tab th{font-size:11px;color:var(--mute);text-transform:uppercase;text-align:left;padding:6px 7px;border-bottom:1px solid var(--line);background:#f6f7f9;position:sticky;top:0;z-index:1;white-space:nowrap}
   .es-tab td{padding:5px 7px;border-bottom:1px solid #eef0f4;vertical-align:middle} .es-tab td.n,.es-tab th.n{text-align:right} .es-tab td.end{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap}
@@ -12457,12 +12459,43 @@ const DEMO_EST = (() => {
   const em = new Date(Date.now() - 5.5 * 3.6e6).toISOString(), inv = [];
   ['AR2-BL4-RUA1-P1-A1', 'AR2-BL4-RUA1-P2-A1', 'AR2-BL4-RUA1-P3-A2'].forEach((p, k) => inv.push({ id:k + 1, pos:p, data_inv:addDias(hojeBRT(), -(k * 40 + 3)), feito_em:new Date(Date.now() - (k * 40 + 3) * 864e5).toISOString(), feito_por:'lider@valenro', pares:20, skus:4, obs:null }));
   return { L, em, inv, seq:10 }; })();
+// demonstração do mapa: croqui aproximado do Bloco 1 e estoque de mentira
+const DEMO_MAPA = (() => {
+  const r = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const pos = [], st = 12.48;
+  [[2, 'par', 63.5, 51.8, 114, 2, {}], [2, 'impar', 84.5, 89.3, 103, 5, { 43:49.9 }], [1, 'par', 93.5, 101.7, 98, 2, { 40:49.9 }], [1, 'impar', 114.5, 101.7, 87, 7, { 31:112.3, 7:53 }]].forEach(([rua, lado, y, x0, ini, fim, gap]) => {
+    let x = x0; for (let p = ini; p >= fim; p -= 2) { if (gap[p]) x += gap[p]; pos.push({ rua, predio:p, x:Math.round(x * 10) / 10, y, w:12.4, h:7.2, lado }); x += st; } });
+  pos.push({ rua:2, predio:1, x:786.5, y:64, w:13, h:37, lado:'impar', vertical:true, vagas:4 }, { rua:2, predio:3, x:767, y:85, w:11, h:16, lado:'impar', vertical:true }, { rua:1, predio:1, x:789, y:108, w:11, h:14, lado:'impar', vertical:true, vagas:2 });
+  const desenho = { largura:810, altura:132, contorno:[20, 59, 787, 66], entrada:{ x:488.5 }, posicoes:pos,
+    ruas:[{ nome:'RUA 2', x:207, y:73.5, w:120, h:8 }, { nome:'RUA 2', x:640, y:73.5, w:120, h:8 }, { nome:'RUA 1', x:206, y:103.5, w:120, h:8 }, { nome:'RUA 1', x:640, y:103.5, w:120, h:8 }],
+    portas:[{ nome:'ENTRADA BLOCO 1', x:469, y:122, w:40, h:6, principal:true }, { nome:'', x:713, y:122, w:12, h:6 }] };
+  const P = [['5338-211', 'Bota Moleca 5338-211'], ['5561-101', 'Sandália Moleca 5561-101'], ['2740-201', 'Tênis Molekinha 2740-201'], ['1320-696', 'Tênis Fila Vortex'], ['7226-102', 'Tamanco Modare 7226-102'],
+    ['T1038-547', 'Sandália Bebecê T1038-547'], ['2164-143', 'Bota Molekinha 2164-143'], ['6531-100', 'Sapatilha Moleca 6531-100'], ['N0478-100', 'Scarpin Vizzano N0478-100'], ['1230-112', 'Sandália Vizzano 1230-112'],
+    ['4290-110', 'Chinelo Beira Rio 4290-110'], ['4307-121', 'Tênis Actvitta 4307-121'], ['2907-200', 'Tênis Kidy 2907-200'], ['K3305', 'Tênis Via Marte K3305'], ['8460-201', 'Mule Ramarim 8460-201']];
+  const linhas = [];
+  pos.forEach((p, i) => { if (r(i, 9) < .12) return; const end = `AR2-BL1-RUA${p.rua}-P${p.predio}-A1`, n = 1 + Math.floor(r(i, 1) * 3);
+    for (let k = 0; k < n; k++) { const m = P[Math.floor(r(i, k + 2) * P.length)], cor = ['PT', 'BC', 'NU'][Math.floor(r(i, k + 5) * 3)];
+      for (let t = 33; t <= 39; t++) if (r(i * 7 + k, t) > .25) linhas.push({ pos:end, sku:`${m[0]}-${cor}-${t}`, produto:m[1], q:2 + Math.floor(r(i + k, t) * 22) }); } });
+  linhas.push({ pos:'AR2-BL1-RUA3-P4-A1', sku:'5338-211-PT-36', produto:'Bota Moleca 5338-211', q:40 });
+  const por_sku = {}; linhas.forEach((l, i) => { const v = Math.floor(r(i, 33) ** 3 * 40); if (v) por_sku[l.sku] = (por_sku[l.sku] || 0) + v; });
+  const inventarios = {}; pos.forEach((p, i) => { if (r(i, 41) < .4) inventarios[`AR2-BL1-RUA${p.rua}-P${p.predio}-A1`] = { em:addDias(hojeBRT(), -Math.floor(r(i, 42) * 150)), por:'Ana Lima' }; });
+  return { layout:{ bloco:'1', nome:'Bloco 1', cnpj_id:'DIGOS', cap_padrao:360, desenho }, linhas, por_sku, inventarios, bloqueios:[{ id:1, rua:1, predio:61, motivo:'infiltração', desde:addDias(hojeBRT(), -3), por:'douglas' }], marcas:{}, seq:2 };
+})();
+function demoMapaEST(path, corpo){
+  const D = DEMO_MAPA;
+  if (path === '/estoque/bloqueio') { (corpo.predios || []).forEach(p => { if (!D.bloqueios.some(b => b.rua === corpo.rua && b.predio === p)) D.bloqueios.push({ id:D.seq++, rua:corpo.rua, predio:p, motivo:corpo.motivo, desde:hojeBRT(), por:'demonstracao' }); }); return { ok:true }; }
+  if (path === '/estoque/bloqueio/liberar') { D.bloqueios = D.bloqueios.filter(b => !corpo.ids.includes(b.id)); return { ok:true }; }
+  if (path === '/estoque/marca') { if (corpo.marca) D.marcas[corpo.pai] = corpo.marca; else delete D.marcas[corpo.pai]; return { ok:true }; }
+  return { hoje:hojeBRT(), bloco:'1', blocos:[{ bloco:'1', nome:'Bloco 1' }], layout:D.layout, estoque:{ em:DEMO_EST.em, origem:'agendada' }, linhas:D.linhas,
+    vendas:{ dias:28, de:addDias(hojeBRT(), -28), ate:addDias(hojeBRT(), -1), por_sku:D.por_sku }, bloqueios:[...D.bloqueios], marcas:{ ...D.marcas }, inventarios:D.inventarios };
+}
 const nomeDemoEST = login => ({ 'ana.lima@valenro':'Ana Lima', 'bruno.costa@valenro':'Bruno Costa', 'carla.nunes@valenro':'Carla Nunes', 'diego.alves@valenro':'Diego Alves', 'fernanda.rocha@valenro':'Fernanda Rocha' })[login] || null;
 async function apiEST(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
   if (path.startsWith('/ressuprimento/estoque')) return { ok:true, lojas:(corpo.lojas || []).map(l => ({ loja:l, status:'parcial', ate:3000, total:4821 })) };
   if (path.startsWith('/ressuprimento/arquivo')) { DEMO_EST.em = new Date().toISOString(); return { ok:true, sync_id:9, gravadas:corpo.linhas.length }; }
   await new Promise(r => setTimeout(r, 120));
+  if (path.startsWith('/estoque/mapa') || path.startsWith('/estoque/bloqueio') || path === '/estoque/marca') return demoMapaEST(path.split('?')[0], corpo);
   const D = DEMO_EST, qs = new URLSearchParams(path.split('?')[1] || ''), loja = (qs.get('loja') || corpo?.loja || 'todas').toUpperCase();
   const lojas = loja === 'TODAS' ? ORDEM_LOJAS : [loja], L = D.L.filter(x => lojas.includes(x.loja)), est = lojas.map(l => ({ loja:l, em:D.em, origem:l === 'DIGOS' ? 'agendada' : 'arquivo' }));
   if (path.startsWith('/estoque/busca')) { const q = (qs.get('q') || '').toUpperCase(); if (q.length < 3) throw new Error('Digite pelo menos 3 caracteres (SKU, EAN, nome ou endereço)');
@@ -12528,13 +12561,13 @@ function renderEST(){
       ${neg ? `<div class="es-k alerta"><span>Saldo negativo</span><b>${fmtN(neg)}</b><small>endereço(s) com SKU negativo: corrigir no Seenc</small></div>` : ''}</div>
     <div class="es-bl">${blocos.map(b => { const L = PR.filter(x => x.bloco === b), p = L.reduce((t, x) => t + x.pares, 0), c = L.filter(x => x.inv && diasEST(x.inv.em) <= 30).length;
       return `<button data-bl="${b}" class="${s.bloco === b && s.aba === 'enderecos' ? 'on' : ''}" title="${pct(c, L.length)}% inventariado em 30 dias">${b === '' ? 'Sem bloco' : `Bloco ${b}`}<b>${fmtN(p)} pares</b>${fmtN(L.length)} prédio(s) · ${pct(c, L.length)}% inv.<span class="cob"><i style="width:${pct(c, L.length)}%"></i></span></button>`; }).join('')}</div>
-    <div class="abas">${[['enderecos', 'Endereços'], ['busca', 'Localizar item'], ['inventarios', 'Inventários']].map(([k, t]) => `<button data-ab="${k}" class="${s.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div class="abas">${[['enderecos', 'Endereços'], ['mapa', '🗺 Mapa do bloco'], ['busca', 'Localizar item'], ['inventarios', 'Inventários']].map(([k, t]) => `<button data-ab="${k}" class="${s.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     <div id="es-corpo"></div><div id="es-selbar"></div>`;
   $c.querySelector('#es-api')?.addEventListener('click', ev => atualizarApiEST(ev.target));
   $c.querySelector('#es-arq')?.addEventListener('click', () => arquivoEstoqueEST());
   $c.querySelectorAll('[data-bl]').forEach(b => b.onclick = () => { s.aba = 'enderecos'; s.bloco = s.bloco === b.dataset.bl ? '' : b.dataset.bl; s.rua = ''; renderEST(); });
   $c.querySelectorAll('[data-ab]').forEach(b => b.onclick = () => { s.aba = b.dataset.ab; renderEST(); });
-  if (s.aba === 'busca') corpoBuscaEST(); else if (s.aba === 'inventarios') corpoInventariosEST(); else corpoEnderecosEST(E);
+  if (s.aba === 'busca') corpoBuscaEST(); else if (s.aba === 'inventarios') corpoInventariosEST(); else if (s.aba === 'mapa') corpoMapaEST(); else corpoEnderecosEST(E);
   barraSelEST();
 }
 // prédio = endereço sem o andar (a folha vai na frente do prédio/palete); BL0-R0-P0 e afins ficam como estão
@@ -12789,6 +12822,302 @@ async function reimprimirInventarioEST(ids){
 }
 // SKU pai = SKU sem a cor e o nº (mesma leitura do corTamVF)
 const paiEST = sku => { const s = String(sku || '').toUpperCase().split('-'), ct = corTamVF(sku); if (ct.tamanho) s.pop(); if (ct.cor) s.splice(s.length - ct.cor.split('-').length); return s.join('-'); };
+// ---------- aba Mapa: croqui do bloco, ocupação, bloqueios, marcas e plano de reorganização ----------
+const MARCAS_COMPOSTAS = ['beira rio', 'via marte', 'via uno', 'new balance', 'br sport', 'dos rosa', 'pe com pe', 'bibi'];
+const TIPOS_PROD = new Set(['tenis', 'sandalia', 'sandalha', 'sandalias', 'bota', 'sapato', 'chinelo', 'chuteira', 'sapatilha', 'mule', 'tamanco', 'scarpin', 'mocassim', 'rasteira', 'meia', 'sapatenis', 'papete', 'slide', 'coturno', 'oxford', 'anabela', 'babuche', 'galocha', 'bolsa', 'mochila', 'tenis/chuteira']);
+// marca pelo nome do produto: a(s) palavra(s) logo depois do tipo ("Sandália Moleca 5435-560" → Moleca)
+function marcaDoProduto(nome){
+  const w = String(nome || '').trim().split(/\s+/); if (w.length < 2) return 'Sem marca';
+  let i = 0; while (i < w.length - 1 && TIPOS_PROD.has(semAcento(w[i]).toLowerCase().replace('á', 'a'))) i++;
+  if (i === 0) i = 1;
+  const dois = semAcento(`${w[i]} ${w[i + 1] || ''}`).toLowerCase().trim();
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  if (MARCAS_COMPOSTAS.includes(dois)) return dois.split(' ').map(t => t === 'br' ? 'BR' : cap(t)).join(' ');
+  const m = w[i]; if (!m || /\d/.test(m)) return 'Sem marca';
+  const n = semAcento(m).toLowerCase();
+  return n === 'bebece' ? 'Bebecê' : cap(m);
+}
+const CORES_MARCA = ['#2f6fdf', '#e07b24', '#2a9d5c', '#c4378f', '#7a4fd0', '#c9a227', '#1aa0b5', '#d4483b', '#6b8e23', '#8c6d4f', '#4f6d8c', '#b05fa8'];
+async function corpoMapaEST(){
+  const s = state.est, $b = document.getElementById('es-corpo'); s.mb ||= '1'; s.mmodo ||= 'ocupacao';
+  $b.innerHTML = '<div class="carregando">Carregando o mapa…</div>';
+  try { const M = await apiEST(`/estoque/mapa?bloco=${s.mb}`); if (s.aba !== 'mapa') return; s.mapa = prepararMapaEST(M); desenhaMapaEST(); }
+  catch (e) { if (e instanceof SemSessao) throw e; $b.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+// junta estoque, vendas, marcas, bloqueios e inventário por prédio do croqui
+function prepararMapaEST(M){
+  const D = M.layout.desenho, cap0 = Number(M.layout.cap_padrao) || 360, ent = D.entrada?.x ?? D.largura / 2, cel = 12.45;
+  const P = new Map(); D.posicoes.forEach(p => P.set(`${p.rua}-${p.predio}`, { ...p, key:`${p.rua}-${p.predio}`, cx:p.x + p.w / 2, linhas:[], pares:0, bloq:null, inv:null, pos:null }));
+  const fora = new Map();
+  for (const l of M.linhas) { const x = partesPosPk(l.pos), k = `${+x.rua}-${+x.predio}`, alvo = P.get(k);
+    if (!alvo) { const f = fora.get(l.pos) || fora.set(l.pos, { pos:l.pos, pares:0, skus:0, linhas:[] }).get(l.pos); f.pares += l.q; f.skus++; f.linhas.push(l); continue; }
+    alvo.linhas.push(l); alvo.pares += l.q; alvo.pos ||= l.pos; }
+  M.bloqueios.forEach(b => { const p = P.get(`${b.rua}-${b.predio}`); if (p) p.bloq = b; });
+  for (const p of P.values()) { const inv = Object.entries(M.inventarios).filter(([pos]) => { const x = partesPosPk(pos); return +x.rua === p.rua && +x.predio === p.predio; }).map(([, v]) => v).sort((a, b) => b.em.localeCompare(a.em))[0]; p.inv = inv || null; }
+  // modelos (SKU pai): pares, vendas/dia, marca, curva dentro do bloco
+  const dias = Math.max(1, M.vendas.dias || 28), MOD = new Map();
+  for (const p of P.values()) for (const l of p.linhas) { const pai = paiEST(l.sku), m = MOD.get(pai) || MOD.set(pai, { pai, produto:l.produto || '', marca:null, pares:0, vdia:0, frag:new Map(), skus:new Set() }).get(pai);
+    m.pares += l.q; m.skus.add(l.sku); if (!m.produto && l.produto) m.produto = l.produto; m.frag.set(p.key, (m.frag.get(p.key) || 0) + l.q); }
+  for (const f of fora.values()) for (const l of f.linhas) { const pai = paiEST(l.sku), m = MOD.get(pai) || MOD.set(pai, { pai, produto:l.produto || '', marca:null, pares:0, vdia:0, frag:new Map(), skus:new Set() }).get(pai);
+    m.pares += l.q; m.skus.add(l.sku); if (!m.produto && l.produto) m.produto = l.produto; m.frag.set('F|' + f.pos, (m.frag.get('F|' + f.pos) || 0) + l.q); }
+  const vendidos = new Set();
+  for (const [sku, v] of Object.entries(M.vendas.por_sku || {})) { const m = MOD.get(paiEST(sku)); if (m && !vendidos.has(sku)) { m.vdia += v / dias; vendidos.add(sku); } }
+  for (const m of MOD.values()) m.marca = M.marcas[m.pai] || marcaDoProduto(m.produto);
+  const ord = [...MOD.values()].sort((a, b) => b.vdia - a.vdia), tot = ord.reduce((t, m) => t + m.vdia, 0); let ac = 0;
+  for (const m of ord) { const antes = tot ? ac / tot * 100 : 100; ac += m.vdia; m.curva = m.vdia <= 0 ? 'S' : antes < 80 ? 'A' : antes < 95 ? 'B' : 'C'; }
+  // distância até a entrada (em prédios): ao longo do corredor + a passagem para a Rua 2
+  const pos = [...P.values()]; pos.forEach(p => { p.dist = Math.abs(p.cx - ent) / cel + (p.rua === 2 ? 3 : 0); p.vagas = Number(p.vagas) || 1; p.cap = p.bloq ? 0 : Math.max(cap0 * p.vagas, p.pares); });
+  const ordD = [...pos].filter(p => !p.bloq).sort((a, b) => a.dist - b.dist), capT = ordD.reduce((t, p) => t + p.cap, 0); let c = 0;
+  ordD.forEach(p => { const f = capT ? c / capT : 0; c += p.cap; p.zona = f < 0.35 ? 'frente' : f < 0.65 ? 'meio' : 'fundo'; });
+  pos.filter(p => p.bloq).forEach(p => p.zona = 'bloqueado');
+  const marcas = [...new Set(ord.map(m => m.marca))].map(n => ({ n, pares:ord.filter(m => m.marca === n).reduce((t, m) => t + m.pares, 0) })).sort((a, b) => b.pares - a.pares);
+  const corMarca = {}; marcas.forEach((m, i) => corMarca[m.n] = i < CORES_MARCA.length ? CORES_MARCA[i] : '#9aa5b5');
+  return { M, D, cap0, P, pos, MOD, modelos:ord, marcas, corMarca, fora:[...fora.values()].sort((a, b) => b.pares - a.pares), dias };
+}
+// conteúdo de um prédio: modelos com pares, marca e curva
+const modelosDoPredioEST = (Z, p) => [...Z.MOD.values()].filter(m => m.frag.has(p.key)).map(m => ({ m, q:m.frag.get(p.key) })).sort((a, b) => b.q - a.q);
+function corPredioEST(Z, p, modo){
+  if (p.bloq) return '#fbe3e3';
+  if (!p.pares) return '#ffffff';
+  if (modo === 'ocupacao') { const f = Math.min(1, p.pares / (Z.cap0 * p.vagas)); return f > .85 ? '#0b4fa8' : f > .5 ? '#4f86d6' : f > .2 ? '#9dbbe8' : '#d6e3f6'; }
+  if (modo === 'curva') { const c = modelosDoPredioEST(Z, p).reduce((a, x) => ({ ...a, [x.m.curva]:(a[x.m.curva] || 0) + x.q }), {}); const top = Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0];
+    return { A:'#0f7b6c', B:'#7fc4b8', C:'#e3c77d', S:'#c9cfd8' }[top] || '#eee'; }
+  if (modo === 'marca') { const t = modelosDoPredioEST(Z, p).reduce((a, x) => ({ ...a, [x.m.marca]:(a[x.m.marca] || 0) + x.q }), {}); const top = Object.entries(t).sort((a, b) => b[1] - a[1])[0]?.[0]; return Z.corMarca[top] || '#ccc'; }
+  if (modo === 'inventario') { if (!p.inv) return '#f6c9a8'; const d = (new Date(hojeBRT()) - new Date(p.inv.em)) / 864e5; return d <= 30 ? '#8fd3a6' : d <= 90 ? '#f3dd8a' : '#f6c9a8'; }
+  if (modo === 'zona') return { frente:'#0f7b6c', meio:'#7fc4b8', fundo:'#e3c77d' }[p.zona] || '#eee';
+  return '#ddd';
+}
+const corTextoEST = cor => { const n = parseInt(cor.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (r * 299 + g * 587 + b * 114) / 1000 < 140 ? '#fff' : '#1b2333'; };
+// SVG do croqui (tela e impressão); opcoes: { modo, escala, destaque:Set(keys), plano:{origem:Set, destino:Set}, sel:Set, impressao, recorte:[x0,x1] }
+function svgMapaEST(Z, o = {}){
+  const D = Z.D, [x0, x1] = o.recorte || [Math.min(0, D.contorno[0] - 3), Math.max(D.largura, D.contorno[0] + D.contorno[2] + 3)], W = x1 - x0, y0 = 55, H = (D.altura || 132) - y0 + 4;
+  const rect = (p) => { if (p.x + p.w < x0 || p.x > x1) return ''; const cor = corPredioEST(Z, p, o.modo || 'ocupacao'), txt = corTextoEST(cor), dest = o.destaque?.has(p.key), org = o.plano?.origem.has(p.key), dst = o.plano?.destino.has(p.key), sel = o.sel?.has(p.key);
+    const st = sel ? '#e0a800' : dest ? '#d4006a' : org ? '#e07b24' : dst ? '#2a9d5c' : '#5b6b7f', sw = sel || dest || org || dst ? 1.4 : .35;
+    const meio = `${p.x + p.w / 2},${p.y + p.h / 2}`;
+    return `<g class="pm" data-k="${p.key}"><title>R${p.rua} P${p.predio} · ${fmtN(p.pares)} pares${p.bloq ? ` · BLOQUEADO: ${p.bloq.motivo}` : ''}${p.inv ? ` · inventário ${dataBR(p.inv.em)}` : ''}</title>
+      <rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${cor}" stroke="${st}" stroke-width="${sw}"/>
+      ${p.bloq ? `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="url(#hach)" stroke="none"/>` : ''}
+      ${p.vertical ? `<text x="${p.x + p.w / 2}" y="${p.y + p.h / 2}" font-size="2.6" text-anchor="middle" dominant-baseline="middle" fill="${txt}" transform="rotate(-90 ${meio})">R${p.rua}-P${p.predio}${p.pares ? ` · ${fmtN(p.pares)}` : ''}</text>`
+        : o.mini ? '' : o.impressao ? `<text x="${p.x + p.w / 2}" y="${p.y + 2.2}" font-size="2" text-anchor="middle" fill="${txt}">P${p.predio}</text>${p.pares ? `<text x="${p.x + p.w / 2}" y="${p.y + 4.6}" font-size="2.3" font-weight="700" text-anchor="middle" fill="${txt}">${fmtN(Math.round(p.pares))}</text>` : ''}<text x="${p.x + p.w / 2}" y="${p.y + 6.7}" font-size="1.75" text-anchor="middle" fill="${txt}">${p.inv ? dataBR(String(p.inv.em).slice(0, 10)).slice(0, 5) + '/' + String(p.inv.em).slice(2, 4) : '—'}</text>`
+        : `<text x="${p.x + p.w / 2}" y="${p.y + 2.6}" font-size="2.5" text-anchor="middle" fill="${txt}">P${p.predio}</text>${p.pares ? `<text x="${p.x + p.w / 2}" y="${p.y + 5.4}" font-size="2.4" font-weight="700" text-anchor="middle" fill="${txt}">${p.pares >= 1000 ? (p.pares / 1000).toFixed(1).replace('.', ',') + 'k' : Math.round(p.pares)}</text>` : ''}`}</g>`; };
+  return `<svg class="mp-svg" viewBox="${x0} ${y0} ${W} ${H}" ${o.impressao ? '' : `style="width:${(o.zoom || 1) * 100}%;min-width:${(o.zoom || 1) * 900}px"`} preserveAspectRatio="xMinYMin meet">
+    <defs><pattern id="hach" width="2.2" height="2.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="2.2" stroke="#c0392b" stroke-width=".9"/></pattern></defs>
+    <rect x="${D.contorno[0]}" y="${D.contorno[1]}" width="${D.contorno[2]}" height="${D.contorno[3]}" fill="none" stroke="#1b2333" stroke-width=".6"/>
+    ${D.ruas.map(r => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="1.5" fill="#174f7a"/><text x="${r.x + r.w / 2}" y="${r.y + r.h / 2 + 1}" font-size="3.4" text-anchor="middle" fill="#fff">${esc(r.nome)}</text>`).join('')}
+    ${D.portas.map(pt => `<rect x="${pt.x}" y="${pt.y}" width="${pt.w}" height="${pt.h}" rx="1.5" fill="#e07b24"/>${pt.nome ? `<text x="${pt.x + pt.w / 2}" y="${pt.y + pt.h / 2 + 1}" font-size="2.8" text-anchor="middle" fill="#fff">${esc(pt.nome)}</text>` : ''}`).join('')}
+    ${Z.pos.map(rect).join('')}${o.janela ? `<rect x="${o.janela[0]}" y="${y0 + 1}" width="${o.janela[1] - o.janela[0]}" height="${H - 2}" fill="rgba(224,123,36,.12)" stroke="#e07b24" stroke-width="1.2"/>` : ''}</svg>`;
+}
+function desenhaMapaEST(){
+  const s = state.est, Z = s.mapa, $b = document.getElementById('es-corpo'); if (!$b || !Z) return; s.mzoom ||= 2;
+  const sc = $b.querySelector('.mp-wrap')?.scrollLeft;
+  const ed = pode('estoque', 'editar'), M = Z.M, pos = Z.pos;
+  const ocup = pos.filter(p => p.pares > 0), bloq = pos.filter(p => p.bloq), paresBloq = bloq.reduce((t, p) => t + p.pares, 0);
+  const pares = pos.reduce((t, p) => t + p.pares, 0), cap = pos.filter(p => !p.bloq).reduce((t, p) => t + Z.cap0 * p.vagas, 0);
+  const espalhados = Z.modelos.filter(m => m.frag.size > 1), A = Z.modelos.filter(m => m.curva === 'A');
+  const aFundo = A.filter(m => { const pr = [...m.frag.entries()].sort((a, b) => b[1] - a[1])[0]; return Z.P.get(pr[0])?.zona === 'fundo'; });
+  const q = semAcento(s.mq || '').toUpperCase().trim(), dest = new Set();
+  if (q.length >= 2) for (const m of Z.MOD.values()) if (m.pai.includes(q) || semAcento(m.marca).toUpperCase().includes(q) || semAcento(m.produto).toUpperCase().includes(q) || [...m.skus].some(k => k.includes(q))) m.frag.forEach((v, k) => dest.add(k));
+  s.msel ||= new Set();
+  const plano = s.mplano ? { origem:new Set([...s.mplano.moves.map(x => x.de), ...s.mplano.esvaziar]), destino:new Set(s.mplano.moves.map(x => x.para)) } : null;
+  const legenda = { ocupacao:[['#0b4fa8', '> 85% da capacidade'], ['#4f86d6', '50–85%'], ['#9dbbe8', '20–50%'], ['#d6e3f6', '< 20%'], ['#ffffff', 'vazio']],
+    curva:[['#0f7b6c', 'curva A'], ['#7fc4b8', 'B'], ['#e3c77d', 'C'], ['#c9cfd8', 'sem venda']], inventario:[['#8fd3a6', 'inventário em 30 dias'], ['#f3dd8a', '31–90 dias'], ['#f6c9a8', '+90 dias ou nunca']],
+    zona:[['#0f7b6c', 'frente (perto da entrada)'], ['#7fc4b8', 'meio'], ['#e3c77d', 'fundo']], marca:Z.marcas.slice(0, 12).map(m => [Z.corMarca[m.n], `${m.n} (${fmtN(Math.round(m.pares))})`]) }[s.mmodo];
+  $b.innerHTML = `<div class="es-f">
+      <select id="mp-bl">${M.blocos.map(b => `<option value="${b.bloco}" ${b.bloco === M.bloco ? 'selected' : ''}>${esc(b.nome)}</option>`).join('')}</select>
+      <span class="is-chips">${[['ocupacao', 'Ocupação'], ['curva', 'Curva'], ['marca', 'Marca'], ['inventario', 'Inventário'], ['zona', 'Frente / fundo']].map(([k, t]) => `<button class="is-chip ${s.mmodo === k ? 'on' : ''}" data-mm="${k}">${t}</button>`).join('')}</span>
+      <input id="mp-q" placeholder="Destacar SKU, modelo ou marca" value="${esc(s.mq || '')}" style="width:220px">
+      <span class="is-chips"><span>Zoom</span>${[1, 2, 3].map(z => `<button class="is-chip ${s.mzoom === z ? 'on' : ''}" data-mz="${z}">${z === 1 ? 'inteiro' : z + '×'}</button>`).join('')}</span>
+      <span style="flex:1"></span>
+      ${ed ? `<button class="btn ${s.mbloq ? 'pri' : ''}" id="mp-bq">${s.mbloq ? '✓ Selecionando prédios' : '⛔ Bloquear prédios'}</button>` : ''}
+      <button class="btn" id="mp-plano">${s.mplano ? 'Fechar plano' : '🧭 Plano de reorganização'}</button><button class="btn" id="mp-imp">🖨 Imprimir mapa</button></div>
+    <div class="es-kpis">
+      <div class="es-k"><span>Pares no bloco</span><b>${fmtN(Math.round(pares))}</b><small>${fmtN(Z.modelos.length)} modelos · ${Math.round(pares / Math.max(1, cap) * 100)}% de ${fmtN(cap)} (${fmtN(Z.cap0)} por prédio)</small></div>
+      <div class="es-k"><span>Prédios ocupados</span><b>${fmtN(ocup.length)} / ${fmtN(pos.length)}</b><small>${fmtN(pos.filter(p => !p.pares && !p.bloq).length)} vazio(s) livres</small></div>
+      <div class="es-k ${bloq.length ? 'alerta' : ''}"><span>Bloqueados</span><b>${fmtN(bloq.length)}</b><small>${paresBloq ? `<b>${fmtN(Math.round(paresBloq))} pares</b> ainda dentro` : 'sem produto dentro'}</small></div>
+      <div class="es-k ${espalhados.length ? 'alerta' : ''}"><span>Modelos espalhados</span><b>${fmtN(espalhados.length)}</b><small>em 2 ou mais prédios · ${fmtN(espalhados.filter(m => m.frag.size > 3).length)} em 4+</small></div>
+      <div class="es-k ${aFundo.length ? 'alerta' : ''}"><span>Curva A no fundo</span><b>${fmtN(aFundo.length)}</b><small>de ${fmtN(A.length)} modelos A (vendas de ${fmtN(Z.dias)} dias)</small></div></div>
+    ${s.mbloq ? `<div class="aviso">Clique nos prédios para selecionar (${s.msel.size} selecionado(s)). <input id="mp-mot" placeholder="Motivo (ex.: infiltração)" style="width:220px"> <button class="btn pri" id="mp-bqok">Bloquear selecionados</button> <button class="btn" id="mp-bqx">Cancelar</button></div>` : ''}
+    ${s.mplano ? `<div class="es-f" style="margin:4px 0"><span class="is-chips"><span>Mapa</span><button class="is-chip ${!s.mdepois ? 'on' : ''}" data-md="0">hoje (com o que sai e o que recebe)</button><button class="is-chip ${s.mdepois ? 'on' : ''}" data-md="1">como fica depois do plano</button></span></div>` : ''}
+    <div class="mp-wrap">${s.mplano && s.mdepois ? svgMapaEST({ ...Z, pos:Z.pos.map(p => ({ ...p, pares:s.mplano.ocupFinal.get(p.key) || 0 })) }, { modo:'ocupacao', zoom:s.mzoom })
+      : svgMapaEST(Z, { modo:s.mmodo, destaque:dest, plano, sel:s.mbloq ? s.msel : null, zoom:s.mzoom })}</div>
+    <div class="mp-leg">${(legenda || []).map(([c, t]) => `<span><i style="background:${c}"></i>${esc(t)}</span>`).join('')}<span><i style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%226%22 height=%226%22><path d=%22M0 6L6 0%22 stroke=%22%23c0392b%22/></svg>');background-color:#fbe3e3"></i>bloqueado</span>
+      ${plano ? '<span><i style="border:2px solid #e07b24;background:#fff"></i>sai</span><span><i style="border:2px solid #2a9d5c;background:#fff"></i>recebe</span>' : ''}${dest.size ? `<span><i style="border:2px solid #d4006a;background:#fff"></i>"${esc(s.mq)}" em ${dest.size} prédio(s)</span>` : ''}
+      <span class="info">Estoque de ${M.estoque ? quando(M.estoque.em) : '—'} · clique no prédio para ver o que tem</span></div>
+    ${Z.fora.length ? `<div class="info" style="margin:4px 0">Endereços do ${esc(M.layout.nome)} fora do croqui (ruas a desativar, entram na fase 2 do plano): ${Z.fora.slice(0, 12).map(f => `${esc(curtoEnd(f.pos))} (${fmtN(f.pares)})`).join(', ')}${Z.fora.length > 12 ? ` e mais ${Z.fora.length - 12}` : ''}.</div>` : ''}
+    <div id="mp-plano-box"></div>`;
+  const re = () => desenhaMapaEST();
+  $b.querySelector('#mp-bl').onchange = e => { s.mb = e.target.value; s.mplano = null; corpoMapaEST(); };
+  $b.querySelectorAll('[data-mm]').forEach(x => x.onclick = () => { s.mmodo = x.dataset.mm; re(); });
+  $b.querySelectorAll('[data-md]').forEach(x => x.onclick = () => { s.mdepois = x.dataset.md === '1'; re(); });
+  $b.querySelectorAll('[data-mz]').forEach(x => x.onclick = () => { s.mzoom = +x.dataset.mz; re(); });
+  const wr = $b.querySelector('.mp-wrap'); if (sc != null) wr.scrollLeft = sc; else if (s.mzoom > 1) { const e = Z.D.entrada?.x ?? Z.D.largura / 2; wr.scrollLeft = Math.max(0, wr.scrollWidth * e / Z.D.largura - wr.clientWidth / 2); }
+  const mq = $b.querySelector('#mp-q'); mq.oninput = () => { s.mq = mq.value; clearTimeout(s.tmq); s.tmq = setTimeout(() => { re(); const n = document.getElementById('mp-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 350); };
+  $b.querySelector('#mp-imp').onclick = () => imprimirMapaEST(Z);
+  $b.querySelector('#mp-plano').onclick = () => { s.mplano = s.mplano ? null : planoReorgEST(Z, s.mfases || { bloq:true, fora:true, cons:true, frente:true, fundo:true }, s.malvo || 0.9); re(); };
+  $b.querySelector('#mp-bq')?.addEventListener('click', () => { s.mbloq = !s.mbloq; s.msel.clear(); re(); });
+  $b.querySelector('#mp-bqx')?.addEventListener('click', () => { s.mbloq = false; s.msel.clear(); re(); });
+  $b.querySelector('#mp-bqok')?.addEventListener('click', async ev => { const mot = $b.querySelector('#mp-mot').value.trim(); if (!s.msel.size) return avisar('Selecione os prédios no mapa', true); if (!mot) return avisar('Informe o motivo', true);
+    const porRua = {}; [...s.msel].forEach(k => { const [r, p] = k.split('-').map(Number); (porRua[r] ||= []).push(p); }); ev.target.disabled = true;
+    try { for (const [rua, predios] of Object.entries(porRua)) await apiEST('/estoque/bloqueio', { bloco:Z.M.bloco, rua:+rua, predios, motivo:mot });
+      avisar(`${s.msel.size} prédio(s) bloqueado(s)`); s.mbloq = false; s.msel.clear(); s.mplano = null; corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); ev.target.disabled = false; } });
+  $b.querySelectorAll('.pm').forEach(g => g.onclick = () => { const k = g.dataset.k; if (s.mbloq) { s.msel.has(k) ? s.msel.delete(k) : s.msel.add(k); re(); return; } detalhePredioEST(Z, Z.P.get(k)); });
+  if (s.mplano) desenhaPlanoEST(Z);
+}
+function detalhePredioEST(Z, p){
+  const ed = pode('estoque', 'editar'), dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg);
+  const ms = modelosDoPredioEST(Z, p), fechar = () => dlg.remove(); dlg.onclick = e => { if (e.target === dlg) fechar(); };
+  dlg.innerHTML = `<div class="painel" style="width:min(820px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">${esc(Z.M.layout.nome)} · Rua ${p.rua} · Prédio ${p.predio}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+    <div class="info">${fmtN(Math.round(p.pares))} pares · ${fmtN(ms.length)} modelo(s) · zona: ${p.zona} · ${p.inv ? `último inventário ${dataBR(p.inv.em)}${p.inv.por ? ` por ${esc(p.inv.por)}` : ''}` : 'nunca inventariado'}</div>
+    ${p.bloq ? `<div class="aviso">⛔ Bloqueado desde ${dataBR(p.bloq.desde)}: <b>${esc(p.bloq.motivo)}</b>${p.bloq.por ? ` (${esc(p.bloq.por)})` : ''}. Não recebe produto; o que está aqui entra no plano para sair. ${ed ? '<button class="btn" id="dp-lib">Liberar</button>' : ''}</div>`
+      : ed ? `<div class="es-f"><input id="dp-mot" placeholder="Motivo do bloqueio (ex.: goteira)" style="flex:1"><button class="btn" id="dp-bq">⛔ Bloquear este prédio</button></div>` : ''}
+    ${ms.length ? `<div class="es-wrap" style="max-height:50vh"><table class="es-tab"><thead><tr><th>Modelo</th><th>Marca</th><th>Curva</th><th class="n">Pares aqui</th><th class="n">Venda/dia</th><th>Também em</th></tr></thead><tbody>
+      ${ms.map(({ m, q }) => `<tr><td class="end">${esc(m.pai)}<br><span class="info" style="font-family:inherit">${esc(m.produto)}</span></td><td>${esc(m.marca)}${ed ? ` <button class="btn" data-mc="${esc(m.pai)}" title="Corrigir a marca deste modelo" style="padding:0 6px">✎</button>` : ''}</td><td>${m.curva === 'S' ? '—' : m.curva}</td>
+        <td class="n">${fmtN(Math.round(q))}</td><td class="n">${String(Math.round(m.vdia * 10) / 10).replace('.', ',')}</td><td class="end">${[...m.frag.keys()].filter(k => k !== p.key).map(rpEST).join(' ') || '—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Prédio vazio.</div>'}</div>`;
+  dlg.querySelector('[data-x]').onclick = fechar;
+  dlg.querySelector('#dp-lib')?.addEventListener('click', async () => { try { await apiEST('/estoque/bloqueio/liberar', { ids:[p.bloq.id] }); fechar(); avisar('Prédio liberado'); state.est.mplano = null; corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
+  dlg.querySelector('#dp-bq')?.addEventListener('click', async () => { const mot = dlg.querySelector('#dp-mot').value.trim(); if (!mot) return avisar('Informe o motivo', true);
+    try { await apiEST('/estoque/bloqueio', { bloco:Z.M.bloco, rua:p.rua, predios:[p.predio], motivo:mot }); fechar(); avisar('Prédio bloqueado'); state.est.mplano = null; corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
+  dlg.querySelectorAll('[data-mc]').forEach(b => b.onclick = async () => { const pai = b.dataset.mc, atual = Z.MOD.get(pai)?.marca || ''; const nova = prompt(`Marca do modelo ${pai} (vazio = voltar à detecção automática):`, atual); if (nova === null) return;
+    try { await apiEST('/estoque/marca', { pai, marca:nova.trim() }); fechar(); avisar('Marca salva'); corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
+}
+// Plano de reorganização (por modelo = SKU pai, levando todos os tamanhos que estão no prédio). Ordem da diretoria: esvaziar o fundo e
+// ocupar do centro (entrada) para as pontas. Primeiro calcula a "área de uso": os prédios mais perto da entrada que, cheios até o
+// limite escolhido (ex.: 90%), comportam todo o estoque do bloco + o das ruas fora do croqui. O resto é área a esvaziar.
+//  1) tirar dos prédios bloqueados · 2) trazer o que está nas ruas fora do croqui (3 e 4) · 3) juntar os pedaços de cada modelo
+//  4) curva A que está longe vai para a frente (troca com prédio da frente que só tem C / sem venda) · 5) esvaziar o fundo
+// Destino: só prédio da área de uso, com espaço; preferência pelo mesmo modelo, depois mesma marca (no prédio ou ao lado);
+// A/B o mais perto da entrada, C/sem venda no primeiro lugar livre depois da frente.
+const FASES_EST = [['bloq', 'Tirar dos bloqueados'], ['fora', 'Trazer das ruas fora do croqui'], ['cons', 'Juntar modelos espalhados'], ['frente', 'Curva A para a frente'], ['fundo', 'Esvaziar o fundo']];
+function planoReorgEST(Z, fases, alvo = 0.9){
+  const ehFora = k => k.startsWith('F|'), endReal = k => ehFora(k) ? k.slice(2) : (Z.P.get(k)?.pos || `AR2-BL${Z.M.bloco}-RUA${k.split('-')[0]}-P${k.split('-')[1]}-A1`);
+  const cap = new Map(Z.pos.map(p => [p.key, p.cap])), ocup = new Map(), sk = new Map(), frag = new Map(), mp = new Map();
+  const add = (k, l, q) => { const pai = paiEST(l.sku), m = Z.MOD.get(pai); if (!m) return;
+    const S = sk.get(k) || sk.set(k, new Map()).get(k), it = S.get(l.sku) || S.set(l.sku, { sku:l.sku, produto:l.produto, pai, q:0, orig:[] }).get(l.sku); it.q += q;
+    ocup.set(k, (ocup.get(k) || 0) + q); const f = frag.get(pai) || frag.set(pai, new Map()).get(pai); f.set(k, (f.get(k) || 0) + q);
+    const t = mp.get(k) || mp.set(k, new Map()).get(k); t.set(m.marca, (t.get(m.marca) || 0) + q); };
+  Z.pos.forEach(p => { ocup.set(p.key, 0); p.linhas.forEach(l => { if (l.q > 0) add(p.key, l, l.q); }); });
+  Z.fora.forEach(f => f.linhas.forEach(l => { if (l.q > 0) add('F|' + f.pos, l, l.q); }));
+  const temMarca = (k, marca) => (mp.get(k)?.get(marca) || 0) > 0.001;
+  const viz = new Map(Z.pos.map(p => [p.key, Z.pos.filter(o => o.rua === p.rua && o.lado === p.lado && !o.bloq && o.key !== p.key && Math.abs(o.predio - p.predio) <= 4).map(o => o.key)]));
+  // área de uso × área a esvaziar
+  const totPares = [...ocup.values()].reduce((t, v) => t + v, 0), esvaziar = new Set(); let acum = 0;
+  if (fases.fundo) for (const p of Z.pos.filter(x => !x.bloq).sort((a, b) => a.dist - b.dist)) { if (acum >= totPares) esvaziar.add(p.key); else acum += cap.get(p.key) * alvo; }
+  const livre = k => (cap.get(k) || 0) * alvo - (ocup.get(k) || 0), moves = [];
+  const mover = (m, de, para, fase, motivo, so) => { const S = sk.get(de), itens = [...S.values()].filter(i => i.pai === m.pai && i.q > 0.001 && (!so || so.includes(i.sku))); if (!itens.length) return;
+    const q = itens.reduce((t, i) => t + i.q, 0), D = sk.get(para) || sk.set(para, new Map()).get(para);
+    for (const i of itens) { S.delete(i.sku); const j = D.get(i.sku) || D.set(i.sku, { ...i, q:0 }).get(i.sku); j.q += i.q; }
+    const f = frag.get(m.pai); f.set(de, (f.get(de) || 0) - q); if (f.get(de) <= 0.001) f.delete(de); f.set(para, (f.get(para) || 0) + q); ocup.set(de, ocup.get(de) - q); ocup.set(para, (ocup.get(para) || 0) + q);
+    const a = mp.get(de); a.set(m.marca, (a.get(m.marca) || 0) - q); const b = mp.get(para) || mp.set(para, new Map()).get(para); b.set(m.marca, (b.get(m.marca) || 0) + q);
+    moves.push({ fase, pai:m.pai, marca:m.marca, curva:m.curva, produto:m.produto, q, de, para, motivo, itens:itens.map(i => ({ sku:i.sku, produto:i.produto, q:i.q, de:endReal(de), para:endReal(para) })) }); };
+  const semLugar = (m, de, fase) => { const q = frag.get(m.pai).get(de) || 0; moves.push({ fase, pai:m.pai, marca:m.marca, curva:m.curva, produto:m.produto, q, de, para:null, motivo:'sem espaço na área de uso', itens:[] }); };
+  const nota = (m, p, quente) => ((frag.get(m.pai).get(p.key) || 0) > 0 ? -1000 : 0) + (temMarca(p.key, m.marca) || viz.get(p.key).some(v => temMarca(v, m.marca)) ? -40 : 0)
+    + (quente ? p.dist : p.zona === 'frente' ? 30 + p.dist : p.dist) + ((ocup.get(p.key) || 0) > 0.001 ? 0 : 5);
+  const usavel = p => !p.bloq && !esvaziar.has(p.key);
+  const melhor = (m, q, ok = () => true) => { const quente = m.curva === 'A' || m.curva === 'B'; let best = null, n0 = Infinity;
+    for (const p of Z.pos) { if (!usavel(p) || livre(p.key) < q || !ok(p)) continue; const n = nota(m, p, quente); if (n < n0) { n0 = n; best = p.key; } } return best; };
+  const noPredio = k => [...(sk.get(k)?.values() || [])].reduce((a, i) => (a.set(i.pai, (a.get(i.pai) || 0) + i.q), a), new Map());
+  const modelosEm = k => [...noPredio(k)].filter(([, q]) => q > 0.001).map(([pai, q]) => ({ m:Z.MOD.get(pai), q })).sort((a, b) => b.q - a.q);
+  // leva o modelo inteiro para um prédio; se não couber em nenhum, divide por SKU (cada cor/tamanho inteiro) entre prédios, de preferência vizinhos
+  const levar = (m, k, fase, motivo) => { const q = frag.get(m.pai)?.get(k) || 0; if (q <= 0.001) return true; const d = melhor(m, q, o => o.key !== k);
+    if (d) { mover(m, k, d, fase, motivo); return true; }
+    for (const i of [...sk.get(k).values()].filter(i => i.pai === m.pai && i.q > 0.001).sort((a, b) => b.q - a.q)) { const dd = melhor(m, i.q, o => o.key !== k); if (!dd) return false; mover(m, k, dd, fase, motivo + ' (modelo dividido)', [i.sku]); }
+    return true; };
+  const tirarTudo = (k, fase, motivo) => { for (const { m } of modelosEm(k)) if (!levar(m, k, fase, motivo)) semLugar(m, k, fase); };
+  // 1) bloqueados
+  if (fases.bloq) for (const p of Z.pos.filter(x => x.bloq)) tirarTudo(p.key, 1, `prédio bloqueado: ${p.bloq.motivo}`);
+  // 2) ruas fora do croqui (vão ser desativadas)
+  if (fases.fora) for (const f of Z.fora) tirarTudo('F|' + f.pos, 2, 'rua fora do croqui (desativar)');
+  // 3) juntar modelos espalhados (os que mais vendem primeiro); o principal é o maior pedaço que fica na área de uso
+  if (fases.cons) for (const m of Z.modelos) { const f = frag.get(m.pai); if (!f || f.size < 2) continue;
+    const ok = [...f.entries()].filter(([k]) => !ehFora(k) && !esvaziar.has(k) && !Z.P.get(k)?.bloq).sort((a, b) => b[1] - a[1] || Z.P.get(a[0]).dist - Z.P.get(b[0]).dist); if (ok.length < 2) continue;
+    const [principal] = ok[0], pp = Z.P.get(principal);
+    for (const [k, q] of ok.slice(1).sort((a, b) => a[1] - b[1])) {
+      if (livre(principal) >= q) { mover(m, k, principal, 3, `juntar com ${rpEST(principal)}`); continue; }
+      if (viz.get(principal).includes(k)) continue;   // já está ao lado
+      const v = viz.get(principal).filter(x => usavel(Z.P.get(x)) && livre(x) >= q).sort((a, b) => Math.abs(Z.P.get(a).predio - pp.predio) - Math.abs(Z.P.get(b).predio - pp.predio))[0];
+      if (v) mover(m, k, v, 3, `ao lado de ${rpEST(principal)}`); } }
+  // 4) curva A longe da entrada → frente
+  if (fases.frente) for (const m of Z.modelos.filter(x => x.curva === 'A')) { const f = frag.get(m.pai); if (!f || !f.size) continue; const tot = [...f.values()].reduce((t, v) => t + v, 0);
+    const [prin] = [...f.entries()].sort((a, b) => b[1] - a[1])[0], pz = Z.P.get(prin); if (!pz || pz.zona === 'frente') continue;
+    let d = melhor(m, tot, o => o.zona === 'frente');
+    if (!d) { // troca com um prédio da frente que só tem C / sem venda
+      const paraLonge = esvaziar.has(prin) || pz.bloq, cabe = livre(prin) + (f.get(prin) || 0);
+      const cand = Z.pos.filter(p => p.zona === 'frente' && usavel(p) && ocup.get(p.key) > 0.001 && (paraLonge || ocup.get(p.key) <= cabe) && cap.get(p.key) * alvo >= tot && modelosEm(p.key).every(x => ['C', 'S'].includes(x.m.curva))).sort((a, b) => a.dist - b.dist)[0];
+      if (cand) { const ida = modelosEm(cand.key).map(x => [x, paraLonge ? melhor(x.m, x.q, o => o.zona !== 'frente' && o.key !== cand.key) : prin]);
+        if (ida.every(([, dd]) => dd)) { for (const [x, dd] of ida) mover(x.m, cand.key, dd, 4, `troca: libera a frente para ${m.pai}`); d = cand.key; } } }
+    if (d) for (const k of [...f.keys()]) if (k !== d) mover(m, k, d, 4, 'curva A para perto da entrada'); }
+  // 5) esvaziar o fundo: do prédio mais longe para o mais perto
+  // se um modelo não couber, o prédio mais perto da entrada que ainda estava na lista para esvaziar passa a ser área de uso (fica como está)
+  if (fases.fundo) { const fila = [...esvaziar].sort((a, b) => Z.P.get(b).dist - Z.P.get(a).dist);
+    while (fila.length) { const k = fila[0];
+      for (const { m } of modelosEm(k)) { let ok = levar(m, k, 5, 'esvaziar o fundo');
+        while (!ok && fila.length > 1) { const solto = fila.pop(); esvaziar.delete(solto); ok = levar(m, k, 5, 'esvaziar o fundo'); }
+        if (!ok) break; }
+      if (modelosEm(k).length) { esvaziar.delete(k); } fila.shift(); } }
+  const validos = moves.filter(x => x.para), antes = new Set(Z.pos.filter(p => p.pares > 0).map(p => p.key)), depois = new Set(Z.pos.filter(p => (ocup.get(p.key) || 0) > 0.001).map(p => p.key));
+  const porFase = FASES_EST.map((_, i) => { const v = validos.filter(x => x.fase === i + 1); return { f:i + 1, n:v.length, pares:v.reduce((t, x) => t + x.q, 0) }; });
+  return { moves, validos, porFase, alvo, esvaziar, pares:validos.reduce((t, x) => t + x.q, 0), liberados:[...antes].filter(k => !depois.has(k)).length, ocupados_depois:depois.size, fases,
+    ocupFinal:ocup };
+}
+const rpEST = k => !k ? '—' : k.startsWith('F|') ? curtoEnd(k.slice(2)).replace(/^BL\d+-/, '').replace('RUA', 'R') : `R${k.replace('-', '-P')}`;
+function desenhaPlanoEST(Z){
+  const s = state.est, PL = s.mplano, $p = document.getElementById('mp-plano-box'); if (!$p || !PL) return;
+  const sem = PL.moves.filter(x => !x.para), pf = f => PL.porFase[f - 1], semFora = !Z.fora.length;
+  $p.innerHTML = `<div class="es-k" style="margin:10px 0"><b style="font-size:16px">🧭 Plano de reorganização · ${esc(Z.M.layout.nome)}</b>
+      <div class="es-f" style="gap:6px 16px">${FASES_EST.map(([k, t], i) => k === 'fora' && semFora ? '' : `<label class="info" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-fs="${k}" ${PL.fases[k] ? 'checked' : ''}> ${i + 1}. ${t}${PL.fases[k] ? ` <strong>(${fmtN(pf(i + 1).n)} · ${fmtN(Math.round(pf(i + 1).pares))} pares)</strong>` : ''}</label>`).join('')}</div>
+      <div class="es-f"><span class="is-chips"><span>Encher cada prédio até</span>${[0.85, 0.9, 1].map(a => `<button class="is-chip ${PL.alvo === a ? 'on' : ''}" data-al="${a}">${Math.round(a * 100)}%</button>`).join('')}</span>
+        <span style="flex:1"></span><button class="btn" id="pl-csv">⇩ CSV</button><button class="btn pri" id="pl-imp">🖨 Imprimir lista</button></div>
+      <div class="info">${fmtN(PL.validos.length)} movimentação(ões) · <strong>${fmtN(Math.round(PL.pares))} pares</strong> · ${fmtN(PL.liberados)} prédio(s) liberado(s) · ${fmtN(PL.ocupados_depois)} prédios ocupados depois${PL.fases.fundo ? ` · <strong>área a esvaziar: ${fmtN(PL.esvaziar.size)} prédio(s)</strong> nas pontas (com borda laranja no mapa)` : ''}${sem.length ? ` · <span style="color:#a11d1d">${sem.length} sem destino (falta espaço: suba o limite ou libere prédios)</span>` : ''}.
+        Cada linha leva o modelo inteiro que está no prédio (todos os tamanhos); quando não cabe num prédio só, é dividido por SKU. Faça a movimentação de endereço no Seenc junto com a física.</div></div>
+    ${PL.moves.length ? `<div class="es-wrap" style="max-height:50vh"><table class="es-tab"><thead><tr><th>Fase</th><th>Tirar de</th><th>Colocar em</th><th>Modelo</th><th>Marca</th><th>Curva</th><th class="n">Pares</th><th>Por quê</th></tr></thead><tbody>
+      ${PL.moves.map(x => `<tr><td>${x.fase}</td><td class="end"><b>${rpEST(x.de)}</b></td><td class="end"><b>${x.para ? rpEST(x.para) : '<span style="color:#a11d1d">sem espaço</span>'}</b></td><td class="end">${esc(x.pai)}</td><td>${esc(x.marca)}</td><td>${x.curva === 'S' ? '—' : x.curva}</td><td class="n">${fmtN(Math.round(x.q))}</td><td class="info">${esc(x.motivo)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="vazio" style="padding:16px">Nada a movimentar com as fases escolhidas.</div>'}`;
+  const refaz = () => { s.mplano = planoReorgEST(Z, s.mfases, s.malvo); desenhaMapaEST(); };
+  $p.querySelectorAll('[data-fs]').forEach(c => c.onchange = () => { s.mfases = { ...PL.fases, [c.dataset.fs]:c.checked }; refaz(); });
+  $p.querySelectorAll('[data-al]').forEach(c => c.onclick = () => { s.malvo = +c.dataset.al; s.mfases = PL.fases; refaz(); });
+  $p.querySelector('#pl-imp').onclick = () => imprimirPlanoEST(Z, PL);
+  $p.querySelector('#pl-csv').onclick = () => { const L = linhasPlanoEST(Z, PL); baixarCsv(`reorganizacao_BL${Z.M.bloco}_${hojeBRT()}.csv`, [['Fase', 'Tirar de (endereço)', 'Colocar em (endereço)', 'SKU', 'Produto', 'Marca', 'Curva', 'Qtd', 'Motivo'],
+    ...L.map(l => [l.fase, l.de, l.para || '', l.sku, l.produto, l.marca, l.curva, l.q, l.motivo])]); };
+}
+// por SKU (para digitar a movimentação no Seenc), tamanho a tamanho
+const linhasPlanoEST = (Z, PL) => PL.validos.flatMap(x => x.itens.sort((a, b) => a.sku.localeCompare(b.sku)).map(i => ({ fase:x.fase, de:i.de, para:i.para, sku:i.sku, produto:i.produto || x.produto, marca:x.marca, curva:x.curva, q:i.q, motivo:x.motivo, pai:x.pai })));
+function imprimirPlanoEST(Z, PL){
+  const L = linhasPlanoEST(Z, PL), agora = new Date().toISOString();
+  const grupos = FASES_EST.map((_, i) => i + 1).map(f => [f, f === 4 ? L.filter(l => l.fase === 4) : L.filter(l => l.fase === f).sort((a, b) => cmpEnd(a.de, b.de) || a.pai.localeCompare(b.pai) || a.sku.localeCompare(b.sku))]).filter(([, g]) => g.length);
+  imprimirHtml(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Reorganização ${esc(Z.M.layout.nome)}</title><style>${CSS_IMPRESSO}
+    @page{size:A4;margin:0} .folha{padding:6mm 9mm} table{width:100%;border-collapse:collapse;font-size:9pt;margin-top:2mm} th{background:#02285a;color:#fff;padding:1.3mm;font-size:8pt;text-align:left}
+    td{border-bottom:0.3mm solid #c9cfda;padding:1.1mm 1.3mm} td.e{font-family:Consolas,monospace;white-space:nowrap} td.n{text-align:right} td.ck{width:6mm;border:0.3mm solid #1b2333}
+    h3{margin:4mm 0 1mm;font-size:11pt;color:#02285a} tr{break-inside:avoid} .res{font-size:9.5pt;color:#3c4a5e}</style></head><body>
+    <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">REORGANIZAÇÃO · ${esc(Z.M.layout.nome.toUpperCase())}</div><div class="t2">LISTA DE MOVIMENTAÇÃO</div></div><span class="esp"></span><span class="st"><small>PARES</small><b>${fmtN(Math.round(PL.pares))}</b></span></div>
+    <div class="folha"><div class="res">${fmtN(PL.validos.length)} movimentação(ões) de modelo · ${fmtN(L.length)} linha(s) por SKU · ${fmtN(PL.liberados)} prédio(s) liberado(s) · prédios cheios até ${Math.round(PL.alvo * 100)}%. Estoque de ${Z.M.estoque ? quando(Z.M.estoque.em) : '—'}. Faça a movimentação de endereço no Seenc junto com a física. Responsável: ______________________ Data: ___/___/______</div>
+    ${grupos.map(([f, g]) => `<h3>${f}. ${FASES_EST[f - 1][1]}${f === 4 ? ' (na ordem da lista: as trocas primeiro; use um palete de apoio)' : ''}</h3><table><thead><tr><th></th><th>Tirar de</th><th>Colocar em</th><th>SKU</th><th>Produto</th><th style="text-align:right">Qtd</th></tr></thead><tbody>
+      ${g.map(l => `<tr><td class="ck"></td><td class="e">${esc(curtoEnd(l.de))}</td><td class="e"><b>${esc(curtoEnd(l.para))}</b></td><td class="e">${esc(l.sku)}</td><td>${esc(l.produto || '')}</td><td class="n"><b>${fmtN(l.q)}</b></td></tr>`).join('')}</tbody></table>`).join('')}
+    </div><div class="rodape"><span>Central de Operações Valenro</span><span>Impresso em ${quando(agora)}</span></div></body></html>`);
+}
+// mapa impresso: A4 deitado, o bloco em 4 partes (com o mapa inteiro no topo mostrando qual parte é) para o número do prédio,
+// os pares e a data do último inventário ficarem legíveis na parede
+function imprimirMapaEST(Z){
+  const s = state.est, D = Z.D, agora = new Date().toISOString(), bloq = Z.pos.filter(p => p.bloq), [cx, , cw] = D.contorno;
+  const modo = ['marca', 'curva', 'inventario'].includes(s.mmodo) ? s.mmodo : 'ocupacao', n = 4, larg = cw / n;
+  const txtModo = { ocupacao:'ocupação (azul mais escuro = mais cheio)', curva:'curva do que está guardado (verde A, verde-claro B, amarelo C, cinza sem venda)', marca:'marca que mais ocupa o prédio', inventario:'idade do inventário (verde até 30 dias, amarelo até 90, laranja mais antigo ou nunca)' }[modo];
+  const legMarca = modo === 'marca' ? `<div class="lm">${Z.marcas.slice(0, 12).map(m => `<span><i style="background:${Z.corMarca[m.n]}"></i>${esc(m.n)}</span>`).join('')}</div>` : '';
+  const topo = t2 => `<div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">MAPA DO ${esc(Z.M.layout.nome.toUpperCase())}</div><div class="t2">${t2}</div></div><span class="esp"></span><span class="st"><small>ESTOQUE DE</small><b>${Z.M.estoque ? dataBR(String(Z.M.estoque.em).slice(0, 10)) : '—'}</b></span></div>`;
+  const rod = `<div class="rodape"><span>Central de Operações Valenro</span><span>Impresso em ${quando(agora)}</span></div>`;
+  const partes = Array.from({ length:n }, (_, i) => { const a = cx + i * larg - 3, b = cx + (i + 1) * larg + 3;
+    return `<section class="pg">${topo(`PARTE ${i + 1} DE ${n}`)}<div class="mini">${svgMapaEST(Z, { modo, impressao:true, mini:true, janela:[a, b] })}</div>
+      <div class="mapa">${svgMapaEST(Z, { modo, impressao:true, recorte:[a, b] })}</div>
+      <div class="leg">Em cada prédio: número, pares e a data do último inventário (— = nunca). Hachurado vermelho = <b>bloqueado</b>. Cor: ${txtModo}.${legMarca}</div>${rod}</section>`; }).join('');
+  imprimirHtml(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Mapa ${esc(Z.M.layout.nome)}</title><style>${CSS_IMPRESSO}
+    @page{size:A4 landscape;margin:0} .pg{height:209mm;display:flex;flex-direction:column;page-break-after:always;break-after:page;overflow:hidden} .pg:last-child{page-break-after:auto}
+    .mini{padding:2mm 60mm 0} .mini svg{width:100%;height:auto;display:block}
+    .mapa{flex:1;padding:2mm 6mm;display:flex;align-items:center;min-height:0} .mapa svg{width:100%;max-height:100%}
+    .leg{font-size:9pt;color:#3c4a5e;padding:0 8mm 2mm} .lm{display:flex;flex-wrap:wrap;gap:2mm 5mm;margin-top:1.5mm} .lm i{display:inline-block;width:3.5mm;height:3.5mm;border-radius:.6mm;margin-right:1.2mm;vertical-align:-0.6mm}
+    table{border-collapse:collapse;font-size:10pt;margin:3mm 8mm;width:calc(100% - 16mm)} th{background:#02285a;color:#fff;padding:1.5mm;text-align:left;font-size:9pt} td{border-bottom:0.3mm solid #c9cfda;padding:1.3mm 1.5mm}</style></head><body>
+    ${partes}
+    ${bloq.length ? `<section class="pg">${topo(`PRÉDIOS BLOQUEADOS · ${bloq.length}`)}
+      <table><thead><tr><th>Rua</th><th>Prédio</th><th>Motivo</th><th>Desde</th><th>Por</th><th style="text-align:right">Pares dentro</th></tr></thead><tbody>${bloq.map(p => `<tr><td>${p.rua}</td><td>${p.predio}</td><td>${esc(p.bloq.motivo)}</td><td>${dataBR(p.bloq.desde)}</td><td>${esc(p.bloq.por || '')}</td><td style="text-align:right">${fmtN(Math.round(p.pares))}</td></tr>`).join('')}</tbody></table>${rod}</section>` : ''}</body></html>`);
+}
+
 // no formato da folha do FULL: A4 deitada, produto × cor nas linhas, numeração nas colunas, um bloco por andar
 function fichaInventarioEST(P, R, o){
   const agora = new Date().toISOString(), quem = quemImprime();
