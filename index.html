@@ -326,6 +326,9 @@
   .cx-horas i{display:block;width:70%;background:#174f7a;border-radius:4px 4px 0 0} .cx-horas b{font-size:11px} .cx-horas span{color:var(--mute)}
   .cx-bar{display:block;height:8px;background:#eef1f6;border-radius:4px;overflow:hidden} .cx-bar i{display:block;height:100%;background:#174f7a;max-width:100%}
   .cx-n0 td{background:#f6f8fb} .cx-n0:hover td,.cx-n1:hover td,.cx-n2:hover td{background:#eef3fb}
+  .cx-leg{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;margin:4px 0} .cx-leg button{border:1px solid transparent;background:none;border-radius:6px;padding:2px 6px;cursor:pointer;font:inherit;color:inherit}
+  .cx-leg button.on{border-color:#174f7a;background:#eef3fb} .cx-leg i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .cx-mat th,.cx-mat td{white-space:nowrap} .cx-mat td:first-child,.cx-mat th:first-child{position:sticky;left:0;background:#fff;z-index:1} .cx-mat .cx-n0 td:first-child{background:#f6f8fb}
   .cx-duo{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media (max-width:800px){ .cx-duo{grid-template-columns:1fr} }
   .cs-prox{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
   .cs-em{display:flex;gap:10px;align-items:center;border:1px dashed #b9c3d3;border-radius:10px;padding:12px;background:#fafbfd;color:var(--mute)} .cs-em span{font-size:24px} .cs-em div{flex:1} .cs-em b{color:var(--ink)} .cs-em small{display:block;font-size:12px}
@@ -3843,11 +3846,11 @@ document.head.insertAdjacentHTML('beforeend', `<style id="css-crachas">${CSS_CRA
 /* =================== PRODUÇÃO DO TIME (consolidado do dia ou do período) =================== */
 // FULL: pares por etapa (separação, conferência...), tempo de operação (relógio), horas-pessoa, pares/h e pares/h-pessoa.
 // CROSS, inventários e movimentações entram como novos blocos nesta mesma página.
-const ROT_PER_CONS = { hoje:'Hoje', ontem:'Ontem', semana:'Esta semana', sem_ant:'Semana passada', d7:'Últimos 7 dias', mes:'Este mês', mes_ant:'Mês passado', outro:'Escolher datas…' };
+const ROT_PER_CONS = { hoje:'Hoje', ontem:'Ontem', semana:'Esta semana', sem_ant:'Semana passada', d7:'Últimos 7 dias', mes:'Este mês', mes_ant:'Mês passado', m3:'Últimos 3 meses', outro:'Escolher datas…' };
 function periodoCons(op){
   const h = hojeBRT(), dow = new Date(h + 'T12:00:00Z').getUTCDay(), seg = addDias(h, -((dow + 6) % 7)), m1 = h.slice(0, 8) + '01';
   return { hoje:[h, h], ontem:[addDias(h, -1), addDias(h, -1)], semana:[seg, h], sem_ant:[addDias(seg, -7), addDias(seg, -1)], d7:[addDias(h, -6), h],
-    mes:[m1, h], mes_ant:[addDias(m1, -1).slice(0, 8) + '01', addDias(m1, -1)] }[op] || null;
+    mes:[m1, h], mes_ant:[addDias(m1, -1).slice(0, 8) + '01', addDias(m1, -1)], m3:[addDias(addDias(m1, -1).slice(0, 8) + '01', -1).slice(0, 8) + '01', h] }[op] || null;
 }
 // demonstração: apontamentos de hoje e de ontem (separação, conferência, carregamento)
 function demoConsolidado(ini, fim){
@@ -4016,9 +4019,10 @@ const BASES_CX = [['cross', 'Cross'], ['full', 'Full'], ['sem_canal', 'Sem canal
 const hmCX = m => { if (m == null) return '–'; const t = Math.round(m); return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
 const n1CX = v => v == null || !isFinite(v) ? '–' : v.toLocaleString('pt-BR', { maximumFractionDigits:1, minimumFractionDigits:1 });
 const pctCX = (a, b) => b ? (a / b * 100).toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%' : '–';
-function demoCrossInd(ini, fim, base){
+function demoCrossInd(ini, fim, base, bl = null, op = null){
+  const fb = (bl == null ? 1 : ({ 4:.62, 1:.16, 2:.1, 3:.1, 0:.02 }[bl] || .05)) * (op ? .26 : 1);
   const r = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); }, dias = [];
-  for (let d = ini; d <= fim; d = addDias(d, 1)) { const w = new Date(d + 'T12:00:00Z').getUTCDay(); if (w === 0) continue; const i = dias.length, f = base === 'full' ? .08 : base === 'todos' ? 1.08 : 1;
+  for (let d = ini; d <= fim; d = addDias(d, 1)) { const w = new Date(d + 'T12:00:00Z').getUTCDay(); if (w === 0) continue; const i = dias.length, f = (base === 'full' ? .08 : base === 'todos' ? 1.08 : 1) * fb;
     const pares = Math.round((380 + r(i, 1) * 160) * f * (w === 6 ? .5 : 1)), ped = Math.round(pares * .64), he = pares / (24 + r(i, 2) * 8);
     dias.push({ dia:d, pares, pedidos:ped, linhas:Math.round(pares * .8), operadores:w === 6 ? 3 : 4, primeira:400 + Math.round(r(i, 3) * 40), ultima:960 + Math.round(r(i, 4) * 90), bl4:Math.round(pares * (.55 + r(i, 5) * .15)),
       sem_end:Math.round(pares * .015), abandonos:Math.round(r(i, 6) * 3), horas_ef:he, ondas:Math.round(ped / 4.4), onda_min:14 + r(i, 7) * 6, gap_min:3 + r(i, 8), pausas:Math.round(15 + r(i, 9) * 10) }); }
@@ -4035,13 +4039,17 @@ function demoCrossInd(ini, fim, base){
     dias, horas:[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((h, i) => ({ h, pares:Math.round(P / 12 * [0.3, 1.2, 1.5, 1.4, 1.3, 1.1, .5, .9, 1.2, 1.1, .9, .4][i]), dias:dias.length })),
     enderecos:ends, perfis:[{ perfil:'plDiscretoUnitario', pares:Math.round(P * .6), pedidos:Math.round(S('pedidos') * .7), linhas:1 }, { perfil:'plDiscreto', pares:Math.round(P * .4), pedidos:Math.round(S('pedidos') * .3), linhas:1 }],
     abandonos:[{ motivo:'Produto não encontrado', pedidos:S('abandonos'), linhas:S('abandonos') }],
-    operadores:pode('pessoas', 'editar') ? ['Ana Lima', 'Davi Duarte', 'Kelvin Alves', 'Tiago Santos'].map((o, i) => ({ operador:o, pares:Math.round(P * [.22, .27, .3, .21][i]), pedidos:Math.round(S('pedidos') * [.22, .27, .3, .21][i]), linhas:1, dias:dias.length - i,
+    bloco:bl == null ? null : Number(bl), operador:op, blocos:[0, 1, 2, 3, 4].map(b => ({ bloco:b, pares:Math.round(P / fb * ({ 4:.62, 1:.16, 2:.1, 3:.1, 0:.02 }[b])) })),
+    lista_operadores:pode('pessoas', 'editar') ? ['Ana Lima', 'Davi Duarte', 'Kelvin Alves', 'Tiago Santos'].map(o => ({ operador:o, pares:0 })) : null,
+    matriz:pode('pessoas', 'editar') ? dias.flatMap((d, i) => ['Ana Lima', 'Davi Duarte', 'Kelvin Alves', 'Tiago Santos'].filter(o => !op || o === op).map((o, j) => { const pr = Math.round(d.pares / (op ? 1 : 4) * (0.8 + r(i, j + 20) * 0.4)), h = pr / (22 + j * 1.5 + r(i, j + 30) * 8);
+      return { dia:d.dia, operador:o, pares:pr, pedidos:Math.round(pr * .64), linhas:pr, horas_ef:h, gap_n:100, gap_soma:100 * (2.8 + j * .3 + r(i, j + 40)), pausas:5, primeira:400 + Math.round(r(i, j + 50) * 30), ultima:980 + Math.round(r(i, j + 60) * 60) }; })) : null,
+    operadores:pode('pessoas', 'editar') ? ['Ana Lima', 'Davi Duarte', 'Kelvin Alves', 'Tiago Santos'].filter(o => !op || o === op).map((o, i) => ({ operador:o, pares:Math.round(P * [.22, .27, .3, .21][i]), pedidos:Math.round(S('pedidos') * [.22, .27, .3, .21][i]), linhas:1, dias:dias.length - i,
       horas_ef:he * [.24, .25, .29, .22][i], gap_min:2.8 + i * .4, pausas:20 + i * 5, primeira_media:400 + i * 9, ultima_media:990 + i * 12 })) : null };
 }
 async function carregarIndCX(){
   const s = state.cons, $c = document.getElementById('cons'); s.cxBase ||= 'cross';
   if ($c) $c.innerHTML = '<div class="carregando">Lendo a separação do Seenc…</div>';
-  try { const d = DEMO ? demoCrossInd(s.ini, s.fim, s.cxBase) : await api(`/cross/indicadores?ini=${s.ini}&fim=${s.fim}&loja=${s.loja}&base=${s.cxBase}`); if (s.aba !== 'cross') return; state.consCross = d; renderIndCX(); }
+  try { const d = DEMO ? demoCrossInd(s.ini, s.fim, s.cxBase, s.cxBl, s.cxOp) : await api(`/cross/indicadores?ini=${s.ini}&fim=${s.fim}&loja=${s.loja}&base=${s.cxBase}${s.cxBl != null ? `&bloco=${s.cxBl}` : ''}${s.cxOp ? `&operador=${encodeURIComponent(s.cxOp)}` : ''}`); if (s.aba !== 'cross') return; state.consCross = d; renderIndCX(); }
   catch (e) { if (e instanceof SemSessao) throw e; if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 // endereços em árvore: bloco › rua › prédio › andar (cada nível com o % do total e o % dentro do nível de cima)
@@ -4052,6 +4060,57 @@ function arvoreEndCX(L){
     let no = raiz; raiz.pares += e.pares; raiz.linhas += e.linhas; raiz.pedidos += e.pedidos;
     for (const [k, rot] of path) { no = nivel(no, k, rot); no.pares += e.pares; no.linhas += e.linhas; no.pedidos += e.pedidos; } }
   return raiz;
+}
+// comparativo por funcionário (só gestão): operador × dia ou mês, numa métrica; dá para filtrar por bloco (ex.: produtividade no BL4)
+const METRICAS_CX = [['ph', 'Pares/h efetiva'], ['pares', 'Pares'], ['horas', 'Horas efetivas'], ['pedidos', 'Pedidos'], ['gap', 'Intervalo entre bipagens (min)'], ['primeira', '1ª separação'], ['ultima', 'Última separação']];
+const CORES_OP_CX = ['#2f6fdf', '#e07b24', '#2a9d5c', '#c4378f', '#7a4fd0', '#c9a227', '#1aa0b5', '#d4483b', '#6b8e23', '#8c6d4f'];
+function juntarCX(L){ // soma dias de um operador (ou do time) num período
+  const t = L.reduce((a, x) => ({ pares:a.pares + x.pares, pedidos:a.pedidos + x.pedidos, horas:a.horas + x.horas_ef, gn:a.gn + x.gap_n, gs:a.gs + x.gap_soma, p:x.primeira != null ? [...a.p, x.primeira] : a.p, u:x.ultima != null ? [...a.u, x.ultima] : a.u, dias:a.dias + 1 }),
+    { pares:0, pedidos:0, horas:0, gn:0, gs:0, p:[], u:[], dias:0 });
+  const med = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : null;
+  return { pares:t.pares, pedidos:t.pedidos, horas:t.horas, ph:t.horas ? t.pares / t.horas : null, gap:t.gn ? t.gs / t.gn : null, primeira:med(t.p), ultima:med(t.u), dias:t.dias };
+}
+const fmtMetCX = (k, v) => v == null ? '–' : k === 'primeira' || k === 'ultima' ? hmCX(v) : k === 'pares' || k === 'pedidos' ? fmtN(Math.round(v)) : n1CX(v);
+function secFuncCX(R){
+  const s = state.cons; if (!R.matriz) return '';
+  s.cxGran ||= 'dia'; s.cxMet ||= 'ph';
+  const k = s.cxMet, gran = s.cxGran, chave = d => gran === 'mes' ? d.slice(0, 7) : d;
+  const ops = [...new Set(R.matriz.map(x => x.operador))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const per = [...new Set(R.matriz.map(x => chave(x.dia)))].sort();
+  const cel = (op, p) => { const L = R.matriz.filter(x => (op == null || x.operador === op) && chave(x.dia) === p); return L.length ? juntarCX(L) : null; };
+  // o "Time" é a média por pessoa: pares e horas somados ÷ nº de operadores que trabalharam (pares/h e intervalo já são do time inteiro)
+  const time = p => { const L = R.matriz.filter(x => chave(x.dia) === p); if (!L.length) return null; const j = juntarCX(L), n = new Set(L.map(x => x.operador)).size, porDia = gran === 'mes' ? new Set(L.map(x => x.dia)).size : 1;
+    return { ...j, pares:j.pares / n, pedidos:j.pedidos / n, horas:j.horas / n }; };
+  const M = ops.map(op => ({ op, v:per.map(p => cel(op, p)), tot:juntarCX(R.matriz.filter(x => x.operador === op)) }));
+  const T = per.map(time);
+  const rotP = p => gran === 'mes' ? mesBR(p + '-01') : `${dataBR(p).slice(0, 5)}<br><span class="info">${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(p + 'T12:00:00Z').getUTCDay()]}</span>`;
+  // intensidade por coluna (azul neutro: é comparação, não nota)
+  const tom = (v, col) => { if (v == null || k === 'primeira' || k === 'ultima') return ''; const vs = M.map(r => r.v[col]?.[k]).filter(x => x != null); const mn = Math.min(...vs), mx = Math.max(...vs); if (mx === mn) return '';
+    const f = (v - mn) / (mx - mn); return `background:rgba(23,79,122,${(0.06 + f * 0.32).toFixed(2)})`; };
+  // gráfico de linhas: a métrica por período, uma linha por operador + o time tracejado
+  const W = 900, H = 220, pl = 46, pr = 14, pt = 12, pb = 26, xs = per.length > 1 ? (W - pl - pr) / (per.length - 1) : 0;
+  const vals = [...M.flatMap(r => r.v.map(c => c?.[k])), ...T.map(c => c?.[k])].filter(v => v != null), mx = Math.max(1, ...vals), mn = k === 'primeira' || k === 'ultima' ? Math.min(...vals) : 0;
+  const y = v => pt + (H - pt - pb) * (1 - (v - mn) / Math.max(1e-9, mx - mn)), x = i => pl + i * xs + (per.length === 1 ? (W - pl - pr) / 2 : 0);
+  const linha = (arr, cor, extra = '') => { let d = '', on = false; arr.forEach((c, i) => { const v = c?.[k]; if (v == null) { on = false; return; } d += `${on ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`; on = true; });
+    return `<path d="${d}" fill="none" stroke="${cor}" stroke-width="2" ${extra}/>${arr.map((c, i) => c?.[k] == null ? '' : `<circle cx="${x(i).toFixed(1)}" cy="${y(c[k]).toFixed(1)}" r="${per.length > 40 ? 1.8 : 3}" fill="${cor}"/>`).join('')}`; };
+  const ticks = [0, .25, .5, .75, 1].map(f => mn + (mx - mn) * f);
+  const passo = Math.max(1, Math.ceil(per.length / 16));
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+    ${ticks.map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="#e6eaf0"/><text x="${pl - 6}" y="${y(v) + 4}" font-size="10" text-anchor="end" fill="#6b7a90">${k === 'primeira' || k === 'ultima' ? hmCX(v) : fmtN(Math.round(v * 10) / 10)}</text>`).join('')}
+    ${per.map((p, i) => i % passo ? '' : `<text x="${x(i)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#6b7a90">${gran === 'mes' ? mesBR(p + '-01') : dataBR(p).slice(0, 5)}</text>`).join('')}
+    ${linha(T, '#1b2333', 'stroke-dasharray="5 4"')}${M.map((r, i) => `<g opacity="${s.cxFoco && s.cxFoco !== r.op ? 0.12 : 1}">${linha(r.v, CORES_OP_CX[i % CORES_OP_CX.length])}</g>`).join('')}</svg>`;
+  const nomeBl = R.bloco == null ? 'todos os blocos' : R.bloco === 0 ? 'sem endereço (BL0)' : `Bloco ${R.bloco}`;
+  return `<div class="painel" style="padding:0"><div class="cs-cab" style="padding:10px 12px 0;flex-wrap:wrap;gap:8px"><h3 class="cs-sub">Comparativo por funcionário · ${esc(nomeBl)}</h3>
+      <span class="is-chips">${[['dia', 'Dia a dia'], ['mes', 'Mês a mês']].map(([g, t]) => `<button class="is-chip ${gran === g ? 'on' : ''}" data-cxg="${g}">${t}</button>`).join('')}</span>
+      <select id="cx-met">${METRICAS_CX.map(([m, t]) => `<option value="${m}" ${k === m ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <span style="flex:1"></span><button class="btn" id="cx-csv-f">⇩ CSV</button></div>
+    <div style="padding:6px 12px">${svg}<div class="cx-leg">${M.map((r, i) => `<button class="${s.cxFoco === r.op ? 'on' : ''}" data-cxfoco="${esc(r.op)}" title="Destacar no gráfico"><i style="background:${CORES_OP_CX[i % CORES_OP_CX.length]}"></i>${esc(r.op)}</button>`).join('')}<span><i style="border-top:2px dashed #1b2333;height:0;margin-top:6px"></i>Time (média por pessoa)</span><span class="info">clique no nome para destacar a linha</span></div></div>
+    <div style="overflow-x:auto"><table class="tab-full cs-tab cx-mat"><thead><tr><th style="text-align:left">Funcionário</th><th>Período todo</th>${per.map(p => `<th>${rotP(p)}</th>`).join('')}</tr></thead><tbody>
+      ${M.map(r => `<tr><td style="text-align:left"><a href="#" data-cxop="${esc(r.op)}" title="Ver só este funcionário em toda a tela">${esc(r.op)}</a></td><td><b>${fmtMetCX(k, r.tot[k])}</b></td>${r.v.map((c, i) => `<td style="${tom(c?.[k], i)}">${fmtMetCX(k, c?.[k])}</td>`).join('')}</tr>`).join('')}
+      <tr class="cx-n0"><td style="text-align:left"><b>Time</b> <span class="info">${k === 'ph' || k === 'gap' || k === 'primeira' || k === 'ultima' ? '' : 'média por pessoa'}</span></td><td><b>${fmtMetCX(k, (() => { const j = juntarCX(R.matriz), n = new Set(R.matriz.map(x => x.operador)).size; return ['pares', 'pedidos', 'horas'].includes(k) ? j[k] / Math.max(1, n) : j[k]; })())}</b></td>${T.map(c => `<td><b>${fmtMetCX(k, c?.[k])}</b></td>`).join('')}</tr>
+    </tbody></table></div>
+    <div class="info cs-nota" style="padding:6px 12px 10px">Visível só para quem administra Pessoas e acessos. ${R.bloco != null ? 'Com filtro de bloco, as horas efetivas de cada onda são divididas entre os blocos na proporção dos pares separados em cada um (o relatório não diz quanto tempo o separador ficou em cada bloco).' : ''}
+      Clique no nome para ver a tela inteira só daquele funcionário. A cor só mostra quem ficou acima ou abaixo no período, sem ser nota.</div></div>`;
 }
 function renderIndCX(){
   const s = state.cons, R = state.consCross, $c = document.getElementById('cons'); if (!$c || !R) return;
@@ -4068,6 +4127,9 @@ function renderIndCX(){
     <div class="cs-cab"><h3>🚚 CROSS · separação</h3><span class="info">${umDia ? dataBR(s.ini) : `${dataBR(s.ini)} a ${dataBR(s.fim)}`}${s.loja !== 'todos' ? ' · ' + esc(nomeLoja(s.loja)) : ''} · relatório "Ações de usuários" do Seenc
       ${R.cargas.length ? `(${R.cargas.map(c => `${esc(nomeLoja(c.cnpj_id))}: ${dataBR(c.de).slice(0, 5)} a ${dataBR(c.ate).slice(0, 5)}`).join(' · ')})` : '— <b>nenhum relatório de separação carregado no período</b> (Indicadores › Dados do Seenc)'}</span>
       <span style="flex:1"></span><span class="is-chips"><span>Base</span>${BASES_CX.map(([k, t]) => `<button class="is-chip ${s.cxBase === k ? 'on' : ''}" data-cxb="${k}">${t} <small>${fmtN(Math.round(totClasse(k)))}</small></button>`).join('')}</span></div>
+    <div class="es-f"><label class="info" style="display:flex;gap:6px;align-items:center">Bloco <select id="cx-bl"><option value="">Todos</option>${(R.blocos || []).map(b => `<option value="${b.bloco}" ${s.cxBl === String(b.bloco) ? 'selected' : ''}>${b.bloco ? 'Bloco ' + b.bloco : 'Sem endereço (BL0)'} · ${fmtN(Math.round(b.pares))} pares</option>`).join('')}</select></label>
+      ${R.lista_operadores ? `<label class="info" style="display:flex;gap:6px;align-items:center">Funcionário <select id="cx-op"><option value="">Todos</option>${R.lista_operadores.map(o => `<option ${s.cxOp === o.operador ? 'selected' : ''}>${esc(o.operador)}</option>`).join('')}</select></label>` : ''}
+      ${s.cxBl != null || s.cxOp ? `<span class="aviso" style="margin:0;padding:4px 10px">Filtrando: ${[s.cxBl != null ? (s.cxBl === '0' ? 'sem endereço' : 'Bloco ' + s.cxBl) : '', s.cxOp ? esc(s.cxOp) : ''].filter(Boolean).join(' · ')} <a href="#" id="cx-limpa">limpar</a></span>` : ''}</div>
     ${!T.pares ? `<div class="vazio">Sem separação ${s.cxBase === 'todos' ? '' : `da base "${BASES_CX.find(b => b[0] === s.cxBase)[1]}" `}no período.</div>` : `
     <div class="rr-res">
       ${tile('Pares separados', fmtN(Math.round(T.pares)), `${fmtN(T.pedidos)} pedidos · ${fmtN(T.linhas)} bipagens · ${fmtN(T.dias)} dia(s)`, '#174f7a')}
@@ -4089,7 +4151,8 @@ function renderIndCX(){
     <div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">De onde saíram os pares</h3><span class="info">clique para abrir bloco › rua › prédio › andar</span><span style="flex:1"></span>
         <button class="btn" id="cx-abre">${s.cxAb.size ? 'Fechar tudo' : 'Abrir blocos'}</button><button class="btn" id="cx-csv-e">⇩ CSV por endereço</button></div>
       <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Endereço</th><th>Pares</th><th>% do total</th><th>% dentro do nível</th><th>Bipagens</th><th>Pedidos</th><th style="width:22%"></th></tr></thead><tbody>${linhasArv(A, 0, A)}</tbody></table></div>
-    ${R.operadores ? `<div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">Por operador</h3><span class="info">em ordem alfabética · visível só para quem administra Pessoas e acessos</span></div>
+    ${secFuncCX(R)}
+    ${R.operadores ? `<div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">Por funcionário · período todo</h3><span class="info">em ordem alfabética · visível só para quem administra Pessoas e acessos</span></div>
       <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Operador</th><th>Dias</th><th>Pares</th><th>Pedidos</th><th>Horas efetivas</th><th>Pares/h efetiva</th><th>Intervalo (min)</th><th>Pausas &gt;30 min</th><th>1ª (média)</th><th>Última (média)</th></tr></thead><tbody>
       ${R.operadores.map(o => `<tr><td style="text-align:left">${esc(o.operador)}</td><td>${o.dias}</td><td>${fmtN(Math.round(o.pares))}</td><td>${fmtN(o.pedidos)}</td><td>${n1CX(o.horas_ef)}</td><td><b>${n1CX(o.horas_ef ? o.pares / o.horas_ef : null)}</b></td><td>${n1CX(o.gap_min)}</td><td>${o.pausas}</td><td>${hmCX(o.primeira_media)}</td><td>${hmCX(o.ultima_media)}</td></tr>`).join('')}</tbody></table></div>` : ''}
     <div class="cx-duo">
@@ -4105,6 +4168,17 @@ function renderIndCX(){
       <b>Hora efetiva</b> = soma, por operador, do tempo dentro das ondas (as pausas entre ondas não contam). <b>Intervalo entre bipagens</b> = tempo entre um "Separado em" e o próximo do mesmo operador; o Seenc grava em minutos, então várias bipagens no mesmo minuto contam 0.
       O "Separado em" define o dia.</div></div>`;
   $c.querySelectorAll('[data-cxb]').forEach(b => b.onclick = () => { s.cxBase = b.dataset.cxb; carregarIndCX(); });
+  $c.querySelector('#cx-bl')?.addEventListener('change', e => { s.cxBl = e.target.value === '' ? null : e.target.value; carregarIndCX(); });
+  $c.querySelector('#cx-op')?.addEventListener('change', e => { s.cxOp = e.target.value || null; carregarIndCX(); });
+  $c.querySelector('#cx-limpa')?.addEventListener('click', e => { e.preventDefault(); s.cxBl = null; s.cxOp = null; carregarIndCX(); });
+  $c.querySelectorAll('[data-cxop]').forEach(a => a.onclick = e => { e.preventDefault(); s.cxOp = a.dataset.cxop; carregarIndCX(); window.scrollTo({ top:0, behavior:'smooth' }); });
+  $c.querySelectorAll('[data-cxfoco]').forEach(b => b.onclick = () => { s.cxFoco = s.cxFoco === b.dataset.cxfoco ? null : b.dataset.cxfoco; renderIndCX(); });
+  $c.querySelectorAll('[data-cxg]').forEach(b => b.onclick = () => { s.cxGran = b.dataset.cxg; renderIndCX(); });
+  $c.querySelector('#cx-met')?.addEventListener('change', e => { s.cxMet = e.target.value; renderIndCX(); });
+  $c.querySelector('#cx-csv-f')?.addEventListener('click', () => { const gm = s.cxGran === 'mes', ch = d => gm ? d.slice(0, 7) : d, G = {};
+    R.matriz.forEach(x => { (G[`${x.operador}|${ch(x.dia)}`] ||= []).push(x); });
+    baixarCsv(`separacao_por_funcionario_${gm ? 'mes' : 'dia'}_${s.ini}_${s.fim}${R.bloco != null ? '_BL' + R.bloco : ''}.csv`, [['Funcionário', gm ? 'Mês' : 'Dia', 'Pares', 'Pedidos', 'Horas efetivas', 'Pares/h efetiva', 'Intervalo min', 'Primeira', 'Ultima', 'Dias'],
+      ...Object.entries(G).sort().map(([kk, L]) => { const [o, p] = kk.split('|'), j = juntarCX(L); return [o, p, Math.round(j.pares), j.pedidos, n1CX(j.horas), n1CX(j.ph), n1CX(j.gap), hmCX(j.primeira), hmCX(j.ultima), j.dias]; })]); });
   $c.querySelectorAll('[data-cxk]').forEach(tr => tr.onclick = () => { const k = tr.dataset.cxk; s.cxAb.has(k) ? s.cxAb.delete(k) : s.cxAb.add(k); renderIndCX(); });
   $c.querySelector('#cx-abre')?.addEventListener('click', () => { if (s.cxAb.size) s.cxAb.clear(); else [...A.filhos.keys()].forEach(k => s.cxAb.add(k)); renderIndCX(); });
   $c.querySelector('#cx-csv-d')?.addEventListener('click', () => baixarCsv(`separacao_cross_dias_${s.ini}_${s.fim}.csv`, [['Dia', 'Pares', 'Pedidos', 'Bipagens', 'Operadores', 'Primeira', 'Ultima', 'Horas efetivas', 'Pares/h efetiva', 'Min por onda', 'Intervalo min', 'Pares Bloco 4', 'Abandonos'],
