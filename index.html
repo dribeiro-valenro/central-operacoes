@@ -322,6 +322,11 @@
   .cs-gr{border-bottom:3px solid var(--c) !important;color:var(--c) !important}
   .cs-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px;align-items:center} .cs-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
   .cs-nota{line-height:1.55;margin-top:8px}
+  .cx-horas{display:flex;align-items:flex-end;gap:6px;height:170px;overflow-x:auto;padding-top:6px} .cx-horas div{flex:1;min-width:34px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;font-size:11px}
+  .cx-horas i{display:block;width:70%;background:#174f7a;border-radius:4px 4px 0 0} .cx-horas b{font-size:11px} .cx-horas span{color:var(--mute)}
+  .cx-bar{display:block;height:8px;background:#eef1f6;border-radius:4px;overflow:hidden} .cx-bar i{display:block;height:100%;background:#174f7a;max-width:100%}
+  .cx-n0 td{background:#f6f8fb} .cx-n0:hover td,.cx-n1:hover td,.cx-n2:hover td{background:#eef3fb}
+  .cx-duo{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media (max-width:800px){ .cx-duo{grid-template-columns:1fr} }
   .cs-prox{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
   .cs-em{display:flex;gap:10px;align-items:center;border:1px dashed #b9c3d3;border-radius:10px;padding:12px;background:#fafbfd;color:var(--mute)} .cs-em span{font-size:24px} .cs-em div{flex:1} .cs-em b{color:var(--ink)} .cs-em small{display:block;font-size:12px}
   .cs-em em{font-style:normal;font-size:11px;font-weight:700;background:#eef0f4;border-radius:8px;padding:2px 8px}
@@ -3869,10 +3874,10 @@ function demoConsolidado(ini, fim){
 async function apiCons(ini, fim){ return DEMO ? demoConsolidado(ini, fim) : api(`/consolidado?ini=${ini}&fim=${fim}`); }
 
 function telaConsolidado(){
-  const s = state.cons ||= { per:'hoje', ini:'', fim:'', loja:'todos' };
+  const s = state.cons ||= { per:'hoje', ini:'', fim:'', loja:'todos' }; s.aba ||= 'full';
   if (s.per !== 'outro') [s.ini, s.fim] = periodoCons(s.per);
   $app.innerHTML = `
-    <div class="barra"><h2>Produção do time</h2><span style="flex:1"></span>
+    <div class="barra"><h2>Produção do time</h2><span class="is-chips" style="margin-left:12px">${[['full', '📦 FULL · apontamentos'], ['cross', '🚚 CROSS · separação (Seenc)']].map(([k, t]) => `<button class="is-chip ${s.aba === k ? 'on' : ''}" data-csa="${k}">${t}</button>`).join('')}</span><span style="flex:1"></span>
       <select id="cs-per">${Object.entries(ROT_PER_CONS).map(([k, t]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <span class="datas"><input type="date" id="cs-ini" value="${s.ini}"> até <input type="date" id="cs-fim" value="${s.fim}"></span>
       <select id="cs-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
@@ -3884,13 +3889,14 @@ function telaConsolidado(){
   const datas = () => { let a = $('cs-ini').value, b = $('cs-fim').value; if (!a || !b) return; if (b < a) [a, b] = [b, a];
     s.ini = a; s.fim = b; s.per = Object.keys(ROT_PER_CONS).find(k => { const r = periodoCons(k); return r && r[0] === a && r[1] === b; }) || 'outro'; $('cs-per').value = s.per; carregarCons(); };
   $('cs-ini').onchange = datas; $('cs-fim').onchange = datas;
-  $('cs-loja').onchange = () => { s.loja = $('cs-loja').value; renderCons(); };
+  $('cs-loja').onchange = () => { s.loja = $('cs-loja').value; s.aba === 'cross' ? carregarIndCX() : renderCons(); };
   $('cs-atualizar').onclick = carregarCons;
+  document.querySelectorAll('[data-csa]').forEach(b => b.onclick = () => { s.aba = b.dataset.csa; document.querySelectorAll('[data-csa]').forEach(x => x.classList.toggle('on', x === b)); carregarCons(); });
   carregarCons();
 }
 async function carregarCons(){
-  const s = state.cons;
-  try { state.consDados = await apiCons(s.ini, s.fim); renderCons(); }
+  const s = state.cons; if (s.aba === 'cross') return carregarIndCX();
+  try { const d = await apiCons(s.ini, s.fim); if (s.aba !== 'full') return; state.consDados = d; renderCons(); }
   catch (e) { if (e instanceof SemSessao) throw e; const $c = document.getElementById('cons'); if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 // une intervalos [ini, fim] em ms e devolve os minutos cobertos (tempo de relógio da operação)
@@ -4001,8 +4007,110 @@ function renderCons(){
       </div>
     </div>
     <div class="cs-prox">
-      ${[['🚚', 'CROSS', 'coletas e pacotes do dia por marketplace'], ['📋', 'Inventários', 'endereços e pares contados'], ['🔁', 'Movimentações', 'transferências e reabastecimento']].map(([i, t, d]) => `<div class="cs-em"><span>${i}</span><div><b>${t}</b><small>${d}</small></div><em>em construção</em></div>`).join('')}
+      ${[['📋', 'Inventários', 'endereços e pares contados'], ['🔁', 'Movimentações', 'transferências e reabastecimento']].map(([i, t, d]) => `<div class="cs-em"><span>${i}</span><div><b>${t}</b><small>${d}</small></div><em>em construção</em></div>`).join('')}
     </div>`;
+}
+
+/* ---------- Produção do time › CROSS: separação pelo relatório "Ações de usuários" do Seenc (Indicadores › Dados do Seenc) ---------- */
+const BASES_CX = [['cross', 'Cross'], ['full', 'Full'], ['sem_canal', 'Sem canal'], ['todos', 'Tudo']];
+const hmCX = m => { if (m == null) return '–'; const t = Math.round(m); return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+const n1CX = v => v == null || !isFinite(v) ? '–' : v.toLocaleString('pt-BR', { maximumFractionDigits:1, minimumFractionDigits:1 });
+const pctCX = (a, b) => b ? (a / b * 100).toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%' : '–';
+function demoCrossInd(ini, fim, base){
+  const r = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); }, dias = [];
+  for (let d = ini; d <= fim; d = addDias(d, 1)) { const w = new Date(d + 'T12:00:00Z').getUTCDay(); if (w === 0) continue; const i = dias.length, f = base === 'full' ? .08 : base === 'todos' ? 1.08 : 1;
+    const pares = Math.round((380 + r(i, 1) * 160) * f * (w === 6 ? .5 : 1)), ped = Math.round(pares * .64), he = pares / (24 + r(i, 2) * 8);
+    dias.push({ dia:d, pares, pedidos:ped, linhas:Math.round(pares * .8), operadores:w === 6 ? 3 : 4, primeira:400 + Math.round(r(i, 3) * 40), ultima:960 + Math.round(r(i, 4) * 90), bl4:Math.round(pares * (.55 + r(i, 5) * .15)),
+      sem_end:Math.round(pares * .015), abandonos:Math.round(r(i, 6) * 3), horas_ef:he, ondas:Math.round(ped / 4.4), onda_min:14 + r(i, 7) * 6, gap_min:3 + r(i, 8), pausas:Math.round(15 + r(i, 9) * 10) }); }
+  const S = k => dias.reduce((t, d) => t + d[k], 0), P = S('pares'), ends = [];
+  [[4, .62], [1, .14], [2, .1], [3, .1], [0, .015]].forEach(([b, f]) => { const nr = b === 4 ? 12 : b ? 3 : 1; for (let ru = 1; ru <= nr; ru++) for (let p = 1; p <= (b ? 14 : 1); p++) for (let a = 1; a <= (b ? 3 : 1); a++) {
+    const q = Math.round(P * f / (nr * (b ? 42 : 1)) * (0.3 + r(b * 1000 + ru * 50 + p, a) * 1.4)); if (q > 0) ends.push({ e:b ? `AR2-BL${b}-RUA${ru}-P${p}-A${a}` : 'AR2-BL0-RUA0-P0-A0', bloco:b, rua:b ? ru : 0, predio:b ? p : 0, andar:b ? a : 0, pares:q, linhas:Math.round(q * .82), pedidos:Math.round(q * .7) }); } });
+  const he = S('horas_ef'), on = S('ondas');
+  return { ini, fim, loja:'todos', base, hoje:hojeBRT(),
+    classes:[{ classe:'cross', canal:'Mercado Livre', forma:'Mercado Envios (Flex)', perfil:'plDiscretoUnitario', linhas:8200, pares:10100, pedidos:7400 }, { classe:'cross', canal:'Shopee', forma:'Shopee Entrega Direta', perfil:'plDiscreto', linhas:5100, pares:6500, pedidos:4300 },
+      { classe:'full', canal:'Mercado Livre', forma:'Mercado Envios (Full)', perfil:'plFull', linhas:1500, pares:1800, pedidos:90 }, { classe:'sem_canal', canal:'', forma:'', perfil:'plTransferencia', linhas:120, pares:300, pedidos:12 }],
+    cargas:[{ cnpj_id:'DIGOS', de:'2026-10-01', ate:hojeBRT(), cargas:9 }],
+    tot:{ pares:P, linhas:S('linhas'), bl4:S('bl4'), sem_end:S('sem_end'), pedidos:S('pedidos'), operadores:4, dias:dias.length, horas_ef:he, ondas:on, onda_min:16.4, onda_pedidos:4.4, onda_pares:7, gap_min:3.4, pausas:S('pausas'), pausa_h:dias.length * 3.1,
+      primeira_media:412, ultima_media:1003, multi_bloco:Math.round(S('pedidos') * .13), pedidos_bloco:S('pedidos') },
+    dias, horas:[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((h, i) => ({ h, pares:Math.round(P / 12 * [0.3, 1.2, 1.5, 1.4, 1.3, 1.1, .5, .9, 1.2, 1.1, .9, .4][i]), dias:dias.length })),
+    enderecos:ends, perfis:[{ perfil:'plDiscretoUnitario', pares:Math.round(P * .6), pedidos:Math.round(S('pedidos') * .7), linhas:1 }, { perfil:'plDiscreto', pares:Math.round(P * .4), pedidos:Math.round(S('pedidos') * .3), linhas:1 }],
+    abandonos:[{ motivo:'Produto não encontrado', pedidos:S('abandonos'), linhas:S('abandonos') }],
+    operadores:pode('pessoas', 'editar') ? ['Ana Lima', 'Davi Duarte', 'Kelvin Alves', 'Tiago Santos'].map((o, i) => ({ operador:o, pares:Math.round(P * [.22, .27, .3, .21][i]), pedidos:Math.round(S('pedidos') * [.22, .27, .3, .21][i]), linhas:1, dias:dias.length - i,
+      horas_ef:he * [.24, .25, .29, .22][i], gap_min:2.8 + i * .4, pausas:20 + i * 5, primeira_media:400 + i * 9, ultima_media:990 + i * 12 })) : null };
+}
+async function carregarIndCX(){
+  const s = state.cons, $c = document.getElementById('cons'); s.cxBase ||= 'cross';
+  if ($c) $c.innerHTML = '<div class="carregando">Lendo a separação do Seenc…</div>';
+  try { const d = DEMO ? demoCrossInd(s.ini, s.fim, s.cxBase) : await api(`/cross/indicadores?ini=${s.ini}&fim=${s.fim}&loja=${s.loja}&base=${s.cxBase}`); if (s.aba !== 'cross') return; state.consCross = d; renderIndCX(); }
+  catch (e) { if (e instanceof SemSessao) throw e; if ($c) $c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
+}
+// endereços em árvore: bloco › rua › prédio › andar (cada nível com o % do total e o % dentro do nível de cima)
+function arvoreEndCX(L){
+  const raiz = { k:'', filhos:new Map(), pares:0, linhas:0, pedidos:0 };
+  const nivel = (pai, k, rot) => pai.filhos.get(k) || pai.filhos.set(k, { k, rot, filhos:new Map(), pares:0, linhas:0, pedidos:0 }).get(k);
+  for (const e of L) { const sem = !e.bloco, path = sem ? [['BL0', 'Sem endereço (BL0 / sem posição)']] : [[`BL${e.bloco}`, `Bloco ${e.bloco}`], [`BL${e.bloco}-R${e.rua}`, `Rua ${e.rua ?? '?'}`], [`BL${e.bloco}-R${e.rua}-P${e.predio}`, `Prédio ${e.predio ?? '?'}`], [`BL${e.bloco}-R${e.rua}-P${e.predio}-A${e.andar}`, `Andar ${e.andar ?? '?'}`]];
+    let no = raiz; raiz.pares += e.pares; raiz.linhas += e.linhas; raiz.pedidos += e.pedidos;
+    for (const [k, rot] of path) { no = nivel(no, k, rot); no.pares += e.pares; no.linhas += e.linhas; no.pedidos += e.pedidos; } }
+  return raiz;
+}
+function renderIndCX(){
+  const s = state.cons, R = state.consCross, $c = document.getElementById('cons'); if (!$c || !R) return;
+  const T = R.tot, umDia = s.ini === s.fim, ef = T.horas_ef, mesmaBase = R.base === s.cxBase;
+  s.cxAb ||= new Set();
+  const tile = (rot, v, sub, cor, tit = '') => `<div class="rr-tile" style="--c:${cor}" title="${esc(tit)}"><span>${rot}</span><b>${v}</b><small>${sub}</small></div>`;
+  const totClasse = k => R.classes.filter(c => k === 'todos' || c.classe === k).reduce((t, c) => t + c.pares, 0);
+  const A = arvoreEndCX(R.enderecos), maxH = Math.max(1, ...R.horas.map(h => h.pares / Math.max(1, h.dias)));
+  const linhasArv = (no, prof, pai) => [...no.filhos.values()].sort((a, b) => b.pares - a.pares).map(f => { const tem = f.filhos.size > 0, ab = s.cxAb.has(f.k);
+    return `<tr class="cx-n${prof}" ${tem ? `data-cxk="${esc(f.k)}" style="cursor:pointer"` : ''}><td style="text-align:left;padding-left:${10 + prof * 20}px">${tem ? (ab ? '▾ ' : '▸ ') : '<span style="opacity:.3">· </span>'}${prof === 0 ? '<b>' + esc(f.rot) + '</b>' : esc(f.rot)}</td>
+      <td><b>${fmtN(Math.round(f.pares))}</b></td><td>${pctCX(f.pares, A.pares)}</td><td>${prof ? pctCX(f.pares, pai.pares) : '–'}</td><td>${fmtN(f.linhas)}</td><td>${fmtN(f.pedidos)}</td>
+      <td style="text-align:left"><span class="cx-bar"><i style="width:${Math.max(1, f.pares / Math.max(1, A.pares) * 100 * (prof ? 3 : 1))}%"></i></span></td></tr>${ab ? linhasArv(f, prof + 1, f) : ''}`; }).join('');
+  $c.innerHTML = `<div class="cs-bloco">
+    <div class="cs-cab"><h3>🚚 CROSS · separação</h3><span class="info">${umDia ? dataBR(s.ini) : `${dataBR(s.ini)} a ${dataBR(s.fim)}`}${s.loja !== 'todos' ? ' · ' + esc(nomeLoja(s.loja)) : ''} · relatório "Ações de usuários" do Seenc
+      ${R.cargas.length ? `(${R.cargas.map(c => `${esc(nomeLoja(c.cnpj_id))}: ${dataBR(c.de).slice(0, 5)} a ${dataBR(c.ate).slice(0, 5)}`).join(' · ')})` : '— <b>nenhum relatório de separação carregado no período</b> (Indicadores › Dados do Seenc)'}</span>
+      <span style="flex:1"></span><span class="is-chips"><span>Base</span>${BASES_CX.map(([k, t]) => `<button class="is-chip ${s.cxBase === k ? 'on' : ''}" data-cxb="${k}">${t} <small>${fmtN(Math.round(totClasse(k)))}</small></button>`).join('')}</span></div>
+    ${!T.pares ? `<div class="vazio">Sem separação ${s.cxBase === 'todos' ? '' : `da base "${BASES_CX.find(b => b[0] === s.cxBase)[1]}" `}no período.</div>` : `
+    <div class="rr-res">
+      ${tile('Pares separados', fmtN(Math.round(T.pares)), `${fmtN(T.pedidos)} pedidos · ${fmtN(T.linhas)} bipagens · ${fmtN(T.dias)} dia(s)`, '#174f7a')}
+      ${tile('Pares por hora efetiva', n1CX(ef ? T.pares / ef : null), `${n1CX(ef)} h efetivas de separação (soma dos operadores)`, '#0f7b6c', 'Pares ÷ horas efetivas. Hora efetiva = tempo dentro das ondas de separação de cada operador (início → fim), sem as pausas entre uma onda e outra.')}
+      ${tile('Tempo médio por onda', T.onda_min == null ? '–' : `${n1CX(T.onda_min)} min`, `${n1CX(T.onda_pedidos)} pedidos e ${n1CX(T.onda_pares)} pares por onda · ${n1CX(T.pedidos ? ef * 60 / T.pedidos : null)} min por pedido`, '#7a4fd0', 'Onda = o mesmo operador com o mesmo início e fim de separação (o Seenc junta vários pedidos).')}
+      ${tile('Intervalo entre bipagens', T.gap_min == null ? '–' : `${n1CX(T.gap_min)} min`, `${fmtN(T.pausas)} pausa(s) acima de 30 min (${n1CX(T.pausa_h)} h), fora da média`, '#c9a227', 'Tempo médio entre um "Separado em" e o seguinte do mesmo operador no dia. O Seenc grava em minutos.')}
+      ${tile(umDia ? '1ª e última separação' : '1ª e última (média dos dias)', `${hmCX(T.primeira_media)} → ${hmCX(T.ultima_media)}`, 'início da 1ª onda e última bipagem do dia', '#e07b24')}
+      ${tile('Saiu do Bloco 4', pctCX(T.bl4, T.pares), `${fmtN(Math.round(T.bl4))} pares · área de ressuprimento`, '#2a9d5c', 'Quanto mais perto de 100%, menos o separador anda pelos outros blocos.')}
+      ${tile('Pedidos em mais de 1 bloco', pctCX(T.multi_bloco, T.pedidos_bloco), `${fmtN(T.multi_bloco)} pedido(s) · o separador cruzou blocos`, '#d4483b')}
+      ${tile('Sem endereço (BL0)', pctCX(T.sem_end, T.pares), `${fmtN(Math.round(T.sem_end))} pares em posição zerada`, '#6b7280')}
+    </div>
+    <div class="painel"><h3 class="cs-sub">Pares por hora do dia ${umDia ? '' : '(média por dia)'}</h3>
+      <div class="cx-horas">${R.horas.map(h => { const v = h.pares / Math.max(1, umDia ? 1 : h.dias); return `<div title="${String(h.h).padStart(2, '0')}h: ${fmtN(Math.round(v))} pares"><b>${fmtN(Math.round(v))}</b><i style="height:${v / maxH * 120}px"></i><span>${String(h.h).padStart(2, '0')}h</span></div>`; }).join('')}</div></div>
+    ${umDia ? '' : `<div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">Dia a dia</h3><span style="flex:1"></span><button class="btn" id="cx-csv-d">⇩ CSV</button></div>
+      <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Dia</th><th>Pares</th><th>Pedidos</th><th>Operadores</th><th>1ª</th><th>Última</th><th>Horas efetivas</th><th>Pares/h efetiva</th><th>Min/onda</th><th>Intervalo (min)</th><th>Bloco 4</th><th>Abandonos</th></tr></thead><tbody>
+      ${R.dias.map(d => `<tr><td style="text-align:left"><b>${dataBR(d.dia).slice(0, 5)}</b> <span class="info">${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d.dia + 'T12:00:00Z').getUTCDay()]}</span></td>
+        <td><b>${fmtN(Math.round(d.pares))}</b></td><td>${fmtN(d.pedidos)}</td><td>${d.operadores}</td><td>${hmCX(d.primeira)}</td><td>${hmCX(d.ultima)}</td><td>${n1CX(d.horas_ef)}</td>
+        <td><b>${n1CX(d.horas_ef ? d.pares / d.horas_ef : null)}</b></td><td>${n1CX(d.onda_min)}</td><td>${n1CX(d.gap_min)}</td><td>${pctCX(d.bl4, d.pares)}</td><td>${d.abandonos || ''}</td></tr>`).join('')}</tbody></table></div>`}
+    <div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">De onde saíram os pares</h3><span class="info">clique para abrir bloco › rua › prédio › andar</span><span style="flex:1"></span>
+        <button class="btn" id="cx-abre">${s.cxAb.size ? 'Fechar tudo' : 'Abrir blocos'}</button><button class="btn" id="cx-csv-e">⇩ CSV por endereço</button></div>
+      <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Endereço</th><th>Pares</th><th>% do total</th><th>% dentro do nível</th><th>Bipagens</th><th>Pedidos</th><th style="width:22%"></th></tr></thead><tbody>${linhasArv(A, 0, A)}</tbody></table></div>
+    ${R.operadores ? `<div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">Por operador</h3><span class="info">em ordem alfabética · visível só para quem administra Pessoas e acessos</span></div>
+      <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Operador</th><th>Dias</th><th>Pares</th><th>Pedidos</th><th>Horas efetivas</th><th>Pares/h efetiva</th><th>Intervalo (min)</th><th>Pausas &gt;30 min</th><th>1ª (média)</th><th>Última (média)</th></tr></thead><tbody>
+      ${R.operadores.map(o => `<tr><td style="text-align:left">${esc(o.operador)}</td><td>${o.dias}</td><td>${fmtN(Math.round(o.pares))}</td><td>${fmtN(o.pedidos)}</td><td>${n1CX(o.horas_ef)}</td><td><b>${n1CX(o.horas_ef ? o.pares / o.horas_ef : null)}</b></td><td>${n1CX(o.gap_min)}</td><td>${o.pausas}</td><td>${hmCX(o.primeira_media)}</td><td>${hmCX(o.ultima_media)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    <div class="cx-duo">
+      <div class="painel" style="padding:0"><h3 class="cs-sub" style="padding:10px 12px 0">Perfil de separação</h3><table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Perfil</th><th>Pares</th><th>%</th><th>Pedidos</th></tr></thead><tbody>
+        ${R.perfis.map(p => `<tr><td style="text-align:left">${esc(p.perfil)}</td><td>${fmtN(Math.round(p.pares))}</td><td>${pctCX(p.pares, T.pares)}</td><td>${fmtN(p.pedidos)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="painel" style="padding:0"><h3 class="cs-sub" style="padding:10px 12px 0">Abandonos de separação</h3><table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Motivo</th><th>Pedidos</th></tr></thead><tbody>
+        ${R.abandonos.map(a => `<tr><td style="text-align:left">${esc(a.motivo)}</td><td>${fmtN(a.pedidos)}</td></tr>`).join('') || '<tr><td colspan="2" class="vazio">Nenhum.</td></tr>'}</tbody></table></div></div>`}
+    <details class="painel"><summary><b>Como a base foi separada em Cross, Full e Sem canal</b> <span class="info">confira se algum grupo está na classe errada</span></summary>
+      <table class="tab-full cs-tab" style="margin-top:8px"><thead><tr><th style="text-align:left">Classe</th><th style="text-align:left">Canal</th><th style="text-align:left">Forma de entrega</th><th style="text-align:left">Perfil</th><th>Pares</th><th>Pedidos</th></tr></thead><tbody>
+      ${R.classes.map(c => `<tr><td style="text-align:left"><b>${{ cross:'Cross', full:'Full', sem_canal:'Sem canal' }[c.classe] || c.classe}</b></td><td style="text-align:left">${esc(c.canal || '—')}</td><td style="text-align:left">${esc(c.forma || '—')}</td><td style="text-align:left">${esc(c.perfil || '—')}</td><td>${fmtN(Math.round(c.pares))}</td><td>${fmtN(c.pedidos)}</td></tr>`).join('')}</tbody></table>
+      <div class="info" style="margin-top:6px">Regra: <b>Full</b> = forma de entrega, perfil ou canal com "full" no nome; <b>Sem canal</b> = sem canal e sem forma de entrega (ex.: transferência, reposição); o resto é <b>Cross</b>.</div></details>
+    <div class="info cs-nota"><b>Como ler:</b> pares = quantidade separada no endereço (um item tirado de 2 endereços conta em cada um). <b>Onda</b> = o mesmo operador com o mesmo início e fim de separação.
+      <b>Hora efetiva</b> = soma, por operador, do tempo dentro das ondas (as pausas entre ondas não contam). <b>Intervalo entre bipagens</b> = tempo entre um "Separado em" e o próximo do mesmo operador; o Seenc grava em minutos, então várias bipagens no mesmo minuto contam 0.
+      O "Separado em" define o dia.</div></div>`;
+  $c.querySelectorAll('[data-cxb]').forEach(b => b.onclick = () => { s.cxBase = b.dataset.cxb; carregarIndCX(); });
+  $c.querySelectorAll('[data-cxk]').forEach(tr => tr.onclick = () => { const k = tr.dataset.cxk; s.cxAb.has(k) ? s.cxAb.delete(k) : s.cxAb.add(k); renderIndCX(); });
+  $c.querySelector('#cx-abre')?.addEventListener('click', () => { if (s.cxAb.size) s.cxAb.clear(); else [...A.filhos.keys()].forEach(k => s.cxAb.add(k)); renderIndCX(); });
+  $c.querySelector('#cx-csv-d')?.addEventListener('click', () => baixarCsv(`separacao_cross_dias_${s.ini}_${s.fim}.csv`, [['Dia', 'Pares', 'Pedidos', 'Bipagens', 'Operadores', 'Primeira', 'Ultima', 'Horas efetivas', 'Pares/h efetiva', 'Min por onda', 'Intervalo min', 'Pares Bloco 4', 'Abandonos'],
+    ...R.dias.map(d => [d.dia, d.pares, d.pedidos, d.linhas, d.operadores, hmCX(d.primeira), hmCX(d.ultima), n1CX(d.horas_ef), n1CX(d.horas_ef ? d.pares / d.horas_ef : null), n1CX(d.onda_min), n1CX(d.gap_min), d.bl4, d.abandonos])]));
+  $c.querySelector('#cx-csv-e')?.addEventListener('click', () => baixarCsv(`separacao_cross_enderecos_${s.ini}_${s.fim}.csv`, [['Endereço', 'Bloco', 'Rua', 'Prédio', 'Andar', 'Pares', '% do total', 'Bipagens', 'Pedidos'],
+    ...R.enderecos.slice().sort((a, b) => b.pares - a.pares).map(e => [e.e, e.bloco, e.rua, e.predio, e.andar, e.pares, pctCX(e.pares, T.pares), e.linhas, e.pedidos])]));
 }
 
 
@@ -10608,7 +10716,7 @@ function telaRessuprimento(){
 }
 async function carregarRS(silencioso){
   const s = state.rs, $r = document.getElementById('rs-res'); if (!$r) return;
-  try { s.dados = await apiRS(`/ressuprimento?loja=${s.loja}${s.dias ? `&dias=${s.dias}` : ''}${s.base ? `&base=${s.base}` : ''}`); desenhaRS(); }
+  try { s.dados = await apiRS(`/ressuprimento?loja=${s.loja}${s.dias ? `&dias=${s.dias}` : ''}${s.base ? `&base=${s.base}` : ''}${s.full ? '&full=1' : ''}`); desenhaRS(); }
   catch (e) { if (e instanceof SemSessao) throw e; if (!silencioso) $r.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 const mesCurtoRS = m => { const [y, mm] = String(m).slice(0, 7).split('-'); return `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][+mm - 1]}/${y}`; };
@@ -10629,6 +10737,8 @@ function desenhaRS(){
         <button class="is-chip ${D.base === 'mix' ? 'on' : ''}" data-base="mix" title="Junta as duas fontes sem duplicar: a partir do 1º dia com pedidos na API vale a API; antes disso, o relatório do Seenc (proporcional aos dias)">API + Seenc · recomendado</button>
         <button class="is-chip ${D.base === 'api' ? 'on' : ''}" data-base="api" title="Automático: os pedidos que a Inteligência de Separação busca na Weesu ao longo do dia">Só API · automático${D.pedidos_api_em ? ` · atualizado ${dhRS(D.pedidos_api_em)}` : ''}</button>
         ${(D.meses_seenc || []).length ? `<button class="is-chip ${D.base === 'seenc' ? 'on' : ''}" data-base="seenc" title="Manual: relatório Vendas por variação do Seenc (só cross), subido em ⇪ Vendas do Seenc">Só Seenc · manual</button>` : ''}</span>
+      <span class="is-chips"><button class="is-chip ${state.rs.full ? 'on' : ''}" id="rs-full" title="Soma as vendas Full (pedidos que saem do armazém do marketplace) na curva, só para ver. O ressuprimento do cross não deve usar o Full: não execute a lista com isso ligado.">${state.rs.full ? '✓ ' : '+ '}vendas Full (só para ver)</button></span>
+      ${D.full ? `<span class="ruim">⚠ Curva COM vendas Full: ${fmtN(Math.round(D.full.pares))} pares em ${fmtN(D.full.pedidos)} pedidos${D.full.desde ? ` (Full guardado desde ${dataBR(D.full.desde)})` : ''}. Só para análise: não execute a lista assim.</span>` : state.rs.full ? '' : ''}
       <span class="info">${edita ? 'Clicar troca e salva a fonte. ' : ''}Padrão salvo: ${{ mix:'API + Seenc', api:'só API', seenc:'só Seenc' }[D.base_salva] || 'API + Seenc'}.</span></div>`;
   // histórico de vendas carregado, mês a mês: para conferir o que existe de cada fonte e o que entra na conta
   const H = D.historico || [], apiDe = D.api_desde;
@@ -10746,6 +10856,7 @@ function desenhaRS(){
       catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); } } else s.base = b.dataset.base;
     carregarRS(); });
   $r.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { s.aba = b.dataset.aba; desenhaRS(); });
+  $r.querySelector('#rs-full')?.addEventListener('click', () => { s.full = !s.full; carregarRS(); });
   $r.querySelectorAll('[data-feito]').forEach(c => c.onchange = () => { const f = feitosRS(D.loja, D.hoje); c.checked ? f.add(c.dataset.feito) : f.delete(c.dataset.feito); gravaFeitosRS(D.loja, D.hoje, f); c.closest('tr').classList.toggle('feito', c.checked); });
   const bu = document.getElementById('rs-busca'); if (bu) { bu.oninput = () => { s.busca = bu.value; clearTimeout(s.tb); s.tb = setTimeout(() => { desenhaRS(); const n = document.getElementById('rs-busca'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); }; }
   const sv = document.getElementById('rp-salvar');
@@ -12418,6 +12529,9 @@ const CSS_EST = `
   .es-bl .cob{display:block;height:4px;border-radius:2px;background:#eef1f5;margin-top:4px;overflow:hidden} .es-bl .cob i{display:block;height:100%;background:#0f7b6c}
   .es-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
   .mp-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;overflow-x:auto} .mp-svg{display:block} .mp-svg .pm{cursor:pointer} .mp-svg .pm:hover rect{stroke:#02285a;stroke-width:1.2}
+  .pl-fases{display:flex;flex-direction:column;gap:4px;margin:8px 0;max-width:720px} .pl-fase{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:#fff}
+  .pl-fase.off{opacity:.55} .pl-fase>b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#174f7a;color:#fff;font-size:12px} .pl-fase label{display:flex;gap:6px;align-items:center;font-weight:600}
+  .pl-fase .btn{padding:2px 9px}
   .mp-leg{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12.5px;color:#3c4a5e;margin:6px 2px} .mp-leg i{display:inline-block;width:13px;height:13px;border-radius:3px;border:1px solid #c9cfda;margin-right:5px;vertical-align:-2px}
   .es-f input,.es-f select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
   .es-tab{width:100%;border-collapse:collapse;font-size:13px;background:#fff} .es-tab th{font-size:11px;color:var(--mute);text-transform:uppercase;text-align:left;padding:6px 7px;border-bottom:1px solid var(--line);background:#f6f7f9;position:sticky;top:0;z-index:1;white-space:nowrap}
@@ -12841,7 +12955,7 @@ const CORES_MARCA = ['#2f6fdf', '#e07b24', '#2a9d5c', '#c4378f', '#7a4fd0', '#c9
 async function corpoMapaEST(){
   const s = state.est, $b = document.getElementById('es-corpo'); s.mb ||= '1'; s.mmodo ||= 'ocupacao';
   $b.innerHTML = '<div class="carregando">Carregando o mapa…</div>';
-  try { const M = await apiEST(`/estoque/mapa?bloco=${s.mb}`); if (s.aba !== 'mapa') return; s.mapa = prepararMapaEST(M); desenhaMapaEST(); }
+  try { const M = await apiEST(`/estoque/mapa?bloco=${s.mb}${s.mfull ? '&full=1' : ''}`); if (s.aba !== 'mapa') return; s.mapa = prepararMapaEST(M); desenhaMapaEST(); }
   catch (e) { if (e instanceof SemSessao) throw e; $b.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
 // junta estoque, vendas, marcas, bloqueios e inventário por prédio do croqui
@@ -12892,9 +13006,9 @@ const corTextoEST = cor => { const n = parseInt(cor.slice(1), 16), r = n >> 16, 
 function svgMapaEST(Z, o = {}){
   const D = Z.D, [x0, x1] = o.recorte || [Math.min(0, D.contorno[0] - 3), Math.max(D.largura, D.contorno[0] + D.contorno[2] + 3)], W = x1 - x0, y0 = 55, H = (D.altura || 132) - y0 + 4;
   const rect = (p) => { if (p.x + p.w < x0 || p.x > x1) return ''; const cor = corPredioEST(Z, p, o.modo || 'ocupacao'), txt = corTextoEST(cor), dest = o.destaque?.has(p.key), org = o.plano?.origem.has(p.key), dst = o.plano?.destino.has(p.key), sel = o.sel?.has(p.key);
-    const st = sel ? '#e0a800' : dest ? '#d4006a' : org ? '#e07b24' : dst ? '#2a9d5c' : '#5b6b7f', sw = sel || dest || org || dst ? 1.4 : .35;
+    const st = sel ? '#e0a800' : dest ? '#000' : org ? '#e07b24' : dst ? '#2a9d5c' : '#5b6b7f', sw = dest ? 2 : sel || org || dst ? 1.4 : .35, apaga = o.destaque?.size && !dest;
     const meio = `${p.x + p.w / 2},${p.y + p.h / 2}`;
-    return `<g class="pm" data-k="${p.key}"><title>R${p.rua} P${p.predio} · ${fmtN(p.pares)} pares${p.bloq ? ` · BLOQUEADO: ${p.bloq.motivo}` : ''}${p.inv ? ` · inventário ${dataBR(p.inv.em)}` : ''}</title>
+    return `<g class="pm${dest ? ' pm-dest' : ''}" data-k="${p.key}"${apaga ? ' opacity="0.18"' : ''}><title>R${p.rua} P${p.predio} · ${fmtN(p.pares)} pares${p.bloq ? ` · BLOQUEADO: ${p.bloq.motivo}` : ''}${p.inv ? ` · inventário ${dataBR(p.inv.em)}` : ''}</title>
       <rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${cor}" stroke="${st}" stroke-width="${sw}"/>
       ${p.bloq ? `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="url(#hach)" stroke="none"/>` : ''}
       ${p.vertical ? `<text x="${p.x + p.w / 2}" y="${p.y + p.h / 2}" font-size="2.6" text-anchor="middle" dominant-baseline="middle" fill="${txt}" transform="rotate(-90 ${meio})">R${p.rua}-P${p.predio}${p.pares ? ` · ${fmtN(p.pares)}` : ''}</text>`
@@ -12926,6 +13040,7 @@ function desenhaMapaEST(){
       <select id="mp-bl">${M.blocos.map(b => `<option value="${b.bloco}" ${b.bloco === M.bloco ? 'selected' : ''}>${esc(b.nome)}</option>`).join('')}</select>
       <span class="is-chips">${[['ocupacao', 'Ocupação'], ['curva', 'Curva'], ['marca', 'Marca'], ['inventario', 'Inventário'], ['zona', 'Frente / fundo']].map(([k, t]) => `<button class="is-chip ${s.mmodo === k ? 'on' : ''}" data-mm="${k}">${t}</button>`).join('')}</span>
       <input id="mp-q" placeholder="Destacar SKU, modelo ou marca" value="${esc(s.mq || '')}" style="width:220px">
+      <button class="is-chip ${s.mfull ? 'on' : ''}" id="mp-full" title="Por padrão a curva usa só as vendas do Cross (API + Seenc). Ligue para somar as vendas Full.">${s.mfull ? '✓' : '+'} vendas Full na curva</button>
       <span class="is-chips"><span>Zoom</span>${[1, 2, 3].map(z => `<button class="is-chip ${s.mzoom === z ? 'on' : ''}" data-mz="${z}">${z === 1 ? 'inteiro' : z + '×'}</button>`).join('')}</span>
       <span style="flex:1"></span>
       ${ed ? `<button class="btn ${s.mbloq ? 'pri' : ''}" id="mp-bq">${s.mbloq ? '✓ Selecionando prédios' : '⛔ Bloquear prédios'}</button>` : ''}
@@ -12935,25 +13050,26 @@ function desenhaMapaEST(){
       <div class="es-k"><span>Prédios ocupados</span><b>${fmtN(ocup.length)} / ${fmtN(pos.length)}</b><small>${fmtN(pos.filter(p => !p.pares && !p.bloq).length)} vazio(s) livres</small></div>
       <div class="es-k ${bloq.length ? 'alerta' : ''}"><span>Bloqueados</span><b>${fmtN(bloq.length)}</b><small>${paresBloq ? `<b>${fmtN(Math.round(paresBloq))} pares</b> ainda dentro` : 'sem produto dentro'}</small></div>
       <div class="es-k ${espalhados.length ? 'alerta' : ''}"><span>Modelos espalhados</span><b>${fmtN(espalhados.length)}</b><small>em 2 ou mais prédios · ${fmtN(espalhados.filter(m => m.frag.size > 3).length)} em 4+</small></div>
-      <div class="es-k ${aFundo.length ? 'alerta' : ''}"><span>Curva A no fundo</span><b>${fmtN(aFundo.length)}</b><small>de ${fmtN(A.length)} modelos A (vendas de ${fmtN(Z.dias)} dias)</small></div></div>
+      <div class="es-k ${aFundo.length ? 'alerta' : ''}"><span>Curva A no fundo</span><b>${fmtN(aFundo.length)}</b><small>de ${fmtN(A.length)} modelos A (vendas Cross${M.vendas.full ? ' + Full' : ''} de ${fmtN(Z.dias)} dias)</small></div></div>
     ${s.mbloq ? `<div class="aviso">Clique nos prédios para selecionar (${s.msel.size} selecionado(s)). <input id="mp-mot" placeholder="Motivo (ex.: infiltração)" style="width:220px"> <button class="btn pri" id="mp-bqok">Bloquear selecionados</button> <button class="btn" id="mp-bqx">Cancelar</button></div>` : ''}
     ${s.mplano ? `<div class="es-f" style="margin:4px 0"><span class="is-chips"><span>Mapa</span><button class="is-chip ${!s.mdepois ? 'on' : ''}" data-md="0">hoje (com o que sai e o que recebe)</button><button class="is-chip ${s.mdepois ? 'on' : ''}" data-md="1">como fica depois do plano</button></span></div>` : ''}
     <div class="mp-wrap">${s.mplano && s.mdepois ? svgMapaEST({ ...Z, pos:Z.pos.map(p => ({ ...p, pares:s.mplano.ocupFinal.get(p.key) || 0 })) }, { modo:'ocupacao', zoom:s.mzoom })
       : svgMapaEST(Z, { modo:s.mmodo, destaque:dest, plano, sel:s.mbloq ? s.msel : null, zoom:s.mzoom })}</div>
     <div class="mp-leg">${(legenda || []).map(([c, t]) => `<span><i style="background:${c}"></i>${esc(t)}</span>`).join('')}<span><i style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%226%22 height=%226%22><path d=%22M0 6L6 0%22 stroke=%22%23c0392b%22/></svg>');background-color:#fbe3e3"></i>bloqueado</span>
-      ${plano ? '<span><i style="border:2px solid #e07b24;background:#fff"></i>sai</span><span><i style="border:2px solid #2a9d5c;background:#fff"></i>recebe</span>' : ''}${dest.size ? `<span><i style="border:2px solid #d4006a;background:#fff"></i>"${esc(s.mq)}" em ${dest.size} prédio(s)</span>` : ''}
+      ${plano ? '<span><i style="border:2px solid #e07b24;background:#fff"></i>sai</span><span><i style="border:2px solid #2a9d5c;background:#fff"></i>recebe</span>' : ''}${dest.size ? `<span><i style="border:3px solid #000;background:#fff"></i><b>"${esc(s.mq)}" em ${dest.size} prédio(s)</b> (o resto fica apagado)</span>` : ''}
       <span class="info">Estoque de ${M.estoque ? quando(M.estoque.em) : '—'} · clique no prédio para ver o que tem</span></div>
     ${Z.fora.length ? `<div class="info" style="margin:4px 0">Endereços do ${esc(M.layout.nome)} fora do croqui (ruas a desativar, entram na fase 2 do plano): ${Z.fora.slice(0, 12).map(f => `${esc(curtoEnd(f.pos))} (${fmtN(f.pares)})`).join(', ')}${Z.fora.length > 12 ? ` e mais ${Z.fora.length - 12}` : ''}.</div>` : ''}
     <div id="mp-plano-box"></div>`;
   const re = () => desenhaMapaEST();
   $b.querySelector('#mp-bl').onchange = e => { s.mb = e.target.value; s.mplano = null; corpoMapaEST(); };
   $b.querySelectorAll('[data-mm]').forEach(x => x.onclick = () => { s.mmodo = x.dataset.mm; re(); });
+  $b.querySelector('#mp-full').onclick = () => { s.mfull = !s.mfull; s.mplano = null; corpoMapaEST(); };
   $b.querySelectorAll('[data-md]').forEach(x => x.onclick = () => { s.mdepois = x.dataset.md === '1'; re(); });
   $b.querySelectorAll('[data-mz]').forEach(x => x.onclick = () => { s.mzoom = +x.dataset.mz; re(); });
   const wr = $b.querySelector('.mp-wrap'); if (sc != null) wr.scrollLeft = sc; else if (s.mzoom > 1) { const e = Z.D.entrada?.x ?? Z.D.largura / 2; wr.scrollLeft = Math.max(0, wr.scrollWidth * e / Z.D.largura - wr.clientWidth / 2); }
   const mq = $b.querySelector('#mp-q'); mq.oninput = () => { s.mq = mq.value; clearTimeout(s.tmq); s.tmq = setTimeout(() => { re(); const n = document.getElementById('mp-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 350); };
   $b.querySelector('#mp-imp').onclick = () => imprimirMapaEST(Z);
-  $b.querySelector('#mp-plano').onclick = () => { s.mplano = s.mplano ? null : planoReorgEST(Z, s.mfases || { bloq:true, fora:true, cons:true, frente:true, fundo:true }, s.malvo || 0.9); re(); };
+  $b.querySelector('#mp-plano').onclick = () => { s.mplano = s.mplano ? null : planoReorgEST(Z, s.mfases || { bloq:true, fora:true, cons:true, frente:true, fundo:true }, s.malvo || 0.9, s.mordem); re(); };
   $b.querySelector('#mp-bq')?.addEventListener('click', () => { s.mbloq = !s.mbloq; s.msel.clear(); re(); });
   $b.querySelector('#mp-bqx')?.addEventListener('click', () => { s.mbloq = false; s.msel.clear(); re(); });
   $b.querySelector('#mp-bqok')?.addEventListener('click', async ev => { const mot = $b.querySelector('#mp-mot').value.trim(); if (!s.msel.size) return avisar('Selecione os prédios no mapa', true); if (!mot) return avisar('Informe o motivo', true);
@@ -12970,10 +13086,18 @@ function detalhePredioEST(Z, p){
     <div class="info">${fmtN(Math.round(p.pares))} pares · ${fmtN(ms.length)} modelo(s) · zona: ${p.zona} · ${p.inv ? `último inventário ${dataBR(p.inv.em)}${p.inv.por ? ` por ${esc(p.inv.por)}` : ''}` : 'nunca inventariado'}</div>
     ${p.bloq ? `<div class="aviso">⛔ Bloqueado desde ${dataBR(p.bloq.desde)}: <b>${esc(p.bloq.motivo)}</b>${p.bloq.por ? ` (${esc(p.bloq.por)})` : ''}. Não recebe produto; o que está aqui entra no plano para sair. ${ed ? '<button class="btn" id="dp-lib">Liberar</button>' : ''}</div>`
       : ed ? `<div class="es-f"><input id="dp-mot" placeholder="Motivo do bloqueio (ex.: goteira)" style="flex:1"><button class="btn" id="dp-bq">⛔ Bloquear este prédio</button></div>` : ''}
-    ${ms.length ? `<div class="es-wrap" style="max-height:50vh"><table class="es-tab"><thead><tr><th>Modelo</th><th>Marca</th><th>Curva</th><th class="n">Pares aqui</th><th class="n">Venda/dia</th><th>Também em</th></tr></thead><tbody>
-      ${ms.map(({ m, q }) => `<tr><td class="end">${esc(m.pai)}<br><span class="info" style="font-family:inherit">${esc(m.produto)}</span></td><td>${esc(m.marca)}${ed ? ` <button class="btn" data-mc="${esc(m.pai)}" title="Corrigir a marca deste modelo" style="padding:0 6px">✎</button>` : ''}</td><td>${m.curva === 'S' ? '—' : m.curva}</td>
-        <td class="n">${fmtN(Math.round(q))}</td><td class="n">${String(Math.round(m.vdia * 10) / 10).replace('.', ',')}</td><td class="end">${[...m.frag.keys()].filter(k => k !== p.key).map(rpEST).join(' ') || '—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Prédio vazio.</div>'}</div>`;
+    ${ms.length ? `<div class="es-f" style="margin:4px 0"><span class="info">▸ abre os SKUs (cor e tamanho) de cada modelo</span><span style="flex:1"></span><button class="btn" id="dp-tudo">Abrir todos</button></div>
+      <div class="es-wrap" style="max-height:55vh"><table class="es-tab"><thead><tr><th>Modelo</th><th>Marca</th><th>Curva</th><th class="n">Pares aqui</th><th class="n">Venda/dia</th><th>Também em</th></tr></thead><tbody>
+      ${ms.map(({ m, q }) => `<tr><td class="end"><button class="btn dp-ex" data-ex="${esc(m.pai)}" title="Ver os SKUs" style="padding:0 6px">▸</button> ${esc(m.pai)}<br><span class="info" style="font-family:inherit">${esc(m.produto)}</span></td><td>${esc(m.marca)}${ed ? ` <button class="btn" data-mc="${esc(m.pai)}" title="Corrigir a marca deste modelo" style="padding:0 6px">✎</button>` : ''}</td><td>${m.curva === 'S' ? '—' : m.curva}</td>
+        <td class="n">${fmtN(Math.round(q))}</td><td class="n">${String(Math.round(m.vdia * 10) / 10).replace('.', ',')}</td><td class="end">${[...m.frag.keys()].filter(k => k !== p.key).map(rpEST).join(' ') || '—'}</td></tr>
+        <tr class="dp-filhos" data-fp="${esc(m.pai)}" hidden><td colspan="6" style="background:#f6f8fb;padding:4px 8px 8px 34px"><table class="es-tab" style="background:#fff"><thead><tr><th>SKU</th><th>Cor</th><th>Tam.</th><th class="n">Pares aqui</th><th class="n">Venda/dia</th><th>Endereço</th></tr></thead><tbody>
+          ${p.linhas.filter(l => paiEST(l.sku) === m.pai).sort((a, b) => a.sku.localeCompare(b.sku)).map(l => { const ct = corTamVF(l.sku), v = (Z.M.vendas.por_sku || {})[l.sku] || 0;
+            return `<tr><td class="end">${esc(l.sku)}</td><td>${esc(ct.cor || '')}</td><td>${esc(ct.tamanho || '')}</td><td class="n">${fmtN(Math.round(l.q))}</td><td class="n">${v ? (v / Z.dias < 0.1 ? '< 0,1' : (v / Z.dias).toLocaleString('pt-BR', { maximumFractionDigits:1 })) : '—'}</td><td class="end">${esc(curtoEnd(l.pos))}</td></tr>`; }).join('')}
+        </tbody></table></td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Prédio vazio.</div>'}</div>`;
   dlg.querySelector('[data-x]').onclick = fechar;
+  const abre = (pai, sim) => { const tr = dlg.querySelector(`.dp-filhos[data-fp="${CSS.escape(pai)}"]`), b = dlg.querySelector(`[data-ex="${CSS.escape(pai)}"]`); if (!tr) return; tr.hidden = !sim; b.textContent = sim ? '▾' : '▸'; };
+  dlg.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => abre(b.dataset.ex, b.textContent === '▸'));
+  dlg.querySelector('#dp-tudo')?.addEventListener('click', ev => { const sim = ev.target.textContent === 'Abrir todos'; dlg.querySelectorAll('[data-ex]').forEach(b => abre(b.dataset.ex, sim)); ev.target.textContent = sim ? 'Fechar todos' : 'Abrir todos'; });
   dlg.querySelector('#dp-lib')?.addEventListener('click', async () => { try { await apiEST('/estoque/bloqueio/liberar', { ids:[p.bloq.id] }); fechar(); avisar('Prédio liberado'); state.est.mplano = null; corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
   dlg.querySelector('#dp-bq')?.addEventListener('click', async () => { const mot = dlg.querySelector('#dp-mot').value.trim(); if (!mot) return avisar('Informe o motivo', true);
     try { await apiEST('/estoque/bloqueio', { bloco:Z.M.bloco, rua:p.rua, predios:[p.predio], motivo:mot }); fechar(); avisar('Prédio bloqueado'); state.est.mplano = null; corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } });
@@ -12988,7 +13112,7 @@ function detalhePredioEST(Z, p){
 // Destino: só prédio da área de uso, com espaço; preferência pelo mesmo modelo, depois mesma marca (no prédio ou ao lado);
 // A/B o mais perto da entrada, C/sem venda no primeiro lugar livre depois da frente.
 const FASES_EST = [['bloq', 'Tirar dos bloqueados'], ['fora', 'Trazer das ruas fora do croqui'], ['cons', 'Juntar modelos espalhados'], ['frente', 'Curva A para a frente'], ['fundo', 'Esvaziar o fundo']];
-function planoReorgEST(Z, fases, alvo = 0.9){
+function planoReorgEST(Z, fases, alvo = 0.9, ordem = FASES_EST.map(f => f[0])){
   const ehFora = k => k.startsWith('F|'), endReal = k => ehFora(k) ? k.slice(2) : (Z.P.get(k)?.pos || `AR2-BL${Z.M.bloco}-RUA${k.split('-')[0]}-P${k.split('-')[1]}-A1`);
   const cap = new Map(Z.pos.map(p => [p.key, p.cap])), ocup = new Map(), sk = new Map(), frag = new Map(), mp = new Map();
   const add = (k, l, q) => { const pai = paiEST(l.sku), m = Z.MOD.get(pai); if (!m) return;
@@ -13023,58 +13147,69 @@ function planoReorgEST(Z, fases, alvo = 0.9){
     for (const i of [...sk.get(k).values()].filter(i => i.pai === m.pai && i.q > 0.001).sort((a, b) => b.q - a.q)) { const dd = melhor(m, i.q, o => o.key !== k); if (!dd) return false; mover(m, k, dd, fase, motivo + ' (modelo dividido)', [i.sku]); }
     return true; };
   const tirarTudo = (k, fase, motivo) => { for (const { m } of modelosEm(k)) if (!levar(m, k, fase, motivo)) semLugar(m, k, fase); };
-  // 1) bloqueados
-  if (fases.bloq) for (const p of Z.pos.filter(x => x.bloq)) tirarTudo(p.key, 1, `prédio bloqueado: ${p.bloq.motivo}`);
-  // 2) ruas fora do croqui (vão ser desativadas)
-  if (fases.fora) for (const f of Z.fora) tirarTudo('F|' + f.pos, 2, 'rua fora do croqui (desativar)');
-  // 3) juntar modelos espalhados (os que mais vendem primeiro); o principal é o maior pedaço que fica na área de uso
-  if (fases.cons) for (const m of Z.modelos) { const f = frag.get(m.pai); if (!f || f.size < 2) continue;
+  // as fases rodam na ordem escolhida na tela (o número da fase é a posição dela na ordem)
+  const RODA = {};
+  // tirar dos prédios bloqueados
+  RODA.bloq = n => { for (const p of Z.pos.filter(x => x.bloq)) tirarTudo(p.key, n, `prédio bloqueado: ${p.bloq.motivo}`); };
+  // ruas fora do croqui (vão ser desativadas)
+  RODA.fora = n => { for (const f of Z.fora) tirarTudo('F|' + f.pos, n, 'rua fora do croqui (desativar)'); };
+  // juntar modelos espalhados (os que mais vendem primeiro); o principal é o maior pedaço que fica na área de uso
+  RODA.cons = n => { for (const m of Z.modelos) { const f = frag.get(m.pai); if (!f || f.size < 2) continue;
     const ok = [...f.entries()].filter(([k]) => !ehFora(k) && !esvaziar.has(k) && !Z.P.get(k)?.bloq).sort((a, b) => b[1] - a[1] || Z.P.get(a[0]).dist - Z.P.get(b[0]).dist); if (ok.length < 2) continue;
     const [principal] = ok[0], pp = Z.P.get(principal);
     for (const [k, q] of ok.slice(1).sort((a, b) => a[1] - b[1])) {
-      if (livre(principal) >= q) { mover(m, k, principal, 3, `juntar com ${rpEST(principal)}`); continue; }
+      if (livre(principal) >= q) { mover(m, k, principal, n, `juntar com ${rpEST(principal)}`); continue; }
       if (viz.get(principal).includes(k)) continue;   // já está ao lado
       const v = viz.get(principal).filter(x => usavel(Z.P.get(x)) && livre(x) >= q).sort((a, b) => Math.abs(Z.P.get(a).predio - pp.predio) - Math.abs(Z.P.get(b).predio - pp.predio))[0];
-      if (v) mover(m, k, v, 3, `ao lado de ${rpEST(principal)}`); } }
-  // 4) curva A longe da entrada → frente
-  if (fases.frente) for (const m of Z.modelos.filter(x => x.curva === 'A')) { const f = frag.get(m.pai); if (!f || !f.size) continue; const tot = [...f.values()].reduce((t, v) => t + v, 0);
+      if (v) mover(m, k, v, n, `ao lado de ${rpEST(principal)}`); } } };
+  // curva A longe da entrada → frente
+  RODA.frente = n => { for (const m of Z.modelos.filter(x => x.curva === 'A')) { const f = frag.get(m.pai); if (!f || !f.size) continue; const tot = [...f.values()].reduce((t, v) => t + v, 0);
     const [prin] = [...f.entries()].sort((a, b) => b[1] - a[1])[0], pz = Z.P.get(prin); if (!pz || pz.zona === 'frente') continue;
     let d = melhor(m, tot, o => o.zona === 'frente');
     if (!d) { // troca com um prédio da frente que só tem C / sem venda
       const paraLonge = esvaziar.has(prin) || pz.bloq, cabe = livre(prin) + (f.get(prin) || 0);
       const cand = Z.pos.filter(p => p.zona === 'frente' && usavel(p) && ocup.get(p.key) > 0.001 && (paraLonge || ocup.get(p.key) <= cabe) && cap.get(p.key) * alvo >= tot && modelosEm(p.key).every(x => ['C', 'S'].includes(x.m.curva))).sort((a, b) => a.dist - b.dist)[0];
       if (cand) { const ida = modelosEm(cand.key).map(x => [x, paraLonge ? melhor(x.m, x.q, o => o.zona !== 'frente' && o.key !== cand.key) : prin]);
-        if (ida.every(([, dd]) => dd)) { for (const [x, dd] of ida) mover(x.m, cand.key, dd, 4, `troca: libera a frente para ${m.pai}`); d = cand.key; } } }
-    if (d) for (const k of [...f.keys()]) if (k !== d) mover(m, k, d, 4, 'curva A para perto da entrada'); }
-  // 5) esvaziar o fundo: do prédio mais longe para o mais perto
+        if (ida.every(([, dd]) => dd)) { for (const [x, dd] of ida) mover(x.m, cand.key, dd, n, `troca: libera a frente para ${m.pai}`); d = cand.key; } } }
+    if (d) for (const k of [...f.keys()]) if (k !== d) mover(m, k, d, n, 'curva A para perto da entrada'); } };
+  // esvaziar o fundo: do prédio mais longe para o mais perto
   // se um modelo não couber, o prédio mais perto da entrada que ainda estava na lista para esvaziar passa a ser área de uso (fica como está)
-  if (fases.fundo) { const fila = [...esvaziar].sort((a, b) => Z.P.get(b).dist - Z.P.get(a).dist);
+  RODA.fundo = n => { const fila = [...esvaziar].sort((a, b) => Z.P.get(b).dist - Z.P.get(a).dist);
     while (fila.length) { const k = fila[0];
-      for (const { m } of modelosEm(k)) { let ok = levar(m, k, 5, 'esvaziar o fundo');
-        while (!ok && fila.length > 1) { const solto = fila.pop(); esvaziar.delete(solto); ok = levar(m, k, 5, 'esvaziar o fundo'); }
+      for (const { m } of modelosEm(k)) { let ok = levar(m, k, n, 'esvaziar o fundo');
+        while (!ok && fila.length > 1) { const solto = fila.pop(); esvaziar.delete(solto); ok = levar(m, k, n, 'esvaziar o fundo'); }
         if (!ok) break; }
-      if (modelosEm(k).length) { esvaziar.delete(k); } fila.shift(); } }
+      if (modelosEm(k).length) { esvaziar.delete(k); } fila.shift(); } };
+  ordem.forEach((k, i) => { if (fases[k]) RODA[k](i + 1); });
   const validos = moves.filter(x => x.para), antes = new Set(Z.pos.filter(p => p.pares > 0).map(p => p.key)), depois = new Set(Z.pos.filter(p => (ocup.get(p.key) || 0) > 0.001).map(p => p.key));
-  const porFase = FASES_EST.map((_, i) => { const v = validos.filter(x => x.fase === i + 1); return { f:i + 1, n:v.length, pares:v.reduce((t, x) => t + x.q, 0) }; });
-  return { moves, validos, porFase, alvo, esvaziar, pares:validos.reduce((t, x) => t + x.q, 0), liberados:[...antes].filter(k => !depois.has(k)).length, ocupados_depois:depois.size, fases,
+  const porFase = ordem.map((k, i) => { const v = validos.filter(x => x.fase === i + 1); return { f:i + 1, k, n:v.length, pares:v.reduce((t, x) => t + x.q, 0) }; });
+  return { moves, validos, porFase, alvo, ordem, esvaziar, pares:validos.reduce((t, x) => t + x.q, 0), liberados:[...antes].filter(k => !depois.has(k)).length, ocupados_depois:depois.size, fases,
     ocupFinal:ocup };
 }
 const rpEST = k => !k ? '—' : k.startsWith('F|') ? curtoEnd(k.slice(2)).replace(/^BL\d+-/, '').replace('RUA', 'R') : `R${k.replace('-', '-P')}`;
 function desenhaPlanoEST(Z){
   const s = state.est, PL = s.mplano, $p = document.getElementById('mp-plano-box'); if (!$p || !PL) return;
-  const sem = PL.moves.filter(x => !x.para), pf = f => PL.porFase[f - 1], semFora = !Z.fora.length;
+  const sem = PL.moves.filter(x => !x.para), semFora = !Z.fora.length, nomeF = k => FASES_EST.find(f => f[0] === k)[1];
+  const ordem = PL.ordem.filter(k => !(k === 'fora' && semFora));
   $p.innerHTML = `<div class="es-k" style="margin:10px 0"><b style="font-size:16px">🧭 Plano de reorganização · ${esc(Z.M.layout.nome)}</b>
-      <div class="es-f" style="gap:6px 16px">${FASES_EST.map(([k, t], i) => k === 'fora' && semFora ? '' : `<label class="info" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-fs="${k}" ${PL.fases[k] ? 'checked' : ''}> ${i + 1}. ${t}${PL.fases[k] ? ` <strong>(${fmtN(pf(i + 1).n)} · ${fmtN(Math.round(pf(i + 1).pares))} pares)</strong>` : ''}</label>`).join('')}</div>
-      <div class="es-f"><span class="is-chips"><span>Encher cada prédio até</span>${[0.85, 0.9, 1].map(a => `<button class="is-chip ${PL.alvo === a ? 'on' : ''}" data-al="${a}">${Math.round(a * 100)}%</button>`).join('')}</span>
+      <div class="pl-fases"><span class="info">Ordem das fases (use ↑ ↓ para mudar a prioridade; desmarque para pular):</span>
+        ${ordem.map((k, i) => { const x = PL.porFase.find(f => f.k === k); return `<div class="pl-fase ${PL.fases[k] ? '' : 'off'}"><b>${PL.ordem.indexOf(k) + 1}</b>
+          <label><input type="checkbox" data-fs="${k}" ${PL.fases[k] ? 'checked' : ''}> ${nomeF(k)}</label>${PL.fases[k] && x ? `<span class="info">${fmtN(x.n)} mov. · ${fmtN(Math.round(x.pares))} pares</span>` : ''}
+          <span style="flex:1"></span><button class="btn" data-fu="${k}" ${i ? '' : 'disabled'} title="Subir">↑</button><button class="btn" data-fd="${k}" ${i < ordem.length - 1 ? '' : 'disabled'} title="Descer">↓</button></div>`; }).join('')}</div>
+      <div class="es-f"><label class="info" style="display:flex;gap:6px;align-items:center">Encher cada prédio até <input type="number" id="pl-alvo" min="50" max="100" step="1" value="${Math.round(PL.alvo * 100)}" style="width:70px"> %</label>
+        <span class="info">(a área de uso é calculada com esse limite; folga para receber mercadoria nova)</span>
         <span style="flex:1"></span><button class="btn" id="pl-csv">⇩ CSV</button><button class="btn pri" id="pl-imp">🖨 Imprimir lista</button></div>
       <div class="info">${fmtN(PL.validos.length)} movimentação(ões) · <strong>${fmtN(Math.round(PL.pares))} pares</strong> · ${fmtN(PL.liberados)} prédio(s) liberado(s) · ${fmtN(PL.ocupados_depois)} prédios ocupados depois${PL.fases.fundo ? ` · <strong>área a esvaziar: ${fmtN(PL.esvaziar.size)} prédio(s)</strong> nas pontas (com borda laranja no mapa)` : ''}${sem.length ? ` · <span style="color:#a11d1d">${sem.length} sem destino (falta espaço: suba o limite ou libere prédios)</span>` : ''}.
         Cada linha leva o modelo inteiro que está no prédio (todos os tamanhos); quando não cabe num prédio só, é dividido por SKU. Faça a movimentação de endereço no Seenc junto com a física.</div></div>
     ${PL.moves.length ? `<div class="es-wrap" style="max-height:50vh"><table class="es-tab"><thead><tr><th>Fase</th><th>Tirar de</th><th>Colocar em</th><th>Modelo</th><th>Marca</th><th>Curva</th><th class="n">Pares</th><th>Por quê</th></tr></thead><tbody>
       ${PL.moves.map(x => `<tr><td>${x.fase}</td><td class="end"><b>${rpEST(x.de)}</b></td><td class="end"><b>${x.para ? rpEST(x.para) : '<span style="color:#a11d1d">sem espaço</span>'}</b></td><td class="end">${esc(x.pai)}</td><td>${esc(x.marca)}</td><td>${x.curva === 'S' ? '—' : x.curva}</td><td class="n">${fmtN(Math.round(x.q))}</td><td class="info">${esc(x.motivo)}</td></tr>`).join('')}</tbody></table></div>`
       : '<div class="vazio" style="padding:16px">Nada a movimentar com as fases escolhidas.</div>'}`;
-  const refaz = () => { s.mplano = planoReorgEST(Z, s.mfases, s.malvo); desenhaMapaEST(); };
+  const refaz = () => { s.mplano = planoReorgEST(Z, s.mfases || PL.fases, s.malvo || PL.alvo, s.mordem || PL.ordem); desenhaMapaEST(); };
   $p.querySelectorAll('[data-fs]').forEach(c => c.onchange = () => { s.mfases = { ...PL.fases, [c.dataset.fs]:c.checked }; refaz(); });
-  $p.querySelectorAll('[data-al]').forEach(c => c.onclick = () => { s.malvo = +c.dataset.al; s.mfases = PL.fases; refaz(); });
+  const troca = (k, d) => { const o = [...PL.ordem], i = o.indexOf(k); let j = i + d; while (o[j] === 'fora' && semFora) j += d; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; s.mordem = o; refaz(); };
+  $p.querySelectorAll('[data-fu]').forEach(b => b.onclick = () => troca(b.dataset.fu, -1));
+  $p.querySelectorAll('[data-fd]').forEach(b => b.onclick = () => troca(b.dataset.fd, 1));
+  const al = $p.querySelector('#pl-alvo'); al.onchange = () => { const v = Math.round(Number(al.value)); if (!(v >= 50 && v <= 100)) { avisar('Use um valor entre 50% e 100%', true); al.value = Math.round(PL.alvo * 100); return; } s.malvo = v / 100; refaz(); };
   $p.querySelector('#pl-imp').onclick = () => imprimirPlanoEST(Z, PL);
   $p.querySelector('#pl-csv').onclick = () => { const L = linhasPlanoEST(Z, PL); baixarCsv(`reorganizacao_BL${Z.M.bloco}_${hojeBRT()}.csv`, [['Fase', 'Tirar de (endereço)', 'Colocar em (endereço)', 'SKU', 'Produto', 'Marca', 'Curva', 'Qtd', 'Motivo'],
     ...L.map(l => [l.fase, l.de, l.para || '', l.sku, l.produto, l.marca, l.curva, l.q, l.motivo])]); };
@@ -13083,14 +13218,14 @@ function desenhaPlanoEST(Z){
 const linhasPlanoEST = (Z, PL) => PL.validos.flatMap(x => x.itens.sort((a, b) => a.sku.localeCompare(b.sku)).map(i => ({ fase:x.fase, de:i.de, para:i.para, sku:i.sku, produto:i.produto || x.produto, marca:x.marca, curva:x.curva, q:i.q, motivo:x.motivo, pai:x.pai })));
 function imprimirPlanoEST(Z, PL){
   const L = linhasPlanoEST(Z, PL), agora = new Date().toISOString();
-  const grupos = FASES_EST.map((_, i) => i + 1).map(f => [f, f === 4 ? L.filter(l => l.fase === 4) : L.filter(l => l.fase === f).sort((a, b) => cmpEnd(a.de, b.de) || a.pai.localeCompare(b.pai) || a.sku.localeCompare(b.sku))]).filter(([, g]) => g.length);
+  const grupos = PL.ordem.map((k, i) => [i + 1, k, k === 'frente' ? L.filter(l => l.fase === i + 1) : L.filter(l => l.fase === i + 1).sort((a, b) => cmpEnd(a.de, b.de) || a.pai.localeCompare(b.pai) || a.sku.localeCompare(b.sku))]).filter(([, , g]) => g.length);
   imprimirHtml(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Reorganização ${esc(Z.M.layout.nome)}</title><style>${CSS_IMPRESSO}
     @page{size:A4;margin:0} .folha{padding:6mm 9mm} table{width:100%;border-collapse:collapse;font-size:9pt;margin-top:2mm} th{background:#02285a;color:#fff;padding:1.3mm;font-size:8pt;text-align:left}
     td{border-bottom:0.3mm solid #c9cfda;padding:1.1mm 1.3mm} td.e{font-family:Consolas,monospace;white-space:nowrap} td.n{text-align:right} td.ck{width:6mm;border:0.3mm solid #1b2333}
     h3{margin:4mm 0 1mm;font-size:11pt;color:#02285a} tr{break-inside:avoid} .res{font-size:9.5pt;color:#3c4a5e}</style></head><body>
     <div class="topo"><img src="${LOGOS.VALENRO}" alt="Valenro"><div><div class="t1">REORGANIZAÇÃO · ${esc(Z.M.layout.nome.toUpperCase())}</div><div class="t2">LISTA DE MOVIMENTAÇÃO</div></div><span class="esp"></span><span class="st"><small>PARES</small><b>${fmtN(Math.round(PL.pares))}</b></span></div>
     <div class="folha"><div class="res">${fmtN(PL.validos.length)} movimentação(ões) de modelo · ${fmtN(L.length)} linha(s) por SKU · ${fmtN(PL.liberados)} prédio(s) liberado(s) · prédios cheios até ${Math.round(PL.alvo * 100)}%. Estoque de ${Z.M.estoque ? quando(Z.M.estoque.em) : '—'}. Faça a movimentação de endereço no Seenc junto com a física. Responsável: ______________________ Data: ___/___/______</div>
-    ${grupos.map(([f, g]) => `<h3>${f}. ${FASES_EST[f - 1][1]}${f === 4 ? ' (na ordem da lista: as trocas primeiro; use um palete de apoio)' : ''}</h3><table><thead><tr><th></th><th>Tirar de</th><th>Colocar em</th><th>SKU</th><th>Produto</th><th style="text-align:right">Qtd</th></tr></thead><tbody>
+    ${grupos.map(([f, k, g]) => `<h3>${f}. ${FASES_EST.find(x => x[0] === k)[1]}${k === 'frente' ? ' (na ordem da lista: as trocas primeiro; use um palete de apoio)' : ''}</h3><table><thead><tr><th></th><th>Tirar de</th><th>Colocar em</th><th>SKU</th><th>Produto</th><th style="text-align:right">Qtd</th></tr></thead><tbody>
       ${g.map(l => `<tr><td class="ck"></td><td class="e">${esc(curtoEnd(l.de))}</td><td class="e"><b>${esc(curtoEnd(l.para))}</b></td><td class="e">${esc(l.sku)}</td><td>${esc(l.produto || '')}</td><td class="n"><b>${fmtN(l.q)}</b></td></tr>`).join('')}</tbody></table>`).join('')}
     </div><div class="rodape"><span>Central de Operações Valenro</span><span>Impresso em ${quando(agora)}</span></div></body></html>`);
 }
