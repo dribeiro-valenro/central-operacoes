@@ -10101,7 +10101,7 @@ function formVF(x){
     try {
       const r = await apiVF(`/vendafunc/estoque?loja=${loja}&q=${encodeURIComponent(q)}`);
       $('vf-est').textContent = r.estoque ? `estoque de ${quando(r.estoque.em)} (${r.estoque.origem === 'arquivo' ? 'arquivo do Seenc' : 'API'})` : '';
-      if (!r.estoque) { $('vf-res').innerHTML = `<div class="erro">Ainda não há estoque carregado de ${esc(nomeLoja(loja))} (Ressuprimento › Atualizar estoque ou Arquivo do Seenc).</div>`; return; }
+      if (!r.estoque) { $('vf-res').innerHTML = `<div class="erro">Ainda não há estoque carregado de ${esc(nomeLoja(loja))} (Logística › Gestão - Estoque: atualizar pela API ou subir o arquivo do Seenc).</div>`; return; }
       const L = r.linhas.filter(l => l.disponivel > 0);
       if (!L.length) { $('vf-res').innerHTML = `<div class="info">Nada com saldo endereçado para "${esc(q)}" em ${esc(nomeLoja(loja))}. Se o par está no estoque físico, use “Lançar sem endereço”.</div>`; $('vf-semend').open = true; if (/-/.test(q)) $('vf-se-sku').value = q.toUpperCase(); return; }
       let ult = '';
@@ -10564,17 +10564,11 @@ function telaRessuprimento(){
   const s = state.rs, edita = pode('ressuprimento', 'editar');
   $app.innerHTML = `<div class="barra"><h2>Ressuprimento - Cross</h2><span style="flex:1"></span>
       <span class="is-chips">${ORDEM_LOJAS.map(l => `<button class="is-chip ${s.loja === l ? 'on' : ''}" data-lj="${l}">${esc(nomeLoja(l))}</button>`).join('')}</span>
-      ${edita ? `<button class="btn" id="rs-sync" title="Recomeça agora a busca do estoque por endereço desta loja na API Weesu (vai em etapas de 100 linhas; a automática roda toda madrugada)">⟳ Atualizar estoque</button>
-        <label class="btn" title="CSV do Seenc da loja escolhida: Estoque alocado por posição (substitui o estoque) ou Vendas por variação de um mês (base da curva)">⇪ Arquivo do Seenc<input type="file" id="rs-arq" accept=".csv,.txt" hidden></label>` : ''}</div>
+      ${edita ? `<label class="btn" title="CSV do Seenc da loja escolhida: Vendas por variação de um mês (base da curva). O estoque é atualizado em Gestão - Estoque.">⇪ Vendas do Seenc<input type="file" id="rs-arq" accept=".csv,.txt" hidden></label>` : ''}
+      ${podeAbrir('estoque') ? '<button class="btn" id="rs-est" title="Atualizar o estoque (API ou arquivo do Seenc) e ver por endereço">Estoque ›</button>' : ''}</div>
     <div id="rs-res"><div class="carregando">Carregando…</div></div>`;
   document.querySelectorAll('[data-lj]').forEach(b => b.onclick = () => { s.loja = b.dataset.lj; s.dias = null; s.base = null; telaRessuprimento(); });
-  const sy = document.getElementById('rs-sync');
-  if (sy) sy.onclick = async () => { sy.disabled = true; sy.textContent = 'Buscando na Weesu… (até 2 min)';
-    try { const r = await apiRS('/ressuprimento/estoque', { cnpj_id:s.loja });
-      const l = (r.lojas || [])[0];
-      avisar(r.pulou ? r.pulou : !l ? 'Nada a fazer' : l.status === 'ok' ? `Estoque atualizado: ${fmtN(l.total ?? l.ate)} linhas` : l.status === 'parcial' ? `Em etapas: ${fmtN(l.ate)} de ${fmtN(l.total)} linhas. A busca continua sozinha a cada 5–10 min; a tela mostra o andamento. Até terminar, vale o estoque anterior.` : l.status === 'descartada' ? 'A busca terminou, mas já existe um estoque mais recente (arquivo do Seenc) — ele continua valendo.' : l.status === 'sem_credencial' ? 'Esta loja está sem credencial da Weesu' : `⚠ ${l.erro || l.status}`, l && l.status === 'erro');
-      carregarRS(); }
-    catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { sy.disabled = false; sy.textContent = '⟳ Atualizar estoque'; } };
+  document.getElementById('rs-est')?.addEventListener('click', () => { state.est ||= { loja:'todas', aba:'enderecos', bloco:'', rua:'', inv:'', filtro:'', q:'', sel:new Set() }; state.est.loja = s.loja; irPara('estoque'); });
   const arq = document.getElementById('rs-arq');
   if (arq) arq.onchange = async () => {
     const f = arq.files[0]; arq.value = ''; if (!f) return;
@@ -10599,16 +10593,8 @@ function telaRessuprimento(){
           await apiRS('/ressuprimento/vendas', { cnpj_id:s.loja, mes, arquivo:f.name, inicio:i === 0, fim:i + 5000 >= V.length, linhas:V.slice(i, i + 5000) });
         avisar(`Vendas de ${mes.slice(5)}/${mes.slice(0, 4)} de ${nomeLoja(s.loja)} carregadas (${fmtN(V.length)} SKUs)`); s.base = null; carregarRS(); return;
       }
-      const r = lerArquivoPk(txt, f.name);
-      if (r.tipo !== 'estoque') throw new Error('Não reconheci como estoque por posição (precisa das colunas de posição/endereço, SKU e quantidade alocada). Exporte em CSV.');
-      const L = r.linhas.map(e => ({ pos:e.pos, sku:e.sku, gtin:e.gtin, qtd:e.qtd, ar:e.ar, produto:e.produto }));
-      if (!L.length) throw new Error('O arquivo não tem linhas com saldo.');
-      if (!confere([...new Set(L.map(x => x.sku))])) return;
-      avisar(`Enviando ${fmtN(L.length)} linhas de ${nomeLoja(s.loja)}…`);
-      let id = 0;
-      for (let i = 0; i < L.length; i += 5000) { const fim = i + 5000 >= L.length;
-        const x = await apiRS('/ressuprimento/arquivo', { cnpj_id:s.loja, sync_id:id || undefined, arquivo:f.name, linhas:L.slice(i, i + 5000), fim }); id = x.sync_id; }
-      avisar(`Estoque de ${nomeLoja(s.loja)} atualizado pelo arquivo (${fmtN(L.length)} linhas)`); carregarRS();
+      if (lerArquivoPk(txt, f.name).tipo === 'estoque') throw new Error('Esse é o arquivo de estoque. O estoque agora é carregado em Logística › Gestão - Estoque (botão "⇪ Estoque do Seenc"). Aqui só o relatório "Vendas por variação".');
+      throw new Error('Não reconheci como "Vendas por variação" do Seenc (precisa da coluna Quantidade vendida). Exporte em CSV.');
     } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); }
   };
   carregarRS();
@@ -10649,7 +10635,7 @@ function desenhaRS(){
   const aviso = [
     !C.areas.length ? `Defina em <b>Parâmetros</b> qual é a área de ressuprimento de ${esc(nomeLoja(D.loja))} (o começo do endereço, ex.: BL4 ou AR2-BL4).` : '',
     D.base === 'api' && D.dias_com_dado < Math.min(14, D.dias) ? `Só há <b>${D.dias_com_dado} dia(s)</b> de vendas guardados — a curva ainda é instável. O histórico dos últimos 30 dias está sendo buscado à noite; em 2 a 3 dias ela fica confiável. Até lá, suba o relatório <b>Vendas por variação</b> do mês anterior (⇪ Arquivo do Seenc) — e <b>não execute a lista de Devolver</b>.` : '',
-    !est ? 'Sem estoque carregado: clique em <b>⟳ Atualizar estoque</b> ou suba o arquivo do Seenc.' : '',
+    !est ? 'Sem estoque carregado: atualize em <b>Gestão - Estoque</b> (API ou arquivo do Seenc).' : '',
   ].filter(Boolean).map(t => `<div class="rs-av">${t}</div>`).join('');
   const pctRS = (n, d) => d ? `<em class="rs-pct">${String(Math.round(n / d * 1000) / 10).replace('.', ',')}%</em>` : '';
   const capLivre = K.capacidade ? K.capacidade - (K.capacidade_bloqueada || 0) : null;
@@ -12370,6 +12356,8 @@ const DEMO_EST = (() => {
 const nomeDemoEST = login => ({ 'ana.lima@valenro':'Ana Lima', 'bruno.costa@valenro':'Bruno Costa', 'carla.nunes@valenro':'Carla Nunes', 'diego.alves@valenro':'Diego Alves', 'fernanda.rocha@valenro':'Fernanda Rocha' })[login] || null;
 async function apiEST(path, corpo){
   if (!DEMO) return api(path, corpo ? { metodo:'POST', corpo } : {});
+  if (path.startsWith('/ressuprimento/estoque')) return { ok:true, lojas:(corpo.lojas || []).map(l => ({ loja:l, status:'parcial', ate:3000, total:4821 })) };
+  if (path.startsWith('/ressuprimento/arquivo')) { DEMO_EST.em = new Date().toISOString(); return { ok:true, sync_id:9, gravadas:corpo.linhas.length }; }
   await new Promise(r => setTimeout(r, 120));
   const D = DEMO_EST, qs = new URLSearchParams(path.split('?')[1] || ''), loja = (qs.get('loja') || corpo?.loja || 'todas').toUpperCase();
   const lojas = loja === 'TODAS' ? ORDEM_LOJAS : [loja], L = D.L.filter(x => lojas.includes(x.loja)), est = lojas.map(l => ({ loja:l, em:D.em, origem:l === 'DIGOS' ? 'agendada' : 'arquivo' }));
@@ -12420,9 +12408,14 @@ function renderEST(){
   const horas = em => (Date.now() - new Date(em)) / 3.6e6;
   const blocos = [...new Set(E.map(x => x.bloco))].sort((a, b) => (a === '' ? 999 : +a) - (b === '' ? 999 : +b));
   const pct = (n, d) => d ? Math.round(n / d * 100) : 0;
-  $c.innerHTML = `<div class="es-top"><b>Estoque do sistema</b>${D.lojas.map(l => { const x = D.estoques.find(e => e.loja === l);
-      return `<span>${tagLoja(l)} ${x ? `<span class="${horas(x.em) > 24 ? 'velho' : ''}" title="${x.origem === 'arquivo' ? 'arquivo do Seenc' : 'API Weesu'}">${quando(x.em)}${horas(x.em) > 24 ? ' (desatualizado)' : ''}</span>` : '<span class="velho">sem estoque carregado</span>'}</span>`; }).join('')}
-      <span class="info">Atualiza toda madrugada pela API; para atualizar na hora, suba o "Estoque alocado por posição" do Seenc em Ressuprimento - Cross.</span></div>
+  const ed = pode('estoque', 'editar') || pode('ressuprimento', 'editar');
+  $c.innerHTML = `<div class="es-top"><b>Estoque do sistema</b>${D.lojas.map(l => { const x = D.estoques.find(e => e.loja === l), a = (D.atualizacoes || []).find(e => e.loja === l), andando = a && ['parcial', 'rodando'].includes(a.status);
+      return `<span>${tagLoja(l)} ${x ? `<span class="${horas(x.em) > 24 ? 'velho' : ''}" title="${x.origem === 'arquivo' ? 'arquivo do Seenc' : 'API Weesu'}">${quando(x.em)} <span class="info">${x.origem === 'arquivo' ? '(arquivo)' : '(API)'}</span>${horas(x.em) > 24 ? ' (desatualizado)' : ''}</span>` : '<span class="velho">sem estoque carregado</span>'}
+        ${andando ? `<span class="es-inv med" title="Busca pela API em etapas; até terminar vale o estoque anterior">atualizando ${a.total ? `${fmtN(a.linhas)} de ${fmtN(a.total)}` : `${fmtN(a.linhas)} linhas`}</span>` : a?.status === 'erro' ? `<span class="es-inv vel" title="${esc(a.erro || '')}">última busca com erro</span>` : ''}</span>`; }).join('')}
+      <span style="flex:1"></span>
+      ${ed ? `<span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="es-api" title="Busca agora o estoque por endereço na API Weesu (vai em etapas; a automática roda toda madrugada)">⟳ Atualizar pela API</button>
+        <button class="btn pri" id="es-arq" title="CSV &quot;Estoque alocado por posição&quot; do Seenc: substitui o estoque da loja na hora">⇪ Estoque do Seenc</button></span>` : ''}
+      <span class="info" style="flex-basis:100%">A API atualiza toda madrugada. Depois de um ajuste ou inventário no Seenc, suba o arquivo "Estoque alocado por posição" para valer na hora.</span></div>
     <div class="es-kpis">
       <div class="es-k"><span>Pares em estoque</span><b>${fmtN(pares)}</b><small>${fmtN(skus)} SKU(s)${D.lojas.length > 1 ? ' (somando as lojas)' : ''}</small></div>
       <div class="es-k"><span>Prédios com saldo</span><b>${fmtN(PR.length)}</b><small>${fmtN(E.length)} endereço(s) · ${fmtN(blocos.length)} bloco(s)</small></div>
@@ -12433,6 +12426,8 @@ function renderEST(){
       return `<button data-bl="${b}" class="${s.bloco === b && s.aba === 'enderecos' ? 'on' : ''}" title="${pct(c, L.length)}% inventariado em 30 dias">${b === '' ? 'Sem bloco' : `Bloco ${b}`}<b>${fmtN(p)} pares</b>${fmtN(L.length)} prédio(s) · ${pct(c, L.length)}% inv.<span class="cob"><i style="width:${pct(c, L.length)}%"></i></span></button>`; }).join('')}</div>
     <div class="abas">${[['enderecos', 'Endereços'], ['busca', 'Localizar item'], ['inventarios', 'Inventários']].map(([k, t]) => `<button data-ab="${k}" class="${s.aba === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     <div id="es-corpo"></div><div id="es-selbar"></div>`;
+  $c.querySelector('#es-api')?.addEventListener('click', ev => atualizarApiEST(ev.target));
+  $c.querySelector('#es-arq')?.addEventListener('click', () => arquivoEstoqueEST());
   $c.querySelectorAll('[data-bl]').forEach(b => b.onclick = () => { s.aba = 'enderecos'; s.bloco = s.bloco === b.dataset.bl ? '' : b.dataset.bl; s.rua = ''; renderEST(); });
   $c.querySelectorAll('[data-ab]').forEach(b => b.onclick = () => { s.aba = b.dataset.ab; renderEST(); });
   if (s.aba === 'busca') corpoBuscaEST(); else if (s.aba === 'inventarios') corpoInventariosEST(); else corpoEnderecosEST(E);
@@ -12440,6 +12435,44 @@ function renderEST(){
 }
 // prédio = endereço sem o andar (a folha vai na frente do prédio/palete); BL0-R0-P0 e afins ficam como estão
 const predioEST = p => String(p || '').replace(/-A\d+$/, '');
+// ---------- atualizar o estoque: API Weesu (em etapas) ou arquivo do Seenc ----------
+function escolherLojaEST(titulo, txt){
+  return new Promise(ok => { const l0 = state.est.loja; if (l0 !== 'todas') return ok(l0);
+    const dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg);
+    dlg.innerHTML = `<div class="painel" style="width:min(420px,100%)"><div class="barra" style="margin:0 0 4px"><h3 style="margin:0">${titulo}</h3><span style="flex:1"></span><button class="btn" data-x>Fechar</button></div>
+      <div class="info">${txt}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${ORDEM_LOJAS.map(l => `<button class="btn" data-l="${l}">${esc(nomeLoja(l))}</button>`).join('')}</div></div>`;
+    const fecha = v => { dlg.remove(); ok(v); }; dlg.querySelector('[data-x]').onclick = () => fecha(null); dlg.onclick = e => { if (e.target === dlg) fecha(null); };
+    dlg.querySelectorAll('[data-l]').forEach(b => b.onclick = () => fecha(b.dataset.l)); });
+}
+async function atualizarApiEST(btn){
+  const lojas = state.est.loja === 'todas' ? ORDEM_LOJAS : [state.est.loja], txt0 = btn.textContent; btn.disabled = true; btn.textContent = 'Buscando na Weesu… (até 2 min)';
+  try { const r = await apiEST('/ressuprimento/estoque', { lojas });
+    const msg = (r.lojas || []).map(l => `${nomeLoja(l.loja)}: ${l.status === 'ok' ? `atualizado (${fmtN(l.total ?? l.ate)} linhas)` : l.status === 'parcial' ? `em etapas, ${fmtN(l.ate)} de ${fmtN(l.total)}` : l.status === 'descartada' ? 'já havia um estoque mais recente' : l.status === 'sem_credencial' ? 'sem credencial da Weesu' : (l.erro || l.status)}`).join(' · ');
+    avisar(r.pulou || msg || 'Nada a fazer'); if ((r.lojas || []).some(l => l.status === 'parcial')) avisar((r.pulou || msg) + '. A busca continua sozinha a cada 5–10 min; até terminar, vale o estoque anterior.');
+    carregarEST(); }
+  catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } finally { btn.disabled = false; btn.textContent = txt0; }
+}
+async function arquivoEstoqueEST(){
+  const loja = await escolherLojaEST('Estoque do Seenc', 'De qual loja é o arquivo "Estoque alocado por posição"? Ele substitui todo o estoque dessa loja.'); if (!loja) return;
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.csv,.txt';
+  inp.onchange = async () => { const f = inp.files[0]; if (!f) return;
+    try {
+      const txt = await textoArquivo(f), r = lerArquivoPk(txt, f.name);
+      if (/quantidade vendida/i.test(semAcento((txt.replace(/^\uFEFF/, '').split(/\r?\n/)[0] || '')))) throw new Error('Esse é o relatório de vendas: ele é carregado em Ressuprimento - Cross (botão "⇪ Vendas do Seenc").');
+      if (r.tipo !== 'estoque') throw new Error('Não reconheci como "Estoque alocado por posição" (precisa das colunas de posição/endereço, SKU e quantidade alocada). Exporte em CSV.');
+      const L = r.linhas.map(e => ({ pos:e.pos, sku:e.sku, gtin:e.gtin, qtd:e.qtd, ar:e.ar, produto:e.produto }));
+      if (!L.length) throw new Error('O arquivo não tem linhas com saldo.');
+      avisar(`Enviando ${fmtN(L.length)} linhas de ${nomeLoja(loja)}…`);
+      const envia = async forcar => { let id = 0;
+        for (let i = 0; i < L.length; i += 5000) { const fim = i + 5000 >= L.length;
+          const x = await apiEST('/ressuprimento/arquivo', { cnpj_id:loja, sync_id:id || undefined, arquivo:f.name, linhas:L.slice(i, i + 5000), fim, forcar }); id = x.sync_id; } };
+      try { await envia(false); }
+      catch (e) { const m = String(e.message || ''); if (!m.startsWith('CONFERIR_LOJA|')) throw e;
+        if (!confirm(`${m.split('|')[1]}\n\nOK = sim, é dessa loja, pode subir. Cancelar = não subir.`)) return; await envia(true); }
+      avisar(`Estoque de ${nomeLoja(loja)} atualizado pelo arquivo (${fmtN(L.length)} linhas)`); carregarEST();
+    } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  inp.click();
+}
 function filtroInvEST(x, f){ const d = x.inv ? diasEST(x.inv.em) : null;
   return !f || (f === 'nunca' && !x.inv) || (f === '30' && x.inv && d <= 30) || (f === 'm30' && (!x.inv || d > 30)) || (f === 'm90' && (!x.inv || d > 90)); }
 // junta os andares de cada prédio; o inventário do prédio é o mais antigo dos andares (nenhum se algum andar nunca foi)
