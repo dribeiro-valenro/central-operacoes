@@ -10536,8 +10536,8 @@ function demoRS(loja){
     return { rua, predio, andar:k + 1, cap, atual, sai, entra, pos:`AR2-BL4-RUA${rua}-P${predio}-A${k + 1}` }; })));
   return { loja, hoje:hojeBRT(), dias:28, dias_com_dado:9,
     base_info:{ fonte:'seenc', de:'2026-10-01', ate:hojeBRT(), dias:48, pedidos:11597, pares:14367, skus:2641, carregado_em:new Date(Date.now() - 7.2e5).toISOString() },
-    estoque_info:{ linhas:11586, pares:77347, skus:5603, posicoes:671 }, carteira_info:{ pedidos:212, pares:231, de:addDias(hojeBRT(), -7), ate:hojeBRT() }, primeiro_dia:addDias(hojeBRT(), -9), credencial:true, base:'seenc', mes_base:'2026-10', dias_base:31,
-    meses_seenc:[{ mes:'2026-10-01', skus:2641, pares:9004 }],
+    estoque_info:{ linhas:11586, pares:77347, skus:5603, posicoes:671 }, pedidos_api_em:new Date(Date.now() - 6e5).toISOString(), carteira_info:{ pedidos:212, pares:231, de:addDias(hojeBRT(), -7), ate:hojeBRT() }, primeiro_dia:addDias(hojeBRT(), -9), credencial:true, base:'seenc', mes_base:'2026-10', dias_base:31,
+    meses_seenc:[{ mes:'2026-10-01', skus:2641, pares:9004, carregado_em:new Date(Date.now() - 864e5 * 3).toISOString(), carregado_por:'lider' }],
     config:{ areas:[loja === 'DIGOS' ? 'BL4' : 'BL0-R0-P0'], dias_curva:28, corte_a:80, corte_b:95, cobertura_a:2, cobertura_b:1, cobertura_c:1, minimo_sku:1, capacidade_pares:loja === 'DIGOS' ? null : 120,
       mapa:loja === 'DIGOS' ? '1: 1-8\n2: 1-8' : '', cap_andares:loja === 'DIGOS' ? [80, 80, 20] : [] }, ocupacao,
     estoque:{ id:1, origem:'agendada', inicio:new Date(ag - 3.6e6).toISOString(), fim:new Date(ag - 3.4e6).toISOString(), linhas:4821 }, atualizando:null,
@@ -10619,9 +10619,9 @@ function desenhaRS(){
       ${at ? `<span class="${at.status === 'erro' ? 'ruim' : 'am'}">${at.status === 'erro' ? `⚠ última tentativa: ${esc(at.erro || 'erro')}` : `⟳ atualizando em etapas: ${fmtN(at.proximo_offset)}${at.total ? ` de ${fmtN(at.total)}` : ''} linhas`}</span>` : ''}
       ${!D.credencial ? '<span class="ruim">⚠ loja sem credencial da Weesu (use o arquivo do Seenc)</span>' : ''}
       <span>Área: <b>${C.areas.length ? C.areas.map(esc).join(', ') : '<span class="ruim">não definida</span>'}</b>${K.capacidade ? ` <span class="info">(${fmtN(K.capacidade)} pares${(D.ocupacao || []).length ? ` em ${fmtN(D.ocupacao.length)} posições` : ''})</span>` : ''}</span>
-      <span class="is-chips"><span>Curva pelo</span>
-        ${(D.meses_seenc || []).length ? `<button class="is-chip ${D.base === 'seenc' ? 'on' : ''}" data-base="seenc" title="Relatório Vendas por variação (só cross)">relatório do Seenc · ${esc(D.base === 'seenc' && D.mes_base ? mesesRS(D.mes_base) : mesCurtoRS(D.meses_seenc[0].mes))}</button>` : ''}
-        <button class="is-chip ${D.base === 'api' ? 'on' : ''}" data-base="api" title="Pedidos coletados pela API (${D.dias_com_dado} de ${D.dias} dias com dado)">pedidos da API · ${D.dias_com_dado} dia(s)</button></span>
+      <span class="is-chips"><span>Vendas usadas na curva</span>
+        <button class="is-chip ${D.base === 'api' ? 'on' : ''}" data-base="api" title="Automático: os pedidos que a Inteligência de Separação busca na Weesu ao longo do dia (${D.dias_com_dado} de ${D.dias} dias com dado)">Pedidos da API · automático · ${D.dias_com_dado} dia(s)${D.pedidos_api_em ? ` · atualizado ${dhRS(D.pedidos_api_em)}` : ''}</button>
+        ${(D.meses_seenc || []).length ? (() => { const m = D.meses_seenc[0]; return `<button class="is-chip ${D.base === 'seenc' ? 'on' : ''}" data-base="seenc" title="Manual: relatório Vendas por variação do Seenc (só cross), subido em ⇪ Vendas do Seenc">Relatório do Seenc · manual · ${esc(D.base === 'seenc' && D.mes_base ? mesesRS(D.mes_base) : mesCurtoRS(m.mes))}${m.carregado_em ? ` · importado ${dhRS(m.carregado_em)}` : ''}</button>`; })() : ''}</span>
       ${D.base === 'api' ? `<span class="is-chips"><span>Período</span>${[14, 28, 60].map(n => `<button class="is-chip ${D.dias === n ? 'on' : ''}" data-dias="${n}">${n} dias</button>`).join('')}</span>` : ''}</div>`;
   // o que sustenta a conta: quantos pedidos/pares, de quando a quando, e de que estoque
   const BI = D.base_info || {}, EI = D.estoque_info, CI = D.carteira_info;
@@ -10629,13 +10629,14 @@ function desenhaRS(){
   const baseTxt = `<div class="rs-base"><b>Base da análise</b>
       <span><i>Vendas</i> ${fmtN(BI.pedidos || 0)} pedidos${BI.fonte === 'seenc' ? '<sup title="No relatório do Seenc, o pedido com 2 SKUs conta 2 vezes (soma por SKU)">*</sup>' : ''} · ${fmtN(Math.round(BI.pares || 0))} pares · ${fmtN(BI.skus || 0)} SKUs
         · de <b>${dBR(BI.de)}</b> a <b>${dBR(BI.ate)}</b> (${fmtN(BI.dias || 0)} dia${BI.dias === 1 ? '' : 's'}${BI.fonte === 'api' ? ' com venda' : ''})
-        · ${BI.fonte === 'seenc' ? `relatório Vendas por variação do Seenc (só cross)${BI.carregado_em ? `, carregado em ${dhRS(BI.carregado_em)}` : ''}` : 'pedidos da API (sem Full e sem cancelados)'}</span>
+        · ${BI.fonte === 'seenc' ? `relatório Vendas por variação do Seenc (só cross), <b>importado manualmente</b>${BI.carregado_em ? ` em ${dhRS(BI.carregado_em)}` : ''}` : `pedidos da API, <b>automático</b> (sem Full e sem cancelados)${D.pedidos_api_em ? ` · última busca ${dhRS(D.pedidos_api_em)}` : ''}`}</span>
       <span><i>Estoque</i> ${EI ? `${fmtN(Math.round(EI.pares))} pares · ${fmtN(EI.skus)} SKUs · ${fmtN(EI.posicoes)} posições · retrato de ${dhRS(est.fim || est.inicio)} (${est.origem === 'arquivo' ? 'arquivo do Seenc' : 'API'})` : 'não carregado'}</span>
-      <span><i>Carteira</i> ${CI ? `${fmtN(CI.pedidos)} pedidos em aberto · ${fmtN(Math.round(CI.pares))} pares (vendas de ${dBR(CI.de)} a ${dBR(CI.ate)} ainda não enviadas)` : '—'}</span></div>`;
+      <span><i>Carteira</i> ${CI ? `${fmtN(CI.pedidos)} pedidos em aberto · ${fmtN(Math.round(CI.pares))} pares (vendas de ${dBR(CI.de)} a ${dBR(CI.ate)} ainda não enviadas) · sempre da API${D.pedidos_api_em ? `, busca de ${dhRS(D.pedidos_api_em)}` : ''}` : '—'}</span></div>`;
   const aviso = [
     !C.areas.length ? `Defina em <b>Parâmetros</b> qual é a área de ressuprimento de ${esc(nomeLoja(D.loja))} (o começo do endereço, ex.: BL4 ou AR2-BL4).` : '',
-    D.base === 'api' && D.dias_com_dado < Math.min(14, D.dias) ? `Só há <b>${D.dias_com_dado} dia(s)</b> de vendas guardados — a curva ainda é instável. O histórico dos últimos 30 dias está sendo buscado à noite; em 2 a 3 dias ela fica confiável. Até lá, suba o relatório <b>Vendas por variação</b> do mês anterior (⇪ Arquivo do Seenc) — e <b>não execute a lista de Devolver</b>.` : '',
+    D.base === 'api' && D.dias_com_dado < Math.min(14, D.dias) ? `Só há <b>${D.dias_com_dado} dia(s)</b> de vendas guardados — a curva ainda é instável. O histórico dos últimos 30 dias está sendo buscado à noite; em 2 a 3 dias ela fica confiável. Até lá, suba o relatório <b>Vendas por variação</b> do mês anterior (⇪ Vendas do Seenc) — e <b>não execute a lista de Devolver</b>.` : '',
     !est ? 'Sem estoque carregado: atualize em <b>Gestão - Estoque</b> (API ou arquivo do Seenc).' : '',
+    D.pedidos_api_em && D.hoje === hojeBRT() && (Date.now() - new Date(D.pedidos_api_em)) / 3.6e6 > 2 && new Date().getHours() >= 8 && new Date().getHours() < 22 ? `A última busca de pedidos na API foi em <b>${dhRS(D.pedidos_api_em)}</b> (o normal é a cada 15 min). A carteira e as vendas de hoje podem estar incompletas: confira a coleta em Inteligência de Separação.` : '',
   ].filter(Boolean).map(t => `<div class="rs-av">${t}</div>`).join('');
   const pctRS = (n, d) => d ? `<em class="rs-pct">${String(Math.round(n / d * 1000) / 10).replace('.', ',')}%</em>` : '';
   const capLivre = K.capacidade ? K.capacidade - (K.capacidade_bloqueada || 0) : null;
