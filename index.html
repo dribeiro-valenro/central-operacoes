@@ -11530,6 +11530,8 @@ const CSS_MK = `
   .mk-tab tbody tr{cursor:pointer} .mk-tab tbody tr:hover{background:#f4f8fd} .mk-tab td.sku{font-family:Consolas,monospace;font-weight:700}
   .mk-st{display:inline-block;border-radius:99px;padding:0 8px;color:#fff;font-size:11px;font-weight:700}
   .mk-sem{display:inline-block;border-radius:99px;padding:0 7px;font-size:11px;font-weight:700;background:#fde7e7;color:#a11d1d;border:1px solid #f3c4c4;white-space:nowrap}
+  .mk-sug{display:inline-block;font-family:Consolas,monospace;font-size:12.5px;color:#0b4a8f;background:#e8f1fc;border:1px dashed #9cc0ea;border-radius:6px;padding:1px 6px}
+  .mk-sg{grid-column:1/-1;font-size:12px;color:#0b4a8f;background:#eef5fd;border:1px solid #cfe0f5;border-radius:6px;padding:3px 8px;margin-top:-2px} .mk-sg.ruim{color:#8a1f1f;background:#fdeeee;border-color:#f3c5c5}
   .mk-av{grid-column:1/-1;font-size:12px;color:#8a4b00;background:#fff4e0;border:1px solid #f3d6a4;border-radius:6px;padding:3px 8px;margin-top:-2px}
   .mk-itens tr.semest td{color:#9aa1ad} .mk-itens tr.semest td b{text-decoration:line-through}
   .mk-itens td.end{font-family:Consolas,monospace;font-size:12px;white-space:nowrap}
@@ -11552,6 +11554,20 @@ const semEstMk = i => !!i.sem_estoque_em, qMk = i => semEstMk(i) ? 0 : i.qtd;
 const paresMk = s => s.itens.reduce((t, i) => t + qMk(i), 0), devMk = s => s.itens.reduce((t, i) => t + i.qtd_devolvida, 0);
 const chaveParMk = i => [i.cnpj_id, String(i.produto || '').trim().toUpperCase(), String(i.cor || '').trim().toUpperCase(), String(i.tamanho || '').trim()].join('|');
 // último apontamento "sem estoque" do mesmo par (loja + SKU + cor + nº) em OUTRA solicitação → alerta (não impede)
+// endereço sugerido: o de maior saldo no último estoque do Seenc (Gestão - Estoque); se não cobrir a quantidade, completa com o próximo
+const chaveEstMk = i => `${i.cnpj_id}|${String(i.produto || '').trim().toUpperCase()}`;
+function planoEndMk(E, i){
+  const L = E?.por?.[chaveEstMk(i)]; if (!L) return null; if (!L.length) return { vazio:true, partes:[], total:0, falta:0, outros:[] };
+  const partes = []; let falta = Number(i.qtd) || 1;
+  for (const x of L) { if (falta <= 0) break; const q = Math.min(falta, x.q); partes.push({ e:x.e, q, saldo:x.q }); falta -= q; }
+  return { vazio:false, partes, total:L.reduce((t, x) => t + x.q, 0), falta:Math.max(0, falta), outros:L.slice(partes.length) };
+}
+const txtPlanoEndMk = P => !P ? '' : P.vazio ? 'sem saldo no estoque do Seenc' : P.partes.map(p => P.partes.length === 1 ? `${p.e} (${fmtN(p.saldo)} no endereço)` : `${p.e} (tirar ${fmtN(p.q)})`).join(' + ');
+function demoEstMk(pares){
+  const por = {}, h = t => [...t].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
+  pares.forEach(i => { const k = chaveEstMk(i), n = h(k); por[k] = n % 9 === 0 ? [] : [0, 1, 2].slice(0, 1 + n % 3).map(j => ({ e:`BL${[1, 2, 4][(n + j) % 3]}-RUA${1 + (n + j) % 5}-P${1 + (n * (j + 1)) % 20}-A${1 + j}`, q:Math.max(1, 30 - j * 11 - n % 7) })); });
+  return { por, em:{ DIGOS:new Date().toISOString(), CACAL:new Date().toISOString(), DROSA:new Date().toISOString() } };
+}
 function semEstAntesMk(i, solId){
   const L = (state.mk?.modo === 'lista' ? state.mkHist?.sem_estoque : state.mkDados?.sem_estoque) || state.mkDados?.sem_estoque || state.mkHist?.sem_estoque || [], k = chaveParMk(i);
   return L.find(r => chaveParMk({ cnpj_id:r.cnpj_id, produto:r.produto, cor:r.cor, tamanho:r.tamanho }) === k && String(r.solicitacao_id) !== String(solId || '')) || null;
@@ -11591,7 +11607,8 @@ async function apiMkt(path, corpo){
     const semEst = Object.values(Object.fromEntries(D.lista.flatMap(x => x.itens.filter(semEstMk).map(i => ({ cnpj_id:i.cnpj_id, produto:i.produto, cor:i.cor, tamanho:i.tamanho, sem_estoque_em:i.sem_estoque_em, solicitacao_id:x.id })))
       .sort((a, b) => a.sem_estoque_em.localeCompare(b.sem_estoque_em)).map(r => [chaveParMk(r), r])));
     return cp({ sem_estoque:semEst, solicitacoes:de && ate ? D.lista.filter(x => dia(x.solicitado_em) >= de && dia(x.solicitado_em) <= ate) : D.lista, solicitantes:[...new Set(D.lista.map(s => s.solicitante))], operadores:['Arthur Magdaleno', 'Davi Duarte', 'Nathan Marques', 'Rafael Batista', 'Tiago Santos'], cnpjs:['DIGOS', 'CACAL', 'DROSA'], hoje:hojeBRT() }); }
-  if (path.startsWith('/mkt/detalhe')) { const id = new URLSearchParams(path.split('?')[1]).get('id'), s = D.lista.find(x => x.id === id); if (!s) throw new Error('Solicitação não encontrada'); return cp({ solicitacao:s, eventos:D.eventos.filter(e => e.id === id) }); }
+  if (path.startsWith('/mkt/detalhe')) { const id = new URLSearchParams(path.split('?')[1]).get('id'), s = D.lista.find(x => x.id === id); if (!s) throw new Error('Solicitação não encontrada'); return cp({ solicitacao:s, eventos:D.eventos.filter(e => e.id === id), estoque:['solicitado', 'separado'].includes(s.status) ? demoEstMk(s.itens) : null }); }
+  if (path.startsWith('/mkt/estoque')) return demoEstMk(new URLSearchParams(path.split('?')[1]).get('itens').split(',').map(x => { const [cnpj_id, ...r] = x.split(':'); return { cnpj_id, produto:r.join(':') }; }));
   if (path === '/mkt/solicitacao') { if (!String(corpo.solicitante || '').trim()) throw new Error('Informe o solicitante'); const itens = (corpo.itens || []).filter(i => i.produto);
     if (!itens.length) throw new Error('Inclua pelo menos um par'); if (itens.some(i => !i.cnpj_id)) throw new Error('Escolha a loja de cada item'); if (itens.some(i => !(i.qtd >= 1))) throw new Error('Quantidade inválida');
     const its = id => itens.map((i, k) => ({ id:`${id}-${k}-${Date.now()}`, cnpj_id:i.cnpj_id, produto:caixaAltaTxt(i.produto), cor:caixaAltaTxt(i.cor || ''), tamanho:i.tamanho || '', qtd:Number(i.qtd), qtd_devolvida:0 }));
@@ -11609,7 +11626,7 @@ async function apiMkt(path, corpo){
     if (a === 'itens') { (corpo.itens || []).forEach(d => { const i = s.itens.find(x => x.id === d.id); if (!i) return; i.endereco = String(d.endereco || '').trim().toUpperCase().replace(/\s+/g, ' ') || null;
         if (d.sem_estoque && !i.sem_estoque_em) Object.assign(i, { sem_estoque_em:corpo.em || ag, sem_estoque_por:'demonstracao' }); if (!d.sem_estoque) Object.assign(i, { sem_estoque_em:null, sem_estoque_por:null }); });
       if (s.status === 'entregue' && s.itens.some(i => !semEstMk(i)) && s.itens.every(i => semEstMk(i) || i.qtd_devolvida >= i.qtd)) Object.assign(s, { status:'devolvido', devolvido_em:ag }); ev(s.id, 'endereços / estoque'); return { ok:true }; }
-    if (a === 'separar') { precisa(['solicitado']); Object.assign(s, { status:'separado', separado_em:em, separado_por:'demonstracao', separado_operador:corpo.operador }); }
+    if (a === 'separar') { precisa(['solicitado']); const E = demoEstMk(s.itens); s.itens.forEach(i => { if (!i.endereco && !semEstMk(i)) i.endereco = E.por[chaveEstMk(i)]?.[0]?.e || null; }); Object.assign(s, { status:'separado', separado_em:em, separado_por:'demonstracao', separado_operador:corpo.operador }); }
     else if (a === 'motivo') { if (!MOTIVOS_MK[corpo.motivo]) throw new Error('Escolha o motivo'); if (corpo.motivo === 'outro' && !corpo.motivo_outro) throw new Error('Descreva o motivo (Outro)');
       Object.assign(s, { motivo:corpo.motivo, motivo_outro:corpo.motivo === 'outro' ? corpo.motivo_outro : null }); ev(s.id, 'motivo'); return { ok:true }; }
     else if (a === 'destino') { if (!['solicitado', 'separado', 'entregue', 'armazenado'].includes(s.status)) throw new Error('O destino não muda mais'); s.destino = corpo.destino;
@@ -11776,7 +11793,8 @@ function csvListaMkt(L){
 async function abrirMkt(id){
   let r; try { r = await apiMkt(`/mkt/detalhe?id=${id}`); } catch (e) { if (e instanceof SemSessao) throw e; return avisar(e.message, true); }
   const x = r.solicitacao, gerir = pode('mkt', 'gerir'), eu = state.usuario?.login || 'demonstracao', meu = x.solicitado_por === eu;
-  const pares = paresMk(x), dev = devMk(x), et = ETAPAS_MK.find(e => e.id === x.status);
+  const pares = paresMk(x), dev = devMk(x), et = ETAPAS_MK.find(e => e.id === x.status), E = r.estoque;
+  x.itens.forEach(i => { i._plano = !i.endereco && !semEstMk(i) ? planoEndMk(E, i) : null; });
   const dlg = document.createElement('div'); dlg.className = 'pl-modal';
   const passo = (rot, em, por, extra = '') => em ? `<div><b>${rot}</b><span>${quando(em)} · ${esc(quemTxt(por))}${extra}</span></div>` : '';
   dlg.innerHTML = `<div class="painel" style="width:min(760px,100%)">
@@ -11787,9 +11805,12 @@ async function abrirMkt(id){
     <div style="overflow-x:auto;margin-top:8px">    <table class="mk-itens"><thead><tr><th>Loja</th><th>SKU</th><th>Endereço</th><th>Cor</th><th>Nº</th><th class="n">Qtd. entregue</th><th class="n">Qtd. devolvida</th></tr></thead><tbody>
       ${x.itens.map(i => { const ant = !semEstMk(i) && ['solicitado', 'separado'].includes(x.status) ? semEstAntesMk(i, x.id) : null;
         return `<tr class="${semEstMk(i) ? 'semest' : ''}"><td>${tagLoja(i.cnpj_id)}</td><td><b>${esc(i.produto)}</b>${ant ? `<div><span class="mk-rep" title="${esc(txtSemEstMk(ant))}">⚠ ${esc(txtSemEstMk(ant))}</span></div>` : ''}</td>
-          <td class="end">${semEstMk(i) ? `<span class="mk-sem" title="Apontado por ${esc(quemTxt(i.sem_estoque_por))}">✕ sem estoque · ${dataBR(isoLocal(i.sem_estoque_em).slice(0, 10))}</span>` : esc(i.endereco || '–')}</td>
+          <td class="end">${semEstMk(i) ? `<span class="mk-sem" title="Apontado por ${esc(quemTxt(i.sem_estoque_por))}">✕ sem estoque · ${dataBR(isoLocal(i.sem_estoque_em).slice(0, 10))}</span>` : i.endereco ? esc(i.endereco)
+            : i._plano ? (i._plano.vazio ? '<span class="mk-rep" title="Este SKU não tem saldo em nenhum endereço no último estoque do Seenc da loja">⚠ sem saldo no Seenc</span>'
+              : `<span class="mk-sug" title="Sugerido pelo estoque do Seenc: maior saldo primeiro${i._plano.outros.length ? '. Também em: ' + esc(i._plano.outros.map(o => `${o.e} (${o.q})`).join(', ')) : ''}">📍 ${esc(txtPlanoEndMk(i._plano))}</span>${i._plano.falta ? `<div class="mk-rep">⚠ faltam ${i._plano.falta} no Seenc</div>` : ''}`) : '–'}</td>
           <td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td><td class="n">${semEstMk(i) ? `0 <span class="info">de ${i.qtd}</span>` : i.qtd}</td><td class="n">${semEstMk(i) ? '–' : i.qtd_devolvida ? `${i.qtd_devolvida}${i.qtd_devolvida < i.qtd ? ` <span class="info">(faltam ${i.qtd - i.qtd_devolvida})</span>` : ' ✓'}` : '–'}</td></tr>`; }).join('')}
       <tr><td colspan="5"><b>Total</b></td><td class="n"><b>${pares}</b></td><td class="n"><b>${dev || '–'}</b></td></tr></tbody></table></div>
+    ${x.itens.some(i => i._plano) ? `<div class="info">📍 = endereço sugerido pelo estoque do Seenc ${Object.entries(E?.em || {}).filter(([l]) => x.itens.some(i => i.cnpj_id === l)).map(([l, em]) => `(${esc(nomeLoja(l))}: ${em ? quando(em) : 'sem estoque carregado'})`).join(' ')}: o endereço com mais pares do SKU. Sai na ficha e fica gravado quando marcar "Separado"; dá para trocar em "📍 Endereços".</div>` : ''}
     <div class="mk-tl">${passo('Solicitado', x.solicitado_em, x.solicitado_por)}${passo('Separado', x.separado_em, x.separado_por, `${x.separado_operador ? ` · separado por <b>${esc(x.separado_operador)}</b>` : ''} · movido ao prédio MKT`)}${passo('Entregue', x.entregue_em, x.entregue_por, x.recebido_por ? ` · retirado por ${esc(x.recebido_por)}` : '')}
       ${passo('Devolvido', x.devolvido_em, x.conferido_por, x.devolvido_por ? ` · trazido por ${esc(x.devolvido_por)}` : '')}${passo('Realocado', x.realocado_em, x.realocado_por, `${x.realocado_operador ? ` · realocado por <b>${esc(x.realocado_operador)}</b>` : ''} · de volta ao estoque`)}${x.status === 'armazenado' ? `<div><b>Armazenado no MKT</b><span>${pares - dev} par(es) ficam no Marketing (não voltam para a logística)</span></div>` : ''}${passo('Cancelado', x.cancelado_em, x.cancelado_por, ` · ${esc(x.motivo_cancelamento || '')}`)}</div>
     <div id="mk-acao"></div>
@@ -11833,9 +11854,10 @@ async function abrirMkt(id){
   // endereço de cada par (a logística pesquisa antes e já sai com a ficha preenchida) e "sem estoque" (par não encontrado)
   const en = q('#mk-end'); if (en) en.onclick = () => { const concl = !['solicitado', 'separado'].includes(x.status);
     $a.innerHTML = `<div class="info" style="margin-top:8px">Endereço sai impresso na ficha. Marque <b>sem estoque</b> o par que não foi encontrado: ele não conta como entregue e, se alguém pedir de novo, aparece um alerta.</div>
+      ${x.itens.some(i => !i.endereco && i._plano && !i._plano.vazio) ? '<div class="info">Os campos vazios já vêm com o endereço de maior saldo no estoque do Seenc. Confira e salve.</div>' : ''}
       <div style="overflow-x:auto"><table class="mk-itens mk-ed"><thead><tr><th>SKU</th><th>Cor</th><th>Nº</th><th>Endereço</th><th class="n">Sem estoque</th></tr></thead><tbody>
       ${x.itens.map(i => `<tr><td><b>${esc(i.produto)}</b> ${tagLoja(i.cnpj_id)}</td><td>${esc(i.cor || '')}</td><td>${esc(i.tamanho || '')}</td>
-        <td><input type="text" data-en="${i.id}" maxlength="40" value="${esc(i.endereco || '')}" placeholder="ex.: BL1-RUA3-P5-A1"></td>
+        <td><input type="text" data-en="${i.id}" maxlength="40" value="${esc(i.endereco || (i._plano && !i._plano.vazio ? i._plano.partes[0].e : ''))}" placeholder="ex.: BL1-RUA3-P5-A1">${!i.endereco && i._plano && !i._plano.vazio ? '<div class="info">sugerido pelo Seenc</div>' : ''}</td>
         <td class="n"><input type="checkbox" data-se="${i.id}" ${semEstMk(i) ? 'checked' : ''} ${!semEstMk(i) && i.qtd_devolvida > 0 ? 'disabled title="Já teve devolução registrada"' : ''}></td></tr>`).join('')}</tbody></table></div>
       ${gerir ? `<div class="grade-form g2" style="margin-top:6px"><label>Data do apontamento <span class="info">(vale para os pares marcados agora)</span><input type="datetime-local" id="mk-sem-em" value="${concl && x.separado_em ? isoLocal(x.separado_em) : agoraLocal()}" max="${agoraLocal()}"></label></div>` : ''}
       ${x.status === 'entregue' ? '<div class="info">Se o que falta voltar for só o que não tinha estoque, a solicitação passa para Devolvido.</div>' : ''}
@@ -11892,16 +11914,26 @@ function formMkt(x){
   // alerta (não impede): o mesmo par já foi apontado sem estoque em outra solicitação
   const avisa = k => { const el = dlg.querySelector(`[data-av="${k}"]`), i = itens[k]; if (!el) return;
     const r = i?.produto && i.cnpj_id ? semEstAntesMk(i, x?.id) : null; el.hidden = !r; el.innerHTML = r ? `⚠ Este par foi <b>${esc(txtSemEstMk(r))}</b>. Confira o estoque antes; dá para pedir mesmo assim.` : ''; };
+  // endereço de maior saldo no estoque do Seenc, já enquanto digita (a ficha sai com ele)
+  const est = {}; let tEst = null, emEst = {};
+  const mostraSug = k => { const el = dlg.querySelector(`[data-sg="${k}"]`), i = itens[k]; if (!el) return; const sku = String(i?.produto || '').trim();
+    if (!i?.cnpj_id || sku.length < 4) { el.hidden = true; return; }
+    const P = planoEndMk({ por:est }, i); if (!P) { el.hidden = false; el.className = 'mk-sg'; el.textContent = 'Procurando no estoque do Seenc…'; return; }
+    el.hidden = false; el.className = `mk-sg${P.vazio || P.falta ? ' ruim' : ''}`;
+    el.innerHTML = P.vazio ? `⚠ <b>${esc(sku.toUpperCase())}</b> não tem saldo no estoque do Seenc da ${esc(nomeLoja(i.cnpj_id))}${emEst[i.cnpj_id] ? ` (de ${quando(emEst[i.cnpj_id])})` : ''}. Confira o código: dá para pedir mesmo assim.`
+      : `📍 Sai de <b>${esc(txtPlanoEndMk(P))}</b>${P.falta ? ` · <b>faltam ${P.falta}</b> no Seenc` : ''}${P.outros.length ? ` · também em ${P.outros.slice(0, 3).map(o => `${esc(o.e)} (${o.q})`).join(', ')}` : ''}`; };
+  const buscaEst = () => { clearTimeout(tEst); tEst = setTimeout(async () => { const faltam = [...new Set(itens.filter(i => i.cnpj_id && String(i.produto || '').trim().length >= 4 && !(chaveEstMk(i) in est)).map(i => `${i.cnpj_id}:${String(i.produto).trim().toUpperCase()}`))];
+      if (!faltam.length) return; try { const r = await apiMkt(`/mkt/estoque?itens=${encodeURIComponent(faltam.join(','))}`); Object.assign(est, r.por); Object.assign(emEst, r.em); itens.forEach((_, k) => mostraSug(k)); } catch (e) { if (e instanceof SemSessao) throw e; } }, 500); };
   const desenha = () => { q('#mf-itens').innerHTML = itens.map((i, k) => `<div class="mk-linha">
       <select data-k="${k}" data-c="cnpj_id"><option value="">Loja</option>${lojas.map(l => `<option ${i.cnpj_id === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <input class="cx" data-k="${k}" data-c="produto" placeholder="SKU (igual Weesu/Seenc)" value="${esc(i.produto)}"><input class="cx" data-k="${k}" data-c="cor" placeholder="Cor" value="${esc(i.cor || '')}">
       <input data-k="${k}" data-c="tamanho" placeholder="Nº" value="${esc(i.tamanho || '')}"><input data-k="${k}" data-c="qtd" type="number" min="1" value="${i.qtd}">
-      <button class="btn" data-rm="${k}" title="Tirar" ${itens.length === 1 ? 'disabled' : ''}>✕</button><div class="mk-av" data-av="${k}" hidden></div></div>`).join('');
-    itens.forEach((_, k) => avisa(k));
+      <button class="btn" data-rm="${k}" title="Tirar" ${itens.length === 1 ? 'disabled' : ''}>✕</button><div class="mk-av" data-av="${k}" hidden></div><div class="mk-sg" data-sg="${k}" hidden></div></div>`).join('');
+    itens.forEach((_, k) => { avisa(k); mostraSug(k); });
     q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`;
-    dlg.querySelectorAll('[data-k]').forEach(el => el.oninput = el.onchange = () => { const i = itens[el.dataset.k]; i[el.dataset.c] = el.dataset.c === 'qtd' ? Number(el.value) : ['produto', 'cor'].includes(el.dataset.c) ? caixaAltaTxt(el.value).trim() : el.value; avisa(el.dataset.k); q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`; });
+    dlg.querySelectorAll('[data-k]').forEach(el => el.oninput = el.onchange = () => { const i = itens[el.dataset.k]; i[el.dataset.c] = el.dataset.c === 'qtd' ? Number(el.value) : ['produto', 'cor'].includes(el.dataset.c) ? caixaAltaTxt(el.value).trim() : el.value; avisa(el.dataset.k); mostraSug(el.dataset.k); buscaEst(); q('#mf-tot').textContent = `${itens.reduce((t, i) => t + (Number(i.qtd) || 0), 0)} par(es)`; });
     dlg.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { itens.splice(Number(b.dataset.rm), 1); desenha(); }); };
-  desenha();
+  desenha(); buscaEst();
   q('#mf-mais').onclick = () => { const u = itens.at(-1); itens.push({ cnpj_id:u?.cnpj_id || '', produto:'', cor:'', tamanho:'', qtd:1 }); desenha(); dlg.querySelectorAll('[data-c="produto"]').at?.(-1)?.focus?.(); };
   q('[data-x]').onclick = () => dlg.remove();
   q('#mf-mot').onchange = e => { q('#mf-outro-l').style.display = e.target.value === 'outro' ? '' : 'none'; if (e.target.value === 'outro') q('#mf-outro').focus(); };
@@ -11948,7 +11980,7 @@ function fichaMkt(x){
     ${dev ? `<div class="parc">Devolução parcial já registrada no portal: <b>${dev}</b> de ${pares} par(es) devolvido(s), faltam <b>${pares - dev}</b>.</div>` : ''}
     <table style="table-layout:fixed"><thead><tr><th style="width:9%">Loja</th><th style="width:28%">SKU</th><th style="width:24%">Endereço retirado <small>(operador)</small></th><th style="width:15%">Cor</th><th class="n" style="width:6%">Nº</th><th class="n" style="width:9%">Qtd.<br>entregue</th><th class="n" style="width:9%">Qtd.<br>devolvida</th></tr></thead><tbody>
       ${x.itens.map(i => semEstMk(i) ? `<tr class="sem"><td>${esc(i.cnpj_id)}</td><td class="sku"><s>${esc(i.produto)}</s></td><td class="end"><b>SEM ESTOQUE</b></td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">0</td><td class="n">–</td></tr>`
-        : `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td class="end">${esc(i.endereco || '')}</td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
+        : `<tr><td>${esc(i.cnpj_id)}</td><td class="sku">${esc(i.produto)}</td><td class="end">${i.endereco ? esc(i.endereco) : i._plano ? (i._plano.vazio ? '<b>SEM SALDO NO SEENC</b>' : i._plano.partes.map(p => `${esc(p.e)}${i._plano.partes.length > 1 ? ` <small>(${p.q})</small>` : ''}`).join('<br>') + (i._plano.falta ? `<br><b>faltam ${i._plano.falta}</b>` : '')) : ''}</td><td>${esc(i.cor || '')}</td><td class="n">${esc(i.tamanho || '')}</td><td class="n">${i.qtd}</td><td class="n">${i.qtd_devolvida ? `<b>${i.qtd_devolvida}</b>${i.qtd_devolvida < i.qtd ? ` <small>(faltam ${i.qtd - i.qtd_devolvida})</small>` : ''}` : ''}</td></tr>`).join('')}
       <tr class="tot"><td colspan="5">Total</td><td class="n">${pares}</td><td class="n">${dev || ''}</td></tr></tbody></table>
     <div class="fim">
       ${x.observacao ? `<div class="nota">Obs.: ${esc(x.observacao)}</div>` : ''}
@@ -11957,7 +11989,7 @@ function fichaMkt(x){
         <table class="dv"><thead><tr><th style="width:17%">Data / hora</th><th class="n" style="width:10%">Pares</th><th>Devolvido por (nome e assinatura)</th><th>Conferido por (logística)</th></tr></thead>
           <tbody>${'<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>'.repeat(3)}</tbody></table></div>`}
       <div class="nota">Com o Marketing, os pares ficam no prédio MKT do Seenc. Na devolução, confira quantidade e numeração e realoque no estoque físico (anote quem realocou: ______________________).
-        QR: registra entrega e devolução no portal. Impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}.</div></div></body></html>`;
+        ${x.itens.some(i => !i.endereco && i._plano && !i._plano.vazio) ? 'Endereço = o de maior saldo no estoque do Seenc no momento da impressão; se tirar de outro, anote ao lado. ' : ''}QR: registra entrega e devolução no portal. Impresso em ${quando(new Date().toISOString())} por ${esc(quemImprime())}.</div></div></body></html>`;
 }
 
 /* =================== LOGÍSTICA: Gestão - Insumos =================== */
