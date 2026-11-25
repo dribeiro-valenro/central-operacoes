@@ -418,6 +418,8 @@
   .btn.btn-ok{background:#1a7a3e;border-color:#1a7a3e} .btn.btn-dev{color:#a33d00;border-color:#e9b9a0}
   .btn.pulsa{border-color:#0b4fa8;box-shadow:0 0 0 2px #cfe0f7}
   #pl-hist-box{margin-top:12px} .pl-ev{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px} .pl-ev ul{margin:4px 0 0;padding-left:18px;color:#3c4558}
+  #versao-nova{position:fixed;top:0;left:0;right:0;z-index:2000;background:#e0a800;color:#1b2333;font-weight:600;padding:10px 16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  #versao-nova .btn{margin-left:10px;padding:4px 12px} .versao-portal{font-size:11px;color:var(--mute);padding:14px 18px 4px;margin-top:auto}
   .pl-modal{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.45);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;overscroll-behavior:contain} .pl-modal .painel{width:min(460px,100%)}
   /* janela maior que a tela (ex.: solicitação com muitas linhas): centraliza quando cabe e rola quando não cabe, sem cortar o topo nem os botões */
   .pl-modal>.painel{margin:auto 0;max-width:100%;box-sizing:border-box;min-width:0} .pl-modal .painel table{max-width:100%}
@@ -650,6 +652,9 @@
 // 'https://abcdefghijkl.supabase.co/functions/v1/operacoes-api'
 const API_URL = 'https://tmfhizqwrznlqvdndeig.supabase.co/functions/v1/operacoes-api';
 const ATUALIZA_MIN = 5;
+// Versão do portal: o empacotamento troca 'dev' pela data/hora da publicação. Quem estiver com a página aberta numa versão
+// mais antiga recebe o aviso e a página recarrega sozinha (espera fechar a janela de lançamento aberta).
+const VERSAO_PORTAL = '25/11 11:34';
 /* ==================================================== */
 
 const params = new URLSearchParams(location.search);
@@ -13505,6 +13510,33 @@ function lerPref(){ try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{
 function gravarPref(p){ state._pref = p; try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch(e) {} }
 const telaPequena = () => matchMedia('(max-width:900px)').matches;
 
+/* =================== VERSÃO NOVA DO PORTAL =================== */
+// A cada 3 min (e quando a aba volta a ficar visível) baixa o index.html publicado e compara a VERSAO_PORTAL.
+// Diferente: avisa no topo e recarrega em 30 s. Com uma janela de lançamento aberta ou digitando num campo, espera terminar
+// (o aviso fica na tela) e recarrega 10 s depois de fechar.
+const verificaVersao = (() => {
+  let ultima = 0, nova = null, timer = null;
+  const ocupado = () => !!document.querySelector('.pl-modal') || ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) && !!document.activeElement.value;
+  const recarregar = () => location.reload();
+  const faixa = () => { let f = document.getElementById('versao-nova'); if (!f) { f = document.createElement('div'); f.id = 'versao-nova'; document.body.appendChild(f); } return f; };
+  const contar = () => { clearInterval(timer); let seg = ocupado() ? null : 30;
+    const pinta = () => { const f = faixa();
+      f.innerHTML = `🔄 Saiu uma versão nova do portal (${esc(nova)}). ${seg == null ? 'Termine o que está lançando e feche a janela: a página atualiza logo depois.' : `Atualizando em <b>${seg} s</b>…`} <button class="btn" id="vn-ja">Atualizar agora</button>`;
+      f.querySelector('#vn-ja').onclick = recarregar; };
+    pinta();
+    timer = setInterval(() => { if (ocupado()) { seg = null; pinta(); return; } if (seg == null) seg = 10; seg--; if (seg <= 0) { clearInterval(timer); recarregar(); return; } pinta(); }, 1000); };
+  return async (forcar = false) => {
+    if (VERSAO_PORTAL === 'dev' || location.protocol === 'file:' || nova) return;
+    if (!forcar && Date.now() - ultima < 60e3) return; ultima = Date.now();
+    try { const r = await fetch(`${location.pathname}?v=${Date.now()}`, { cache:'no-store' }); if (!r.ok) return;
+      const m = (await r.text()).match(/const VERSAO_PORTAL = '([^']+)'/); if (m && m[1] !== VERSAO_PORTAL && m[1] !== 'dev') { nova = m[1]; contar(); } } catch { /* sem rede: tenta de novo depois */ }
+  };
+})();
+setInterval(() => verificaVersao(true), 3 * 60e3);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') verificaVersao(); });
+window.addEventListener('focus', () => verificaVersao());
+setTimeout(() => verificaVersao(true), 20e3);
+
 function renderMenu(){
   const $m = document.getElementById('menu');
   if (!$m) return;
@@ -13525,7 +13557,7 @@ function renderMenu(){
       <div class="m-filhos">${g.filhos.map(f => f.filhos ? grupo(f, true) : item(f)).join('')}</div>
     </div>`;
   };
-  $m.innerHTML = MENU.map(g => grupo(g, false)).join('');
+  $m.innerHTML = MENU.map(g => grupo(g, false)).join('') + `<div class="versao-portal" title="Versão do portal aberta neste computador">versão ${esc(VERSAO_PORTAL)}</div>`;
   $m.hidden = false;
   $m.querySelectorAll('[data-view]').forEach(el => el.onclick = () => { irPara(el.dataset.view); if (telaPequena()) alternarMenu(false); });
   $m.querySelectorAll('[data-alterna]').forEach(el => el.onclick = () => {
