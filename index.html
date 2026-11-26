@@ -654,7 +654,7 @@ const API_URL = 'https://tmfhizqwrznlqvdndeig.supabase.co/functions/v1/operacoes
 const ATUALIZA_MIN = 5;
 // Versão do portal: o empacotamento troca 'dev' pela data/hora da publicação. Quem estiver com a página aberta numa versão
 // mais antiga recebe o aviso e a página recarrega sozinha (espera fechar a janela de lançamento aberta).
-const VERSAO_PORTAL = '25/11 11:34';
+const VERSAO_PORTAL = '26/11 11:42';
 /* ==================================================== */
 
 const params = new URLSearchParams(location.search);
@@ -3885,7 +3885,7 @@ function telaConsolidado(){
   const s = state.cons ||= { per:'hoje', ini:'', fim:'', loja:'todos' }; s.aba ||= 'full';
   if (s.per !== 'outro') [s.ini, s.fim] = periodoCons(s.per);
   $app.innerHTML = `
-    <div class="barra"><h2>Produção do time</h2><span class="is-chips" style="margin-left:12px">${[['full', '📦 FULL · apontamentos'], ['cross', '🚚 CROSS · separação (Seenc)']].map(([k, t]) => `<button class="is-chip ${s.aba === k ? 'on' : ''}" data-csa="${k}">${t}</button>`).join('')}</span><span style="flex:1"></span>
+    <div class="barra"><h2>Produção do time</h2><span class="is-chips" style="margin-left:12px">${[['full', '📦 FULL · apontamentos'], ['cross', '🚚 Separação']].map(([k, t]) => `<button class="is-chip ${s.aba === k ? 'on' : ''}" data-csa="${k}">${t}</button>`).join('')}</span><span style="flex:1"></span>
       <select id="cs-per">${Object.entries(ROT_PER_CONS).map(([k, t]) => `<option value="${k}" ${s.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <span class="datas"><input type="date" id="cs-ini" value="${s.ini}"> até <input type="date" id="cs-fim" value="${s.fim}"></span>
       <select id="cs-loja"><option value="todos">Todas as lojas</option>${state.cnpjs.map(c => `<option value="${c.id}" ${s.loja === c.id ? 'selected' : ''}>${esc(nomeLoja(c.id))}</option>`).join('')}</select>
@@ -4067,7 +4067,7 @@ function arvoreEndCX(L){
   return raiz;
 }
 // comparativo por funcionário (só gestão): operador × dia ou mês, numa métrica; dá para filtrar por bloco (ex.: produtividade no BL4)
-const METRICAS_CX = [['ph', 'Pares/h efetiva'], ['pares', 'Pares'], ['horas', 'Horas efetivas'], ['pedidos', 'Pedidos'], ['gap', 'Intervalo entre bipagens (min)'], ['primeira', '1ª separação'], ['ultima', 'Última separação']];
+const METRICAS_CX = [['ph', 'Pares/h efetiva'], ['pares', 'Pares'], ['horas', 'Horas efetivas'], ['pedidos', 'Pedidos'], ['gap', 'Intervalo entre bipagens (min)'], ['primeira', '1º bipe (horário)'], ['ultima', 'Último bipe (horário)']];
 const CORES_OP_CX = ['#2f6fdf', '#e07b24', '#2a9d5c', '#c4378f', '#7a4fd0', '#c9a227', '#1aa0b5', '#d4483b', '#6b8e23', '#8c6d4f'];
 function juntarCX(L){ // soma dias de um operador (ou do time) num período
   const t = L.reduce((a, x) => ({ pares:a.pares + x.pares, pedidos:a.pedidos + x.pedidos, horas:a.horas + x.horas_ef, gn:a.gn + x.gap_n, gs:a.gs + x.gap_soma, p:x.primeira != null ? [...a.p, x.primeira] : a.p, u:x.ultima != null ? [...a.u, x.ultima] : a.u, dias:a.dias + 1 }),
@@ -4129,7 +4129,7 @@ function renderIndCX(){
       <td><b>${fmtN(Math.round(f.pares))}</b></td><td>${pctCX(f.pares, A.pares)}</td><td>${prof ? pctCX(f.pares, pai.pares) : '–'}</td><td>${fmtN(f.linhas)}</td><td>${fmtN(f.pedidos)}</td>
       <td style="text-align:left"><span class="cx-bar"><i style="width:${Math.max(1, f.pares / Math.max(1, A.pares) * 100 * (prof ? 3 : 1))}%"></i></span></td></tr>${ab ? linhasArv(f, prof + 1, f) : ''}`; }).join('');
   $c.innerHTML = `<div class="cs-bloco">
-    <div class="cs-cab"><h3>🚚 CROSS · separação</h3><span class="info">${umDia ? dataBR(s.ini) : `${dataBR(s.ini)} a ${dataBR(s.fim)}`}${s.loja !== 'todos' ? ' · ' + esc(nomeLoja(s.loja)) : ''} · relatório "Ações de usuários" do Seenc
+    <div class="cs-cab"><h3>🚚 Separação</h3><span class="info">${umDia ? dataBR(s.ini) : `${dataBR(s.ini)} a ${dataBR(s.fim)}`}${s.loja !== 'todos' ? ' · ' + esc(nomeLoja(s.loja)) : ''} · relatório "Ações de usuários" do Seenc
       ${R.cargas.length ? `(${R.cargas.map(c => `${esc(nomeLoja(c.cnpj_id))}: ${dataBR(c.de).slice(0, 5)} a ${dataBR(c.ate).slice(0, 5)}`).join(' · ')})` : '— <b>nenhum relatório de separação carregado no período</b> (Indicadores › Dados do Seenc)'}</span>
       <span style="flex:1"></span><span class="is-chips"><span>Base</span>${BASES_CX.map(([k, t]) => `<button class="is-chip ${s.cxBase === k ? 'on' : ''}" data-cxb="${k}">${t} <small>${fmtN(Math.round(totClasse(k)))}</small></button>`).join('')}</span></div>
     <div class="es-f"><label class="info" style="display:flex;gap:6px;align-items:center">Bloco <select id="cx-bl"><option value="">Todos</option>${(R.blocos || []).map(b => `<option value="${b.bloco}" ${s.cxBl === String(b.bloco) ? 'selected' : ''}>${b.bloco ? 'Bloco ' + b.bloco : 'Sem endereço (BL0)'} · ${fmtN(Math.round(b.pares))} pares</option>`).join('')}</select></label>
@@ -4141,7 +4141,7 @@ function renderIndCX(){
       ${tile('Pares por hora efetiva', n1CX(ef ? T.pares / ef : null), `${n1CX(ef)} h efetivas de separação (soma dos operadores)`, '#0f7b6c', 'Pares ÷ horas efetivas. Hora efetiva = tempo dentro das ondas de separação de cada operador (início → fim), sem as pausas entre uma onda e outra.')}
       ${tile('Tempo médio por onda', T.onda_min == null ? '–' : `${n1CX(T.onda_min)} min`, `${n1CX(T.onda_pedidos)} pedidos e ${n1CX(T.onda_pares)} pares por onda · ${n1CX(T.pedidos ? ef * 60 / T.pedidos : null)} min por pedido`, '#7a4fd0', 'Onda = o mesmo operador com o mesmo início e fim de separação (o Seenc junta vários pedidos).')}
       ${tile('Intervalo entre bipagens', T.gap_min == null ? '–' : `${n1CX(T.gap_min)} min`, `${fmtN(T.pausas)} pausa(s) acima de 30 min (${n1CX(T.pausa_h)} h), fora da média`, '#c9a227', 'Tempo médio entre um "Separado em" e o seguinte do mesmo operador no dia. O Seenc grava em minutos.')}
-      ${tile(umDia ? '1ª e última separação' : '1ª e última (média dos dias)', `${hmCX(T.primeira_media)} → ${hmCX(T.ultima_media)}`, 'início da 1ª onda e última bipagem do dia', '#e07b24')}
+      ${tile('1º e último bipe', `${hmCX(T.primeira_media)} → ${hmCX(T.ultima_media)}`, umDia ? 'horário do 1º e do último bipe de separação do dia' : 'horário típico: média dos dias do período', '#e07b24')}
       ${tile('Saiu do Bloco 4', pctCX(T.bl4, T.pares), `${fmtN(Math.round(T.bl4))} pares · área de ressuprimento`, '#2a9d5c', 'Quanto mais perto de 100%, menos o separador anda pelos outros blocos.')}
       ${tile('Pedidos em mais de 1 bloco', pctCX(T.multi_bloco, T.pedidos_bloco), `${fmtN(T.multi_bloco)} pedido(s) · o separador cruzou blocos`, '#d4483b')}
       ${tile('Sem endereço (BL0)', pctCX(T.sem_end, T.pares), `${fmtN(Math.round(T.sem_end))} pares em posição zerada`, '#6b7280')}
@@ -4149,7 +4149,7 @@ function renderIndCX(){
     <div class="painel"><h3 class="cs-sub">Pares por hora do dia ${umDia ? '' : '(média por dia)'}</h3>
       <div class="cx-horas">${R.horas.map(h => { const v = h.pares / Math.max(1, umDia ? 1 : h.dias); return `<div title="${String(h.h).padStart(2, '0')}h: ${fmtN(Math.round(v))} pares"><b>${fmtN(Math.round(v))}</b><i style="height:${v / maxH * 120}px"></i><span>${String(h.h).padStart(2, '0')}h</span></div>`; }).join('')}</div></div>
     ${umDia ? '' : `<div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">Dia a dia</h3><span style="flex:1"></span><button class="btn" id="cx-csv-d">⇩ CSV</button></div>
-      <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Dia</th><th>Pares</th><th>Pedidos</th><th>Operadores</th><th>1ª</th><th>Última</th><th>Horas efetivas</th><th>Pares/h efetiva</th><th>Min/onda</th><th>Intervalo (min)</th><th>Bloco 4</th><th>Abandonos</th></tr></thead><tbody>
+      <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Dia</th><th>Pares</th><th>Pedidos</th><th>Operadores</th><th>1º bipe</th><th>Último bipe</th><th>Horas efetivas</th><th>Pares/h efetiva</th><th>Min/onda</th><th>Intervalo (min)</th><th>Bloco 4</th><th>Abandonos</th></tr></thead><tbody>
       ${R.dias.map(d => `<tr><td style="text-align:left"><b>${dataBR(d.dia).slice(0, 5)}</b> <span class="info">${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(d.dia + 'T12:00:00Z').getUTCDay()]}</span></td>
         <td><b>${fmtN(Math.round(d.pares))}</b></td><td>${fmtN(d.pedidos)}</td><td>${d.operadores}</td><td>${hmCX(d.primeira)}</td><td>${hmCX(d.ultima)}</td><td>${n1CX(d.horas_ef)}</td>
         <td><b>${n1CX(d.horas_ef ? d.pares / d.horas_ef : null)}</b></td><td>${n1CX(d.onda_min)}</td><td>${n1CX(d.gap_min)}</td><td>${pctCX(d.bl4, d.pares)}</td><td>${d.abandonos || ''}</td></tr>`).join('')}</tbody></table></div>`}
@@ -4158,7 +4158,7 @@ function renderIndCX(){
       <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Endereço</th><th>Pares</th><th>% do total</th><th>% dentro do nível</th><th>Bipagens</th><th>Pedidos</th><th style="width:22%"></th></tr></thead><tbody>${linhasArv(A, 0, A)}</tbody></table></div>
     ${secFuncCX(R)}
     ${R.operadores ? `<div class="painel" style="padding:0;overflow-x:auto"><div class="cs-cab" style="padding:10px 12px 0"><h3 class="cs-sub">Por funcionário · período todo</h3><span class="info">em ordem alfabética · visível só para quem administra Pessoas e acessos</span></div>
-      <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Operador</th><th>Dias</th><th>Pares</th><th>Pedidos</th><th>Horas efetivas</th><th>Pares/h efetiva</th><th>Intervalo (min)</th><th>Pausas &gt;30 min</th><th>1ª (média)</th><th>Última (média)</th></tr></thead><tbody>
+      <table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Operador</th><th>Dias</th><th>Pares</th><th>Pedidos</th><th>Horas efetivas</th><th>Pares/h efetiva</th><th>Intervalo (min)</th><th>Pausas &gt;30 min</th><th title="Horário do 1º bipe de separação do dia (média dos dias trabalhados)">1º bipe</th><th title="Horário do último bipe de separação do dia (média dos dias trabalhados)">Último bipe</th></tr></thead><tbody>
       ${R.operadores.map(o => `<tr><td style="text-align:left">${esc(o.operador)}</td><td>${o.dias}</td><td>${fmtN(Math.round(o.pares))}</td><td>${fmtN(o.pedidos)}</td><td>${n1CX(o.horas_ef)}</td><td><b>${n1CX(o.horas_ef ? o.pares / o.horas_ef : null)}</b></td><td>${n1CX(o.gap_min)}</td><td>${o.pausas}</td><td>${hmCX(o.primeira_media)}</td><td>${hmCX(o.ultima_media)}</td></tr>`).join('')}</tbody></table></div>` : ''}
     <div class="cx-duo">
       <div class="painel" style="padding:0"><h3 class="cs-sub" style="padding:10px 12px 0">Perfil de separação</h3><table class="tab-full cs-tab"><thead><tr><th style="text-align:left">Perfil</th><th>Pares</th><th>%</th><th>Pedidos</th></tr></thead><tbody>
@@ -4170,7 +4170,7 @@ function renderIndCX(){
       ${R.classes.map(c => `<tr><td style="text-align:left"><b>${{ cross:'Cross', full:'Full', sem_canal:'Sem canal' }[c.classe] || c.classe}</b></td><td style="text-align:left">${esc(c.canal || '—')}</td><td style="text-align:left">${esc(c.forma || '—')}</td><td style="text-align:left">${esc(c.perfil || '—')}</td><td>${fmtN(Math.round(c.pares))}</td><td>${fmtN(c.pedidos)}</td></tr>`).join('')}</tbody></table>
       <div class="info" style="margin-top:6px">Regra: <b>Full</b> = forma de entrega, perfil ou canal com "full" no nome; <b>Sem canal</b> = sem canal e sem forma de entrega (ex.: transferência, reposição); o resto é <b>Cross</b>.</div></details>
     <div class="info cs-nota"><b>Como ler:</b> pares = quantidade separada no endereço (um item tirado de 2 endereços conta em cada um). <b>Onda</b> = o mesmo operador com o mesmo início e fim de separação.
-      <b>Hora efetiva</b> = soma, por operador, do tempo dentro das ondas (as pausas entre ondas não contam). <b>Intervalo entre bipagens</b> = tempo entre um "Separado em" e o próximo do mesmo operador; o Seenc grava em minutos, então várias bipagens no mesmo minuto contam 0.
+      <b>Hora efetiva</b> = soma, por operador, do tempo dentro das ondas (as pausas entre ondas não contam); quando o Seenc grava início e fim quase iguais (comum no Full), vale o tempo entre os bipes da onda, sem as pausas acima de 30 min. <b>Intervalo entre bipagens</b> = tempo entre um "Separado em" e o próximo do mesmo operador; o Seenc grava em minutos, então várias bipagens no mesmo minuto contam 0.
       O "Separado em" define o dia.</div></div>`;
   $c.querySelectorAll('[data-cxb]').forEach(b => b.onclick = () => { s.cxBase = b.dataset.cxb; carregarIndCX(); });
   $c.querySelector('#cx-bl')?.addEventListener('change', e => { s.cxBl = e.target.value === '' ? null : e.target.value; carregarIndCX(); });
@@ -12762,6 +12762,7 @@ function demoMapaEST(path, corpo){
   const D = DEMO_MAPA;
   if (path === '/estoque/bloqueio') { (corpo.predios || []).forEach(p => { if (!D.bloqueios.some(b => b.rua === corpo.rua && b.predio === p)) D.bloqueios.push({ id:D.seq++, rua:corpo.rua, predio:p, motivo:corpo.motivo, desde:hojeBRT(), por:'demonstracao' }); }); return { ok:true }; }
   if (path === '/estoque/bloqueio/liberar') { D.bloqueios = D.bloqueios.filter(b => !corpo.ids.includes(b.id)); return { ok:true }; }
+  if (path === '/estoque/capacidade') { D.layout.cap_padrao = corpo.cap_padrao; D.layout.params = { ...(D.layout.params || {}), alvo:corpo.alvo, vagas:corpo.vagas }; return { ok:true }; }
   if (path === '/estoque/marca') { if (corpo.marca) D.marcas[corpo.pai] = corpo.marca; else delete D.marcas[corpo.pai]; return { ok:true }; }
   return { hoje:hojeBRT(), bloco:'1', blocos:[{ bloco:'1', nome:'Bloco 1' }], layout:D.layout, estoque:{ em:DEMO_EST.em, origem:'agendada' }, linhas:D.linhas,
     vendas:{ dias:28, de:addDias(hojeBRT(), -28), ate:addDias(hojeBRT(), -1), por_sku:D.por_sku }, bloqueios:[...D.bloqueios], marcas:{ ...D.marcas }, inventarios:D.inventarios };
@@ -12772,7 +12773,7 @@ async function apiEST(path, corpo){
   if (path.startsWith('/ressuprimento/estoque')) return { ok:true, lojas:(corpo.lojas || []).map(l => ({ loja:l, status:'parcial', ate:3000, total:4821 })) };
   if (path.startsWith('/ressuprimento/arquivo')) { DEMO_EST.em = new Date().toISOString(); return { ok:true, sync_id:9, gravadas:corpo.linhas.length }; }
   await new Promise(r => setTimeout(r, 120));
-  if (path.startsWith('/estoque/mapa') || path.startsWith('/estoque/bloqueio') || path === '/estoque/marca') return demoMapaEST(path.split('?')[0], corpo);
+  if (path.startsWith('/estoque/mapa') || path.startsWith('/estoque/bloqueio') || path === '/estoque/marca' || path === '/estoque/capacidade') return demoMapaEST(path.split('?')[0], corpo);
   const D = DEMO_EST, qs = new URLSearchParams(path.split('?')[1] || ''), loja = (qs.get('loja') || corpo?.loja || 'todas').toUpperCase();
   const lojas = loja === 'TODAS' ? ORDEM_LOJAS : [loja], L = D.L.filter(x => lojas.includes(x.loja)), est = lojas.map(l => ({ loja:l, em:D.em, origem:l === 'DIGOS' ? 'agendada' : 'arquivo' }));
   if (path.startsWith('/estoque/busca')) { const q = (qs.get('q') || '').toUpperCase(); if (q.length < 3) throw new Error('Digite pelo menos 3 caracteres (SKU, EAN, nome ou endereço)');
@@ -13012,12 +13013,46 @@ function imprimirEnderecosEST(P){
   };
 }
 // ---------- aba Inventários: lista dos registros (um lote por impressão), filtros, corrigir data/pessoa, excluir, reimprimir ----------
+// etiquetas reutilizáveis de inventário (Bloco 4: pares unitários, sem ficha por prédio): cartão com campo grande para a data e o
+// nome de quem inventariou, para plastificar, escrever com canetão e prender na guia do porta-palete (faixa de 4 cm de altura).
+// A4 em pé, 7 linhas de 35 mm; 3 por linha (63 mm, 21 por folha) ou 2 por linha (95 mm, 14 por folha, mais espaço para escrever).
+function etiquetasInvEST(){
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg); const fechar = () => dlg.remove(); dlg.onclick = e => { if (e.target === dlg) fechar(); };
+  dlg.innerHTML = `<div class="painel" style="width:min(520px,100%)"><h3 style="margin:0 0 6px">🏷 Etiquetas de inventário (reutilizáveis)</h3>
+    <div class="info">Para plastificar e escrever com canetão. Cada cartão tem 35 mm de altura (cabe na guia de 4 cm já com a borda do plástico).</div>
+    <div class="es-f" style="flex-direction:column;align-items:stretch;gap:10px;margin-top:10px">
+      <label class="info">Cartões por linha
+        <select id="et-col"><option value="3">3 por linha · 63 × 35 mm · 21 por folha</option><option value="2">2 por linha · 95 × 35 mm · 14 por folha (mais espaço para o nome)</option></select></label>
+      <label class="info">Texto do topo <input id="et-tit" maxlength="30" value="INVENTARIADO"></label>
+      <label class="info">Linha de baixo do topo (opcional) <input id="et-sub" maxlength="30" value="BLOCO 4" placeholder="ex.: BLOCO 4"></label>
+      <label class="info">Folhas <input id="et-n" type="number" min="1" max="20" value="1" style="width:80px"></label></div>
+    <div class="es-f" style="justify-content:flex-end"><button class="btn" id="et-x">Fechar</button><button class="btn pri" id="et-ok">🖨 Imprimir</button></div></div>`;
+  dlg.querySelector('#et-x').onclick = fechar;
+  dlg.querySelector('#et-ok').onclick = () => { const col = +dlg.querySelector('#et-col').value, tit = dlg.querySelector('#et-tit').value.trim() || 'INVENTARIADO', sub = dlg.querySelector('#et-sub').value.trim(),
+      fol = Math.min(20, Math.max(1, Math.round(+dlg.querySelector('#et-n').value || 1))); imprimirEtiquetasInvEST(col, tit, sub, fol); };
+}
+function imprimirEtiquetasInvEST(col, tit, sub, folhas){
+  const W = col === 3 ? 63 : 95, H = 35, L = 7, gx = col === 3 ? 4 : 6, gy = 4, mx = (210 - col * W - (col - 1) * gx) / 2, my = (297 - L * H - (L - 1) * gy) / 2;
+  const cartao = `<div class="ct"><div class="topo"><img src="${LOGOS.VALENRO}" alt=""><div><b>${esc(tit.toUpperCase())}</b>${sub ? `<small>${esc(sub.toUpperCase())}</small>` : ''}</div></div>
+    <div class="campo"><span>DATA</span><i class="barras">/</i><i class="barras b2">/</i></div><div class="campo"><span>POR</span></div></div>`;
+  const pagina = `<section class="pg">${Array.from({ length:col * L }, () => cartao).join('')}</section>`;
+  imprimirHtml(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Etiquetas de inventário</title><style>
+    @page{size:A4;margin:0} *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .pg{width:210mm;height:297mm;padding:${my}mm ${mx}mm;display:grid;grid-template-columns:repeat(${col},${W}mm);grid-auto-rows:${H}mm;column-gap:${gx}mm;row-gap:${gy}mm;page-break-after:always;break-after:page}
+    .pg:last-child{page-break-after:auto}
+    .ct{border:0.6mm solid #02285a;border-radius:2.5mm;overflow:hidden;display:grid;grid-template-rows:8mm 1fr 1fr;outline:0.2mm dashed #9aa5b5;outline-offset:1.6mm}
+    .topo{background:#02285a;color:#fff;display:flex;align-items:center;gap:2mm;padding:0 2.5mm} .topo img{height:5.2mm;background:#fff;border-radius:1mm;padding:.4mm}
+    .topo b{font-size:${col === 3 ? 10 : 11.5}pt;letter-spacing:.4mm;display:block;line-height:1} .topo small{font-size:6.5pt;opacity:.85;letter-spacing:.3mm;display:block;margin-top:.4mm}
+    .campo{position:relative;border-top:0.3mm solid #c9cfda;display:flex;align-items:flex-start;padding:1mm 2mm} .campo span{font-size:6.5pt;font-weight:700;color:#3c4a5e;letter-spacing:.3mm}
+    .campo .barras{position:absolute;top:50%;transform:translateY(-45%);font-style:normal;font-size:16pt;color:#c9cfda;left:${col === 3 ? 34 : 42}%} .campo .b2{left:${col === 3 ? 62 : 64}%}
+  </style></head><body>${Array.from({ length:folhas }, () => pagina).join('')}</body></html>`);
+}
 async function corpoInventariosEST(){
   const s = state.est, $b = document.getElementById('es-corpo'); s.ide ||= addDias(hojeBRT(), -30); s.iate ||= hojeBRT();
   $b.innerHTML = `<div class="es-f"><label class="info">Inventário de <input type="date" id="iv-de" value="${s.ide}"></label><label class="info">até <input type="date" id="iv-ate" value="${s.iate}"></label>
-      <select id="iv-bl"></select><select id="iv-pes"></select><input id="iv-f" placeholder="Filtrar endereço (ex.: RUA3-P5)" value="${esc(s.ifl || '')}" style="width:190px"><button class="btn" id="iv-csv">⇩ CSV</button></div><div id="iv"><div class="carregando">Carregando…</div></div>`;
+      <select id="iv-bl"></select><select id="iv-pes"></select><input id="iv-f" placeholder="Filtrar endereço (ex.: RUA3-P5)" value="${esc(s.ifl || '')}" style="width:190px"><button class="btn" id="iv-csv">⇩ CSV</button><span style="flex:1"></span><button class="btn" id="iv-etq" title="Cartões para plastificar e escrever a data e o nome com canetão (Bloco 4)">🏷 Etiquetas reutilizáveis</button></div><div id="iv"><div class="carregando">Carregando…</div></div>`;
   const ir = () => { s.ide = $b.querySelector('#iv-de').value || s.ide; s.iate = $b.querySelector('#iv-ate').value || s.iate; corpoInventariosEST(); };
-  $b.querySelector('#iv-de').onchange = ir; $b.querySelector('#iv-ate').onchange = ir;
+  $b.querySelector('#iv-de').onchange = ir; $b.querySelector('#iv-ate').onchange = ir; $b.querySelector('#iv-etq').onclick = etiquetasInvEST;
   try { s.ivR = await apiEST(`/estoque/inventarios?de=${s.ide}&ate=${s.iate}`); if (s.aba !== 'inventarios') return; desenhaInventariosEST(); }
   catch (e) { if (e instanceof SemSessao) throw e; const c = document.getElementById('iv'); if (c) c.innerHTML = `<div class="erro">${esc(e.message)}</div>`; }
 }
@@ -13143,7 +13178,7 @@ function prepararMapaEST(M){
   const ord = [...MOD.values()].sort((a, b) => b.vdia - a.vdia), tot = ord.reduce((t, m) => t + m.vdia, 0); let ac = 0;
   for (const m of ord) { const antes = tot ? ac / tot * 100 : 100; ac += m.vdia; m.curva = m.vdia <= 0 ? 'S' : antes < 80 ? 'A' : antes < 95 ? 'B' : 'C'; }
   // distância até a entrada (em prédios): ao longo do corredor + a passagem para a Rua 2
-  const pos = [...P.values()]; pos.forEach(p => { p.dist = Math.abs(p.cx - ent) / cel + (p.rua === 2 ? 3 : 0); p.vagas = Number(p.vagas) || 1; p.cap = p.bloq ? 0 : Math.max(cap0 * p.vagas, p.pares); });
+  const pos = [...P.values()]; pos.forEach(p => { p.dist = Math.abs(p.cx - ent) / cel + (p.rua === 2 ? 3 : 0); p.vagas = Number(M.layout.params?.vagas?.[p.key] ?? p.vagas) || 1; p.cap = p.bloq ? 0 : Math.max(cap0 * p.vagas, p.pares); });
   const ordD = [...pos].filter(p => !p.bloq).sort((a, b) => a.dist - b.dist), capT = ordD.reduce((t, p) => t + p.cap, 0); let c = 0;
   ordD.forEach(p => { const f = capT ? c / capT : 0; c += p.cap; p.zona = f < 0.35 ? 'frente' : f < 0.65 ? 'meio' : 'fundo'; });
   pos.filter(p => p.bloq).forEach(p => p.zona = 'bloqueado');
@@ -13192,8 +13227,11 @@ function desenhaMapaEST(){
   const pares = pos.reduce((t, p) => t + p.pares, 0), cap = pos.filter(p => !p.bloq).reduce((t, p) => t + Z.cap0 * p.vagas, 0);
   const espalhados = Z.modelos.filter(m => m.frag.size > 1), A = Z.modelos.filter(m => m.curva === 'A');
   const aFundo = A.filter(m => { const pr = [...m.frag.entries()].sort((a, b) => b[1] - a[1])[0]; return Z.P.get(pr[0])?.zona === 'fundo'; });
+  // "como fica depois do plano": o mesmo mapa com o conteúdo final de cada prédio (todas as visões: ocupação, curva, marca…)
+  const Zv = s.mplano && s.mdepois ? { ...Z, pos:Z.pos.map(p => ({ ...p, pares:s.mplano.ocupFinal.get(p.key) || 0 })),
+    MOD:new Map([...Z.MOD].map(([pai, m]) => [pai, { ...m, frag:new Map([...(s.mplano.fragFinal.get(pai) || new Map())].filter(([, v]) => v > 0.001)) }])) } : Z;
   const q = semAcento(s.mq || '').toUpperCase().trim(), dest = new Set();
-  if (q.length >= 2) for (const m of Z.MOD.values()) if (m.pai.includes(q) || semAcento(m.marca).toUpperCase().includes(q) || semAcento(m.produto).toUpperCase().includes(q) || [...m.skus].some(k => k.includes(q))) m.frag.forEach((v, k) => dest.add(k));
+  if (q.length >= 2) for (const m of Zv.MOD.values()) if (m.pai.includes(q) || semAcento(m.marca).toUpperCase().includes(q) || semAcento(m.produto).toUpperCase().includes(q) || [...m.skus].some(k => k.includes(q))) m.frag.forEach((v, k) => dest.add(k));
   s.msel ||= new Set();
   const plano = s.mplano ? { origem:new Set([...s.mplano.moves.map(x => x.de), ...s.mplano.esvaziar]), destino:new Set(s.mplano.moves.map(x => x.para)) } : null;
   const legenda = { ocupacao:[['#0b4fa8', '> 85% da capacidade'], ['#4f86d6', '50–85%'], ['#9dbbe8', '20–50%'], ['#d6e3f6', '< 20%'], ['#ffffff', 'vazio']],
@@ -13207,6 +13245,7 @@ function desenhaMapaEST(){
       <span class="is-chips"><span>Zoom</span>${[1, 2, 3].map(z => `<button class="is-chip ${s.mzoom === z ? 'on' : ''}" data-mz="${z}">${z === 1 ? 'inteiro' : z + '×'}</button>`).join('')}</span>
       <span style="flex:1"></span>
       ${ed ? `<button class="btn ${s.mbloq ? 'pri' : ''}" id="mp-bq">${s.mbloq ? '✓ Selecionando prédios' : '⛔ Bloquear prédios'}</button>` : ''}
+      ${ed ? '<button class="btn" id="mp-par" title="Pares por palete, % de enchimento do plano e posições de palete por prédio">⚙ Parâmetros</button>' : ''}
       <button class="btn" id="mp-plano">${s.mplano ? 'Fechar plano' : '🧭 Plano de reorganização'}</button><button class="btn" id="mp-imp">🖨 Imprimir mapa</button></div>
     <div class="es-kpis">
       <div class="es-k"><span>Pares no bloco</span><b>${fmtN(Math.round(pares))}</b><small>${fmtN(Z.modelos.length)} modelos · ${Math.round(pares / Math.max(1, cap) * 100)}% de ${fmtN(cap)} (${fmtN(Z.cap0)} por prédio)</small></div>
@@ -13216,7 +13255,7 @@ function desenhaMapaEST(){
       <div class="es-k ${aFundo.length ? 'alerta' : ''}"><span>Curva A no fundo</span><b>${fmtN(aFundo.length)}</b><small>de ${fmtN(A.length)} modelos A (vendas Cross${M.vendas.full ? ' + Full' : ''} de ${fmtN(Z.dias)} dias)</small></div></div>
     ${s.mbloq ? `<div class="aviso">Clique nos prédios para selecionar (${s.msel.size} selecionado(s)). <input id="mp-mot" placeholder="Motivo (ex.: infiltração)" style="width:220px"> <button class="btn pri" id="mp-bqok">Bloquear selecionados</button> <button class="btn" id="mp-bqx">Cancelar</button></div>` : ''}
     ${s.mplano ? `<div class="es-f" style="margin:4px 0"><span class="is-chips"><span>Mapa</span><button class="is-chip ${!s.mdepois ? 'on' : ''}" data-md="0">hoje (com o que sai e o que recebe)</button><button class="is-chip ${s.mdepois ? 'on' : ''}" data-md="1">como fica depois do plano</button></span></div>` : ''}
-    <div class="mp-wrap">${s.mplano && s.mdepois ? svgMapaEST({ ...Z, pos:Z.pos.map(p => ({ ...p, pares:s.mplano.ocupFinal.get(p.key) || 0 })) }, { modo:'ocupacao', zoom:s.mzoom })
+    <div class="mp-wrap">${s.mplano && s.mdepois ? svgMapaEST(Zv, { modo:s.mmodo, destaque:dest, zoom:s.mzoom })
       : svgMapaEST(Z, { modo:s.mmodo, destaque:dest, plano, sel:s.mbloq ? s.msel : null, zoom:s.mzoom })}</div>
     <div class="mp-leg">${(legenda || []).map(([c, t]) => `<span><i style="background:${c}"></i>${esc(t)}</span>`).join('')}<span><i style="background:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%226%22 height=%226%22><path d=%22M0 6L6 0%22 stroke=%22%23c0392b%22/></svg>');background-color:#fbe3e3"></i>bloqueado</span>
       ${plano ? '<span><i style="border:2px solid #e07b24;background:#fff"></i>sai</span><span><i style="border:2px solid #2a9d5c;background:#fff"></i>recebe</span>' : ''}${dest.size ? `<span><i style="border:3px solid #000;background:#fff"></i><b>"${esc(s.mq)}" em ${dest.size} prédio(s)</b> (o resto fica apagado)</span>` : ''}
@@ -13232,7 +13271,8 @@ function desenhaMapaEST(){
   const wr = $b.querySelector('.mp-wrap'); if (sc != null) wr.scrollLeft = sc; else if (s.mzoom > 1) { const e = Z.D.entrada?.x ?? Z.D.largura / 2; wr.scrollLeft = Math.max(0, wr.scrollWidth * e / Z.D.largura - wr.clientWidth / 2); }
   const mq = $b.querySelector('#mp-q'); mq.oninput = () => { s.mq = mq.value; clearTimeout(s.tmq); s.tmq = setTimeout(() => { re(); const n = document.getElementById('mp-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 350); };
   $b.querySelector('#mp-imp').onclick = () => imprimirMapaEST(Z);
-  $b.querySelector('#mp-plano').onclick = () => { s.mplano = s.mplano ? null : planoReorgEST(Z, s.mfases || { bloq:true, fora:true, cons:true, frente:true, fundo:true }, s.malvo || 0.9, s.mordem); re(); };
+  $b.querySelector('#mp-par')?.addEventListener('click', () => parametrosMapaEST(Z));
+  $b.querySelector('#mp-plano').onclick = () => { s.mplano = s.mplano ? null : planoReorgEST(Z, s.mfases || { bloq:true, fora:true, cons:true, frente:true, fundo:true }, s.malvo || (Number(Z.M.layout.params?.alvo) || 90) / 100, s.mordem); re(); };
   $b.querySelector('#mp-bq')?.addEventListener('click', () => { s.mbloq = !s.mbloq; s.msel.clear(); re(); });
   $b.querySelector('#mp-bqx')?.addEventListener('click', () => { s.mbloq = false; s.msel.clear(); re(); });
   $b.querySelector('#mp-bqok')?.addEventListener('click', async ev => { const mot = $b.querySelector('#mp-mot').value.trim(); if (!s.msel.size) return avisar('Selecione os prédios no mapa', true); if (!mot) return avisar('Informe o motivo', true);
@@ -13241,6 +13281,32 @@ function desenhaMapaEST(){
       avisar(`${s.msel.size} prédio(s) bloqueado(s)`); s.mbloq = false; s.msel.clear(); s.mplano = null; corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); ev.target.disabled = false; } });
   $b.querySelectorAll('.pm').forEach(g => g.onclick = () => { const k = g.dataset.k; if (s.mbloq) { s.msel.has(k) ? s.msel.delete(k) : s.msel.add(k); re(); return; } detalhePredioEST(Z, Z.P.get(k)); });
   if (s.mplano) desenhaPlanoEST(Z);
+}
+// parâmetros do bloco (só quem edita estoque): pares por palete, % de enchimento padrão do plano, prédios com mais de 1 posição de palete
+function parametrosMapaEST(Z){
+  const L = Z.M.layout, P = L.params || {}, vg = { ...(P.vagas || {}) };
+  Z.pos.forEach(p => { if (p.vagas !== 1 && !(p.key in vg)) vg[p.key] = p.vagas; });
+  const dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg); const fechar = () => dlg.remove(); dlg.onclick = e => { if (e.target === dlg) fechar(); };
+  const linhas = () => Object.entries(vg).filter(([, n]) => n !== 1).sort().map(([k, n]) => `<div class="es-f" style="margin:2px 0"><span class="end" style="width:90px">${rpEST(k)}</span><input type="number" min="1" max="20" value="${n}" data-vg="${k}" style="width:70px"> <span class="info">posição(ões) de palete</span><button class="btn" data-vx="${k}" style="padding:0 8px">✕</button></div>`).join('') || '<div class="info">Nenhum: todos os prédios valem 1 posição de palete.</div>';
+  dlg.innerHTML = `<div class="painel" style="width:min(560px,100%)"><h3 style="margin:0 0 6px">⚙ Parâmetros · ${esc(L.nome)}</h3>
+    <div class="es-f" style="flex-direction:column;align-items:stretch;gap:10px">
+      <label class="info">Pares por palete (capacidade de 1 posição) <input type="number" id="pa-cap" min="1" max="100000" value="${Z.cap0}" style="width:110px"></label>
+      <div class="info" style="margin-top:-6px">Hoje o bloco tem ${fmtN(Math.round(Z.pos.reduce((t, p) => t + p.pares, 0)))} pares em ${fmtN(Z.pos.filter(p => p.pares > 0).length)} prédios ocupados: média de ${fmtN(Math.round(Z.pos.reduce((t, p) => t + p.pares, 0) / Math.max(1, Z.pos.filter(p => p.pares > 0).reduce((t, p) => t + p.vagas, 0))))} por posição ocupada. Use o que cabe num palete cheio, não a média.</div>
+      <label class="info">Encher cada prédio até (padrão do plano de reorganização) <input type="number" id="pa-alvo" min="50" max="100" value="${Number(P.alvo) || 90}" style="width:80px"> %</label>
+      <div><b class="info">Prédios com mais de 1 posição de palete</b><div id="pa-vg">${linhas()}</div>
+        <div class="es-f"><input id="pa-novo" placeholder="ex.: R2-P1" style="width:110px"><input type="number" id="pa-novo-n" min="1" max="20" value="2" style="width:70px"><button class="btn" id="pa-add">+ Prédio</button></div></div></div>
+    <div class="info">Prédio que já tem mais pares do que a capacidade fica com a capacidade = o que tem hoje (o plano não tira produto só por isso).</div>
+    <div class="es-f" style="justify-content:flex-end"><button class="btn" id="pa-x">Cancelar</button><button class="btn pri" id="pa-ok">Salvar</button></div></div>`;
+  const liga = () => { dlg.querySelectorAll('[data-vg]').forEach(i => i.onchange = () => { vg[i.dataset.vg] = Math.round(+i.value) || 1; });
+    dlg.querySelectorAll('[data-vx]').forEach(b => b.onclick = () => { vg[b.dataset.vx] = 1; dlg.querySelector('#pa-vg').innerHTML = linhas(); liga(); }); };
+  liga();
+  dlg.querySelector('#pa-add').onclick = () => { const t = dlg.querySelector('#pa-novo').value.toUpperCase().match(/R(?:UA)?\s*(\d+)\D+P?\s*(\d+)/); if (!t) return avisar('Use o formato R2-P1', true);
+    const k = `${+t[1]}-${+t[2]}`; if (!Z.P.has(k)) return avisar(`${rpEST(k)} não existe no croqui`, true); vg[k] = Math.round(+dlg.querySelector('#pa-novo-n').value) || 2;
+    dlg.querySelector('#pa-vg').innerHTML = linhas(); liga(); dlg.querySelector('#pa-novo').value = ''; };
+  dlg.querySelector('#pa-x').onclick = fechar;
+  dlg.querySelector('#pa-ok').onclick = async ev => { ev.target.disabled = true;
+    try { await apiEST('/estoque/capacidade', { bloco:Z.M.bloco, cap_padrao:+dlg.querySelector('#pa-cap').value, alvo:+dlg.querySelector('#pa-alvo').value, vagas:vg });
+      fechar(); avisar('Parâmetros salvos'); state.est.mplano = null; state.est.malvo = null; corpoMapaEST(); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); ev.target.disabled = false; } };
 }
 function detalhePredioEST(Z, p){
   const ed = pode('estoque', 'editar'), dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg);
@@ -13347,7 +13413,7 @@ function planoReorgEST(Z, fases, alvo = 0.9, ordem = FASES_EST.map(f => f[0])){
   const validos = moves.filter(x => x.para), antes = new Set(Z.pos.filter(p => p.pares > 0).map(p => p.key)), depois = new Set(Z.pos.filter(p => (ocup.get(p.key) || 0) > 0.001).map(p => p.key));
   const porFase = ordem.map((k, i) => { const v = validos.filter(x => x.fase === i + 1); return { f:i + 1, k, n:v.length, pares:v.reduce((t, x) => t + x.q, 0) }; });
   return { moves, validos, porFase, alvo, ordem, esvaziar, pares:validos.reduce((t, x) => t + x.q, 0), liberados:[...antes].filter(k => !depois.has(k)).length, ocupados_depois:depois.size, fases,
-    ocupFinal:ocup };
+    ocupFinal:ocup, fragFinal:frag };
 }
 const rpEST = k => !k ? '—' : k.startsWith('F|') ? curtoEnd(k.slice(2)).replace(/^BL\d+-/, '').replace('RUA', 'R') : `R${k.replace('-', '-P')}`;
 function desenhaPlanoEST(Z){
