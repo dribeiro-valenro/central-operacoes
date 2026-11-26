@@ -654,7 +654,7 @@ const API_URL = 'https://tmfhizqwrznlqvdndeig.supabase.co/functions/v1/operacoes
 const ATUALIZA_MIN = 5;
 // Versão do portal: o empacotamento troca 'dev' pela data/hora da publicação. Quem estiver com a página aberta numa versão
 // mais antiga recebe o aviso e a página recarrega sozinha (espera fechar a janela de lançamento aberta).
-const VERSAO_PORTAL = '26/11 11:42';
+const VERSAO_PORTAL = '26/11 12:02';
 /* ==================================================== */
 
 const params = new URLSearchParams(location.search);
@@ -13014,37 +13014,52 @@ function imprimirEnderecosEST(P){
 }
 // ---------- aba Inventários: lista dos registros (um lote por impressão), filtros, corrigir data/pessoa, excluir, reimprimir ----------
 // etiquetas reutilizáveis de inventário (Bloco 4: pares unitários, sem ficha por prédio): cartão com campo grande para a data e o
-// nome de quem inventariou, para plastificar, escrever com canetão e prender na guia do porta-palete (faixa de 4 cm de altura).
-// A4 em pé, 7 linhas de 35 mm; 3 por linha (63 mm, 21 por folha) ou 2 por linha (95 mm, 14 por folha, mais espaço para escrever).
+// nome de quem inventariou, para plastificar, escrever com canetão e prender na guia do porta-palete.
+// O tamanho é livre (largura × altura em mm); a folha A4 em pé recebe quantos couberem, com margem de 5 mm e 4 mm entre os cartões.
+const TAM_ETQ_EST = [[95, 45, 'padrão'], [95, 38, 'cabe numa faixa de 4 cm'], [95, 55, 'maior'], [130, 45, 'largo'], [63, 35, 'pequeno (o primeiro modelo)']];
+const gradeEtqEST = (W, H) => { const gx = 4, gy = 4, cols = Math.max(1, Math.floor((200 + gx) / (W + gx))), rows = Math.max(1, Math.floor((287 + gy) / (H + gy))); return { cols, rows, gx, gy, n:cols * rows }; };
 function etiquetasInvEST(){
   const dlg = document.createElement('div'); dlg.className = 'pl-modal'; document.body.appendChild(dlg); const fechar = () => dlg.remove(); dlg.onclick = e => { if (e.target === dlg) fechar(); };
-  dlg.innerHTML = `<div class="painel" style="width:min(520px,100%)"><h3 style="margin:0 0 6px">🏷 Etiquetas de inventário (reutilizáveis)</h3>
-    <div class="info">Para plastificar e escrever com canetão. Cada cartão tem 35 mm de altura (cabe na guia de 4 cm já com a borda do plástico).</div>
+  let ult = {}; try { ult = JSON.parse(localStorage.getItem('etq_inv') || '{}'); } catch { /* sem armazenamento */ }
+  const W0 = ult.w || 95, H0 = ult.h || 45;
+  dlg.innerHTML = `<div class="painel" style="width:min(560px,100%)"><h3 style="margin:0 0 6px">🏷 Etiquetas de inventário (reutilizáveis)</h3>
+    <div class="info">Para plastificar e escrever com canetão. Escolha um tamanho pronto ou digite a largura e a altura do cartão (sem a borda do plástico).</div>
     <div class="es-f" style="flex-direction:column;align-items:stretch;gap:10px;margin-top:10px">
-      <label class="info">Cartões por linha
-        <select id="et-col"><option value="3">3 por linha · 63 × 35 mm · 21 por folha</option><option value="2">2 por linha · 95 × 35 mm · 14 por folha (mais espaço para o nome)</option></select></label>
-      <label class="info">Texto do topo <input id="et-tit" maxlength="30" value="INVENTARIADO"></label>
-      <label class="info">Linha de baixo do topo (opcional) <input id="et-sub" maxlength="30" value="BLOCO 4" placeholder="ex.: BLOCO 4"></label>
+      <div class="is-chips" style="flex-wrap:wrap">${TAM_ETQ_EST.map(([w, h, t]) => `<button class="is-chip" data-tam="${w}x${h}">${w} × ${h} mm · ${gradeEtqEST(w, h).n}/folha <small>${t}</small></button>`).join('')}</div>
+      <div class="es-f" style="margin:0"><label class="info">Largura <input id="et-w" type="number" min="40" max="200" value="${W0}" style="width:70px"> mm</label>
+        <label class="info">Altura <input id="et-h" type="number" min="25" max="140" value="${H0}" style="width:70px"> mm</label><b id="et-cab" class="info"></b></div>
+      <label class="info">Texto do topo <input id="et-tit" maxlength="30" value="${esc(ult.tit || 'INVENTARIADO')}"></label>
+      <label class="info">Linha de baixo do topo (opcional) <input id="et-sub" maxlength="30" value="${esc(ult.sub ?? 'BLOCO 4')}" placeholder="ex.: BLOCO 4"></label>
       <label class="info">Folhas <input id="et-n" type="number" min="1" max="20" value="1" style="width:80px"></label></div>
     <div class="es-f" style="justify-content:flex-end"><button class="btn" id="et-x">Fechar</button><button class="btn pri" id="et-ok">🖨 Imprimir</button></div></div>`;
-  dlg.querySelector('#et-x').onclick = fechar;
-  dlg.querySelector('#et-ok').onclick = () => { const col = +dlg.querySelector('#et-col').value, tit = dlg.querySelector('#et-tit').value.trim() || 'INVENTARIADO', sub = dlg.querySelector('#et-sub').value.trim(),
-      fol = Math.min(20, Math.max(1, Math.round(+dlg.querySelector('#et-n').value || 1))); imprimirEtiquetasInvEST(col, tit, sub, fol); };
+  const q = sel => dlg.querySelector(sel);
+  const conta = () => { const w = +q('#et-w').value, h = +q('#et-h').value, ok = w >= 40 && w <= 200 && h >= 25 && h <= 140, g = gradeEtqEST(w, h);
+    q('#et-cab').textContent = ok ? `→ ${g.cols} por linha × ${g.rows} linhas = ${g.n} por folha` : 'largura de 40 a 200 mm e altura de 25 a 140 mm';
+    dlg.querySelectorAll('[data-tam]').forEach(b => b.classList.toggle('on', b.dataset.tam === `${w}x${h}`)); q('#et-ok').disabled = !ok; };
+  dlg.querySelectorAll('[data-tam]').forEach(b => b.onclick = () => { const [w, h] = b.dataset.tam.split('x'); q('#et-w').value = w; q('#et-h').value = h; conta(); });
+  q('#et-w').oninput = conta; q('#et-h').oninput = conta; conta();
+  q('#et-x').onclick = fechar;
+  q('#et-ok').onclick = () => { const w = Math.round(+q('#et-w').value), h = Math.round(+q('#et-h').value), tit = q('#et-tit').value.trim() || 'INVENTARIADO', sub = q('#et-sub').value.trim(),
+      fol = Math.min(20, Math.max(1, Math.round(+q('#et-n').value || 1)));
+    try { localStorage.setItem('etq_inv', JSON.stringify({ w, h, tit, sub })); } catch { /* sem armazenamento */ }
+    imprimirEtiquetasInvEST(w, h, tit, sub, fol); };
 }
-function imprimirEtiquetasInvEST(col, tit, sub, folhas){
-  const W = col === 3 ? 63 : 95, H = 35, L = 7, gx = col === 3 ? 4 : 6, gy = 4, mx = (210 - col * W - (col - 1) * gx) / 2, my = (297 - L * H - (L - 1) * gy) / 2;
+function imprimirEtiquetasInvEST(W, H, tit, sub, folhas){
+  const { cols, rows, gx, gy } = gradeEtqEST(W, H), mx = (210 - cols * W - (cols - 1) * gx) / 2, my = (297 - rows * H - (rows - 1) * gy) / 2;
+  // tudo proporcional ao cartão: faixa do topo ≈ 22% da altura; o resto fica para os dois campos de escrever
+  const topo = Math.max(7, Math.min(13, H * 0.22)), fT = Math.max(9, Math.min(16, topo * 1.25 + (W > 80 ? 1 : 0))), fR = Math.max(6.5, Math.min(10, H * 0.17)), fB = Math.max(14, Math.min(30, (H - topo) * 0.55));
   const cartao = `<div class="ct"><div class="topo"><img src="${LOGOS.VALENRO}" alt=""><div><b>${esc(tit.toUpperCase())}</b>${sub ? `<small>${esc(sub.toUpperCase())}</small>` : ''}</div></div>
     <div class="campo"><span>DATA</span><i class="barras">/</i><i class="barras b2">/</i></div><div class="campo"><span>POR</span></div></div>`;
-  const pagina = `<section class="pg">${Array.from({ length:col * L }, () => cartao).join('')}</section>`;
-  imprimirHtml(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Etiquetas de inventário</title><style>
+  const pagina = `<section class="pg">${Array.from({ length:cols * rows }, () => cartao).join('')}</section>`;
+  imprimirHtml(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Etiquetas de inventário ${W}x${H}</title><style>
     @page{size:A4;margin:0} *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .pg{width:210mm;height:297mm;padding:${my}mm ${mx}mm;display:grid;grid-template-columns:repeat(${col},${W}mm);grid-auto-rows:${H}mm;column-gap:${gx}mm;row-gap:${gy}mm;page-break-after:always;break-after:page}
+    .pg{width:210mm;height:297mm;padding:${my}mm ${mx}mm;display:grid;grid-template-columns:repeat(${cols},${W}mm);grid-auto-rows:${H}mm;column-gap:${gx}mm;row-gap:${gy}mm;page-break-after:always;break-after:page;align-content:start}
     .pg:last-child{page-break-after:auto}
-    .ct{border:0.6mm solid #02285a;border-radius:2.5mm;overflow:hidden;display:grid;grid-template-rows:8mm 1fr 1fr;outline:0.2mm dashed #9aa5b5;outline-offset:1.6mm}
-    .topo{background:#02285a;color:#fff;display:flex;align-items:center;gap:2mm;padding:0 2.5mm} .topo img{height:5.2mm;background:#fff;border-radius:1mm;padding:.4mm}
-    .topo b{font-size:${col === 3 ? 10 : 11.5}pt;letter-spacing:.4mm;display:block;line-height:1} .topo small{font-size:6.5pt;opacity:.85;letter-spacing:.3mm;display:block;margin-top:.4mm}
-    .campo{position:relative;border-top:0.3mm solid #c9cfda;display:flex;align-items:flex-start;padding:1mm 2mm} .campo span{font-size:6.5pt;font-weight:700;color:#3c4a5e;letter-spacing:.3mm}
-    .campo .barras{position:absolute;top:50%;transform:translateY(-45%);font-style:normal;font-size:16pt;color:#c9cfda;left:${col === 3 ? 34 : 42}%} .campo .b2{left:${col === 3 ? 62 : 64}%}
+    .ct{border:0.7mm solid #02285a;border-radius:2.5mm;overflow:hidden;display:grid;grid-template-rows:${topo.toFixed(1)}mm 1fr 1fr;outline:0.2mm dashed #9aa5b5;outline-offset:1.6mm}
+    .topo{background:#02285a;color:#fff;display:flex;align-items:center;gap:2.5mm;padding:0 3mm} .topo img{height:${(topo * 0.68).toFixed(1)}mm;background:#fff;border-radius:1mm;padding:.5mm}
+    .topo b{font-size:${fT.toFixed(1)}pt;letter-spacing:.5mm;display:block;line-height:1} .topo small{font-size:${(fT * 0.58).toFixed(1)}pt;opacity:.85;letter-spacing:.3mm;display:block;margin-top:.5mm}
+    .campo{position:relative;border-top:0.3mm solid #c9cfda;display:flex;align-items:flex-start;padding:1mm 2.5mm} .campo span{font-size:${fR.toFixed(1)}pt;font-weight:700;color:#3c4a5e;letter-spacing:.3mm}
+    .campo .barras{position:absolute;top:50%;transform:translateY(-45%);font-style:normal;font-size:${fB.toFixed(0)}pt;color:#c9cfda;left:${W >= 80 ? 40 : 36}%} .campo .b2{left:${W >= 80 ? 63 : 63}%}
   </style></head><body>${Array.from({ length:folhas }, () => pagina).join('')}</body></html>`);
 }
 async function corpoInventariosEST(){
