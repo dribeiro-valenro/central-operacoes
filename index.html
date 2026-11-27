@@ -654,7 +654,7 @@ const API_URL = 'https://tmfhizqwrznlqvdndeig.supabase.co/functions/v1/operacoes
 const ATUALIZA_MIN = 5;
 // Versão do portal: o empacotamento troca 'dev' pela data/hora da publicação. Quem estiver com a página aberta numa versão
 // mais antiga recebe o aviso e a página recarrega sozinha (espera fechar a janela de lançamento aberta).
-const VERSAO_PORTAL = '27/11 10:58';
+const VERSAO_PORTAL = '27/11 14:09';
 /* ==================================================== */
 
 const params = new URLSearchParams(location.search);
@@ -9759,7 +9759,7 @@ function tipoPeloCabecalho(cab){
   const t = cab.join(' | ');
   if (/separad[oa] por|separacao iniciada/.test(t)) return 'separacao';
   if (/conferid[oa] por|conferencia iniciada/.test(t)) return 'conferencia';
-  if (/inventariad[oa] por|inventario/.test(t)) return 'inventario';
+  if (/inventariad[oa] por|inventario|contad[oa] por/.test(t)) return 'inventario';
   if (/movimentad[oa] por|movimentacao/.test(t)) return 'movimentacao';
   if (/alocad[oa] por|guardad[oa] por|enderecad[oa] por|alocacao/.test(t)) return 'alocacao';
   if (/recebid[oa] por|recebimento/.test(t)) return 'recebimento';
@@ -9780,14 +9780,15 @@ function lerRelatorioSeenc(txt, lojas, tipoEscolhido, lojaEscolhida){
   const ehDataHora = i => /^\d{2}\/\d{2}\/\d{4}/.test(String(amostra(i)).trim());
   const tempos = cab.map((h, i) => i).filter(i => ehDataHora(i) && !/venda|pedido|nascimento|validade|fabricac/.test(cab[i]));
   const C = {
-    op:achar(/( por|^usuario|^operador|^responsavel|^colaborador)$/), pedido:achar(/^pedido$|^numero do pedido$/), mkt:achar(/^pedido no marketplace$/), venda:achar(/^data da venda$/),
+    // inventário: o relatório tem "Criado por", "Cancelado por", "Ação por"... quem contou é o "Contado por"
+    op:[achar(/^contad[oa] por$|^inventariad[oa] por$/)].find(i => i >= 0) ?? achar(/( por|^usuario|^operador|^responsavel|^colaborador)$/), pedido:achar(/^pedido$|^numero do pedido$/), mkt:achar(/^pedido no marketplace$/), venda:achar(/^data da venda$/),
     status:achar(/^status|^situacao/), conta:achar(/^conta/), canal:achar(/^canal$/), forma:achar(/^forma de entrega$/), perfil:achar(/^perfil/), motivo:achar(/^motivo/),
     sku:achar(/sku/), gtin:achar(/gtin|^ean/), produto:achar(/^produto|^descricao/),
     qsol:achar(/^quantidade solicitada|^qtd solicitada/), qend:achar(/quantidade .* no endereco/),
     end:achar(/endereco.*origem|^origem|^endereco$|^local$|^posicao$/), dest:achar(/endereco.*destino|^destino/),
     ini:tempos.find(i => /inici/.test(cab[i])) ?? -1, fim:tempos.find(i => /finaliz|termin|conclu/.test(cab[i])) ?? -1,
   };
-  C.feito = tempos.find(i => / em$/.test(cab[i]) && i !== C.ini && i !== C.fim) ?? tempos.find(i => i !== C.ini && i !== C.fim) ?? -1;
+  C.feito = tempos.find(i => /^contad[oa] em$|^inventariad[oa] em$/.test(cab[i])) ?? tempos.find(i => / em$/.test(cab[i]) && i !== C.ini && i !== C.fim) ?? tempos.find(i => i !== C.ini && i !== C.fim) ?? -1;
   const qtds = cab.map((h, i) => i).filter(i => /^(quantidade|qtd|qtde)/.test(cab[i]) && i !== C.qsol && i !== C.qend);
   C.qtd = qtds.find(i => /separad|movimentad|contad|conferid|alocad|recebid|expedid|inventariad/.test(cab[i])) ?? qtds.at(-1) ?? -1;
   if (C.end < 0) C.end = achar(/endereco/);
