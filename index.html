@@ -615,7 +615,7 @@
   .tema-in{font:inherit;font-size:12px;width:110px;padding:3px 6px;border:1px solid var(--line);border-radius:6px}
   .btn.raio-on{background:var(--amarelo);border-color:var(--amarelo)}
   @media (max-width:900px){ .fx-grade,.comp-grade{grid-template-columns:1fr} }
-  .toast{position:fixed;z-index:40;bottom:90px;left:50%;transform:translateX(-50%);background:#1b2333;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1b2333;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:200;box-shadow:0 4px 14px rgba(0,0,0,.2)}
   .toast.ruim{background:#8a1f1f}
 </style>
 </head>
@@ -654,7 +654,7 @@ const API_URL = 'https://tmfhizqwrznlqvdndeig.supabase.co/functions/v1/operacoes
 const ATUALIZA_MIN = 5;
 // Versão do portal: o empacotamento troca 'dev' pela data/hora da publicação. Quem estiver com a página aberta numa versão
 // mais antiga recebe o aviso e a página recarrega sozinha (espera fechar a janela de lançamento aberta).
-const VERSAO_PORTAL = '26/11 12:02';
+const VERSAO_PORTAL = '27/11 10:58';
 /* ==================================================== */
 
 const params = new URLSearchParams(location.search);
@@ -11857,7 +11857,11 @@ async function abrirMkt(id){
     ${r.eventos?.length ? `<details style="margin-top:8px"><summary class="info">Histórico</summary><div class="mk-tl">${r.eventos.map(e => `<div><b>${quando(e.em)}</b><span>${esc(quemTxt(e.por))} · ${esc(e.acao)}</span></div>`).join('')}</div></details>` : ''}</div>`;
   document.body.appendChild(dlg); const q = k => dlg.querySelector(k), $a = q('#mk-acao');
   const fechar = () => dlg.remove(), feito = msg => { fechar(); avisar(msg); state.mk?.modo === 'lista' ? carregarListaMkt() : carregarMkt(); };
-  const enviar = async (corpo, msg) => { try { await apiMkt('/mkt/acao', { id:x.id, ...corpo }); feito(msg); } catch (e) { if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
+  // botão mostra que está gravando (e não aceita clique repetido); se der erro, volta e mostra o motivo
+  const enviar = async (corpo, msg) => { const bt = q('#mk-ok'), txt = bt?.textContent; if (bt?.disabled) return;
+    if (bt) { bt.disabled = true; bt.textContent = 'Salvando…'; }
+    try { await apiMkt('/mkt/acao', { id:x.id, ...corpo }); feito(msg); }
+    catch (e) { if (bt) { bt.disabled = false; bt.textContent = txt; } if (e instanceof SemSessao) throw e; avisar(e.message, true); } };
   q('[data-x]').onclick = fechar;
   q('#mk-ficha').onclick = () => imprimirHtml(fichaMkt(x));
   const ed = q('#mk-edit'); if (ed) ed.onclick = () => { fechar(); formMkt(x); };
