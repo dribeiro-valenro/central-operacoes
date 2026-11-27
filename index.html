@@ -654,7 +654,7 @@ const API_URL = 'https://tmfhizqwrznlqvdndeig.supabase.co/functions/v1/operacoes
 const ATUALIZA_MIN = 5;
 // Versão do portal: o empacotamento troca 'dev' pela data/hora da publicação. Quem estiver com a página aberta numa versão
 // mais antiga recebe o aviso e a página recarrega sozinha (espera fechar a janela de lançamento aberta).
-const VERSAO_PORTAL = '27/11 14:09';
+const VERSAO_PORTAL = '27/11 16:14';
 /* ==================================================== */
 
 const params = new URLSearchParams(location.search);
@@ -12819,7 +12819,9 @@ async function carregarEST(){
 function enderecosEST(D){
   const M = new Map();
   for (const e of D.enderecos) { const x = M.get(e.pos) || { pos:e.pos, lojas:[], pares:0, skus:0, neg:0, ...partesPosPk(e.pos) }; x.lojas.push(e.loja); x.pares += Number(e.pares) || 0; x.skus += Number(e.skus) || 0; x.neg += Number(e.negativos) || 0; M.set(e.pos, x); }
-  return [...M.values()].map(x => ({ ...x, inv:D.inventarios[x.pos] || null })).sort((a, b) => cmpEnd(a.pos, b.pos));
+  // vale o inventário mais recente do endereço ou do prédio inteiro (prédio inventariado vazio é registrado sem andar)
+  const invDe = pos => { const a = D.inventarios[pos], b = D.inventarios[String(pos).replace(/-A\d+$/, '')]; return !a ? b || null : !b || a.em >= b.em ? a : b; };
+  return [...M.values()].map(x => ({ ...x, inv:invDe(x.pos) })).sort((a, b) => cmpEnd(a.pos, b.pos));
 }
 function renderEST(){
   const $c = document.getElementById('es'), D = state.estDados, s = state.est; if (!$c || !D) return;
